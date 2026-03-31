@@ -65,6 +65,11 @@ sync_files() {
             for f in "$SOURCE_DIR/PRD/"*.docx "$SOURCE_DIR/PRD/"*.md; do
                 [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/PRD/"
             done
+            # 自动将最新版 md 复制为 latest.md（供在线阅读页使用）
+            LATEST_MD=$(ls -t "$SOURCE_DIR/PRD/"*.md 2>/dev/null | head -1)
+            if [ -n "$LATEST_MD" ]; then
+                smart_cp "$LATEST_MD" "$REPO_DIR/$TARGET/PRD/latest.md"
+            fi
         fi
 
         # UI 设计稿 - pen 文件
