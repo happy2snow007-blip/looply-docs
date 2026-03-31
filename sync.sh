@@ -4,7 +4,11 @@
 #       ./sync.sh --watch   (持续监控，文件变化自动同步)
 
 REPO_DIR="$HOME/looply-docs"
-SOURCE_DIR="$HOME/Desktop/海外业务登录注册"
+
+# 模块配置：本地源目录 → 仓库目标目录
+declare -A MODULES
+MODULES["$HOME/Desktop/海外业务登录注册"]="docs"
+MODULES["$HOME/Desktop/海外业务首页"]="docs-首页"
 
 # 颜色
 GREEN='\033[0;32m'
@@ -14,31 +18,48 @@ NC='\033[0m'
 sync_files() {
     echo -e "${YELLOW}[同步中]${NC} 检查文件变化..."
 
-    CHANGED=0
+    for SOURCE_DIR in "${!MODULES[@]}"; do
+        TARGET="${MODULES[$SOURCE_DIR]}"
 
-    # 产品架构图 - 复制最新版 SVG
-    for f in "$SOURCE_DIR/产品架构图/"*.svg; do
-        [ -f "$f" ] && cp "$f" "$REPO_DIR/docs/产品架构图/" && CHANGED=1
-    done
+        # 产品架构图 - SVG
+        if [ -d "$SOURCE_DIR/产品架构图" ]; then
+            mkdir -p "$REPO_DIR/$TARGET/产品架构图"
+            for f in "$SOURCE_DIR/产品架构图/"*.svg; do
+                [ -f "$f" ] && cp "$f" "$REPO_DIR/$TARGET/产品架构图/"
+            done
+        fi
 
-    # 实体关系图 - 复制 HTML
-    for f in "$SOURCE_DIR/实体关系图/"*.html; do
-        [ -f "$f" ] && cp "$f" "$REPO_DIR/docs/实体关系图/" && CHANGED=1
-    done
+        # 实体关系图 - HTML
+        if [ -d "$SOURCE_DIR/实体关系图" ]; then
+            mkdir -p "$REPO_DIR/$TARGET/实体关系图"
+            for f in "$SOURCE_DIR/实体关系图/"*.html; do
+                [ -f "$f" ] && cp "$f" "$REPO_DIR/$TARGET/实体关系图/"
+            done
+        fi
 
-    # 系统流程图 - 复制 SVG
-    for f in "$SOURCE_DIR/系统流程图/"*.svg; do
-        [ -f "$f" ] && cp "$f" "$REPO_DIR/docs/系统流程图/" && CHANGED=1
-    done
+        # 系统流程图 - SVG
+        if [ -d "$SOURCE_DIR/系统流程图" ]; then
+            mkdir -p "$REPO_DIR/$TARGET/系统流程图"
+            for f in "$SOURCE_DIR/系统流程图/"*.svg; do
+                [ -f "$f" ] && cp "$f" "$REPO_DIR/$TARGET/系统流程图/"
+            done
+        fi
 
-    # PRD - 复制 docx 和 md
-    for f in "$SOURCE_DIR/PRD/"*.docx "$SOURCE_DIR/PRD/"*.md; do
-        [ -f "$f" ] && cp "$f" "$REPO_DIR/docs/PRD/" && CHANGED=1
-    done
+        # PRD - docx 和 md
+        if [ -d "$SOURCE_DIR/PRD" ]; then
+            mkdir -p "$REPO_DIR/$TARGET/PRD"
+            for f in "$SOURCE_DIR/PRD/"*.docx "$SOURCE_DIR/PRD/"*.md; do
+                [ -f "$f" ] && cp "$f" "$REPO_DIR/$TARGET/PRD/"
+            done
+        fi
 
-    # UI 设计稿 - 复制 pen 文件
-    for f in "$SOURCE_DIR/UI/"*.pen; do
-        [ -f "$f" ] && cp "$f" "$REPO_DIR/docs/UI/" && CHANGED=1
+        # UI 设计稿 - pen 文件
+        if [ -d "$SOURCE_DIR/UI" ]; then
+            mkdir -p "$REPO_DIR/$TARGET/UI"
+            for f in "$SOURCE_DIR/UI/"*.pen; do
+                [ -f "$f" ] && cp "$f" "$REPO_DIR/$TARGET/UI/"
+            done
+        fi
     done
 
     # 检查 git 是否有变化
@@ -62,18 +83,20 @@ fi
 
 # 监控模式
 echo -e "${GREEN}[监控模式]${NC} 正在监控文件变化，按 Ctrl+C 停止"
-echo "  监控目录: $SOURCE_DIR"
+for SOURCE_DIR in "${!MODULES[@]}"; do
+    echo "  监控目录: $SOURCE_DIR"
+done
 echo ""
 
-# 用 fswatch（macOS 自带）或 fallback 到轮询
+# 用 fswatch 或 fallback 到轮询
 if command -v fswatch &> /dev/null; then
-    fswatch -r -l 5 \
-        "$SOURCE_DIR/产品架构图" \
-        "$SOURCE_DIR/实体关系图" \
-        "$SOURCE_DIR/系统流程图" \
-        "$SOURCE_DIR/PRD" \
-        "$SOURCE_DIR/UI" | while read -r event; do
-        # 忽略 .DS_Store
+    WATCH_DIRS=()
+    for SOURCE_DIR in "${!MODULES[@]}"; do
+        for sub in 产品架构图 实体关系图 系统流程图 PRD UI; do
+            [ -d "$SOURCE_DIR/$sub" ] && WATCH_DIRS+=("$SOURCE_DIR/$sub")
+        done
+    done
+    fswatch -r -l 5 "${WATCH_DIRS[@]}" | while read -r event; do
         [[ "$event" == *".DS_Store"* ]] && continue
         echo -e "${YELLOW}[检测到变化]${NC} $event"
         sync_files
