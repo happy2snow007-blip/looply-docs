@@ -8,7 +8,7 @@
 const ER_CONFIG = {
   // 标题和版本
   title: 'looply · 登录注册模块 实体关系图',
-  version: 'v9.1 · 自动布局 · 2026.03',
+  version: 'v8.0 · 自动布局 · 2026.03',
 
   // 分组定义：key 为分组ID，core 为核心实体（居中显示）
   groups: {
@@ -16,8 +16,7 @@ const ER_CONFIG = {
     auth:     { color:'#2980b9', border:'#b3d9f2', bg:'#e8f4fd', label:'身份认证' },
     security: { color:'#b8860b', border:'#f2c9a3', bg:'#fef4e8', label:'安全与合规' },
     device:   { color:'#c0392b', border:'#f5b7b1', bg:'#fde8e8', label:'设备/日志' },
-    profile:  { color:'#2e7d52', border:'#7cb89e', bg:'#e8f5ee', label:'个人资料' },
-    common:   { color:'#6c5ce7', border:'#b8b0e8', bg:'#f0eef9', label:'公共能力' }
+    profile:  { color:'#2e7d52', border:'#7cb89e', bg:'#e8f5ee', label:'个人资料' }
   },
 
   // 实体列表
@@ -59,8 +58,8 @@ const ER_CONFIG = {
       {n:'用户ID', col:'user_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 user_account.id', tech:true}
     ], note:'可同时绑定多个三方平台', techNote:'唯一约束: uk_provider_uid(provider, provider_uid)\n索引: idx_user_id(user_id)'},
 
-    { id:'vercode', name:'验证码 VerificationCode', group:'common', table:'verification_code', fields:[
-      {n:'用途（注册/重置/绑定）', col:'purpose', t:'TINYINT', constraint:'NOT NULL', desc:'1=注册 2=重置 3=绑定'},
+    { id:'vercode', name:'验证码 VerificationCode', group:'auth', table:'verification_code', fields:[
+      {n:'用途（注册/登录/重置/绑定）', col:'purpose', t:'TINYINT', constraint:'NOT NULL', desc:'1=注册 2=登录 3=重置 4=绑定'},
       {n:'发送渠道（邮箱/SMS）', col:'channel', t:'TINYINT', constraint:'NOT NULL', desc:'1=邮箱 2=SMS'},
       {n:'接收地址', col:'target', t:'VARCHAR(128)', constraint:'NOT NULL', desc:'邮箱或手机号'},
       {n:'验证码值', col:'code', t:'VARCHAR(10)', constraint:'NOT NULL', desc:''},
@@ -69,21 +68,29 @@ const ER_CONFIG = {
       {n:'状态（待验证/已使用/已过期）', col:'status', t:'TINYINT', constraint:'NOT NULL DEFAULT 1', desc:'1=待验证 2=已使用 3=已过期'},
       {n:'用户ID', col:'user_id', t:'BIGINT', constraint:'INDEX', desc:'关联 user_account.id，注册时可为空', tech:true},
       {n:'创建时间', col:'created_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true}
-    ], note:'平台公共能力，本期随登录注册模块建设', techNote:'索引: idx_target_purpose(target, purpose)\n索引: idx_user_id(user_id)'},
+    ], techNote:'索引: idx_target_purpose(target, purpose)\n索引: idx_user_id(user_id)'},
+
+    { id:'mfa', name:'风险认证 MFAConfig', group:'security', table:'user_mfa_config', fields:[
+      {n:'MFA类型（TOTP/SMS/邮箱）', col:'mfa_type', t:'TINYINT', constraint:'NOT NULL', desc:'1=TOTP 2=SMS 3=邮箱'},
+      {n:'密钥', col:'secret_key', t:'VARCHAR(256)', constraint:'NOT NULL', desc:'加密存储'},
+      {n:'是否启用', col:'is_enabled', t:'TINYINT', constraint:'NOT NULL DEFAULT 0', desc:'0=未启用 1=已启用'},
+      {n:'配置时间', col:'created_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true},
+      {n:'用户ID', col:'user_id', t:'BIGINT', constraint:'NOT NULL, FK, UNIQUE', desc:'关联 user_account.id，每用户最多一条', tech:true}
+    ], note:'每用户最多一种MFA', techNote:'唯一约束: uk_user_id(user_id)'},
 
     { id:'risk', name:'风控记录 RiskRecord', group:'security', table:'risk_record', fields:[
       {n:'风控类型（暴力破解/异地/新设备）', col:'risk_type', t:'TINYINT', constraint:'NOT NULL', desc:'1=暴力破解 2=异地登录 3=新设备'},
       {n:'触发规则', col:'rule_code', t:'VARCHAR(64)', constraint:'NOT NULL', desc:'规则编码'},
-      {n:'处置动作（放行/验证/拦截/封禁）', col:'action', t:'TINYINT', constraint:'NOT NULL', desc:'1=放行 2=验证 3=拦截 4=封禁'},
-      {n:'验证方式（人机验证/SMS/邮箱）', col:'verify_method', t:'TINYINT', constraint:'', desc:'action=2时填写：1=人机验证 2=SMS 3=邮箱'},
-      {n:'最终是否放行', col:'passed', t:'TINYINT(1)', constraint:'NOT NULL', desc:'1=是 0=否'},
+      {n:'处理结果（放行/验证/拦截/封禁）', col:'result', t:'TINYINT', constraint:'NOT NULL', desc:'1=放行 2=验证 3=拦截 4=封禁'},
+      {n:'验证方式', col:'verify_method', t:'TINYINT', constraint:'', desc:'result=2时填写：1=人机验证 2=TOTP 3=SMS 4=邮箱'},
+      {n:'验证结果', col:'verify_result', t:'TINYINT', constraint:'', desc:'1=通过 2=失败 3=超时'},
       {n:'IP', col:'ip_address', t:'VARCHAR(45)', constraint:'', desc:'IPv4/IPv6'},
       {n:'触发时间', col:'created_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true},
       {n:'用户ID', col:'user_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 user_account.id', tech:true}
     ], techNote:'索引: idx_user_id(user_id), idx_created_at(created_at)'},
 
-    { id:'audit', name:'账号变更日志 AccountChangeLog', group:'security', table:'account_change_log', fields:[
-      {n:'操作类型（改密码/绑定凭证/解绑凭证/绑定三方/解绑三方/注销）', col:'action_type', t:'TINYINT', constraint:'NOT NULL', desc:'1=改密码 2=绑定凭证 3=解绑凭证 4=绑定三方 5=解绑三方 6=注销'},
+    { id:'audit', name:'审计日志 AuditLog', group:'security', table:'audit_log', fields:[
+      {n:'操作类型（改密码/绑手机/注销）', col:'action_type', t:'TINYINT', constraint:'NOT NULL', desc:'1=改密码 2=绑手机 3=注销 4=改邮箱'},
       {n:'操作详情', col:'detail', t:'TEXT', constraint:'', desc:'JSON格式'},
       {n:'IP', col:'ip_address', t:'VARCHAR(45)', constraint:'', desc:'', tech:true},
       {n:'设备信息', col:'device_info', t:'VARCHAR(256)', constraint:'', desc:'User-Agent', tech:true},
@@ -92,10 +99,11 @@ const ER_CONFIG = {
     ], techNote:'索引: idx_user_id(user_id), idx_created_at(created_at)'},
 
     { id:'session', name:'登录会话 Session', group:'device', table:'user_session', fields:[
+      {n:'AccessToken', col:'access_token', t:'VARCHAR(512)', constraint:'NOT NULL, UNIQUE', desc:''},
       {n:'RefreshToken', col:'refresh_token', t:'VARCHAR(512)', constraint:'NOT NULL, UNIQUE', desc:''},
-      {n:'登录方式（密码/验证码/三方）', col:'login_method', t:'TINYINT', constraint:'NOT NULL', desc:'1=密码 2=验证码 3=三方'},
+      {n:'登录方式', col:'login_method', t:'TINYINT', constraint:'NOT NULL', desc:'1=密码 2=验证码 3=三方'},
       {n:'登录时间', col:'created_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true},
-      {n:'过期时间', col:'expired_at', t:'DATETIME', constraint:'NOT NULL', desc:''},
+      {n:'过期时间', col:'expired_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true},
       {n:'状态（活跃/过期/吊销）', col:'status', t:'TINYINT', constraint:'NOT NULL DEFAULT 1', desc:'1=活跃 2=过期 3=吊销'},
       {n:'用户ID', col:'user_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 user_account.id', tech:true},
       {n:'设备ID', col:'device_id', t:'BIGINT', constraint:'FK, INDEX', desc:'关联 user_device.id', tech:true}
@@ -103,6 +111,7 @@ const ER_CONFIG = {
 
     { id:'device', name:'设备 Device', group:'device', table:'user_device', fields:[
       {n:'设备指纹', col:'fingerprint', t:'VARCHAR(128)', constraint:'NOT NULL, UNIQUE', desc:'设备唯一标识'},
+      {n:'设备类型', col:'device_type', t:'VARCHAR(20)', constraint:'', desc:'mobile/tablet/desktop'},
       {n:'操作系统', col:'os', t:'VARCHAR(32)', constraint:'', desc:'iOS/Android/Windows/macOS'},
       {n:'是否信任设备', col:'is_trusted', t:'TINYINT', constraint:'NOT NULL DEFAULT 0', desc:'0=不信任 1=信任'},
       {n:'首次登录时间', col:'created_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true},
@@ -111,7 +120,7 @@ const ER_CONFIG = {
     ], techNote:'索引: idx_user_id(user_id)'},
 
     { id:'loginlog', name:'登录日志 LoginLog', group:'device', table:'login_log', fields:[
-      {n:'登录方式（密码/验证码/三方）', col:'login_method', t:'TINYINT', constraint:'NOT NULL', desc:'1=密码 2=验证码 3=三方'},
+      {n:'登录方式', col:'login_method', t:'TINYINT', constraint:'NOT NULL', desc:'1=密码 2=验证码 3=三方'},
       {n:'IP', col:'ip_address', t:'VARCHAR(45)', constraint:'', desc:''},
       {n:'地理位置', col:'location', t:'VARCHAR(64)', constraint:'', desc:'国家/城市'},
       {n:'登录结果（成功/失败/拦截）', col:'result', t:'TINYINT', constraint:'NOT NULL', desc:'1=成功 2=失败 3=拦截'},
@@ -124,7 +133,7 @@ const ER_CONFIG = {
     { id:'profile', name:'用户资料 UserProfile', group:'profile', table:'user_profile', fields:[
       {n:'昵称', col:'nickname', t:'VARCHAR(32)', constraint:'', desc:''},
       {n:'头像URL', col:'avatar_url', t:'VARCHAR(512)', constraint:'', desc:''},
-      {n:'性别（未知/男/女）', col:'gender', t:'TINYINT', constraint:'DEFAULT 0', desc:'0=未知 1=男 2=女'},
+      {n:'性别', col:'gender', t:'TINYINT', constraint:'DEFAULT 0', desc:'0=未知 1=男 2=女'},
       {n:'生日', col:'birthday', t:'DATE', constraint:'', desc:''},
       {n:'个人简介', col:'bio', t:'VARCHAR(256)', constraint:'', desc:''},
       {n:'语言偏好', col:'language', t:'VARCHAR(10)', constraint:'DEFAULT "en"', desc:'ISO 639-1'},
@@ -134,10 +143,11 @@ const ER_CONFIG = {
     ], note:'与 User 一对一', techNote:'唯一约束: uk_user_id(user_id)'},
 
     { id:'consent', name:'合规同意 ConsentRecord', group:'security', table:'user_consent', fields:[
-      {n:'同意类型（隐私政策/用户协议）', col:'consent_type', t:'TINYINT', constraint:'NOT NULL', desc:'1=隐私政策 2=用户协议'},
+      {n:'同意类型（隐私政策/协议/Cookie/GDPR）', col:'consent_type', t:'TINYINT', constraint:'NOT NULL', desc:'1=隐私政策 2=用户协议 3=Cookie 4=GDPR'},
       {n:'协议版本', col:'policy_version', t:'VARCHAR(16)', constraint:'NOT NULL', desc:'如 v1.0'},
       {n:'适用国家', col:'country_code', t:'VARCHAR(10)', constraint:'', desc:'ISO 3166-1'},
       {n:'同意时间', col:'agreed_at', t:'DATETIME', constraint:'NOT NULL', desc:''},
+      {n:'撤回时间', col:'revoked_at', t:'DATETIME', constraint:'', desc:'为空表示未撤回'},
       {n:'用户ID', col:'user_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 user_account.id', tech:true}
     ], techNote:'唯一约束: uk_user_type_version(user_id, consent_type, policy_version)\n索引: idx_user_id(user_id)'}
   ],
@@ -152,8 +162,9 @@ const ER_CONFIG = {
     {from:'user', to:'credential',  type:'1:N',   label:'拥有多个凭证'},
     {from:'user', to:'oauth',       type:'1:N',   label:'绑定多个三方'},
     {from:'user', to:'vercode',     type:'1:N',   label:'请求验证码'},
+    {from:'user', to:'mfa',         type:'1:0..1',label:'配置MFA'},
     {from:'user', to:'risk',        type:'1:N',   label:'风控记录'},
-    {from:'user', to:'audit',       type:'1:N',   label:'账号变更日志'},
+    {from:'user', to:'audit',       type:'1:N',   label:'审计日志'},
     {from:'user', to:'session',     type:'1:N',   label:'登录会话', indirect:true},
     {from:'user', to:'device',      type:'1:N',   label:'使用设备'},
     {from:'user', to:'loginlog',    type:'1:N',   label:'登录日志', indirect:true},
@@ -498,7 +509,7 @@ function render() {
   Object.keys(groupBounds).forEach(g => {
     if (g === 'core') return;
     const gp = groupBounds[g], gi = GROUPS[g];
-    html += `<div class="gl" style="left:${gp.minX}px;top:${gp.minY - 24}px;color:${gi.color};background:${gi.bg}">${gi.label}</div>`;
+    html += `<div class="gl" style="left:${gp.minX}px;top:${gp.minY - 16}px;color:${gi.color};background:${gi.bg}">${gi.label}</div>`;
   });
 
   // 实体卡片
