@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>实体关系图</title>
+<!-- ========== 数据区（新项目只改这里）========== -->
+<script>
+const ER_CONFIG = {
+  // 标题和版本
+  title: 'looply · 登录注册模块 实体关系图',
+  version: 'v9.0 · 自动布局 · 2026.03',
+
+  // 分组定义：key 为分组ID，core 为核心实体（居中显示）
+  groups: {
+    core:     { color:'#1a73a7', border:'#1a73a7', bg:'#e8f4fd', label:'核心' },
+    auth:     { color:'#2980b9', border:'#b3d9f2', bg:'#e8f4fd', label:'身份认证' },
+    security: { color:'#b8860b', border:'#f2c9a3', bg:'#fef4e8', label:'安全与合规' },
+    device:   { color:'#c0392b', border:'#f5b7b1', bg:'#fde8e8', label:'设备/日志' },
+    profile:  { color:'#2e7d52', border:'#7cb89e', bg:'#e8f5ee', label:'个人资料' }
+  },
+
+  // 实体列表
+  // id: 唯一标识（用于关系引用）
+  // name: 显示名称（中文名 + 英文名）
+  // group: 所属分组ID
+  // fields: 字段列表，n=字段名（产品视图显示），t=类型约束（技术视图显示）
+  // note: 产品视图备注（可选）
+  // techNote: 技术视图备注（可选）
+  entities: [
+    { id:'user', name:'用户 User', group:'core', table:'user_account', fields:[
+      {n:'用户ID', col:'id', t:'BIGINT', constraint:'PK AUTO_INCREMENT', desc:'主键'},
+      {n:'注册渠道', col:'register_channel', t:'VARCHAR(20)', constraint:'NOT NULL', desc:'app/h5/web/merchant_admin/ops_admin'},
+      {n:'国家地区', col:'country_code', t:'VARCHAR(10)', constraint:'NOT NULL, INDEX', desc:'ISO 3166-1'},
+      {n:'注册时间', col:'created_at', t:'DATETIME', constraint:'NOT NULL', desc:''},
+      {n:'更新时间', col:'updated_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true},
+      {n:'状态（正常/冻结/注销）', col:'status', t:'TINYINT', constraint:'NOT NULL DEFAULT 1', desc:'1=正常 2=冻结 3=注销'},
+      {n:'注销申请时间', col:'deactivated_at', t:'DATETIME', constraint:'', desc:'为空=未注销，有值=注销申请时间'}
+    ], note:'核心实体，所有其他实体围绕用户展开', techNote:'索引: idx_country_code(country_code), idx_status(status)\n枚举: register_channel app=C端App h5=C端H5 web=C端Web merchant_admin=商家后台 ops_admin=运营后台 | status 1=正常 2=冻结 3=注销'},
+
+    { id:'credential', name:'登录凭证 Credential', group:'auth', table:'user_credential', fields:[
+      {n:'凭证类型（邮箱/手机）', col:'credential_type', t:'TINYINT', constraint:'NOT NULL', desc:'1=邮箱 2=手机'},
+      {n:'国家区号', col:'country_dial_code', t:'VARCHAR(8)', constraint:'', desc:'如+1、+86，仅手机号类型填写'},
+      {n:'凭证值', col:'credential_value', t:'VARCHAR(128)', constraint:'NOT NULL', desc:'邮箱地址/纯手机号'},
+      {n:'密码哈希', col:'password_hash', t:'VARCHAR(256)', constraint:'', desc:'bcrypt哈希'},
+      {n:'验证时间', col:'verified_at', t:'DATETIME', constraint:'', desc:'为空=未验证，有值=已验证'},
+      {n:'用户ID', col:'user_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 user_account.id', tech:true},
+      {n:'创建时间', col:'created_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true},
+      {n:'更新时间', col:'updated_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true}
+    ], note:'一个用户可同时有邮箱+手机号', techNote:'唯一约束: uk_type_value(credential_type, credential_value)\n索引: idx_user_id(user_id)'},
+
+    { id:'oauth', name:'三方账号 OAuthBinding', group:'auth', table:'user_oauth_account', fields:[
+      {n:'三方平台（Google/Apple/Facebook）', col:'provider', t:'VARCHAR(20)', constraint:'NOT NULL', desc:'google/apple/facebook'},
+      {n:'平台用户ID', col:'provider_uid', t:'VARCHAR(128)', constraint:'NOT NULL', desc:'三方平台唯一标识'},
+      {n:'平台邮箱', col:'provider_email', t:'VARCHAR(128)', constraint:'', desc:'三方返回的邮箱（含Apple relay邮箱）'},
+      {n:'平台真实姓名', col:'provider_name', t:'VARCHAR(64)', constraint:'', desc:'Apple仅首次授权返回，需立即存储'},
+      {n:'平台头像', col:'provider_avatar', t:'VARCHAR(512)', constraint:'', desc:'', tech:true},
+      {n:'绑定时间', col:'created_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true},
+      {n:'用户ID', col:'user_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 user_account.id', tech:true}
+    ], note:'可同时绑定多个三方平台', techNote:'唯一约束: uk_provider_uid(provider, provider_uid)\n索引: idx_user_id(user_id)'},
+
+    { id:'vercode', name:'验证码 VerificationCode', group:'auth', table:'verification_code', fields:[
+      {n:'用途（注册/重置/绑定）', col:'purpose', t:'TINYINT', constraint:'NOT NULL', desc:'1=注册 2=重置 3=绑定'},
+      {n:'发送渠道（邮箱/SMS）', col:'channel', t:'TINYINT', constraint:'NOT NULL', desc:'1=邮箱 2=SMS'},
+      {n:'接收地址', col:'target', t:'VARCHAR(128)', constraint:'NOT NULL', desc:'邮箱或手机号'},
+      {n:'验证码值', col:'code', t:'VARCHAR(10)', constraint:'NOT NULL', desc:''},
+      {n:'尝试次数', col:'attempt_count', t:'INT', constraint:'NOT NULL DEFAULT 0', desc:'最大5次'},
+      {n:'过期时间', col:'expired_at', t:'DATETIME', constraint:'NOT NULL', desc:''},
+      {n:'状态（待验证/已使用/已过期）', col:'status', t:'TINYINT', constraint:'NOT NULL DEFAULT 1', desc:'1=待验证 2=已使用 3=已过期'},
+      {n:'用户ID', col:'user_id', t:'BIGINT', constraint:'INDEX', desc:'关联 user_account.id，注册时可为空', tech:true},
+      {n:'创建时间', col:'created_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true}
+    ], note:'平台公共能力，本期随登录注册模块建设', techNote:'索引: idx_target_purpose(target, purpose)\n索引: idx_user_id(user_id)'},
+
+    { id:'risk', name:'风控记录 RiskRecord', group:'security', table:'risk_record', fields:[
+      {n:'风控类型（暴力破解/异地/新设备）', col:'risk_type', t:'TINYINT', constraint:'NOT NULL', desc:'1=暴力破解 2=异地登录 3=新设备'},
+      {n:'触发规则', col:'rule_code', t:'VARCHAR(64)', constraint:'NOT NULL', desc:'规则编码'},
+      {n:'处置动作（放行/验证/拦截/封禁）', col:'action', t:'TINYINT', constraint:'NOT NULL', desc:'1=放行 2=验证 3=拦截 4=封禁'},
+      {n:'验证方式（人机验证/SMS/邮箱）', col:'verify_method', t:'TINYINT', constraint:'', desc:'action=2时填写：1=人机验证 2=SMS 3=邮箱'},
+      {n:'最终是否放行', col:'passed', t:'TINYINT(1)', constraint:'NOT NULL', desc:'1=是 0=否'},
+      {n:'IP', col:'ip_address', t:'VARCHAR(45)', constraint:'', desc:'IPv4/IPv6'},
+      {n:'触发时间', col:'created_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true},
+      {n:'用户ID', col:'user_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 user_account.id', tech:true}
+    ], techNote:'索引: idx_user_id(user_id), idx_created_at(created_at)'},
+
+    { id:'audit', name:'审计日志 AuditLog', group:'security', table:'audit_log', fields:[
+      {n:'操作类型', col:'action_type', t:'TINYINT', constraint:'NOT NULL', desc:'1=改密码 2=绑定凭证 3=解绑凭证 4=绑定三方 5=解绑三方 6=注销'},
+      {n:'操作详情', col:'detail', t:'TEXT', constraint:'', desc:'JSON格式'},
+      {n:'IP', col:'ip_address', t:'VARCHAR(45)', constraint:'', desc:'', tech:true},
+      {n:'设备信息', col:'device_info', t:'VARCHAR(256)', constraint:'', desc:'User-Agent', tech:true},
+      {n:'操作时间', col:'created_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true},
+      {n:'用户ID', col:'user_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 user_account.id', tech:true}
+    ], techNote:'索引: idx_user_id(user_id), idx_created_at(created_at)'},
+
+    { id:'session', name:'登录会话 Session', group:'device', table:'user_session', fields:[
+      {n:'RefreshToken', col:'refresh_token', t:'VARCHAR(512)', constraint:'NOT NULL, UNIQUE', desc:''},
+      {n:'登录方式（密码/验证码/三方）', col:'login_method', t:'TINYINT', constraint:'NOT NULL', desc:'1=密码 2=验证码 3=三方'},
+      {n:'登录时间', col:'created_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true},
+      {n:'过期时间', col:'expired_at', t:'DATETIME', constraint:'NOT NULL', desc:''},
+      {n:'状态（活跃/过期/吊销）', col:'status', t:'TINYINT', constraint:'NOT NULL DEFAULT 1', desc:'1=活跃 2=过期 3=吊销'},
+      {n:'用户ID', col:'user_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 user_account.id', tech:true},
+      {n:'设备ID', col:'device_id', t:'BIGINT', constraint:'FK, INDEX', desc:'关联 user_device.id', tech:true}
+    ], techNote:'索引: idx_user_id(user_id), idx_device_id(device_id)'},
+
+    { id:'device', name:'设备 Device', group:'device', table:'user_device', fields:[
+      {n:'设备指纹', col:'fingerprint', t:'VARCHAR(128)', constraint:'NOT NULL, UNIQUE', desc:'设备唯一标识'},
+      {n:'操作系统', col:'os', t:'VARCHAR(32)', constraint:'', desc:'iOS/Android/Windows/macOS'},
+      {n:'是否信任设备', col:'is_trusted', t:'TINYINT', constraint:'NOT NULL DEFAULT 0', desc:'0=不信任 1=信任'},
+      {n:'首次登录时间', col:'created_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true},
+      {n:'最近登录时间', col:'last_login_at', t:'DATETIME', constraint:'', desc:'', tech:true},
+      {n:'用户ID', col:'user_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 user_account.id', tech:true}
+    ], techNote:'索引: idx_user_id(user_id)'},
+
+    { id:'loginlog', name:'登录日志 LoginLog', group:'device', table:'login_log', fields:[
+      {n:'登录方式（密码/验证码/三方）', col:'login_method', t:'TINYINT', constraint:'NOT NULL', desc:'1=密码 2=验证码 3=三方'},
+      {n:'IP', col:'ip_address', t:'VARCHAR(45)', constraint:'', desc:''},
+      {n:'地理位置', col:'location', t:'VARCHAR(64)', constraint:'', desc:'国家/城市'},
+      {n:'登录结果（成功/失败/拦截）', col:'result', t:'TINYINT', constraint:'NOT NULL', desc:'1=成功 2=失败 3=拦截'},
+      {n:'失败原因', col:'fail_reason', t:'VARCHAR(128)', constraint:'', desc:'失败时填写'},
+      {n:'登录时间', col:'created_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true},
+      {n:'用户ID', col:'user_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 user_account.id', tech:true},
+      {n:'设备ID', col:'device_id', t:'BIGINT', constraint:'FK, INDEX', desc:'关联 user_device.id', tech:true}
+    ], techNote:'索引: idx_user_id(user_id), idx_created_at(created_at)'},
+
+    { id:'profile', name:'用户资料 UserProfile', group:'profile', table:'user_profile', fields:[
+      {n:'昵称', col:'nickname', t:'VARCHAR(32)', constraint:'', desc:''},
+      {n:'头像URL', col:'avatar_url', t:'VARCHAR(512)', constraint:'', desc:''},
+      {n:'性别（未知/男/女）', col:'gender', t:'TINYINT', constraint:'DEFAULT 0', desc:'0=未知 1=男 2=女'},
+      {n:'生日', col:'birthday', t:'DATE', constraint:'', desc:''},
+      {n:'个人简介', col:'bio', t:'VARCHAR(256)', constraint:'', desc:''},
+      {n:'语言偏好', col:'language', t:'VARCHAR(10)', constraint:'DEFAULT "en"', desc:'ISO 639-1'},
+      {n:'用户ID', col:'user_id', t:'BIGINT', constraint:'NOT NULL, FK, UNIQUE', desc:'关联 user_account.id', tech:true},
+      {n:'创建时间', col:'created_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true},
+      {n:'更新时间', col:'updated_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true}
+    ], note:'与 User 一对一', techNote:'唯一约束: uk_user_id(user_id)'},
+
+    { id:'consent', name:'合规同意 ConsentRecord', group:'security', table:'user_consent', fields:[
+      {n:'同意类型（隐私政策/用户协议）', col:'consent_type', t:'TINYINT', constraint:'NOT NULL', desc:'1=隐私政策 2=用户协议'},
+      {n:'协议版本', col:'policy_version', t:'VARCHAR(16)', constraint:'NOT NULL', desc:'如 v1.0'},
+      {n:'适用国家', col:'country_code', t:'VARCHAR(10)', constraint:'', desc:'ISO 3166-1'},
+      {n:'同意时间', col:'agreed_at', t:'DATETIME', constraint:'NOT NULL', desc:''},
+      {n:'用户ID', col:'user_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 user_account.id', tech:true}
+    ], techNote:'唯一约束: uk_user_type_version(user_id, consent_type, policy_version)\n索引: idx_user_id(user_id)'}
+  ],
+
+  // 中间表（技术视图才显示，可为空数组）
+  midTables: [],
+
+  // 关系列表
+  // from/to: 实体ID，type: 关系类型，label: 关系描述
+  // indirect: true 表示间接关系（虚线）
+  relations: [
+    {from:'user', to:'credential',  type:'1:N',   label:'拥有多个凭证'},
+    {from:'user', to:'oauth',       type:'1:N',   label:'绑定多个三方'},
+    {from:'user', to:'vercode',     type:'1:N',   label:'请求验证码'},
+    {from:'user', to:'risk',        type:'1:N',   label:'风控记录'},
+    {from:'user', to:'audit',       type:'1:N',   label:'审计日志'},
+    {from:'user', to:'session',     type:'1:N',   label:'登录会话', indirect:true},
+    {from:'user', to:'device',      type:'1:N',   label:'使用设备'},
+    {from:'user', to:'loginlog',    type:'1:N',   label:'登录日志', indirect:true},
+    {from:'device',to:'loginlog',   type:'1:N',   label:'设备日志'},
+    {from:'device',to:'session',    type:'1:N',   label:'设备会话', indirect:true},
+    {from:'user', to:'profile',     type:'1:1',   label:'个人资料'},
+    {from:'user', to:'consent',     type:'1:N',   label:'合规同意'}
+  ]
+};
+</script>
+<!-- ========== 数据区结束 ========== -->
+
+<!-- ========== 以下是模板引擎，不用改 ========== -->
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#f8f9fc;min-height:100vh;display:flex;flex-direction:column}
+.hd{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;padding:12px 32px;display:flex;justify-content:center;align-items:center;flex-shrink:0;gap:24px}
+.hd h1{font-size:20px;font-weight:600}
+.hr{display:flex;align-items:center;gap:14px}
+.hr span{color:#8892a4;font-size:12px}
+.tg{display:flex;background:rgba(255,255,255,.12);border-radius:6px;overflow:hidden}
+.tg button{border:none;padding:5px 16px;font-size:13px;cursor:pointer;font-family:inherit;transition:.2s}
+.tg .on{background:#fff;color:#1a1a2e;font-weight:600}
+.tg button:not(.on){background:transparent;color:#8892a4}
+.wrap{flex:1;overflow:auto;display:flex;justify-content:center;align-items:flex-start;padding:10px 0}
+.cv{position:relative;flex-shrink:0;transform-origin:top center}
+.card{position:absolute;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.07);border:1.5px solid #ddd;overflow:hidden;z-index:2;transition:opacity .2s}
+.card .ct{padding:6px 12px;font-size:13px;font-weight:600;color:#fff}
+.card .cb{padding:6px 12px 8px}
+.card .cr{font-size:12px;color:#333;line-height:1.7;display:flex;justify-content:space-between;gap:8px}
+.card .cr .cm{color:#999;font-size:10px;white-space:nowrap;display:none;text-align:right}
+.card .cn{font-size:11px;color:#999;border-top:1px dashed #eee;margin-top:4px;padding-top:4px}
+.card .ctn{display:none;font-size:11px;color:#999;border-top:1px dashed #eee;margin-top:4px;padding-top:4px;line-height:1.5;white-space:pre-line}
+.card .ctb{display:none;font-size:10px;color:#333;border-top:1px dashed #eee;margin-top:4px;padding-top:4px}
+.card .ctb table{width:100%;border-collapse:collapse}
+.card .ctb th{text-align:left;font-size:9px;color:#999;padding:1px 4px;border-bottom:1px solid #eee;font-weight:500}
+.card .ctb td{font-size:10px;padding:1px 4px;border-bottom:1px solid #f5f5f5}
+.card .ctb td.col-name{color:#1a73a7;font-weight:600}
+body.tech .card .cr .cm{display:block}
+body.tech .card .ctb{display:block}
+body.tech .card .cr{display:none}
+body.tech .card .cn{display:none}
+body.tech .card .ctn{display:block}
+body.md .wrap{display:none}
+body.md .lg{display:none}
+.md-wrap{display:none;flex:1;overflow:auto;padding:20px 40px}
+body.md .md-wrap{display:block}
+.md-wrap pre{background:#fff;border:1px solid #e8e8e8;border-radius:8px;padding:20px;font-size:13px;line-height:1.8;font-family:'SF Mono','Menlo','Monaco',monospace;white-space:pre-wrap;max-width:1000px;margin:0 auto}
+.md-wrap .md-actions{text-align:center;margin-bottom:12px}
+.md-wrap .md-actions button{border:1px solid #ddd;background:#fff;padding:5px 16px;font-size:13px;border-radius:6px;cursor:pointer;font-family:inherit}
+body.tech .card.mid-card{opacity:1!important;display:block!important}
+.card.mid-card{display:none}
+.lines{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1}
+.rl{position:absolute;z-index:3;pointer-events:none}
+.rl span{font-size:11px;font-weight:600;color:#fff;padding:2px 10px;border-radius:8px;display:inline-block}
+.gl{position:absolute;font-size:12px;font-weight:600;letter-spacing:1px;padding:3px 10px;border-radius:3px;z-index:4}
+.lg{background:#fff;border-radius:8px;padding:6px 18px;box-shadow:0 1px 3px rgba(0,0,0,.05);border:1px solid #e8e8e8;flex-shrink:0;margin:0 auto 6px;max-width:1400px;width:calc(100% - 40px)}
+.lw{display:flex;gap:16px;flex-wrap:wrap;align-items:center;justify-content:center}
+.li{display:flex;align-items:center;gap:5px;font-size:11px;color:#666}
+.ld{width:11px;height:11px;border-radius:2px}
+</style>
+</head>
+<body>
+<div class="hd" id="header"></div>
+<div class="wrap"><div class="cv" id="canvas"></div></div>
+<div class="md-wrap" id="mdWrap"></div>
+<div class="lg" id="legend"></div>
+<script>
+// ========== 从 ER_CONFIG 读取数据 ==========
+const { title, version, groups: GROUPS, entities: ENTITIES, midTables: MID_TABLES, relations: RELATIONS } = ER_CONFIG;
+
+// ========== 动态生成标题栏 ==========
+function renderHeader() {
+  const hd = document.getElementById('header');
+  document.title = title;
+  hd.innerHTML = `<h1>${title}</h1>
+  <div class="hr">
+    <div class="tg"><button class="on" onclick="sw('p',this)">产品视图</button><button onclick="sw('m',this)">Markdown</button></div>
+    <span>${version}</span>
+  </div>`;
+}
+
+// ========== 动态生成图例 ==========
+function renderLegend() {
+  const lg = document.getElementById('legend');
+  let html = '<div class="lw">';
+  // 分组色块
+  Object.keys(GROUPS).forEach(g => {
+    html += `<div class="li"><div class="ld" style="background:${GROUPS[g].color}"></div>${GROUPS[g].label}</div>`;
+  });
+  // 连线类型
+  html += '<div class="li" style="margin-left:8px"><span style="display:inline-block;width:18px;height:1.5px;background:#999;vertical-align:middle"></span> 直接关系</div>';
+  html += '<div class="li"><span style="display:inline-block;width:18px;height:1.5px;background:repeating-linear-gradient(90deg,#999 0,#999 3px,transparent 3px,transparent 6px);vertical-align:middle"></span> 间接关系</div>';
+  // 关系类型（从数据中自动提取去重）
+  const types = [...new Set(RELATIONS.map(r => r.type))];
+  types.forEach(t => {
+    html += `<div class="li"><span style="background:#666;color:#fff;font-size:10px;padding:2px 8px;border-radius:6px;font-weight:600">${t}</span> ${t === '1:N' ? '一对多' : t === '1:1' ? '一对一' : t === 'M:N' ? '多对多' : t === '1:0..1' ? '零或一' : t}</div>`;
+  });
+  html += '<div class="li" style="margin-left:8px;color:#999;font-size:10px">切换「技术视图」查看字段类型、约束、中间表</div>';
+  html += '</div>';
+  lg.innerHTML = html;
+}
+
+// ========== 通用布局引擎 ==========
+const CARD_W = 260, CARD_PAD = 32;
+// 自动检测：同组内有关系连线的分组，加大间距以保证关系标签完整显示
+const INTRA_GROUP_PAD = 100;
+const groupsWithIntraRelations = new Set();
+RELATIONS.forEach(r => {
+  const fromE = ENTITIES.find(e => e.id === r.from);
+  const toE = ENTITIES.find(e => e.id === r.to);
+  if (fromE && toE && fromE.group === toE.group && fromE.group !== 'core') {
+    groupsWithIntraRelations.add(fromE.group);
+  }
+});
+function getPad(group) { return groupsWithIntraRelations.has(group) ? INTRA_GROUP_PAD : CARD_PAD; }
+
+function layoutWithSizes(realSizes) {
+  const positions = {}, sizes = realSizes;
+  const coreW = 320;
+
+  const coreEntity = ENTITIES.find(e => e.group === 'core');
+  if (!coreEntity) return { positions, sizes };
+
+  const groupOrder = [];
+  ENTITIES.forEach(e => {
+    if (e.group !== 'core' && !groupOrder.includes(e.group)) groupOrder.push(e.group);
+  });
+
+  function groupEntities(g) { return ENTITIES.filter(e => e.group === g); }
+  const groupSizes = groupOrder.map(g => ({ g, count: groupEntities(g).length }));
+  const sorted = [...groupSizes].sort((a, b) => b.count - a.count);
+  const dirSlots = { top:[], left:[], right:[], bottom:[] };
+
+  sorted.forEach((gs, i) => {
+    if (i === 0) dirSlots.left.push(gs.g);
+    else if (i === 1) dirSlots.right.push(gs.g);
+    else if (i === 2) dirSlots.top.push(gs.g);
+    else dirSlots.bottom.push(gs.g);
+  });
+
+  const viewW = Math.max(window.innerWidth - 40, 1000);
+  const hasLeft = dirSlots.left.length > 0;
+  const hasRight = dirSlots.right.length > 0;
+  const totalCardW = (hasLeft ? CARD_W : 0) + coreW + (hasRight ? CARD_W : 0);
+  const gaps = (hasLeft ? 1 : 0) + (hasRight ? 1 : 0);
+  const hGap = gaps > 0 ? Math.max(80, (viewW - totalCardW - 60) / gaps) : 80;
+  const margin = 30;
+
+  function colHeight(groups) {
+    let h = 0;
+    groups.forEach(g => {
+      groupEntities(g).forEach(e => { h += sizes[e.id].h + getPad(e.group); });
+    });
+    return h > 0 ? h - getPad(groups[groups.length-1]) : 0;
+  }
+  const leftH = colHeight(dirSlots.left);
+  const rightH = colHeight(dirSlots.right);
+  const sideMaxH = Math.max(leftH, rightH, sizes[coreEntity.id].h);
+
+  let topMaxH = 0;
+  if (dirSlots.top.length) {
+    dirSlots.top.forEach(g => {
+      groupEntities(g).forEach(e => { topMaxH = Math.max(topMaxH, sizes[e.id].h); });
+    });
+  }
+  const topOffset = topMaxH > 0 ? topMaxH + 50 : 0;
+
+  const coreX = margin + (hasLeft ? CARD_W + hGap : 0);
+  const coreY = topOffset + 30 + (sideMaxH - sizes[coreEntity.id].h) / 2;
+  positions[coreEntity.id] = { x: coreX, y: coreY };
+  const coreRight = coreX + coreW;
+  const coreCx = coreX + coreW / 2;
+
+  if (dirSlots.top.length) {
+    let allTopEnts = [];
+    dirSlots.top.forEach(g => { allTopEnts = allTopEnts.concat(groupEntities(g)); });
+    const totalW = allTopEnts.reduce((sum, e, i) => sum + CARD_W + (i < allTopEnts.length - 1 ? getPad(e.group) : 0), 0);
+    let sx = coreCx - totalW / 2;
+    allTopEnts.forEach(e => {
+      positions[e.id] = { x: sx, y: 30 };
+      sx += CARD_W + getPad(e.group);
+    });
+  }
+
+  if (hasLeft) {
+    let allLeftEnts = [];
+    dirSlots.left.forEach(g => { allLeftEnts = allLeftEnts.concat(groupEntities(g)); });
+    let sy = topOffset + 30 + (sideMaxH - leftH) / 2;
+    sy = Math.max(sy, 30);
+    allLeftEnts.forEach(e => {
+      positions[e.id] = { x: margin, y: sy };
+      sy += sizes[e.id].h + getPad(e.group);
+    });
+  }
+
+  if (hasRight) {
+    let allRightEnts = [];
+    dirSlots.right.forEach(g => { allRightEnts = allRightEnts.concat(groupEntities(g)); });
+    let sy = topOffset + 30 + (sideMaxH - rightH) / 2;
+    sy = Math.max(sy, 30);
+    const sx = coreRight + hGap;
+    allRightEnts.forEach(e => {
+      positions[e.id] = { x: sx, y: sy };
+      sy += sizes[e.id].h + getPad(e.group);
+    });
+  }
+
+  if (dirSlots.bottom.length) {
+    let allBottomEnts = [];
+    dirSlots.bottom.forEach(g => { allBottomEnts = allBottomEnts.concat(groupEntities(g)); });
+    // 下方实体紧跟核心实体底部
+    const bottomY = coreY + sizes[coreEntity.id].h + 100;
+    const totalW = allBottomEnts.length * CARD_W + (allBottomEnts.length - 1) * CARD_PAD;
+    let sx = coreCx - totalW / 2;
+    allBottomEnts.forEach(e => {
+      positions[e.id] = { x: sx, y: bottomY };
+      sx += CARD_W + CARD_PAD;
+    });
+  }
+
+  MID_TABLES.forEach(mt => {
+    const p1 = positions[mt.between[0]], p2 = positions[mt.between[1]];
+    if (p1 && p2) {
+      const s1 = sizes[mt.between[0]], s2 = sizes[mt.between[1]];
+      positions[mt.id] = {
+        x: (p1.x + s1.w/2 + p2.x + s2.w/2) / 2 - 60,
+        y: (p1.y + s1.h/2 + p2.y + s2.h/2) / 2 - 25
+      };
+      sizes[mt.id] = { w: 120, h: 50 };
+    }
+  });
+
+  return { positions, sizes };
+}
+
+// ========== 连线引擎 ==========
+function getBestSide(pos, size, targetPos, targetSize) {
+  const cx = pos.x + size.w/2, cy = pos.y + size.h/2;
+  const tx = targetPos.x + targetSize.w/2, ty = targetPos.y + targetSize.h/2;
+  const dx = tx - cx, dy = ty - cy;
+  if (Math.abs(dx) * size.h > Math.abs(dy) * size.w) {
+    return dx > 0 ? 'right' : 'left';
+  }
+  return dy > 0 ? 'bottom' : 'top';
+}
+
+function getSmartAnchor(pos, size, side) {
+  switch(side) {
+    case 'top':    return { x: pos.x + size.w/2, y: pos.y };
+    case 'bottom': return { x: pos.x + size.w/2, y: pos.y + size.h };
+    case 'left':   return { x: pos.x,            y: pos.y + size.h/2 };
+    case 'right':  return { x: pos.x + size.w,   y: pos.y + size.h/2 };
+  }
+}
+
+// ========== 渲染 ==========
+function render() {
+  const canvas = document.getElementById('canvas');
+
+  // 第一步：先渲染卡片到 DOM，获取实际高度
+  let cardsHtml = '';
+  ENTITIES.forEach(e => {
+    const g = GROUPS[e.group];
+    const isCore = e.group === 'core';
+    const w = isCore ? 320 : CARD_W;
+    const borderStyle = isCore ? `border:2px solid ${g.color}` : `border-color:${g.border}`;
+    cardsHtml += `<div class="card" data-id="${e.id}" style="left:0;top:0;width:${w}px;${borderStyle};visibility:hidden">`;
+    const displayName = e.name;
+    cardsHtml += `<div class="ct" style="background:${g.color}${isCore?';font-size:13px':''}">${displayName}</div>`;
+    cardsHtml += '<div class="cb">';
+    e.fields.forEach(f => {
+      if (f.tech) return;
+      cardsHtml += `<div class="cr"><span>${f.n}</span>${f.t ? `<span class="cm">${f.t}</span>` : ''}</div>`;
+    });
+    // 技术视图表格
+    const hasCols = e.fields.some(f => f.col);
+    if (hasCols) {
+      cardsHtml += '<div class="ctb"><table><tr><th>列名</th><th>类型</th><th>约束</th><th>说明</th></tr>';
+      e.fields.forEach(f => {
+        if (f.col) cardsHtml += `<tr><td class="col-name">${f.col}</td><td>${f.t||''}</td><td>${f.constraint||''}</td><td>${f.desc||f.n}</td></tr>`;
+      });
+      cardsHtml += '</table></div>';
+    }
+    if (e.note) cardsHtml += `<div class="cn">${e.note}</div>`;
+    if (e.techNote) cardsHtml += `<div class="ctn">${e.techNote}</div>`;
+    cardsHtml += '</div></div>';
+  });
+  canvas.innerHTML = cardsHtml;
+
+  const realSizes = {};
+  ENTITIES.forEach(e => {
+    const el = canvas.querySelector(`[data-id="${e.id}"]`);
+    const isCore = e.group === 'core';
+    realSizes[e.id] = { w: isCore ? 320 : CARD_W, h: el ? el.offsetHeight : 80 };
+  });
+
+  // 第二步：用实际高度计算布局
+  const { positions, sizes } = layoutWithSizes(realSizes);
+
+  // 第三步：完整渲染
+  let maxX = 0, maxY = 0;
+  Object.keys(positions).forEach(id => {
+    const p = positions[id], s = sizes[id] || {w:CARD_W,h:60};
+    maxX = Math.max(maxX, p.x + s.w + 40);
+    maxY = Math.max(maxY, p.y + s.h + 40);
+  });
+  canvas.style.width = maxX + 'px';
+  canvas.style.height = maxY + 'px';
+
+  let html = '';
+
+  // SVG 连线
+  html += `<svg class="lines" viewBox="0 0 ${maxX} ${maxY}">`;
+  html += '<defs><marker id="arr" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="7" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,3 L0,6Z" fill="#aaa"/></marker></defs>';
+
+  const anchors = [];
+  RELATIONS.forEach((rel, i) => {
+    const fp = positions[rel.from], fs = sizes[rel.from];
+    const tp = positions[rel.to], ts = sizes[rel.to];
+    if (!fp || !tp || !fs || !ts) { anchors.push(null); return; }
+    const fromSide = getBestSide(fp, fs, tp, ts);
+    const toSide = getBestSide(tp, ts, fp, fs);
+    const a = getSmartAnchor(fp, fs, fromSide);
+    const b = getSmartAnchor(tp, ts, toSide);
+    anchors.push({ a, b });
+    const toG = ENTITIES.find(e => e.id === rel.to)?.group || 'core';
+    const color = GROUPS[toG]?.border || '#ccc';
+    const dash = rel.indirect ? ' stroke-dasharray="5,3"' : '';
+    html += `<path d="M${a.x},${a.y} L${b.x},${b.y}" stroke="${color}" stroke-width="1.5" fill="none"${dash} marker-end="url(#arr)"/>`;
+  });
+  html += '</svg>';
+
+  // 分组标签
+  const groupBounds = {};
+  ENTITIES.forEach(e => {
+    if (!groupBounds[e.group]) groupBounds[e.group] = { minX:9999, minY:9999 };
+    const p = positions[e.id];
+    if (p.x < groupBounds[e.group].minX) groupBounds[e.group].minX = p.x;
+    if (p.y < groupBounds[e.group].minY) groupBounds[e.group].minY = p.y;
+  });
+  Object.keys(groupBounds).forEach(g => {
+    if (g === 'core') return;
+    const gp = groupBounds[g], gi = GROUPS[g];
+    html += `<div class="gl" style="left:${gp.minX}px;top:${gp.minY - 24}px;color:${gi.color};background:${gi.bg}">${gi.label}</div>`;
+  });
+
+  // 实体卡片
+  ENTITIES.forEach(e => {
+    const p = positions[e.id], s = sizes[e.id], g = GROUPS[e.group];
+    const isCore = e.group === 'core';
+    const borderStyle = isCore ? `border:2px solid ${g.color}` : `border-color:${g.border}`;
+    html += `<div class="card" style="left:${p.x}px;top:${p.y}px;width:${s.w}px;${borderStyle}">`;
+    const displayName2 = e.name;
+    html += `<div class="ct" style="background:${g.color}${isCore?';font-size:13px':''}">${displayName2}</div>`;
+    html += '<div class="cb">';
+    e.fields.forEach(f => {
+      if (f.tech) return;
+      html += `<div class="cr"><span>${f.n}</span>${f.t ? `<span class="cm">${f.t}</span>` : ''}</div>`;
+    });
+    const hasCols2 = e.fields.some(f => f.col);
+    if (hasCols2) {
+      html += '<div class="ctb"><table><tr><th>列名</th><th>类型</th><th>约束</th><th>说明</th></tr>';
+      e.fields.forEach(f => {
+        if (f.col) html += `<tr><td class="col-name">${f.col}</td><td>${f.t||''}</td><td>${f.constraint||''}</td><td>${f.desc||f.n}</td></tr>`;
+      });
+      html += '</table></div>';
+    }
+    if (e.note) html += `<div class="cn">${e.note}</div>`;
+    if (e.techNote) html += `<div class="ctn">${e.techNote}</div>`;
+    html += '</div></div>';
+  });
+
+  // 中间表
+  MID_TABLES.forEach(mt => {
+    const p = positions[mt.id], s = sizes[mt.id], g = GROUPS[mt.group];
+    if (!p) return;
+    html += `<div class="card mid-card" style="left:${p.x}px;top:${p.y}px;width:${s.w}px;border-color:${g.border};border-style:dashed">`;
+    html += `<div class="ct" style="background:${g.color};font-size:9px;padding:3px 8px">${mt.name}</div>`;
+    html += '<div class="cb" style="font-size:9px">';
+    mt.fields.forEach(f => { html += `<div class="cr"><span>${f.n}</span></div>`; });
+    html += '</div></div>';
+  });
+
+  // 关系标签
+  RELATIONS.forEach((rel, i) => {
+    const ab = anchors[i];
+    if (!ab) return;
+    const lp = { x: (ab.a.x + ab.b.x) / 2, y: (ab.a.y + ab.b.y) / 2 };
+    const toG = ENTITIES.find(e => e.id === rel.to)?.group || 'core';
+    const color = GROUPS[toG]?.color || '#666';
+    const opacity = rel.indirect ? 'opacity:.7;' : '';
+    html += `<div class="rl" style="left:${lp.x - 20}px;top:${lp.y - 10}px;${opacity}"><span style="background:${color}">${rel.type}</span></div>`;
+  });
+
+  canvas.innerHTML = html;
+  fitToScreen();
+}
+
+function fitToScreen() {
+  const canvas = document.getElementById('canvas');
+  const legendH = document.querySelector('.lg')?.offsetHeight || 0;
+  const headerH = document.querySelector('.hd')?.offsetHeight || 0;
+  const availW = window.innerWidth - 40;
+  const availH = window.innerHeight - headerH - legendH - 30;
+  const cw = canvas.offsetWidth;
+  const ch = canvas.offsetHeight;
+  if (cw <= 0 || ch <= 0) return;
+  const scaleX = availW / cw;
+  const scaleY = availH / ch;
+  const scale = Math.max(Math.min(scaleX, scaleY, 1), 0.65);
+  if (scale < 1) {
+    canvas.style.transform = `scale(${scale})`;
+    canvas.style.marginBottom = -(ch * (1 - scale)) + 'px';
+  } else {
+    canvas.style.transform = '';
+    canvas.style.marginBottom = '';
+  }
+}
+
+window.addEventListener('resize', fitToScreen);
+
+function sw(m, el) {
+  document.body.className = m === 't' ? 'tech' : m === 'm' ? 'md' : '';
+  document.querySelectorAll('.tg button').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  if (m === 'm') {
+    renderMarkdown();
+  } else {
+    render();
+  }
+}
+
+function renderMarkdown() {
+  const mdWrap = document.getElementById('mdWrap');
+  let md = `# ${title}\n\n`;
+  md += `${version}\n\n`;
+
+  // 按分组输出
+  const groupKeys = Object.keys(GROUPS);
+  groupKeys.forEach(gk => {
+    const gi = GROUPS[gk];
+    const ents = ENTITIES.filter(e => e.group === gk);
+    if (!ents.length) return;
+    md += `## ${gi.label}\n\n`;
+    ents.forEach(e => {
+      const tableName = e.table ? ` \`${e.table}\`` : '';
+      md += `### ${e.name}${tableName}\n\n`;
+      const hasCols = e.fields.some(f => f.col);
+      if (hasCols) {
+        md += '| 列名 | 类型 | 约束 | 说明 |\n';
+        md += '|------|------|------|------|\n';
+        e.fields.forEach(f => {
+          if (f.col) md += `| ${f.col} | ${f.t||''} | ${f.constraint||''} | ${f.desc||f.n} |\n`;
+        });
+      } else {
+        md += '| 字段 | 类型 |\n';
+        md += '|------|------|\n';
+        e.fields.forEach(f => {
+          md += `| ${f.n} | ${f.t||''} |\n`;
+        });
+      }
+      if (e.techNote) md += `\n> ${e.techNote.replace(/\n/g, '  \\n> ')}\n`;
+      md += '\n';
+    });
+  });
+
+  // 关系
+  md += '## 关系\n\n';
+  md += '| 从 | 到 | 类型 | 说明 |\n';
+  md += '|----|-----|------|------|\n';
+  RELATIONS.forEach(r => {
+    const fromName = ENTITIES.find(e => e.id === r.from)?.name || r.from;
+    const toName = ENTITIES.find(e => e.id === r.to)?.name || r.to;
+    md += `| ${fromName} | ${toName} | ${r.type} | ${r.label}${r.indirect?' (间接)':''} |\n`;
+  });
+
+  mdWrap.innerHTML = `<div class="md-actions"><button onclick="copyMd()">复制 Markdown</button></div><pre id="mdContent">${md.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>`;
+}
+
+function copyMd() {
+  const pre = document.getElementById('mdContent');
+  navigator.clipboard.writeText(pre.textContent).then(() => {
+    const btn = document.querySelector('.md-actions button');
+    btn.textContent = '已复制';
+    setTimeout(() => btn.textContent = '复制 Markdown', 1500);
+  });
+}
+
+// ========== 初始化 ==========
+renderHeader();
+renderLegend();
+render();
+</script>
+</body>
+</html>
