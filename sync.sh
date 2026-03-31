@@ -67,8 +67,10 @@ sync_files() {
     # 检查 git 是否有变化
     cd "$REPO_DIR"
     if [ -n "$(git status --porcelain)" ]; then
-        git add -A
+        # 更新 index.html 中的更新时间
         TIMESTAMP=$(date '+%Y-%m-%d %H:%M')
+        sed -i '' "s/<span id=\"updateTime\">[^<]*</<span id=\"updateTime\">$TIMESTAMP</" "$REPO_DIR/index.html"
+        git add -A
         git commit -m "sync: 文档更新 $TIMESTAMP"
         git push origin main 2>&1
         echo -e "${GREEN}[完成]${NC} 已同步并推送 ($TIMESTAMP)"
