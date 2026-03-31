@@ -16,6 +16,18 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
+# 只在文件内容有变化时才复制（避免刷新未改动文件的修改时间）
+smart_cp() {
+    local src="$1" dst="$2"
+    # 如果目标是目录，拼上文件名
+    if [ -d "$dst" ]; then
+        dst="$dst/$(basename "$src")"
+    fi
+    if [ ! -f "$dst" ] || ! cmp -s "$src" "$dst"; then
+        cp "$src" "$dst"
+    fi
+}
+
 sync_files() {
     echo -e "${YELLOW}[同步中]${NC} 检查文件变化..."
 
@@ -27,7 +39,7 @@ sync_files() {
         if [ -d "$SOURCE_DIR/产品架构图" ]; then
             mkdir -p "$REPO_DIR/$TARGET/产品架构图"
             for f in "$SOURCE_DIR/产品架构图/"*.svg; do
-                [ -f "$f" ] && cp "$f" "$REPO_DIR/$TARGET/产品架构图/"
+                [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/产品架构图/"
             done
         fi
 
@@ -35,7 +47,7 @@ sync_files() {
         if [ -d "$SOURCE_DIR/实体关系图" ]; then
             mkdir -p "$REPO_DIR/$TARGET/实体关系图"
             for f in "$SOURCE_DIR/实体关系图/"*.html; do
-                [ -f "$f" ] && cp "$f" "$REPO_DIR/$TARGET/实体关系图/"
+                [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/实体关系图/"
             done
         fi
 
@@ -43,7 +55,7 @@ sync_files() {
         if [ -d "$SOURCE_DIR/系统流程图" ]; then
             mkdir -p "$REPO_DIR/$TARGET/系统流程图"
             for f in "$SOURCE_DIR/系统流程图/"*.svg; do
-                [ -f "$f" ] && cp "$f" "$REPO_DIR/$TARGET/系统流程图/"
+                [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/系统流程图/"
             done
         fi
 
@@ -51,7 +63,7 @@ sync_files() {
         if [ -d "$SOURCE_DIR/PRD" ]; then
             mkdir -p "$REPO_DIR/$TARGET/PRD"
             for f in "$SOURCE_DIR/PRD/"*.docx "$SOURCE_DIR/PRD/"*.md; do
-                [ -f "$f" ] && cp "$f" "$REPO_DIR/$TARGET/PRD/"
+                [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/PRD/"
             done
         fi
 
@@ -59,7 +71,7 @@ sync_files() {
         if [ -d "$SOURCE_DIR/UI" ]; then
             mkdir -p "$REPO_DIR/$TARGET/UI"
             for f in "$SOURCE_DIR/UI/"*.pen; do
-                [ -f "$f" ] && cp "$f" "$REPO_DIR/$TARGET/UI/"
+                [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/UI/"
             done
         fi
     done
