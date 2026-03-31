@@ -5,10 +5,11 @@
 
 REPO_DIR="$HOME/looply-docs"
 
-# 模块配置：本地源目录 → 仓库目标目录
-declare -A MODULES
-MODULES["$HOME/Desktop/海外业务登录注册"]="docs"
-MODULES["$HOME/Desktop/海外业务首页"]="docs-首页"
+# 模块配置：源目录|目标目录（用 | 分隔）
+MODULE_LIST=(
+    "$HOME/Desktop/海外业务登录注册|docs"
+    "$HOME/Desktop/海外业务首页|docs-首页"
+)
 
 # 颜色
 GREEN='\033[0;32m'
@@ -18,8 +19,9 @@ NC='\033[0m'
 sync_files() {
     echo -e "${YELLOW}[同步中]${NC} 检查文件变化..."
 
-    for SOURCE_DIR in "${!MODULES[@]}"; do
-        TARGET="${MODULES[$SOURCE_DIR]}"
+    for ENTRY in "${MODULE_LIST[@]}"; do
+        SOURCE_DIR="${ENTRY%%|*}"
+        TARGET="${ENTRY##*|}"
 
         # 产品架构图 - SVG
         if [ -d "$SOURCE_DIR/产品架构图" ]; then
@@ -83,7 +85,8 @@ fi
 
 # 监控模式
 echo -e "${GREEN}[监控模式]${NC} 正在监控文件变化，按 Ctrl+C 停止"
-for SOURCE_DIR in "${!MODULES[@]}"; do
+for ENTRY in "${MODULE_LIST[@]}"; do
+    SOURCE_DIR="${ENTRY%%|*}"
     echo "  监控目录: $SOURCE_DIR"
 done
 echo ""
@@ -91,7 +94,8 @@ echo ""
 # 用 fswatch 或 fallback 到轮询
 if command -v fswatch &> /dev/null; then
     WATCH_DIRS=()
-    for SOURCE_DIR in "${!MODULES[@]}"; do
+    for ENTRY in "${MODULE_LIST[@]}"; do
+        SOURCE_DIR="${ENTRY%%|*}"
         for sub in 产品架构图 实体关系图 系统流程图 PRD UI; do
             [ -d "$SOURCE_DIR/$sub" ] && WATCH_DIRS+=("$SOURCE_DIR/$sub")
         done

@@ -1,7 +1,7 @@
 # Looply 用户系统 · 功能说明文档
 
-> 版本：V2.0 MVP
-> 更新日期：2026-03-30
+> 版本：V2.1 MVP
+> 更新日期：2026-03-31
 > 文档负责人：产品部
 > 状态：初稿
 
@@ -105,7 +105,7 @@
 #### UI 关联
 
 - PC 端：设计稿 CountrySelector
-- H5 端：待设计
+- H5 端：设计稿 H5/CountrySelector（底部弹出式，圆角顶部卡片）
 
 ---
 
@@ -184,7 +184,7 @@
 #### UI 关联
 
 - PC 端：设计稿 Register
-- H5 端：待设计
+- H5 端：设计稿 H5/Register
 
 ---
 
@@ -283,6 +283,13 @@
 - 现有注册/登录后端流程段零改动，仅新增路由层
 - 待业务成熟后评估是否启用
 
+#### 页面状态变体
+
+| 状态 | 说明 | 设计稿（PC） | 设计稿（H5） |
+|------|------|-------------|-------------|
+| 默认状态 | 协议已勾选，按钮可点击 | Register | H5/Register |
+| 置灰状态 | 协议未勾选，「Create account」按钮置灰不可点击 | 待设计 | H5/Register-DisabledState |
+
 ---
 
 ### 2.5 密码设置
@@ -361,7 +368,7 @@
 ##### UI 关联
 
 - PC 端：设计稿 TermsOfService
-- H5 端：待设计
+- H5 端：设计稿 H5/TermsOfService
 
 #### 2.6.2 隐私政策页面（Privacy Policy）
 
@@ -400,7 +407,7 @@
 ##### UI 关联
 
 - PC 端：设计稿 PrivacyPolicy
-- H5 端：待设计
+- H5 端：设计稿 H5/PrivacyPolicy
 
 ---
 
@@ -481,10 +488,17 @@
 - OAuth Provider 信息从注册流程上下文传递，不重新请求
 - 跳过状态记录到 `user_profile.profile_completed` 字段（boolean）
 
+#### 页面状态变体
+
+| 状态 | 说明 | 设计稿（PC） | 设计稿（H5） |
+|------|------|-------------|-------------|
+| 默认状态 | 协议已勾选，「Complete Setup」按钮可点击 | OAuthSupplementary | H5/OAuthSupplementary |
+| 置灰状态 | 协议未勾选，「Complete Setup」按钮置灰不可点击 | 待设计 | H5/OAuthSupplementary-DisabledState |
+
 #### UI 关联
 
 - PC 端：设计稿 OAuthSupplementary
-- H5 端：待设计
+- H5 端：设计稿 H5/OAuthSupplementary
 
 ---
 
@@ -548,7 +562,7 @@
 #### UI 关联
 
 - PC 端：设计稿 VerifyCode
-- H5 端：待设计
+- H5 端：设计稿 H5/VerifyCode
 
 ---
 
@@ -663,7 +677,7 @@
 #### UI 关联
 
 - PC 端：设计稿 Login / Login-PasswordVisible / Login-ErrorState / Login-LoadingState
-- H5 端：待设计
+- H5 端：设计稿 H5/Login / H5/Login-PasswordVisible / H5/Login-ErrorState / H5/Login-LoadingState
 
 ---
 
@@ -788,7 +802,7 @@
 #### UI 关联
 
 - PC 端：设计稿 ForgotPassword
-- H5 端：待设计
+- H5 端：设计稿 H5/ForgotPassword
 
 ---
 
@@ -842,7 +856,7 @@
 #### UI 关联
 
 - PC 端：设计稿 ResetPassword
-- H5 端：待设计
+- H5 端：设计稿 H5/ResetPassword
 
 ---
 
@@ -930,7 +944,7 @@
 #### UI 关联
 
 - PC 端：设计稿 Login-Remembered
-- H5 端：待设计
+- H5 端：设计稿 H5/Login-Remembered
 
 ---
 
@@ -976,7 +990,7 @@
 #### UI 关联
 
 - PC 端：设计稿 LogoutModal
-- H5 端：待设计
+- H5 端：设计稿 H5/LogoutModal
 
 ---
 
@@ -1127,7 +1141,7 @@
 #### UI 关联
 
 - PC 端：设计稿 AccountDeletion
-- H5 端：待设计
+- H5 端：设计稿 H5/AccountDeletion
 
 ---
 
@@ -1348,6 +1362,63 @@
 - 风控检测结果关联 Session 记录
 - 通过风控后，设备指纹与 Session 绑定
 
+#### 风控拦截页面（RiskBlocked）
+
+##### 功能描述
+
+当系统检测到高风险行为（如跨国 IP 登录）时，展示独立的拦截页面，阻止用户继续操作并提供申诉渠道。
+
+##### 页面元素
+
+- 警告图标（红色圆形背景 + alert-triangle 图标）
+- 标题「Access Blocked」
+- 副标题「We detected unusual activity on your account and have temporarily blocked access for your security.」
+- 红色警告区域（背景 #FEF2F2，圆角 10px）：
+  - 警告图标 + 异常详情列表（如 IP 地址、登录时间、检测到的风险类型）
+- 帮助文案「If this was you, please contact our support team to verify your identity and restore access.」
+- 「Contact Support」主按钮（紫色，跳转客服邮箱 support@looply.com）
+- 「Try another account」次按钮（灰色边框样式）
+- 底部「← Back to sign in」返回链接
+
+##### 交互说明
+
+- 页面为只读状态，用户无法绕过拦截
+- 「Contact Support」点击后打开邮件客户端，预填收件人 support@looply.com
+- 「Try another account」跳转至标准登录页
+- 「Back to sign in」跳转至标准登录页
+
+##### UI 关联
+
+- PC 端：待设计
+- H5 端：设计稿 H5/RiskBlocked
+
+---
+
+#### 跨州异地登录验证页面（VerifyCode-CrossStateLogin）
+
+##### 功能描述
+
+当系统检测到用户从与上次登录不同的州（State）发起登录时，触发额外的邮箱验证码验证。页面基于标准 VerifyCode 页面，顶部增加位置异常提示 Banner。
+
+##### 与标准 VerifyCode 页面的差异
+
+| 元素 | 标准 VerifyCode | CrossStateLogin 变体 |
+|------|----------------|---------------------|
+| 顶部 Banner | 无 | 橙色位置提示 Banner（背景 #FFF7ED） |
+| Banner 文案 | - | 「We noticed a sign-in attempt from a new location. Please verify your identity.」 |
+| 其余元素 | 标准验证码输入 | 与标准 VerifyCode 一致 |
+
+##### 交互说明
+
+- 位置提示 Banner 为纯展示，不可关闭
+- 验证码输入、重发、错误处理等逻辑与标准 VerifyCode 一致（参见 2.8）
+- 验证通过后，正常完成登录流程
+
+##### UI 关联
+
+- PC 端：待设计
+- H5 端：设计稿 H5/VerifyCode-CrossStateLogin
+
 ---
 
 ### 6.3 密码校验
@@ -1475,21 +1546,25 @@
 
 | 页面 | PC 端设计稿 | H5 端设计稿 |
 |------|------------|------------|
-| 登录 | Login | 待设计 |
-| 登录-密码可见状态 | Login-PasswordVisible | 待设计 |
-| 登录-错误状态 | Login-ErrorState | 待设计 |
-| 登录-加载状态 | Login-LoadingState | 待设计 |
-| 回访登录 | Login-Remembered | 待设计 |
-| 注册 | Register | 待设计 |
-| 验证码 | VerifyCode | 待设计 |
-| 忘记密码 | ForgotPassword | 待设计 |
-| 重置密码 | ResetPassword | 待设计 |
-| 隐私政策 | PrivacyPolicy | 待设计 |
-| 服务条款 | TermsOfService | 待设计 |
-| 国家选择器（弹窗） | CountrySelector | 待设计 |
-| 账号注销 | AccountDeletion | 待设计 |
-| OAuth 补充信息 | OAuthSupplementary | 待设计 |
-| 退出确认（弹窗） | LogoutModal | 待设计 |
+| 登录 | Login | H5/Login |
+| 登录-密码可见状态 | Login-PasswordVisible | H5/Login-PasswordVisible |
+| 登录-错误状态 | Login-ErrorState | H5/Login-ErrorState |
+| 登录-加载状态 | Login-LoadingState | H5/Login-LoadingState |
+| 回访登录 | Login-Remembered | H5/Login-Remembered |
+| 注册 | Register | H5/Register |
+| 注册-置灰状态 | 待设计 | H5/Register-DisabledState |
+| 验证码 | VerifyCode | H5/VerifyCode |
+| 验证码-跨州异地登录 | 待设计 | H5/VerifyCode-CrossStateLogin |
+| 忘记密码 | ForgotPassword | H5/ForgotPassword |
+| 重置密码 | ResetPassword | H5/ResetPassword |
+| 隐私政策 | PrivacyPolicy | H5/PrivacyPolicy |
+| 服务条款 | TermsOfService | H5/TermsOfService |
+| 国家选择器（弹窗） | CountrySelector | H5/CountrySelector |
+| 账号注销 | AccountDeletion | H5/AccountDeletion |
+| OAuth 补充信息 | OAuthSupplementary | H5/OAuthSupplementary |
+| OAuth 补充信息-置灰状态 | 待设计 | H5/OAuthSupplementary-DisabledState |
+| 退出确认（弹窗） | LogoutModal | H5/LogoutModal |
+| 风控拦截 | 待设计 | H5/RiskBlocked |
 | 密码修改 | ChangePassword | 待设计 |
 | 协议版本更新（弹窗） | ConsentUpdateModal | 待设计 |
 
@@ -1531,3 +1606,4 @@
 | V1.6 | 2026-03-18 | 移除密码强度指示器；新增国家/地区选择器（1.4） | 产品部 |
 | V1.7 | 2026-03-30 | 新增账号注销（4.6）、OAuth 补充信息页（2.9）；国家选择器改为模态弹窗 | 产品部 |
 | V2.0 | 2026-03-30 | 基于系统流程图 V7 和 PC v2 设计稿全面重写。新增：OAuth 三方登录扩展为 Google/Apple/Facebook 三个 Provider 及差异处理；密码修改（登录态）；Token 刷新机制（JWT 方案，access_token 不落库）；协议版本检测；账号注销支持 OAuth 用户；Identifier-First 统一入口预留；登录页面状态变体（ErrorState/LoadingState/PasswordVisible）；风控检测规则细化。登录态保持改为 JWT 双 Token 方案。设计稿索引更新为 PC v2 版本 | 产品部 |
+| V2.1 | 2026-03-31 | 补齐 H5 端设计稿关联（15 个页面更新为实际设计稿）；新增 4 个页面说明：注册置灰状态（Register-DisabledState）、OAuth 补充信息置灰状态（OAuthSupplementary-DisabledState）、风控拦截页（RiskBlocked）、跨州异地登录验证页（VerifyCode-CrossStateLogin）；设计稿索引从 17 项扩展为 21 项 | 产品部 |
