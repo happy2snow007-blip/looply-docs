@@ -15,24 +15,49 @@
   .header {
     background: linear-gradient(135deg, #6366f1, #8b5cf6);
     color: #fff;
-    padding: 40px 20px;
+    padding: 40px 20px 0;
     text-align: center;
   }
   .header h1 { font-size: 28px; font-weight: 700; }
   .header p { margin-top: 8px; opacity: 0.85; font-size: 14px; }
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    margin-top: 24px;
+    padding: 0 20px;
+  }
+  .tab {
+    padding: 10px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.65);
+    cursor: pointer;
+    border-radius: 8px 8px 0 0;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .tab:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.1); }
+  .tab.active {
+    color: #333;
+    background: #f5f7fa;
+    font-weight: 600;
+  }
   .container {
     max-width: 900px;
     margin: 32px auto;
     padding: 0 20px;
   }
-  .module {
+  .module-section { display: none; }
+  .module-section.active { display: block; }
+  .card {
     background: #fff;
     border-radius: 12px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     margin-bottom: 24px;
     overflow: hidden;
   }
-  .module-title {
+  .card-title {
     font-size: 18px;
     font-weight: 600;
     padding: 20px 24px 12px;
@@ -48,215 +73,231 @@
   }
   .doc-item:hover { background: #f8f9fb; }
   .doc-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    font-weight: 700;
-    color: #fff;
-    flex-shrink: 0;
-    margin-right: 14px;
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700; color: #fff;
+    flex-shrink: 0; margin-right: 14px;
   }
   .icon-svg { background: #f59e0b; }
   .icon-html { background: #10b981; }
   .icon-doc { background: #3b82f6; }
   .icon-pen { background: #ec4899; }
   .doc-info { flex: 1; }
-  .doc-name {
-    font-size: 15px;
-    font-weight: 500;
-    color: #1e1e2e;
-  }
-  .doc-desc {
-    font-size: 12px;
-    color: #888;
-    margin-top: 2px;
-  }
+  .doc-name { font-size: 15px; font-weight: 500; color: #1e1e2e; }
+  .doc-desc { font-size: 12px; color: #888; margin-top: 2px; }
   .doc-actions { display: flex; gap: 8px; }
   .btn {
-    display: inline-block;
-    padding: 6px 14px;
-    border-radius: 6px;
-    font-size: 13px;
-    text-decoration: none;
-    font-weight: 500;
-    transition: all 0.15s;
+    display: inline-block; padding: 6px 14px; border-radius: 6px;
+    font-size: 13px; text-decoration: none; font-weight: 500; transition: all 0.15s;
   }
   .btn-view { background: #6366f1; color: #fff; }
   .btn-view:hover { background: #4f46e5; }
   .btn-download { background: #f0f0f0; color: #555; }
   .btn-download:hover { background: #e5e5e5; }
-  .footer {
-    text-align: center;
-    padding: 32px 20px;
-    font-size: 12px;
-    color: #aaa;
-  }
   .badge {
-    display: inline-block;
-    background: #dbeafe;
-    color: #2563eb;
-    font-size: 11px;
-    padding: 1px 8px;
-    border-radius: 10px;
-    margin-left: 8px;
-    font-weight: 500;
+    display: inline-block; background: #dbeafe; color: #2563eb;
+    font-size: 11px; padding: 1px 8px; border-radius: 10px;
+    margin-left: 8px; font-weight: 500;
   }
   .history-toggle {
-    padding: 8px 24px 12px;
-    font-size: 13px;
-    color: #6366f1;
-    cursor: pointer;
-    user-select: none;
+    padding: 8px 24px 12px; font-size: 13px; color: #6366f1;
+    cursor: pointer; user-select: none;
   }
   .history-toggle:hover { text-decoration: underline; }
   .history-list { display: none; }
   .history-list.open { display: block; }
   .history-item {
-    display: flex;
-    align-items: center;
-    padding: 8px 24px 8px 74px;
-    font-size: 13px;
-    color: #888;
+    display: flex; align-items: center;
+    padding: 8px 24px 8px 74px; font-size: 13px; color: #888;
   }
   .history-item a { color: #6366f1; text-decoration: none; margin-left: auto; font-size: 12px; }
   .history-item a:hover { text-decoration: underline; }
+  .footer { text-align: center; padding: 32px 20px; font-size: 12px; color: #aaa; }
 </style>
 </head>
 <body>
 
 <div class="header">
   <h1>Looply 项目文档中心</h1>
-  <p>登录注册模块 &middot; 产品文档一站式查看</p>
+  <p>产品文档一站式查看</p>
+  <div class="tab-bar" id="tabBar">
+    <!-- 模块 Tab 由 JS 动态生成，没有内容的模块不显示 -->
+  </div>
 </div>
 
-<div class="container">
+<div class="container" id="content">
 
-  <!-- 产品架构图 -->
-  <div class="module">
-    <div class="module-title">产品架构图</div>
-    <ul class="doc-list">
-      <li class="doc-item">
-        <div class="doc-icon icon-svg">S</div>
-        <div class="doc-info">
-          <div class="doc-name">登录注册模块产品架构图 v8.4 <span class="badge">最新</span></div>
-          <div class="doc-desc">SVG 矢量图 &middot; 点击直接查看</div>
-        </div>
-        <div class="doc-actions">
-          <a class="btn btn-view" href="docs/产品架构图/looply-登录注册模块产品架构图-v8.4.svg" target="_blank">查看</a>
-          <a class="btn btn-download" href="docs/产品架构图/looply-登录注册模块产品架构图-v8.4.svg" download>下载</a>
-        </div>
-      </li>
-    </ul>
-    <div class="history-toggle" onclick="this.nextElementSibling.classList.toggle('open')">历史版本 ▾</div>
-    <ul class="doc-list history-list">
-      <li class="history-item">v8.3 <a href="docs/产品架构图/looply-登录注册模块产品架构图-v8.3.svg" target="_blank">查看</a></li>
-      <li class="history-item">v8.2 <a href="docs/产品架构图/looply-登录注册模块产品架构图-v8.2.svg" target="_blank">查看</a></li>
-      <li class="history-item">v7.3 <a href="docs/产品架构图/looply-登录注册模块产品架构图-v7.3.svg" target="_blank">查看</a></li>
-      <li class="history-item">v7.2 <a href="docs/产品架构图/looply-登录注册模块产品架构图-v7.2.svg" target="_blank">查看</a></li>
-      <li class="history-item">v7.1 <a href="docs/产品架构图/looply-登录注册模块产品架构图-v7.1.svg" target="_blank">查看</a></li>
-      <li class="history-item">v7.0 <a href="docs/产品架构图/looply-登录注册模块产品架构图-v7.0.svg" target="_blank">查看</a></li>
-    </ul>
-  </div>
+  <!-- ==================== 登录注册模块 ==================== -->
+  <div class="module-section" data-module="登录注册">
 
-  <!-- 实体关系图 -->
-  <div class="module">
-    <div class="module-title">实体关系图</div>
-    <ul class="doc-list">
-      <li class="doc-item">
-        <div class="doc-icon icon-html">H</div>
-        <div class="doc-info">
-          <div class="doc-name">登录注册模块实体关系图 <span class="badge">最新</span></div>
-          <div class="doc-desc">HTML 双视图 &middot; 产品视图 / 技术视图可切换</div>
-        </div>
-        <div class="doc-actions">
-          <a class="btn btn-view" href="docs/实体关系图/looply-登录注册模块实体关系图.html" target="_blank">查看</a>
-        </div>
-      </li>
-    </ul>
-    <div class="history-toggle" onclick="this.nextElementSibling.classList.toggle('open')">历史版本 ▾</div>
-    <ul class="doc-list history-list">
-      <li class="history-item">v9.0 <a href="docs/实体关系图/looply-登录注册模块实体关系图-v9.0.html" target="_blank">查看</a></li>
-      <li class="history-item">v8.0 <a href="docs/实体关系图/looply-登录注册模块实体关系图-v8.0.html" target="_blank">查看</a></li>
-    </ul>
-  </div>
+    <div class="card">
+      <div class="card-title">产品架构图</div>
+      <ul class="doc-list">
+        <li class="doc-item">
+          <div class="doc-icon icon-svg">S</div>
+          <div class="doc-info">
+            <div class="doc-name">登录注册模块产品架构图 v8.4 <span class="badge">最新</span></div>
+            <div class="doc-desc">SVG 矢量图</div>
+          </div>
+          <div class="doc-actions">
+            <a class="btn btn-view" href="docs/产品架构图/looply-登录注册模块产品架构图-v8.4.svg" target="_blank">查看</a>
+            <a class="btn btn-download" href="docs/产品架构图/looply-登录注册模块产品架构图-v8.4.svg" download>下载</a>
+          </div>
+        </li>
+      </ul>
+      <div class="history-toggle" onclick="this.nextElementSibling.classList.toggle('open')">历史版本 ▾</div>
+      <ul class="doc-list history-list">
+        <li class="history-item">v8.3 <a href="docs/产品架构图/looply-登录注册模块产品架构图-v8.3.svg" target="_blank">查看</a></li>
+        <li class="history-item">v8.2 <a href="docs/产品架构图/looply-登录注册模块产品架构图-v8.2.svg" target="_blank">查看</a></li>
+        <li class="history-item">v7.3 <a href="docs/产品架构图/looply-登录注册模块产品架构图-v7.3.svg" target="_blank">查看</a></li>
+        <li class="history-item">v7.2 <a href="docs/产品架构图/looply-登录注册模块产品架构图-v7.2.svg" target="_blank">查看</a></li>
+        <li class="history-item">v7.1 <a href="docs/产品架构图/looply-登录注册模块产品架构图-v7.1.svg" target="_blank">查看</a></li>
+        <li class="history-item">v7.0 <a href="docs/产品架构图/looply-登录注册模块产品架构图-v7.0.svg" target="_blank">查看</a></li>
+      </ul>
+    </div>
 
-  <!-- 系统流程图 -->
-  <div class="module">
-    <div class="module-title">系统流程图</div>
-    <ul class="doc-list">
-      <li class="doc-item">
-        <div class="doc-icon icon-svg">S</div>
-        <div class="doc-info">
-          <div class="doc-name">登录注册系统流程图 v7.0 <span class="badge">最新</span></div>
-          <div class="doc-desc">三泳道 9 段 &middot; SVG 矢量图</div>
-        </div>
-        <div class="doc-actions">
-          <a class="btn btn-view" href="docs/系统流程图/looply-登录注册系统流程图-v7.svg" target="_blank">查看</a>
-          <a class="btn btn-download" href="docs/系统流程图/looply-登录注册系统流程图-v7.svg" download>下载</a>
-        </div>
-      </li>
-    </ul>
-    <div class="history-toggle" onclick="this.nextElementSibling.classList.toggle('open')">历史版本 ▾</div>
-    <ul class="doc-list history-list">
-      <li class="history-item">v6.0 <a href="docs/系统流程图/looply-登录注册系统流程图-v6.svg" target="_blank">查看</a></li>
-      <li class="history-item">v5.0 <a href="docs/系统流程图/looply-登录注册系统流程图-v5.svg" target="_blank">查看</a></li>
-      <li class="history-item">v4.0 <a href="docs/系统流程图/looply-登录注册系统流程图-v4.svg" target="_blank">查看</a></li>
-    </ul>
-  </div>
+    <div class="card">
+      <div class="card-title">实体关系图</div>
+      <ul class="doc-list">
+        <li class="doc-item">
+          <div class="doc-icon icon-html">H</div>
+          <div class="doc-info">
+            <div class="doc-name">登录注册模块实体关系图 <span class="badge">最新</span></div>
+            <div class="doc-desc">HTML 双视图 &middot; 产品视图 / 技术视图可切换</div>
+          </div>
+          <div class="doc-actions">
+            <a class="btn btn-view" href="docs/实体关系图/looply-登录注册模块实体关系图.html" target="_blank">查看</a>
+          </div>
+        </li>
+      </ul>
+      <div class="history-toggle" onclick="this.nextElementSibling.classList.toggle('open')">历史版本 ▾</div>
+      <ul class="doc-list history-list">
+        <li class="history-item">v9.0 <a href="docs/实体关系图/looply-登录注册模块实体关系图-v9.0.html" target="_blank">查看</a></li>
+        <li class="history-item">v8.0 <a href="docs/实体关系图/looply-登录注册模块实体关系图-v8.0.html" target="_blank">查看</a></li>
+      </ul>
+    </div>
 
-  <!-- PRD 文档 -->
-  <div class="module">
-    <div class="module-title">PRD 文档</div>
-    <ul class="doc-list">
-      <li class="doc-item">
-        <div class="doc-icon icon-doc">W</div>
-        <div class="doc-info">
-          <div class="doc-name">登录注册功能说明文档 V2.0 <span class="badge">最新</span></div>
-          <div class="doc-desc">Word 文档 &middot; 点击下载查看</div>
-        </div>
-        <div class="doc-actions">
-          <a class="btn btn-download" href="docs/PRD/Looply用户系统-登录注册功能说明文档-V2.0.docx" download>下载</a>
-        </div>
-      </li>
-    </ul>
-  </div>
+    <div class="card">
+      <div class="card-title">系统流程图</div>
+      <ul class="doc-list">
+        <li class="doc-item">
+          <div class="doc-icon icon-svg">S</div>
+          <div class="doc-info">
+            <div class="doc-name">登录注册系统流程图 v7.0 <span class="badge">最新</span></div>
+            <div class="doc-desc">三泳道 9 段 &middot; SVG 矢量图</div>
+          </div>
+          <div class="doc-actions">
+            <a class="btn btn-view" href="docs/系统流程图/looply-登录注册系统流程图-v7.svg" target="_blank">查看</a>
+            <a class="btn btn-download" href="docs/系统流程图/looply-登录注册系统流程图-v7.svg" download>下载</a>
+          </div>
+        </li>
+      </ul>
+      <div class="history-toggle" onclick="this.nextElementSibling.classList.toggle('open')">历史版本 ▾</div>
+      <ul class="doc-list history-list">
+        <li class="history-item">v6.0 <a href="docs/系统流程图/looply-登录注册系统流程图-v6.svg" target="_blank">查看</a></li>
+        <li class="history-item">v5.0 <a href="docs/系统流程图/looply-登录注册系统流程图-v5.svg" target="_blank">查看</a></li>
+        <li class="history-item">v4.0 <a href="docs/系统流程图/looply-登录注册系统流程图-v4.svg" target="_blank">查看</a></li>
+      </ul>
+    </div>
 
-  <!-- UI 设计稿 -->
-  <div class="module">
-    <div class="module-title">UI 设计稿</div>
-    <ul class="doc-list">
-      <li class="doc-item">
-        <div class="doc-icon icon-pen">U</div>
-        <div class="doc-info">
-          <div class="doc-name">登录注册 PC 端 v2 <span class="badge">最新</span></div>
-          <div class="doc-desc">.pen 设计文件 &middot; 需用 Pencil 打开</div>
-        </div>
-        <div class="doc-actions">
-          <a class="btn btn-download" href="docs/UI/looply-登录注册-PC-v2.pen" download>下载</a>
-        </div>
-      </li>
-      <li class="doc-item">
-        <div class="doc-icon icon-pen">U</div>
-        <div class="doc-info">
-          <div class="doc-name">登录注册 H5 端 v2 <span class="badge">最新</span></div>
-          <div class="doc-desc">.pen 设计文件 &middot; 需用 Pencil 打开</div>
-        </div>
-        <div class="doc-actions">
-          <a class="btn btn-download" href="docs/UI/looply-登录注册-H5-v2.pen" download>下载</a>
-        </div>
-      </li>
-    </ul>
+    <div class="card">
+      <div class="card-title">PRD 文档</div>
+      <ul class="doc-list">
+        <li class="doc-item">
+          <div class="doc-icon icon-doc">W</div>
+          <div class="doc-info">
+            <div class="doc-name">登录注册功能说明文档 V2.0 <span class="badge">最新</span></div>
+            <div class="doc-desc">Word 文档 &middot; 点击下载查看</div>
+          </div>
+          <div class="doc-actions">
+            <a class="btn btn-download" href="docs/PRD/Looply用户系统-登录注册功能说明文档-V2.0.docx" download>下载</a>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title">UI 设计稿</div>
+      <ul class="doc-list">
+        <li class="doc-item">
+          <div class="doc-icon icon-pen">U</div>
+          <div class="doc-info">
+            <div class="doc-name">登录注册 PC 端 v2 <span class="badge">最新</span></div>
+            <div class="doc-desc">.pen 设计文件 &middot; 需用 Pencil 打开</div>
+          </div>
+          <div class="doc-actions">
+            <a class="btn btn-download" href="docs/UI/looply-登录注册-PC-v2.pen" download>下载</a>
+          </div>
+        </li>
+        <li class="doc-item">
+          <div class="doc-icon icon-pen">U</div>
+          <div class="doc-info">
+            <div class="doc-name">登录注册 H5 端 v2 <span class="badge">最新</span></div>
+            <div class="doc-desc">.pen 设计文件 &middot; 需用 Pencil 打开</div>
+          </div>
+          <div class="doc-actions">
+            <a class="btn btn-download" href="docs/UI/looply-登录注册-H5-v2.pen" download>下载</a>
+          </div>
+        </li>
+      </ul>
+    </div>
+
   </div>
+  <!-- ==================== 登录注册模块 END ==================== -->
+
+  <!--
+    新增模块示例（复制这段，改 data-module 和内容即可）：
+    <div class="module-section" data-module="商品域">
+      <div class="card">
+        <div class="card-title">产品架构图</div>
+        <ul class="doc-list">
+          <li class="doc-item">...</li>
+        </ul>
+      </div>
+    </div>
+  -->
 
 </div>
 
 <div class="footer">
   Looply &copy; 2026 &middot; 内部文档，请勿外传
 </div>
+
+<script>
+(function() {
+  var sections = document.querySelectorAll('.module-section');
+  var tabBar = document.getElementById('tabBar');
+  var modules = [];
+
+  // 收集有内容的模块
+  sections.forEach(function(sec) {
+    var name = sec.getAttribute('data-module');
+    if (name && sec.children.length > 0) {
+      modules.push({ name: name, el: sec });
+    }
+  });
+
+  // 生成 Tab
+  modules.forEach(function(mod, i) {
+    var tab = document.createElement('div');
+    tab.className = 'tab' + (i === 0 ? ' active' : '');
+    tab.textContent = mod.name;
+    tab.setAttribute('data-target', mod.name);
+    tab.onclick = function() {
+      document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      sections.forEach(function(s) { s.classList.remove('active'); });
+      mod.el.classList.add('active');
+    };
+    tabBar.appendChild(tab);
+  });
+
+  // 默认显示第一个
+  if (modules.length > 0) {
+    modules[0].el.classList.add('active');
+  }
+})();
+</script>
 
 </body>
 </html>
