@@ -60,9 +60,29 @@
   }
   .toc a:hover { background: #f0f0ff; color: #6366f1; }
   .toc a.active { background: #ede9fe; color: #6366f1; font-weight: 500; }
+  .toc .toc-h1 { padding-left: 8px; font-weight: 600; font-size: 13px; }
   .toc .toc-h2 { padding-left: 8px; }
   .toc .toc-h3 { padding-left: 24px; font-size: 12px; color: #888; }
   .toc .toc-h4 { padding-left: 40px; font-size: 12px; color: #aaa; }
+  .toc .toc-toggle {
+    display: inline-block;
+    width: 16px;
+    font-size: 10px;
+    color: #aaa;
+    cursor: pointer;
+    text-align: center;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+    user-select: none;
+  }
+  .toc .toc-toggle.collapsed { transform: rotate(-90deg); }
+  .toc .toc-link-row {
+    display: flex;
+    align-items: center;
+  }
+  .toc .toc-link-row a { flex: 1; }
+  .toc .toc-children { overflow: hidden; transition: max-height 0.25s ease; }
+  .toc .toc-children.collapsed { max-height: 0 !important; }
   /* 正文 */
   .article {
     flex: 1;
@@ -120,37 +140,126 @@ fetch('Looply用户系统-登录注册功能说明文档-V2.0.md')
     var article = document.getElementById('article');
     article.innerHTML = marked.parse(md);
 
-    // 生成目录
-    var tocList = document.getElementById('tocList');
+    // 收集标题
     var headings = article.querySelectorAll('h1, h2, h3, h4');
-    var tocHtml = '';
+    var items = [];
     headings.forEach(function(h, i) {
       var id = 'heading-' + i;
       h.id = id;
-      var level = h.tagName.toLowerCase();
-      var text = h.textContent;
-      tocHtml += '<li><a class="toc-' + level + '" href="#' + id + '">' + text + '</a></li>';
+      items.push({ level: parseInt(h.tagName[1]), text: h.textContent, id: id, el: h });
     });
-    tocList.innerHTML = tocHtml;
 
-    // 滚动高亮当前目录项
-    var tocLinks = tocList.querySelectorAll('a');
-    var headingEls = Array.from(headings);
+    // 构建树形结构
+    function buildTree(items) {
+      var root = { children: [], level: 0 };
+      var stack = [root];
+      items.forEach(function(item) {
+        var node = { item: item, children: [] };
+        while (stack.length > 1 && stack[stack.length - 1].level >= item.level) {
+          stack.pop();
+        }
+        stack[stack.length - 1].children.push(node);
+        node.level = item.level;
+        stack.push(node);
+      });
+      return root.children;
+    }
+
+    // 渲染树形目录
+    function renderTree(nodes) {
+      var ul = document.createElement('ul');
+      nodes.forEach(function(node) {
+        var li = document.createElement('li');
+        var row = document.createElement('div');
+        row.className = 'toc-link-row';
+
+        var hasChildren = node.children.length > 0;
+
+        if (hasChildren) {
+          var toggle = document.createElement('span');
+          toggle.className = 'toc-toggle';
+          toggle.textContent = '▼';
+          row.appendChild(toggle);
+        } else {
+          var spacer = document.createElement('span');
+          spacer.style.width = '16px';
+          spacer.style.display = 'inline-block';
+          spacer.style.flexShrink = '0';
+          row.appendChild(spacer);
+        }
+
+        var a = document.createElement('a');
+        a.className = 'toc-h' + node.item.level;
+        a.href = '#' + node.item.id;
+        a.textContent = node.item.text;
+        a.setAttribute('data-index', node.item.id);
+        row.appendChild(a);
+        li.appendChild(row);
+
+        if (hasChildren) {
+          var childUl = renderTree(node.children);
+          childUl.className = 'toc-children';
+          li.appendChild(childUl);
+
+          toggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var isCollapsed = childUl.classList.contains('collapsed');
+            if (isCollapsed) {
+              childUl.classList.remove('collapsed');
+              toggle.classList.remove('collapsed');
+            } else {
+              childUl.classList.add('collapsed');
+              toggle.classList.add('collapsed');
+            }
+          });
+        }
+
+        ul.appendChild(li);
+      });
+      return ul;
+    }
+
+    var tree = buildTree(items);
+    var tocList = document.getElementById('tocList');
+    tocList.innerHTML = '';
+    var rendered = renderTree(tree);
+    while (rendered.firstChild) {
+      tocList.appendChild(rendered.firstChild);
+    }
+
+    // 滚动高亮 + 自动展开当前节点的父级
+    var allLinks = tocList.querySelectorAll('a');
+    var headingEls = items.map(function(it) { return it.el; });
+
     function updateActive() {
       var scrollTop = window.scrollY + 80;
       var current = 0;
       headingEls.forEach(function(h, i) {
         if (h.offsetTop <= scrollTop) current = i;
       });
-      tocLinks.forEach(function(a, i) {
+      allLinks.forEach(function(a, i) {
         a.classList.toggle('active', i === current);
       });
+      // 确保当前高亮项的父级目录是展开的
+      var activeLink = allLinks[current];
+      if (activeLink) {
+        var parent = activeLink.closest('.toc-children');
+        while (parent) {
+          parent.classList.remove('collapsed');
+          var tog = parent.previousElementSibling;
+          if (tog) {
+            var togBtn = tog.querySelector('.toc-toggle');
+            if (togBtn) togBtn.classList.remove('collapsed');
+          }
+          parent = parent.parentElement.closest('.toc-children');
+        }
+      }
     }
     window.addEventListener('scroll', updateActive);
     updateActive();
 
     // 点击目录平滑滚动
-    tocLinks.forEach(function(a) {
+    allLinks.forEach(function(a) {
       a.addEventListener('click', function(e) {
         e.preventDefault();
         var target = document.getElementById(a.getAttribute('href').slice(1));
@@ -158,6 +267,19 @@ fetch('Looply用户系统-登录注册功能说明文档-V2.0.md')
           window.scrollTo({ top: target.offsetTop - 60, behavior: 'smooth' });
         }
       });
+    });
+
+    // 默认折叠 h3/h4 层级（只展开 h1/h2）
+    tocList.querySelectorAll('.toc-children').forEach(function(ul) {
+      var parentLink = ul.previousElementSibling;
+      if (parentLink) {
+        var a = parentLink.querySelector('a');
+        if (a && (a.classList.contains('toc-h2') || a.classList.contains('toc-h3'))) {
+          ul.classList.add('collapsed');
+          var tog = parentLink.querySelector('.toc-toggle');
+          if (tog) tog.classList.add('collapsed');
+        }
+      }
     });
   })
   .catch(function() {
