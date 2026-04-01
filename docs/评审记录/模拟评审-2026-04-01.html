@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>模拟评审问题清单 - Looply</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f5f7fa; color: #333; line-height: 1.7;
+  }
+  .layout { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 240px; background: #fff; border-right: 1px solid #eee;
+    padding: 24px 0; position: fixed; top: 0; left: 0; height: 100vh;
+    overflow-y: auto;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: #6366f1;
+    padding: 0 20px 16px; border-bottom: 1px solid #f0f0f0;
+    margin-bottom: 8px;
+  }
+  .sidebar a {
+    display: block; padding: 8px 20px; font-size: 13px;
+    color: #666; text-decoration: none; transition: all 0.15s;
+    border-left: 3px solid transparent;
+  }
+  .sidebar a:hover { color: #6366f1; background: #f8f9fb; }
+  .sidebar a.active {
+    color: #6366f1; font-weight: 600;
+    border-left-color: #6366f1; background: #f0f0ff;
+  }
+  .sidebar .back-link {
+    display: block; padding: 12px 20px; font-size: 12px;
+    color: #999; text-decoration: none; border-top: 1px solid #f0f0f0;
+    margin-top: 12px;
+  }
+  .sidebar .back-link:hover { color: #6366f1; }
+
+  .main { flex: 1; margin-left: 240px; padding: 40px 48px 80px; max-width: 860px; }
+  .meta {
+    font-size: 12px; color: #999; margin-bottom: 32px;
+    padding: 12px 16px; background: #fff; border-radius: 8px;
+    border-left: 3px solid #8b5cf6;
+  }
+  .meta span { display: block; }
+
+  h1 { font-size: 26px; font-weight: 700; color: #1e1e2e; margin-bottom: 32px; }
+  h2 {
+    font-size: 18px; font-weight: 600; color: #1e1e2e;
+    margin: 40px 0 16px; padding-top: 20px;
+    border-top: 1px solid #eee;
+  }
+  h2:first-of-type { border-top: none; margin-top: 0; padding-top: 0; }
+  h3 { font-size: 15px; font-weight: 600; color: #444; margin: 20px 0 10px; }
+
+  p { margin-bottom: 12px; font-size: 14px; }
+  ul { margin: 8px 0 16px 20px; font-size: 14px; }
+  li { margin-bottom: 4px; }
+  code {
+    background: #f1f5f9; padding: 2px 6px; border-radius: 4px;
+    font-size: 13px; font-family: "SF Mono", Monaco, monospace;
+  }
+
+  .issue-card {
+    background: #fff; border-radius: 8px; padding: 16px 20px;
+    margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .issue-title {
+    font-size: 14px; font-weight: 600; color: #1e1e2e; margin-bottom: 8px;
+  }
+  .issue-meta { font-size: 12px; color: #888; margin-bottom: 6px; }
+  .issue-desc { font-size: 13px; color: #555; margin-bottom: 8px; line-height: 1.7; }
+  .issue-suggest { font-size: 13px; color: #059669; background: #f0fdf4; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #10b981; }
+
+  .tag {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 600; margin-right: 6px;
+  }
+  .tag-p0 { background: #fee2e2; color: #dc2626; }
+  .tag-p1 { background: #fef3c7; color: #d97706; }
+  .tag-p2 { background: #dbeafe; color: #2563eb; }
+  .tag-p3 { background: #f3e8ff; color: #7c3aed; }
+  .tag-dev { background: #e0e7ff; color: #4338ca; }
+  .tag-test { background: #fce7f3; color: #be185d; }
+
+  .stats {
+    display: flex; gap: 12px; margin: 24px 0 32px; flex-wrap: wrap;
+  }
+  .stat-item {
+    background: #fff; border-radius: 8px; padding: 12px 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06); text-align: center; min-width: 80px;
+  }
+  .stat-num { font-size: 24px; font-weight: 700; }
+  .stat-label { font-size: 11px; color: #888; margin-top: 2px; }
+  .stat-p0 .stat-num { color: #dc2626; }
+  .stat-p1 .stat-num { color: #d97706; }
+  .stat-p2 .stat-num { color: #2563eb; }
+  .stat-p3 .stat-num { color: #7c3aed; }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 24px 16px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-title">模拟评审问题清单</div>
+    <a href="#stats" class="active">统计概览</a>
+    <a href="#p0">P0 阻塞开发（3）</a>
+    <a href="#p1">P1 影响质量（8）</a>
+    <a href="#p2">P2 建议改进（3）</a>
+    <a href="#p3">P3 小建议（1）</a>
+    <a class="back-link" href="../../index.html">&larr; 返回文档中心</a>
+  </nav>
+
+  <div class="main">
+    <div class="meta">
+      <span>PRD：Looply用户系统-登录注册功能说明文档-V2.5</span>
+      <span>评审日期：2026-04-01</span>
+      <span>评审角色：开发、测试（设计角色已跳过）</span>
+      <span>数据来源：PRD V2.5 全文 + 调研报告 + UI 设计稿清单</span>
+    </div>
+
+    <h1>模拟评审问题清单</h1>
+
+    <div class="stats" id="stats">
+      <div class="stat-item stat-p0"><div class="stat-num">3</div><div class="stat-label">P0 阻塞开发</div></div>
+      <div class="stat-item stat-p1"><div class="stat-num">8</div><div class="stat-label">P1 影响质量</div></div>
+      <div class="stat-item stat-p2"><div class="stat-num">3</div><div class="stat-label">P2 建议改进</div></div>
+      <div class="stat-item stat-p3"><div class="stat-num">1</div><div class="stat-label">P3 小建议</div></div>
+    </div>
+
+    <!-- P0 -->
+    <h2 id="p0">P0（必须修复，阻塞开发）</h2>
+
+    <div class="issue-card">
+      <div class="issue-title"><span class="tag tag-p0">P0</span><span class="tag tag-dev">开发</span>1. 账号注销身份验证方式未定义（OAuth 用户无密码）</div>
+      <div class="issue-meta">位置：PRD 第 4.6 节 账号注销</div>
+      <div class="issue-desc">接口 <code>/api/auth/delete-account</code> 标注"需身份验证"，但未说明验证方式。邮箱注册用户可以输入密码验证，但 OAuth 注册用户（Google/Apple/Facebook）从未设置过密码，如何完成身份验证？</div>
+      <div class="issue-suggest">建议：明确两种路径——密码用户输入密码确认，OAuth 用户通过重新 OAuth 授权或邮箱验证码确认</div>
+    </div>
+
+    <div class="issue-card">
+      <div class="issue-title"><span class="tag tag-p0">P0</span><span class="tag tag-dev">开发</span>2. Facebook 无邮箱用户的后续生命周期未覆盖</div>
+      <div class="issue-meta">位置：PRD 第 2.6 节 Facebook 登录 + 第 3.4 节 忘记密码</div>
+      <div class="issue-desc">调研报告将"Facebook 无邮箱注册容错"列为 MVP 必做项，PRD 提到 Facebook 可能不返回邮箱，但未说明：(1) 无邮箱用户如何找回密码？忘记密码流程依赖邮箱发验证码，这条路走不通；(2) 无邮箱用户如何接收交易通知？(3) 引导绑定邮箱的时机和流程是什么？</div>
+      <div class="issue-suggest">建议：新增"Facebook 无邮箱用户处理"章节，定义注册后引导绑定邮箱的触发时机（首次下单 / 7天内提醒）、绑定流程、未绑定时的功能限制</div>
+    </div>
+
+    <div class="issue-card">
+      <div class="issue-title"><span class="tag tag-p0">P0</span><span class="tag tag-dev">开发</span>3. OAuth 回调错误处理未定义</div>
+      <div class="issue-meta">位置：PRD 第 2.4/2.5/2.6 节 Google/Apple/Facebook 登录</div>
+      <div class="issue-desc">三个 OAuth Provider 的正常流程写得清楚，但回调失败场景完全缺失：用户在 Provider 页面点"拒绝授权"、网络中断导致回调超时、state 参数校验失败、Provider 返回错误码。开发不知道这些场景该跳转哪里、显示什么提示。</div>
+      <div class="issue-suggest">建议：每个 OAuth 章节补充"异常场景"表格，至少覆盖：用户拒绝授权、回调超时、state 不匹配、Provider 返回错误四种情况</div>
+    </div>
+
+    <!-- P1 -->
+    <h2 id="p1">P1（应该修复，影响质量）</h2>
+
+    <div class="issue-card">
+      <div class="issue-title"><span class="tag tag-p1">P1</span><span class="tag tag-dev">开发</span>4. 跨 Provider 邮箱冲突处理逻辑不明确</div>
+      <div class="issue-meta">位置：PRD 第 2.4-2.6 节 OAuth 登录</div>
+      <div class="issue-desc">用户 A 用 Google（邮箱 a@gmail.com）注册后，又用邮箱 a@gmail.com + 密码注册，会怎样？反过来呢？PRD 提到"邮箱已注册"检查，但未说明跨注册方式的冲突解决策略——是自动关联、提示已存在、还是允许创建独立账号？</div>
+      <div class="issue-suggest">建议：明确邮箱唯一性策略：同一邮箱只能对应一个账号，后注册的方式自动关联到已有账号（需验证身份），或提示"该邮箱已通过 XX 方式注册，请使用 XX 登录"</div>
+    </div>
+
+    <div class="issue-card">
+      <div class="issue-title"><span class="tag tag-p1">P1</span><span class="tag tag-dev">开发</span>5. 风控"跨州登录"的基准位置如何确定</div>
+      <div class="issue-meta">位置：PRD 第 6.1 节 风控检测规则</div>
+      <div class="issue-desc">跨州登录触发邮箱验证，但"用户的常驻州"如何确定？注册 IP？最近 N 次登录 IP 的众数？用户 profile 中的地址？这直接影响风控判断逻辑的实现。</div>
+      <div class="issue-suggest">建议：定义基准位置的确定规则，建议"最近 5 次登录 IP 的州级定位众数"或"注册时 IP 定位的州"</div>
+    </div>
+
+    <div class="issue-card">
+      <div class="issue-title"><span class="tag tag-p1">P1</span><span class="tag tag-dev">开发</span>6. 密码修改页面对 OAuth 用户的可见性</div>
+      <div class="issue-meta">位置：PRD 第 5.1 节 密码修改</div>
+      <div class="issue-desc">密码修改要求输入"当前密码 + 新密码"，但纯 OAuth 注册用户从未设置过密码。这个页面对他们是隐藏、置灰、还是转为"设置密码"流程？</div>
+      <div class="issue-suggest">建议：区分两种场景——有密码用户走"修改密码"，无密码用户走"设置密码"（只需输入新密码 + 确认），或者对无密码用户隐藏该入口</div>
+    </div>
+
+    <div class="issue-card">
+      <div class="issue-title"><span class="tag tag-p1">P1</span><span class="tag tag-dev">开发</span>7. 验证码规格未定义</div>
+      <div class="issue-meta">位置：PRD 第 2.8 节 邮箱验证码</div>
+      <div class="issue-desc">验证码的位数、字符集（纯数字？字母+数字？）、有效期均未说明。开发需要这些参数才能实现。</div>
+      <div class="issue-suggest">建议：明确定义，建议 6 位纯数字、有效期 10 分钟</div>
+    </div>
+
+    <div class="issue-card">
+      <div class="issue-title"><span class="tag tag-p1">P1</span><span class="tag tag-dev">开发</span>8. 协议版本检测失败的降级策略</div>
+      <div class="issue-meta">位置：PRD 第 5.4 节 协议版本检测</div>
+      <div class="issue-desc">说"每次打开 App 或刷新页面时检查"，但如果 <code>/api/auth/consent/check</code> 接口超时或返回错误，是阻断用户使用还是静默跳过？这是个高频调用，降级策略必须明确。</div>
+      <div class="issue-suggest">建议：非阻断——接口失败时静默跳过，下次再检查。避免因协议检测接口故障导致全站不可用</div>
+    </div>
+
+    <div class="issue-card">
+      <div class="issue-title"><span class="tag tag-p1">P1</span><span class="tag tag-test">测试</span>9. 并发会话行为未定义</div>
+      <div class="issue-meta">位置：PRD 第 3.6 节 登录态保持 + 第 5.2 节 Token 刷新</div>
+      <div class="issue-desc">用户同时在 PC 和 H5 登录，修改密码后另一端的 session 是否立即失效？注销账号时其他端是否同步踢出？测试无法编写多端场景的用例。</div>
+      <div class="issue-suggest">建议：明确策略——修改密码后所有其他 session 的 refresh_token 立即失效；注销账号后所有 session 立即失效</div>
+    </div>
+
+    <div class="issue-card">
+      <div class="issue-title"><span class="tag tag-p1">P1</span><span class="tag tag-test">测试</span>10. 验证码新旧覆盖规则未定义</div>
+      <div class="issue-meta">位置：PRD 第 2.8 节 邮箱验证码</div>
+      <div class="issue-desc">用户请求验证码 A，未使用，又请求验证码 B。此时 A 是否还有效？如果两个都有效，存在安全风险；如果 A 失效，需要明确告知用户。</div>
+      <div class="issue-suggest">建议：新码生成时旧码立即失效，同一时刻只有一个有效验证码</div>
+    </div>
+
+    <div class="issue-card">
+      <div class="issue-title"><span class="tag tag-p1">P1</span><span class="tag tag-test">测试</span>11. 会话失效时的用户体验未说明</div>
+      <div class="issue-meta">位置：PRD 第 5.3 节 会话失效</div>
+      <div class="issue-desc">说"Token 过期后跳转登录页"，但如果用户正在填写表单（如注册到一半、修改密码到一半），跳转后表单数据丢失。是否需要保存草稿或给出提示？</div>
+      <div class="issue-suggest">建议：至少在跳转前 Toast 提示"登录已过期，请重新登录"，并在重新登录后尝试跳回原页面</div>
+    </div>
+
+    <!-- P2 -->
+    <h2 id="p2">P2（建议改进）</h2>
+
+    <div class="issue-card">
+      <div class="issue-title"><span class="tag tag-p2">P2</span><span class="tag tag-dev">开发</span>12. 国家选择器的异常场景</div>
+      <div class="issue-meta">位置：PRD 第 1.4 节 国家/地区选择器</div>
+      <div class="issue-desc">IP 检测失败时默认选哪个国家？检测到不支持的国家（如中国）时如何处理？支持的国家列表在哪里定义？</div>
+      <div class="issue-suggest">建议：IP 检测失败默认 United States；不支持的国家显示提示"Service not available in your region"</div>
+    </div>
+
+    <div class="issue-card">
+      <div class="issue-title"><span class="tag tag-p2">P2</span><span class="tag tag-test">测试</span>13. 浏览器后退按钮行为</div>
+      <div class="issue-meta">位置：全局</div>
+      <div class="issue-desc">多步骤流程（注册→验证码→成功、忘记密码→验证码→重置）中，用户点浏览器后退按钮的行为未定义。注册成功后后退到注册页，再次提交会怎样？</div>
+      <div class="issue-suggest">建议：关键成功页面使用 history.replaceState 替换历史记录，防止后退到已完成的步骤</div>
+    </div>
+
+    <div class="issue-card">
+      <div class="issue-title"><span class="tag tag-p2">P2</span><span class="tag tag-dev">开发</span>14. 邮件重置密码链接 vs 验证码方式不一致</div>
+      <div class="issue-meta">位置：PRD 第 3.4 节 忘记密码 vs 调研报告</div>
+      <div class="issue-desc">调研报告 MVP 清单写的是"忘记密码（邮件重置链接）"，但 PRD 实现的是验证码方式。两边不一致，需确认最终方案。</div>
+      <div class="issue-suggest">建议：以 PRD 为准（验证码方式），同步更新调研报告描述</div>
+    </div>
+
+    <!-- P3 -->
+    <h2 id="p3">P3（小建议）</h2>
+
+    <div class="issue-card">
+      <div class="issue-title"><span class="tag tag-p3">P3</span><span class="tag tag-test">测试</span>15. 接口清单缺少请求/响应示例</div>
+      <div class="issue-meta">位置：PRD 第 7.2 节 接口清单</div>
+      <div class="issue-desc">19 个接口只有路径和方法，没有请求参数和响应格式示例。虽然标注了"参考"，但测试编写接口测试用例时缺少依据。</div>
+      <div class="issue-suggest">建议：至少为核心接口（register、login、token/refresh）补充请求体和响应体示例</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+var links = document.querySelectorAll('.sidebar a[href^="#"]');
+var sections = [];
+links.forEach(function(a) {
+  var id = a.getAttribute('href').slice(1);
+  var el = document.getElementById(id);
+  if (el) sections.push({ el: el, link: a });
+});
+window.addEventListener('scroll', function() {
+  var scrollY = window.scrollY + 100;
+  var current = sections[0];
+  sections.forEach(function(s) {
+    if (s.el.offsetTop <= scrollY) current = s;
+  });
+  links.forEach(function(a) { a.classList.remove('active'); });
+  if (current) current.link.classList.add('active');
+});
+</script>
+
+</body>
+</html>

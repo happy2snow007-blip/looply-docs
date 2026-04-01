@@ -80,6 +80,14 @@ sync_files() {
             fi
         fi
 
+        # 评审记录 - md
+        if [ -d "$SOURCE_DIR/评审记录" ]; then
+            mkdir -p "$REPO_DIR/$TARGET/评审记录"
+            for f in "$SOURCE_DIR/评审记录/"*.md; do
+                [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/评审记录/"
+            done
+        fi
+
         # UI 设计稿 - pen 文件
         if [ -d "$SOURCE_DIR/UI" ]; then
             mkdir -p "$REPO_DIR/$TARGET/UI"
@@ -121,7 +129,7 @@ if command -v fswatch &> /dev/null; then
     WATCH_DIRS=()
     for ENTRY in "${MODULE_LIST[@]}"; do
         SOURCE_DIR="${ENTRY%%|*}"
-        for sub in 调研 产品架构图 实体关系图 系统流程图 PRD UI; do
+        for sub in 调研 产品架构图 实体关系图 系统流程图 PRD 评审记录 UI; do
             [ -d "$SOURCE_DIR/$sub" ] && WATCH_DIRS+=("$SOURCE_DIR/$sub")
         done
     done
