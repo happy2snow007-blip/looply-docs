@@ -35,6 +35,14 @@ sync_files() {
         SOURCE_DIR="${ENTRY%%|*}"
         TARGET="${ENTRY##*|}"
 
+        # 调研 - md
+        if [ -d "$SOURCE_DIR/调研" ]; then
+            mkdir -p "$REPO_DIR/$TARGET/调研"
+            for f in "$SOURCE_DIR/调研/"*.md; do
+                [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/调研/"
+            done
+        fi
+
         # 产品架构图 - SVG
         if [ -d "$SOURCE_DIR/产品架构图" ]; then
             mkdir -p "$REPO_DIR/$TARGET/产品架构图"
@@ -113,7 +121,7 @@ if command -v fswatch &> /dev/null; then
     WATCH_DIRS=()
     for ENTRY in "${MODULE_LIST[@]}"; do
         SOURCE_DIR="${ENTRY%%|*}"
-        for sub in 产品架构图 实体关系图 系统流程图 PRD UI; do
+        for sub in 调研 产品架构图 实体关系图 系统流程图 PRD UI; do
             [ -d "$SOURCE_DIR/$sub" ] && WATCH_DIRS+=("$SOURCE_DIR/$sub")
         done
     done
