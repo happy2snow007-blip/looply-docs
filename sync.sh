@@ -17,13 +17,18 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 # 只在文件内容有变化时才复制（避免刷新未改动文件的修改时间）
+# 兜底：源文件 mtime 更新时强制复制（防 Pencil MCP 延迟写入导致 cmp 误判）
 smart_cp() {
     local src="$1" dst="$2"
     # 如果目标是目录，拼上文件名
     if [ -d "$dst" ]; then
         dst="$dst/$(basename "$src")"
     fi
-    if [ ! -f "$dst" ] || ! cmp -s "$src" "$dst"; then
+    if [ ! -f "$dst" ]; then
+        cp "$src" "$dst"
+    elif ! cmp -s "$src" "$dst"; then
+        cp "$src" "$dst"
+    elif [ "$src" -nt "$dst" ]; then
         cp "$src" "$dst"
     fi
 }
