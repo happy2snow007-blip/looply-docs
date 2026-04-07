@@ -9,6 +9,7 @@ REPO_DIR="$HOME/looply-docs"
 MODULE_LIST=(
     "$HOME/Desktop/海外业务登录注册|docs"
     "$HOME/Desktop/海外业务首页|docs-首页"
+    "$HOME/Desktop/海外业务商品系统|docs-商品系统"
 )
 
 # 颜色
