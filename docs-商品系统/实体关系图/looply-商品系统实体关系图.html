@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>实体关系图</title>
+<!-- ========== 数据区（新项目只改这里）========== -->
+<script>
+const ER_CONFIG = {
+  title: 'looply · 商品系统 实体关系图',
+  version: 'v1.0 · 自动布局 · 2026.04',
+
+  // 分组定义：三层模型
+  groups: {
+    standard: { color:'#4A90D9', border:'#a3c4e9', bg:'#EBF3FB', label:'标品层 · 这是什么东西' },
+    product:  { color:'#E8833A', border:'#f2c9a3', bg:'#FDF2E9', label:'商品层 · 这件/这批商品什么状况' },
+    channel:  { color:'#27AE60', border:'#7cb89e', bg:'#E8F8EF', label:'渠道销售层 · 在哪卖、卖多少' }
+  },
+
+  entities: [
+    // ===== 标品层 =====
+    { id:'brand', name:'品牌 Brand', group:'standard', table:'brand', fields:[
+      {n:'品牌ID', col:'id', t:'BIGINT', constraint:'PK AUTO_INCREMENT', desc:'主键'},
+      {n:'品牌名称', col:'name', t:'VARCHAR(128)', constraint:'NOT NULL, UNIQUE', desc:''},
+      {n:'品牌Logo', col:'logo_url', t:'VARCHAR(512)', constraint:'', desc:''},
+      {n:'品牌简介', col:'description', t:'TEXT', constraint:'', desc:''},
+      {n:'品牌官网', col:'official_website', t:'VARCHAR(256)', constraint:'', desc:''},
+      {n:'状态（启用/停用）', col:'status', t:'TINYINT', constraint:'NOT NULL DEFAULT 1', desc:'1=启用 2=停用'},
+      {n:'创建时间', col:'created_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true},
+      {n:'更新时间', col:'updated_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true}
+    ], techNote:'索引: uk_name(name)' },
+
+    { id:'series', name:'系列 Series', group:'standard', table:'series', fields:[
+      {n:'系列ID', col:'id', t:'BIGINT', constraint:'PK AUTO_INCREMENT', desc:'主键'},
+      {n:'品牌ID', col:'brand_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 brand.id', tech:true},
+      {n:'系列名称', col:'name', t:'VARCHAR(128)', constraint:'NOT NULL', desc:'如 Neverfull、Classic Flap'},
+      {n:'系列简介', col:'description', t:'TEXT', constraint:'', desc:''},
+      {n:'系列图片', col:'image_url', t:'VARCHAR(512)', constraint:'', desc:''},
+      {n:'状态（启用/停用）', col:'status', t:'TINYINT', constraint:'NOT NULL DEFAULT 1', desc:'1=启用 2=停用'},
+      {n:'创建时间', col:'created_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true},
+      {n:'更新时间', col:'updated_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true}
+    ], note:'奢侈品核心组织维度', techNote:'索引: idx_brand_id(brand_id)' },
+
+    { id:'category', name:'品类 Category', group:'standard', table:'category', fields:[
+      {n:'品类ID', col:'id', t:'BIGINT', constraint:'PK AUTO_INCREMENT', desc:'主键'},
+      {n:'父品类ID', col:'parent_id', t:'BIGINT', constraint:'INDEX', desc:'顶级品类为NULL'},
+      {n:'品类名称', col:'name', t:'VARCHAR(64)', constraint:'NOT NULL', desc:'如 手机、箱包、电脑'},
+      {n:'属性模板ID', col:'attribute_template_id', t:'BIGINT', constraint:'FK', desc:'关联 attribute_template.id'},
+      {n:'规格属性模板ID', col:'attribute_template_id', t:'BIGINT', constraint:'FK', desc:'关联 attribute_template.id'},
+      {n:'质检模板ID', col:'inspection_template_id', t:'BIGINT', constraint:'FK', desc:'关联 inspection_template.id'},
+      {n:'排序', col:'sort_order', t:'INT', constraint:'DEFAULT 0', desc:''}
+    ], techNote:'索引: idx_parent_id(parent_id)' },
+
+    { id:'attr_tpl', name:'规格属性模板 AttributeTemplate', group:'standard', table:'attribute_template', fields:[
+      {n:'模板ID', col:'id', t:'BIGINT', constraint:'PK AUTO_INCREMENT', desc:'主键'},
+      {n:'模板名称', col:'name', t:'VARCHAR(128)', constraint:'NOT NULL', desc:'如 智能手机属性模板'},
+      {n:'适用品类ID', col:'category_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 category.id', tech:true},
+      {n:'版本号', col:'version', t:'INT', constraint:'NOT NULL DEFAULT 1', desc:'模板迭代版本'}
+    ], note:'按品类定义规格属性集合，支持版本化', techNote:'索引: idx_category_id(category_id)' },
+
+    { id:'spec_attr', name:'规格属性定义 SpecAttribute', group:'standard', table:'spec_attribute', fields:[
+      {n:'属性ID', col:'id', t:'BIGINT', constraint:'PK AUTO_INCREMENT', desc:'主键'},
+      {n:'所属模板ID', col:'template_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 attribute_template.id', tech:true},
+      {n:'属性键', col:'key', t:'VARCHAR(64)', constraint:'NOT NULL', desc:'如 color、storage'},
+      {n:'显示名称', col:'label', t:'VARCHAR(64)', constraint:'NOT NULL', desc:'如 颜色、存储容量'},
+      {n:'输入类型（单选/多选/文本/数字）', col:'input_type', t:'VARCHAR(20)', constraint:'NOT NULL', desc:'select/multi_select/text/number'},
+      {n:'可选值列表', col:'options', t:'JSON', constraint:'', desc:'输入类型为选择时填写'},
+      {n:'单位', col:'unit', t:'VARCHAR(16)', constraint:'', desc:'如 GB、inch'},
+      {n:'是否必填', col:'required', t:'TINYINT(1)', constraint:'NOT NULL DEFAULT 0', desc:''},
+      {n:'是否可筛选', col:'filterable', t:'TINYINT(1)', constraint:'NOT NULL DEFAULT 0', desc:''},
+      {n:'排序', col:'sort_order', t:'INT', constraint:'DEFAULT 0', desc:''}
+    ], note:'EAV模式，挂在属性模板下', techNote:'索引: idx_template_id(template_id)\n唯一约束: uk_template_key(template_id, key)' },
+
+    { id:'spu', name:'标品 SPU', group:'standard', table:'standard_product', fields:[
+      {n:'标品ID', col:'id', t:'BIGINT', constraint:'PK AUTO_INCREMENT', desc:'主键'},
+      {n:'标品名称', col:'name', t:'VARCHAR(256)', constraint:'NOT NULL', desc:''},
+      {n:'品牌ID', col:'brand_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 brand.id', tech:true},
+      {n:'系列ID', col:'series_id', t:'BIGINT', constraint:'FK, INDEX', desc:'关联 series.id，可为空', tech:true},
+      {n:'品类ID', col:'category_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 category.id', tech:true},
+      {n:'型号名', col:'model', t:'VARCHAR(128)', constraint:'', desc:'如 iPhone 15 Pro Max'},
+      {n:'制造商型号', col:'model_number', t:'VARCHAR(128)', constraint:'', desc:'如 A2849'},
+      {n:'商品描述', col:'description', t:'TEXT', constraint:'', desc:''},
+      {n:'发布年份', col:'release_year', t:'SMALLINT', constraint:'', desc:''},
+      {n:'官方参考价', col:'reference_price', t:'DECIMAL(12,2)', constraint:'', desc:''},
+      {n:'标品图片', col:'image_urls', t:'JSON', constraint:'', desc:'官方图片URL列表'},
+      {n:'状态（启用/停用）', col:'status', t:'TINYINT', constraint:'NOT NULL DEFAULT 1', desc:'1=启用 2=停用'},
+      {n:'创建时间', col:'created_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true},
+      {n:'更新时间', col:'updated_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true}
+    ], note:'标准产品单元，描述"是什么东西"', techNote:'索引: idx_brand_id(brand_id), idx_series_id(series_id), idx_category_id(category_id)' },
+
+    { id:'sku', name:'新品规格 SKU', group:'standard', table:'sku', fields:[
+      {n:'SKU ID', col:'id', t:'BIGINT', constraint:'PK AUTO_INCREMENT', desc:'主键'},
+      {n:'标品ID', col:'spu_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 standard_product.id', tech:true},
+      {n:'SKU名称', col:'sku_name', t:'VARCHAR(256)', constraint:'', desc:'如 iPhone 15 Pro Max 256GB 银色'},
+      {n:'SKU编码', col:'sku_code', t:'VARCHAR(64)', constraint:'UNIQUE', desc:'内部编码'},
+      {n:'新品零售价', col:'price', t:'DECIMAL(12,2)', constraint:'', desc:''},
+      {n:'规格图片', col:'image_urls', t:'JSON', constraint:'', desc:'特定规格的图片'},
+      {n:'状态（启用/停用）', col:'status', t:'TINYINT', constraint:'NOT NULL DEFAULT 1', desc:'1=启用 2=停用'},
+      {n:'创建时间', col:'created_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true},
+      {n:'更新时间', col:'updated_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true}
+    ], note:'具体规格组合，如颜色+存储', techNote:'索引: idx_spu_id(spu_id)\n唯一约束: uk_sku_code(sku_code)' },
+
+    { id:'sku_sv', name:'SKU规格值 SkuSpecValue', group:'standard', table:'sku_spec_value', fields:[
+      {n:'记录ID', col:'id', t:'BIGINT', constraint:'PK AUTO_INCREMENT', desc:'主键'},
+      {n:'SKU ID', col:'sku_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 sku.id', tech:true},
+      {n:'规格属性ID', col:'attribute_id', t:'BIGINT', constraint:'NOT NULL, FK', desc:'关联 spec_attribute.id', tech:true},
+      {n:'值', col:'value', t:'VARCHAR(256)', constraint:'NOT NULL', desc:'如 256GB、银色'}
+    ], note:'EAV值表，记录每个SKU的规格值', techNote:'唯一约束: uk_sku_attr(sku_id, attribute_id)' },
+
+    // ===== 商品层 =====
+    { id:'inv_item', name:'可售商品 InventoryItem', group:'product', table:'inventory_item', fields:[
+      {n:'商品ID', col:'id', t:'BIGINT', constraint:'PK AUTO_INCREMENT', desc:'主键'},
+      {n:'SKU ID', col:'sku_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 sku.id', tech:true},
+      {n:'卖家/商家ID', col:'seller_id', t:'BIGINT', constraint:'NOT NULL, INDEX', desc:''},
+      {n:'商家类型（自营/三方）', col:'seller_type', t:'TINYINT', constraint:'NOT NULL', desc:'1=自营 2=三方商家'},
+      {n:'库存模式（一物一码/深库存）', col:'inventory_mode', t:'TINYINT', constraint:'NOT NULL', desc:'1=一物一码 2=深库存'},
+      {n:'库存数量', col:'quantity', t:'INT', constraint:'NOT NULL DEFAULT 1', desc:'一物一码=1，深库存≥1'},
+      {n:'成色等级', col:'condition_grade', t:'VARCHAR(16)', constraint:'', desc:'仅一物一码，如 S/A/B/C'},
+      {n:'采购/回收价', col:'purchase_price', t:'DECIMAL(12,2)', constraint:'', desc:''},
+      {n:'基础定价', col:'base_price', t:'DECIMAL(12,2)', constraint:'NOT NULL', desc:'渠道售价基准'},
+      {n:'商品图片', col:'item_images', t:'JSON', constraint:'', desc:'实拍图片URL列表'},
+      {n:'备注', col:'notes', t:'TEXT', constraint:'', desc:''},
+      {n:'库存状态（待质检/在库/已售/下架）', col:'status', t:'TINYINT', constraint:'NOT NULL', desc:'1=待质检 2=在库 3=已售 4=下架'},
+      {n:'质检完成时间', col:'inspected_at', t:'DATETIME', constraint:'', desc:''},
+      {n:'创建时间', col:'created_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true},
+      {n:'更新时间', col:'updated_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true}
+    ], note:'一物一码(quantity=1) 和 深库存(quantity≥1) 统一模型', techNote:'索引: idx_sku_id(sku_id), idx_seller_id(seller_id), idx_status(status)' },
+
+    { id:'insp_tpl', name:'质检模板 InspectionTemplate', group:'product', table:'inspection_template', fields:[
+      {n:'模板ID', col:'id', t:'BIGINT', constraint:'PK AUTO_INCREMENT', desc:'主键'},
+      {n:'模板名称', col:'name', t:'VARCHAR(128)', constraint:'NOT NULL', desc:''},
+      {n:'适用品类ID', col:'category_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 category.id', tech:true},
+      {n:'版本号', col:'version', t:'INT', constraint:'NOT NULL DEFAULT 1', desc:'模板迭代版本'}
+    ], note:'按品类定义质检标准', techNote:'索引: idx_category_id(category_id)' },
+
+    { id:'insp_item', name:'质检项 InspectionItem', group:'product', table:'inspection_item', fields:[
+      {n:'质检项ID', col:'id', t:'BIGINT', constraint:'PK AUTO_INCREMENT', desc:'主键'},
+      {n:'所属模板ID', col:'template_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 inspection_template.id', tech:true},
+      {n:'分组', col:'group_name', t:'VARCHAR(64)', constraint:'', desc:'如 外观、功能、配件'},
+      {n:'检查项名称', col:'name', t:'VARCHAR(128)', constraint:'NOT NULL', desc:''},
+      {n:'输入类型（单选/多选/文本/拍照）', col:'input_type', t:'VARCHAR(20)', constraint:'NOT NULL', desc:'select/multi_select/text/photo'},
+      {n:'可选值', col:'options', t:'JSON', constraint:'', desc:''},
+      {n:'是否影响评级', col:'affects_grade', t:'TINYINT(1)', constraint:'NOT NULL DEFAULT 0', desc:''},
+      {n:'排序', col:'sort_order', t:'INT', constraint:'DEFAULT 0', desc:''}
+    ], techNote:'索引: idx_template_id(template_id)' },
+
+    { id:'insp_rec', name:'质检记录 InspectionRecord', group:'product', table:'inspection_record', fields:[
+      {n:'记录ID', col:'id', t:'BIGINT', constraint:'PK AUTO_INCREMENT', desc:'主键'},
+      {n:'商品ID', col:'item_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 inventory_item.id', tech:true},
+      {n:'质检模板ID', col:'template_id', t:'BIGINT', constraint:'NOT NULL, FK', desc:'关联 inspection_template.id', tech:true},
+      {n:'模板版本', col:'template_version', t:'INT', constraint:'NOT NULL', desc:'快照当时版本'},
+      {n:'质检员ID', col:'inspector_id', t:'BIGINT', constraint:'NOT NULL, INDEX', desc:''},
+      {n:'质检时间', col:'inspected_at', t:'DATETIME', constraint:'NOT NULL', desc:''},
+      {n:'质检状态（进行中/完成/作废）', col:'status', t:'TINYINT', constraint:'NOT NULL', desc:'1=进行中 2=完成 3=作废'}
+    ], note:'只记录客观事实，不做评级判定', techNote:'索引: idx_item_id(item_id), idx_inspector_id(inspector_id)' },
+
+    { id:'insp_result', name:'质检结果明细 InspectionResult', group:'product', table:'inspection_result', fields:[
+      {n:'记录ID', col:'id', t:'BIGINT', constraint:'PK AUTO_INCREMENT', desc:'主键'},
+      {n:'质检记录ID', col:'record_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 inspection_record.id', tech:true},
+      {n:'质检项ID', col:'inspection_item_id', t:'BIGINT', constraint:'NOT NULL, FK', desc:'关联 inspection_item.id', tech:true},
+      {n:'质检结果值', col:'value', t:'VARCHAR(256)', constraint:'', desc:''},
+      {n:'佐证照片', col:'photo_urls', t:'JSON', constraint:'', desc:''},
+      {n:'备注', col:'remark', t:'TEXT', constraint:'', desc:''}
+    ], techNote:'索引: idx_record_id(record_id)' },
+
+    { id:'grade_rule', name:'成色等级规则 ConditionGradeRule', group:'product', table:'condition_grade_rule', fields:[
+      {n:'规则ID', col:'id', t:'BIGINT', constraint:'PK AUTO_INCREMENT', desc:'主键'},
+      {n:'品类ID', col:'category_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 category.id', tech:true},
+      {n:'等级编码', col:'grade_code', t:'VARCHAR(16)', constraint:'NOT NULL', desc:'如 S、A、B、C'},
+      {n:'等级名称', col:'grade_name', t:'VARCHAR(32)', constraint:'NOT NULL', desc:'如 近全新、良好、一般、较差'},
+      {n:'判定条件', col:'criteria', t:'JSON', constraint:'NOT NULL', desc:'质检项条件组合，系统据此自动判定'},
+      {n:'等级描述', col:'description', t:'VARCHAR(256)', constraint:'', desc:'面向买家的说明'},
+      {n:'排序', col:'sort_order', t:'INT', constraint:'NOT NULL DEFAULT 0', desc:'等级排列顺序，越小越好'}
+    ], note:'按品类定义成色等级及判定规则，质检完成后系统自动匹配', techNote:'索引: idx_category_id(category_id)\n唯一约束: uk_category_grade(category_id, grade_code)' },
+
+    // ===== 渠道销售层 =====
+    { id:'channel', name:'销售渠道 SalesChannel', group:'channel', table:'sales_channel', fields:[
+      {n:'渠道ID', col:'id', t:'BIGINT', constraint:'PK AUTO_INCREMENT', desc:'主键'},
+      {n:'渠道名称', col:'name', t:'VARCHAR(64)', constraint:'NOT NULL, UNIQUE', desc:'如 官网、门店、亚马逊'},
+      {n:'渠道类型（线上/线下/三方平台）', col:'type', t:'TINYINT', constraint:'NOT NULL', desc:'1=线上 2=线下门店 3=三方平台'},
+      {n:'渠道状态（启用/停用）', col:'status', t:'TINYINT', constraint:'NOT NULL DEFAULT 1', desc:'1=启用 2=停用'}
+    ], techNote:'唯一约束: uk_name(name)' },
+
+    { id:'listing', name:'渠道上架 ChannelListing', group:'channel', table:'channel_listing', fields:[
+      {n:'记录ID', col:'id', t:'BIGINT', constraint:'PK AUTO_INCREMENT', desc:'主键'},
+      {n:'商品ID', col:'item_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 inventory_item.id', tech:true},
+      {n:'渠道ID', col:'channel_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 sales_channel.id', tech:true},
+      {n:'渠道售价', col:'listing_price', t:'DECIMAL(12,2)', constraint:'NOT NULL', desc:'各渠道独立定价'},
+      {n:'上架状态（待上架/已上架/已下架）', col:'listing_status', t:'TINYINT', constraint:'NOT NULL', desc:'1=待上架 2=已上架 3=已下架'},
+      {n:'上架时间', col:'listed_at', t:'DATETIME', constraint:'', desc:''},
+      {n:'三方平台商品ID', col:'external_listing_id', t:'VARCHAR(128)', constraint:'', desc:'仅三方渠道'},
+      {n:'更新时间', col:'updated_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true}
+    ], note:'同一商品可上架多个渠道，各渠道独立定价', techNote:'索引: idx_item_id(item_id), idx_channel_id(channel_id)\n唯一约束: uk_item_channel(item_id, channel_id)' }
+  ],
+
+  midTables: [],
+
+  relations: [
+    // 标品层内部
+    {from:'brand',    to:'series',      type:'1:N', label:'品牌下多个系列'},
+    {from:'series',   to:'spu',         type:'1:N', label:'系列下多个标品'},
+    {from:'category', to:'spu',         type:'1:N', label:'品类下多个标品'},
+    {from:'category', to:'attr_tpl',    type:'1:1', label:'品类绑定属性模板'},
+    {from:'attr_tpl', to:'spec_attr',   type:'1:N', label:'模板包含多个属性'},
+    {from:'spu',      to:'sku',         type:'1:N', label:'标品下多个SKU'},
+    {from:'spec_attr',to:'sku_sv',      type:'1:N', label:'属性对应多个值'},
+    {from:'sku',      to:'sku_sv',      type:'1:N', label:'SKU包含多个规格值'},
+    // 跨层：标品层 → 商品层
+    {from:'category', to:'insp_tpl',    type:'1:1', label:'品类绑定质检模板'},
+    {from:'category', to:'grade_rule',  type:'1:N', label:'品类定义成色等级规则'},
+    {from:'sku',      to:'inv_item',    type:'1:N', label:'SKU对应多个可售商品'},
+    // 商品层内部
+    {from:'insp_tpl', to:'insp_item',   type:'1:N', label:'模板包含多个质检项'},
+    {from:'insp_tpl', to:'insp_rec',    type:'1:N', label:'模板被多次质检引用'},
+    {from:'inv_item', to:'insp_rec',    type:'1:N', label:'商品多次质检'},
+    {from:'insp_rec', to:'insp_result', type:'1:N', label:'记录包含多项结果'},
+    // 跨层：商品层 → 渠道层
+    {from:'inv_item', to:'listing',     type:'1:N', label:'商品上架多个渠道'},
+    // 渠道层内部
+    {from:'channel',  to:'listing',     type:'1:N', label:'渠道包含多个上架'}
+  ],
+
+  // 分层布局配置：层级顺序 + 每层内实体的行列排布
+  // 新增分层只需：1) groups 加一组  2) entities 加实体  3) layers 加一项
+  layers: [
+    { group:'standard', rows:[['brand','series','category','attr_tpl','spec_attr'], ['spu','sku','sku_sv']] },
+    { group:'product',  rows:[['inv_item','insp_tpl','insp_item','grade_rule'], ['insp_rec','insp_result']] },
+    { group:'channel',  rows:[['channel','listing']] }
+  ]
+};
+</script>
+<!-- ========== 数据区结束 ========== -->
+
+<!-- ========== 以下是模板引擎（基于登录注册模块，适配三层分层布局） ========== -->
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#f8f9fc;min-height:100vh;display:flex;flex-direction:column}
+.hd{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;padding:12px 32px;display:flex;justify-content:center;align-items:center;flex-shrink:0;gap:24px}
+.hd h1{font-size:20px;font-weight:600}
+.hr{display:flex;align-items:center;gap:14px}
+.hr span{color:#8892a4;font-size:12px}
+.tg{display:flex;background:rgba(255,255,255,.12);border-radius:6px;overflow:hidden}
+.tg button{border:none;padding:5px 16px;font-size:13px;cursor:pointer;font-family:inherit;transition:.2s}
+.tg .on{background:#fff;color:#1a1a2e;font-weight:600}
+.tg button:not(.on){background:transparent;color:#8892a4}
+.wrap{flex:1;overflow:auto;display:flex;justify-content:center;align-items:flex-start;padding:10px 0}
+.cv{position:relative;flex-shrink:0;transform-origin:top center}
+.card{position:absolute;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.07);border:1.5px solid #ddd;overflow:hidden;z-index:2;transition:opacity .2s}
+.card .ct{padding:6px 12px;font-size:13px;font-weight:600;color:#fff}
+.card .cb{padding:6px 12px 8px}
+.card .cr{font-size:12px;color:#333;line-height:1.7;display:flex;justify-content:space-between;gap:8px}
+.card .cr .cm{color:#999;font-size:10px;white-space:nowrap;display:none;text-align:right}
+.card .cn{font-size:11px;color:#999;border-top:1px dashed #eee;margin-top:4px;padding-top:4px}
+.card .ctn{display:none;font-size:11px;color:#999;border-top:1px dashed #eee;margin-top:4px;padding-top:4px;line-height:1.5;white-space:pre-line}
+.card .ctb{display:none;font-size:10px;color:#333;border-top:1px dashed #eee;margin-top:4px;padding-top:4px}
+.card .ctb table{width:100%;border-collapse:collapse}
+.card .ctb th{text-align:left;font-size:9px;color:#999;padding:1px 4px;border-bottom:1px solid #eee;font-weight:500}
+.card .ctb td{font-size:10px;padding:1px 4px;border-bottom:1px solid #f5f5f5}
+.card .ctb td.col-name{color:#1a73a7;font-weight:600}
+body.tech .card .cr .cm{display:block}
+body.tech .card .ctb{display:block}
+body.tech .card .cr{display:none}
+body.tech .card .cn{display:none}
+body.tech .card .ctn{display:block}
+body.md .wrap{display:none}
+body.md .lg{display:none}
+.md-wrap{display:none;flex:1;overflow:auto;padding:20px 40px}
+body.md .md-wrap{display:block}
+.md-wrap pre{background:#fff;border:1px solid #e8e8e8;border-radius:8px;padding:20px;font-size:13px;line-height:1.8;font-family:'SF Mono','Menlo','Monaco',monospace;white-space:pre-wrap;max-width:1000px;margin:0 auto}
+.md-wrap .md-actions{text-align:center;margin-bottom:12px}
+.md-wrap .md-actions button{border:1px solid #ddd;background:#fff;padding:5px 16px;font-size:13px;border-radius:6px;cursor:pointer;font-family:inherit}
+body.tech .card.mid-card{opacity:1!important;display:block!important}
+.card.mid-card{display:none}
+.lines{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:3}
+.rl{position:absolute;z-index:4;pointer-events:none}
+.rl span{font-size:11px;font-weight:600;color:#fff;padding:2px 10px;border-radius:8px;display:inline-block}
+.gl{position:absolute;font-size:12px;font-weight:600;letter-spacing:1px;padding:3px 10px;border-radius:3px;z-index:5}
+.layer-bg{position:absolute;border-radius:10px;z-index:0}
+.wp{position:absolute;width:12px;height:12px;border-radius:50%;background:rgba(150,150,150,.25);border:1.5px solid rgba(150,150,150,.4);cursor:grab;z-index:6;transform:translate(-50%,-50%);transition:background .15s}
+.wp:hover,.wp.active{background:rgba(100,100,100,.55);border-color:rgba(100,100,100,.7)}
+.lg{background:#fff;border-radius:8px;padding:6px 18px;box-shadow:0 1px 3px rgba(0,0,0,.05);border:1px solid #e8e8e8;flex-shrink:0;margin:0 auto 6px;max-width:1400px;width:calc(100% - 40px)}
+.lw{display:flex;gap:16px;flex-wrap:wrap;align-items:center;justify-content:center}
+.li{display:flex;align-items:center;gap:5px;font-size:11px;color:#666}
+.ld{width:11px;height:11px;border-radius:2px}
+</style>
+</head>
+<body>
+<div class="hd" id="header"></div>
+<div class="wrap"><div class="cv" id="canvas"></div></div>
+<div class="md-wrap" id="mdWrap"></div>
+<div class="lg" id="legend"></div>
+<script>
+const { title, version, groups: GROUPS, entities: ENTITIES, midTables: MID_TABLES, relations: RELATIONS, layers: LAYERS } = ER_CONFIG;
+
+// ========== 拖动状态管理 ==========
+const STORAGE_KEY = 'er-pos-' + encodeURIComponent(ER_CONFIG.title);
+let dragOverrides = {};
+let currentPositions = {};
+let currentSizes = {};
+try { const s = localStorage.getItem(STORAGE_KEY); if (s) dragOverrides = JSON.parse(s); } catch(e) {}
+function saveDragOverrides() { localStorage.setItem(STORAGE_KEY, JSON.stringify(dragOverrides)); }
+function resetLayout() { dragOverrides = {}; waypoints = {}; localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(WP_KEY); render(); }
+function getCanvasScale() { const m = document.getElementById('canvas').style.transform.match(/scale\(([^)]+)\)/); return m ? parseFloat(m[1]) : 1; }
+
+// ========== 折线拐点管理 ==========
+const WP_KEY = 'er-wp-' + encodeURIComponent(ER_CONFIG.title);
+let waypoints = {};
+try { const w = localStorage.getItem(WP_KEY); if (w) waypoints = JSON.parse(w); } catch(e) {}
+function saveWaypoints() { localStorage.setItem(WP_KEY, JSON.stringify(waypoints)); }
+function relKey(r) { return r.from + '>' + r.to; }
+function buildPath(a, b, wps) {
+  if (!wps || !wps.length) return `M${a.x},${a.y} L${b.x},${b.y}`;
+  let d = `M${a.x},${a.y}`;
+  wps.forEach(w => { d += ` L${w.x},${w.y}`; });
+  d += ` L${b.x},${b.y}`;
+  return d;
+}
+
+function renderHeader() {
+  const hd = document.getElementById('header');
+  document.title = title;
+  hd.innerHTML = `<h1>${title}</h1>
+  <div class="hr">
+    <div class="tg"><button class="on" onclick="sw('p',this)">产品视图</button><button onclick="sw('m',this)">Markdown</button></div>
+    <span>${version}</span>
+    <button onclick="resetLayout()" style="border:1px solid rgba(255,255,255,.3);background:transparent;color:#8892a4;padding:4px 12px;font-size:12px;border-radius:5px;cursor:pointer;font-family:inherit">重置布局</button>
+  </div>`;
+}
+
+function renderLegend() {
+  const lg = document.getElementById('legend');
+  let html = '<div class="lw">';
+  Object.keys(GROUPS).forEach(g => {
+    html += `<div class="li"><div class="ld" style="background:${GROUPS[g].color}"></div>${GROUPS[g].label}</div>`;
+  });
+  html += '<div class="li" style="margin-left:8px"><span style="display:inline-block;width:18px;height:1.5px;background:#999;vertical-align:middle"></span> 直接关系</div>';
+  const types = [...new Set(RELATIONS.map(r => r.type))];
+  types.forEach(t => {
+    html += `<div class="li"><span style="background:#666;color:#fff;font-size:10px;padding:2px 8px;border-radius:6px;font-weight:600">${t}</span> ${t === '1:N' ? '一对多' : t === '1:1' ? '一对一' : t}</div>`;
+  });
+  html += '</div>';
+  lg.innerHTML = html;
+}
+
+// ========== 分层布局引擎（从 ER_CONFIG.layers 读取，支持任意层数）==========
+const CARD_W = 260, CARD_PAD = 25;
+
+function layoutWithSizes(realSizes) {
+  const positions = {}, sizes = realSizes;
+  const LAYER_PAD = 40;      // 层内边距
+  const LAYER_GAP = 50;      // 层间距
+  const ROW_GAP = 50;        // 行间距
+  const COL_GAP = 40;        // 列间距
+  const LAYER_LABEL_H = 30;  // 层标签高度
+  const TOP_PAD = 20;        // 画布顶部留白
+
+  let curY = TOP_PAD;
+  const layerBounds = {};
+
+  // 先计算全局最宽行，让所有层等宽居中
+  let globalMaxRowW = 0;
+  LAYERS.forEach(layer => {
+    layer.rows.forEach(row => {
+      const w = row.length * CARD_W + (row.length - 1) * COL_GAP;
+      globalMaxRowW = Math.max(globalMaxRowW, w);
+    });
+  });
+
+  LAYERS.forEach(layer => {
+    const layerKey = layer.group;
+    const rows = layer.rows;
+    const layerStartY = curY;
+    let rowY = curY + LAYER_LABEL_H + 15;
+
+    rows.forEach((row, ri) => {
+      // 计算本行总宽
+      const totalW = row.length * CARD_W + (row.length - 1) * COL_GAP;
+      // 行内居中：基于全局最宽行宽度
+      const startX = LAYER_PAD + (globalMaxRowW - totalW) / 2;
+
+      // 本行最高卡片
+      let maxH = 0;
+      row.forEach(eid => {
+        if (sizes[eid]) maxH = Math.max(maxH, sizes[eid].h);
+      });
+
+      row.forEach((eid, ci) => {
+        const x = startX + ci * (CARD_W + COL_GAP);
+        positions[eid] = { x, y: rowY };
+      });
+
+      rowY += maxH + ROW_GAP;
+    });
+
+    const layerEndY = rowY - ROW_GAP + 15;
+
+    layerBounds[layerKey] = {
+      x: LAYER_PAD - 15,
+      y: layerStartY,
+      w: globalMaxRowW + 30,
+      h: layerEndY - layerStartY
+    };
+
+    curY = layerEndY + LAYER_GAP;
+  });
+
+  return { positions, sizes, layerBounds };
+}
+
+// ========== 连线引擎 ==========
+function getBestSide(pos, size, targetPos, targetSize) {
+  const cx = pos.x + size.w/2, cy = pos.y + size.h/2;
+  const tx = targetPos.x + targetSize.w/2, ty = targetPos.y + targetSize.h/2;
+  const dx = tx - cx, dy = ty - cy;
+  if (Math.abs(dx) * size.h > Math.abs(dy) * size.w) {
+    return dx > 0 ? 'right' : 'left';
+  }
+  return dy > 0 ? 'bottom' : 'top';
+}
+
+function getSmartAnchor(pos, size, side) {
+  switch(side) {
+    case 'top':    return { x: pos.x + size.w/2, y: pos.y };
+    case 'bottom': return { x: pos.x + size.w/2, y: pos.y + size.h };
+    case 'left':   return { x: pos.x,            y: pos.y + size.h/2 };
+    case 'right':  return { x: pos.x + size.w,   y: pos.y + size.h/2 };
+  }
+}
+
+// ========== 渲染 ==========
+function render() {
+  const canvas = document.getElementById('canvas');
+
+  // 第一步：先渲染卡片到 DOM 获取实际高度
+  let cardsHtml = '';
+  ENTITIES.forEach(e => {
+    const g = GROUPS[e.group];
+    cardsHtml += `<div class="card" data-id="${e.id}" style="left:0;top:0;width:${CARD_W}px;border-color:${g.border};visibility:hidden">`;
+    cardsHtml += `<div class="ct" style="background:${g.color}">${e.name}</div>`;
+    cardsHtml += '<div class="cb">';
+    e.fields.forEach(f => {
+      if (f.tech) return;
+      cardsHtml += `<div class="cr"><span>${f.n}</span>${f.t ? `<span class="cm">${f.t}</span>` : ''}</div>`;
+    });
+    const hasCols = e.fields.some(f => f.col);
+    if (hasCols) {
+      cardsHtml += '<div class="ctb"><table><tr><th>列名</th><th>类型</th><th>约束</th><th>说明</th></tr>';
+      e.fields.forEach(f => {
+        if (f.col) cardsHtml += `<tr><td class="col-name">${f.col}</td><td>${f.t||''}</td><td>${f.constraint||''}</td><td>${f.desc||f.n}</td></tr>`;
+      });
+      cardsHtml += '</table></div>';
+    }
+    if (e.note) cardsHtml += `<div class="cn">${e.note}</div>`;
+    if (e.techNote) cardsHtml += `<div class="ctn">${e.techNote}</div>`;
+    cardsHtml += '</div></div>';
+  });
+  canvas.innerHTML = cardsHtml;
+
+  const realSizes = {};
+  ENTITIES.forEach(e => {
+    const el = canvas.querySelector(`[data-id="${e.id}"]`);
+    realSizes[e.id] = { w: CARD_W, h: el ? el.offsetHeight : 80 };
+  });
+
+  // 第二步：计算布局
+  const { positions, sizes, layerBounds } = layoutWithSizes(realSizes);
+
+  // 应用拖动位置覆盖
+  Object.keys(dragOverrides).forEach(id => { if (positions[id]) positions[id] = { ...dragOverrides[id] }; });
+  currentPositions = {}; currentSizes = {};
+  Object.keys(positions).forEach(id => { currentPositions[id] = { ...positions[id] }; });
+  Object.keys(sizes).forEach(id => { currentSizes[id] = { ...sizes[id] }; });
+
+  // 第三步：完整渲染
+  let maxX = 0, maxY = 0;
+  Object.keys(positions).forEach(id => {
+    const p = positions[id], s = sizes[id] || {w:CARD_W,h:60};
+    maxX = Math.max(maxX, p.x + s.w + 40);
+    maxY = Math.max(maxY, p.y + s.h + 40);
+  });
+  canvas.style.width = maxX + 'px';
+  canvas.style.height = maxY + 'px';
+
+  let html = '';
+
+  // 层级背景
+  LAYERS.forEach(layer => {
+    const lk = layer.group;
+    const lb = layerBounds[lk], g = GROUPS[lk];
+    html += `<div class="layer-bg" style="left:${lb.x}px;top:${lb.y}px;width:${lb.w}px;height:${lb.h}px;background:${g.bg};border:1px solid ${g.border};border-radius:10px;opacity:0.5"></div>`;
+  });
+
+  // SVG 连线
+  html += `<svg class="lines" viewBox="0 0 ${maxX} ${maxY}">`;
+  html += '<defs><marker id="arr" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="7" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,3 L0,6Z" fill="#aaa"/></marker></defs>';
+
+  const anchors = [];
+  RELATIONS.forEach((rel, i) => {
+    const fp = positions[rel.from], fs = sizes[rel.from];
+    const tp = positions[rel.to], ts = sizes[rel.to];
+    if (!fp || !tp || !fs || !ts) { anchors.push(null); return; }
+    const fromSide = getBestSide(fp, fs, tp, ts);
+    const toSide = getBestSide(tp, ts, fp, fs);
+    const a = getSmartAnchor(fp, fs, fromSide);
+    const b = getSmartAnchor(tp, ts, toSide);
+    const rk = relKey(rel);
+    const wps = waypoints[rk] || [];
+    anchors.push({ a, b, rk, wps });
+    const toG = ENTITIES.find(e => e.id === rel.to)?.group || 'standard';
+    const color = GROUPS[toG]?.border || '#ccc';
+    const dash = rel.indirect ? ' stroke-dasharray="5,3"' : '';
+    html += `<path d="${buildPath(a, b, wps)}" stroke="${color}" stroke-width="1.5" fill="none"${dash} marker-end="url(#arr)"/>`;
+  });
+  html += '</svg>';
+
+  // 分组标签
+  LAYERS.forEach(layer => {
+    const lk = layer.group;
+    const lb = layerBounds[lk], g = GROUPS[lk];
+    html += `<div class="gl" style="left:${lb.x + 10}px;top:${lb.y + 5}px;color:${g.color};background:${g.bg};font-size:11px">${g.label}</div>`;
+  });
+
+  // 实体卡片
+  ENTITIES.forEach(e => {
+    const p = positions[e.id], s = sizes[e.id], g = GROUPS[e.group];
+    html += `<div class="card" data-id="${e.id}" style="left:${p.x}px;top:${p.y}px;width:${s.w}px;border-color:${g.border}">`;
+    html += `<div class="ct" style="background:${g.color}">${e.name}</div>`;
+    html += '<div class="cb">';
+    e.fields.forEach(f => {
+      if (f.tech) return;
+      html += `<div class="cr"><span>${f.n}</span>${f.t ? `<span class="cm">${f.t}</span>` : ''}</div>`;
+    });
+    const hasCols = e.fields.some(f => f.col);
+    if (hasCols) {
+      html += '<div class="ctb"><table><tr><th>列名</th><th>类型</th><th>约束</th><th>说明</th></tr>';
+      e.fields.forEach(f => {
+        if (f.col) html += `<tr><td class="col-name">${f.col}</td><td>${f.t||''}</td><td>${f.constraint||''}</td><td>${f.desc||f.n}</td></tr>`;
+      });
+      html += '</table></div>';
+    }
+    if (e.note) html += `<div class="cn">${e.note}</div>`;
+    if (e.techNote) html += `<div class="ctn">${e.techNote}</div>`;
+    html += '</div></div>';
+  });
+
+  // 关系标签 + 折线拐点
+  RELATIONS.forEach((rel, i) => {
+    const ab = anchors[i];
+    if (!ab) return;
+    const toG = ENTITIES.find(e => e.id === rel.to)?.group || 'standard';
+    const color = GROUPS[toG]?.color || '#666';
+    // 标签放在折线中段
+    const pts = [ab.a, ...ab.wps, ab.b];
+    const mi = Math.floor(pts.length / 2);
+    const lx = (pts[mi-1].x + pts[mi].x) / 2, ly = (pts[mi-1].y + pts[mi].y) / 2;
+    html += `<div class="rl" style="left:${lx - 20}px;top:${ly - 10}px"><span style="background:${color}">${rel.type}</span></div>`;
+    // 拐点手柄
+    if (ab.wps.length) {
+      ab.wps.forEach((wp, wi) => {
+        html += `<div class="wp active" data-rk="${ab.rk}" data-wi="${wi}" style="left:${wp.x}px;top:${wp.y}px"></div>`;
+      });
+    } else {
+      // 无拐点时在中点显示默认手柄
+      const mx = (ab.a.x+ab.b.x)/2, my = (ab.a.y+ab.b.y)/2;
+      html += `<div class="wp" data-rk="${ab.rk}" data-wi="new" style="left:${mx}px;top:${my}px"></div>`;
+    }
+  });
+
+  canvas.innerHTML = html;
+  fitToScreen();
+  setupDrag();
+}
+
+function fitToScreen() {
+  const canvas = document.getElementById('canvas');
+  const legendH = document.querySelector('.lg')?.offsetHeight || 0;
+  const headerH = document.querySelector('.hd')?.offsetHeight || 0;
+  const availW = window.innerWidth - 40;
+  const availH = window.innerHeight - headerH - legendH - 30;
+  const cw = canvas.offsetWidth;
+  const ch = canvas.offsetHeight;
+  if (cw <= 0 || ch <= 0) return;
+  const scaleX = availW / cw;
+  const scaleY = availH / ch;
+  const scale = Math.max(Math.min(scaleX, scaleY, 1), 0.80);
+  if (scale < 1) {
+    canvas.style.transform = `scale(${scale})`;
+    canvas.style.marginBottom = -(ch * (1 - scale)) + 'px';
+  } else {
+    canvas.style.transform = '';
+    canvas.style.marginBottom = '';
+  }
+}
+
+window.addEventListener('resize', fitToScreen);
+
+function setupDrag() {
+  const canvas = document.getElementById('canvas');
+  canvas.querySelectorAll('.card[data-id]').forEach(card => {
+    const id = card.dataset.id;
+    card.style.cursor = 'grab';
+    card.addEventListener('mousedown', function(e) {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      const scale = getCanvasScale();
+      const sx = e.clientX, sy = e.clientY;
+      const ox = parseFloat(card.style.left), oy = parseFloat(card.style.top);
+      card.style.cursor = 'grabbing'; card.style.zIndex = '10';
+      function onMove(ev) {
+        const nx = ox + (ev.clientX - sx) / scale;
+        const ny = oy + (ev.clientY - sy) / scale;
+        card.style.left = nx + 'px'; card.style.top = ny + 'px';
+        currentPositions[id] = { x: nx, y: ny };
+        updateConnections();
+      }
+      function onUp() {
+        card.style.cursor = 'grab'; card.style.zIndex = '';
+        dragOverrides[id] = { ...currentPositions[id] };
+        saveDragOverrides();
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  });
+  // 拐点拖动
+  canvas.querySelectorAll('.wp').forEach(handle => {
+    handle.addEventListener('mousedown', function(e) {
+      if (e.button !== 0) return;
+      e.preventDefault(); e.stopPropagation();
+      const rk = handle.dataset.rk, wi = handle.dataset.wi;
+      const scale = getCanvasScale();
+      const sx = e.clientX, sy = e.clientY;
+      const ox = parseFloat(handle.style.left), oy = parseFloat(handle.style.top);
+      handle.style.cursor = 'grabbing';
+      function onMove(ev) {
+        const nx = ox + (ev.clientX - sx) / scale;
+        const ny = oy + (ev.clientY - sy) / scale;
+        handle.style.left = nx + 'px'; handle.style.top = ny + 'px';
+        if (wi === 'new') {
+          waypoints[rk] = [{ x: nx, y: ny }];
+          handle.dataset.wi = '0';
+          handle.classList.add('active');
+        } else {
+          waypoints[rk][parseInt(wi)] = { x: nx, y: ny };
+        }
+        refreshSVGAndLabels();
+      }
+      function onUp() {
+        handle.style.cursor = '';
+        saveWaypoints();
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+    // 右键删除拐点
+    handle.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+      const rk = handle.dataset.rk, wi = handle.dataset.wi;
+      if (wi === 'new') return;
+      const wps = waypoints[rk];
+      if (!wps) return;
+      wps.splice(parseInt(wi), 1);
+      if (!wps.length) delete waypoints[rk];
+      saveWaypoints();
+      render();
+    });
+    // 双击连线添加拐点（在已有拐点的连线上）
+    handle.addEventListener('dblclick', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      const rk = handle.dataset.rk;
+      const rel = RELATIONS.find(r => relKey(r) === rk);
+      if (!rel) return;
+      const fp = currentPositions[rel.from], fs = currentSizes[rel.from];
+      const tp = currentPositions[rel.to], ts = currentSizes[rel.to];
+      if (!fp||!tp||!fs||!ts) return;
+      const a = getSmartAnchor(fp, fs, getBestSide(fp, fs, tp, ts));
+      const b = getSmartAnchor(tp, ts, getBestSide(tp, ts, fp, fs));
+      const wps = waypoints[rk] || [];
+      // 在最后一个拐点和终点之间插入新拐点
+      const last = wps.length ? wps[wps.length-1] : a;
+      const np = { x: (last.x+b.x)/2, y: (last.y+b.y)/2 };
+      wps.push(np);
+      waypoints[rk] = wps;
+      saveWaypoints();
+      render();
+    });
+  });
+}
+
+function refreshSVGAndLabels() {
+  const canvas = document.getElementById('canvas');
+  const svg = canvas.querySelector('.lines');
+  if (!svg) return;
+  let maxX = 0, maxY = 0;
+  Object.keys(currentPositions).forEach(id => {
+    const p = currentPositions[id], s = currentSizes[id] || {w:CARD_W,h:60};
+    maxX = Math.max(maxX, p.x + s.w + 40); maxY = Math.max(maxY, p.y + s.h + 40);
+  });
+  Object.values(waypoints).forEach(wps => wps.forEach(wp => {
+    maxX = Math.max(maxX, wp.x + 40); maxY = Math.max(maxY, wp.y + 40);
+  }));
+  canvas.style.width = maxX + 'px'; canvas.style.height = maxY + 'px';
+  svg.setAttribute('viewBox', `0 0 ${maxX} ${maxY}`);
+  let ph = '<defs><marker id="arr" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="7" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,3 L0,6Z" fill="#aaa"/></marker></defs>';
+  const ld = [];
+  RELATIONS.forEach(rel => {
+    const fp = currentPositions[rel.from], fs = currentSizes[rel.from];
+    const tp = currentPositions[rel.to], ts = currentSizes[rel.to];
+    if (!fp||!tp||!fs||!ts) { ld.push(null); return; }
+    const a = getSmartAnchor(fp, fs, getBestSide(fp, fs, tp, ts));
+    const b = getSmartAnchor(tp, ts, getBestSide(tp, ts, fp, fs));
+    const rk = relKey(rel);
+    const wps = waypoints[rk] || [];
+    const toG = ENTITIES.find(e => e.id === rel.to)?.group || 'standard';
+    const clr = GROUPS[toG]?.border || '#ccc';
+    const dash = rel.indirect ? ' stroke-dasharray="5,3"' : '';
+    ph += `<path d="${buildPath(a, b, wps)}" stroke="${clr}" stroke-width="1.5" fill="none"${dash} marker-end="url(#arr)"/>`;
+    const pts = [a, ...wps, b]; const mi = Math.floor(pts.length/2);
+    ld.push({x:(pts[mi-1].x+pts[mi].x)/2, y:(pts[mi-1].y+pts[mi].y)/2, type:rel.type, color:GROUPS[toG]?.color||'#666'});
+  });
+  svg.innerHTML = ph;
+  canvas.querySelectorAll('.rl').forEach(el => el.remove());
+  ld.forEach(d => {
+    if (!d) return;
+    const div = document.createElement('div');
+    div.className = 'rl'; div.style.cssText = `left:${d.x-20}px;top:${d.y-10}px`;
+    div.innerHTML = `<span style="background:${d.color}">${d.type}</span>`;
+    canvas.appendChild(div);
+  });
+}
+
+function updateConnections() {
+  refreshSVGAndLabels();
+  // 重新定位无拐点连线的默认手柄
+  const canvas = document.getElementById('canvas');
+  canvas.querySelectorAll('.wp:not(.active)').forEach(handle => {
+    const rk = handle.dataset.rk;
+    const rel = RELATIONS.find(r => relKey(r) === rk);
+    if (!rel) return;
+    const fp = currentPositions[rel.from], fs = currentSizes[rel.from];
+    const tp = currentPositions[rel.to], ts = currentSizes[rel.to];
+    if (!fp||!tp||!fs||!ts) return;
+    const a = getSmartAnchor(fp, fs, getBestSide(fp, fs, tp, ts));
+    const b = getSmartAnchor(tp, ts, getBestSide(tp, ts, fp, fs));
+    handle.style.left = (a.x+b.x)/2 + 'px'; handle.style.top = (a.y+b.y)/2 + 'px';
+  });
+}
+
+function sw(m, el) {
+  document.body.className = m === 't' ? 'tech' : m === 'm' ? 'md' : '';
+  document.querySelectorAll('.tg button').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  if (m === 'm') {
+    renderMarkdown();
+  } else {
+    render();
+  }
+}
+
+function renderMarkdown() {
+  const mdWrap = document.getElementById('mdWrap');
+  let md = `# ${title}\n\n`;
+  md += `${version}\n\n`;
+
+  const groupKeys = Object.keys(GROUPS);
+  groupKeys.forEach(gk => {
+    const gi = GROUPS[gk];
+    const ents = ENTITIES.filter(e => e.group === gk);
+    if (!ents.length) return;
+    md += `## ${gi.label}\n\n`;
+    ents.forEach(e => {
+      const tableName = e.table ? ` \`${e.table}\`` : '';
+      md += `### ${e.name}${tableName}\n\n`;
+      const hasCols = e.fields.some(f => f.col);
+      if (hasCols) {
+        md += '| 列名 | 类型 | 约束 | 说明 |\n';
+        md += '|------|------|------|------|\n';
+        e.fields.forEach(f => {
+          if (f.col) md += `| ${f.col} | ${f.t||''} | ${f.constraint||''} | ${f.desc||f.n} |\n`;
+        });
+      }
+      if (e.techNote) md += `\n> ${e.techNote.replace(/\n/g, '  \\n> ')}\n`;
+      md += '\n';
+    });
+  });
+
+  md += '## 关系\n\n';
+  md += '| 从 | 到 | 类型 | 说明 |\n';
+  md += '|----|-----|------|------|\n';
+  RELATIONS.forEach(r => {
+    const fromName = ENTITIES.find(e => e.id === r.from)?.name || r.from;
+    const toName = ENTITIES.find(e => e.id === r.to)?.name || r.to;
+    md += `| ${fromName} | ${toName} | ${r.type} | ${r.label}${r.indirect?' (间接)':''} |\n`;
+  });
+
+  mdWrap.innerHTML = `<div class="md-actions"><button onclick="copyMd()">复制 Markdown</button></div><pre id="mdContent">${md.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>`;
+}
+
+function copyMd() {
+  const pre = document.getElementById('mdContent');
+  navigator.clipboard.writeText(pre.textContent).then(() => {
+    const btn = document.querySelector('.md-actions button');
+    btn.textContent = '已复制';
+    setTimeout(() => btn.textContent = '复制 Markdown', 1500);
+  });
+}
+
+renderHeader();
+renderLegend();
+render();
+</script>
+</body>
+</html>

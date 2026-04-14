@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Looply 商品主数据管理原型 v1</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 14px;
+            color: #333;
+            background: #f5f5f5;
+        }
+
+        /* 顶部导航栏 */
+        .header {
+            height: 60px;
+            background: #1a1a1a;
+            color: white;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .header .logo {
+            font-size: 20px;
+            font-weight: 600;
+            margin-right: 40px;
+        }
+
+        .header .breadcrumb {
+            color: #999;
+            font-size: 14px;
+        }
+
+        /* 主容器 */
+        .container {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+
+        /* 左侧菜单 */
+        .sidebar {
+            width: 240px;
+            background: white;
+            border-right: 1px solid #e8e8e8;
+            overflow-y: auto;
+        }
+
+        .menu-group {
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .menu-group-title {
+            padding: 16px 20px;
+            font-weight: 600;
+            color: #666;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .menu-group-title:hover {
+            background: #fafafa;
+        }
+
+        .menu-item {
+            padding: 12px 20px 12px 48px;
+            cursor: pointer;
+            color: #666;
+            transition: all 0.2s;
+        }
+
+        .menu-item:hover {
+            background: #f5f5f5;
+            color: #1890ff;
+        }
+
+        .menu-item.active {
+            background: #e6f7ff;
+            color: #1890ff;
+            border-right: 3px solid #1890ff;
+        }
+
+        /* 主内容区 */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .page {
+            display: none;
+            background: white;
+            border-radius: 4px;
+            padding: 24px;
+            min-height: calc(100vh - 108px);
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .page-header {
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .page-desc {
+            color: #999;
+            font-size: 13px;
+        }
+
+        /* 按钮 */
+        .btn {
+            padding: 8px 16px;
+            border: 1px solid #d9d9d9;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            color: #1890ff;
+            border-color: #1890ff;
+        }
+
+        .btn-primary {
+            background: #1890ff;
+            color: white;
+            border-color: #1890ff;
+        }
+
+        .btn-primary:hover {
+            background: #40a9ff;
+            border-color: #40a9ff;
+        }
+
+        /* 表格 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+
+        th {
+            background: #fafafa;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        tr:hover {
+            background: #fafafa;
+        }
+
+        /* Tab 切换 */
+        .tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid #f0f0f0;
+            margin-bottom: 24px;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            color: #666;
+        }
+
+        .tab:hover {
+            color: #1890ff;
+        }
+
+        .tab.active {
+            color: #1890ff;
+            border-bottom-color: #1890ff;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* 标签 */
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 2px;
+            font-size: 12px;
+            margin-right: 4px;
+        }
+
+        .tag-key {
+            background: #fff7e6;
+            color: #fa8c16;
+            border: 1px solid #ffd591;
+        }
+
+        .tag-sale {
+            background: #e6f7ff;
+            color: #1890ff;
+            border: 1px solid #91d5ff;
+        }
+
+        .tag-non-key {
+            background: #f6ffed;
+            color: #52c41a;
+            border: 1px solid #b7eb8f;
+        }
+
+        .tag-required {
+            background: #fff1f0;
+            color: #ff4d4f;
+            border: 1px solid #ffccc7;
+        }
+
+        .tag-optional {
+            background: #f0f0f0;
+            color: #999;
+            border: 1px solid #d9d9d9;
+        }
+
+        /* 预览面板 */
+        .preview-panel {
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 4px;
+            padding: 16px;
+            margin-top: 24px;
+        }
+
+        .preview-header {
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .preview-selector {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .preview-selector select {
+            padding: 6px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .preview-result {
+            background: white;
+            border: 1px solid #e8e8e8;
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .preview-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .preview-item:last-child {
+            border-bottom: none;
+        }
+
+        .preview-item-name {
+            font-weight: 500;
+        }
+
+        .preview-item-meta {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .source-badge {
+            font-size: 12px;
+            color: #999;
+            background: #f5f5f5;
+            padding: 2px 8px;
+            border-radius: 2px;
+        }
+
+        /* 树形结构 */
+        .tree {
+            margin-top: 16px;
+        }
+
+        .tree-node {
+            padding: 8px 12px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .tree-node:hover {
+            background: #f5f5f5;
+        }
+
+        .tree-node-content {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tree-node-children {
+            margin-left: 24px;
+        }
+
+        .tree-toggle {
+            width: 16px;
+            text-align: center;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <div class="header">
+        <div class="logo">Looply 商品管理后台</div>
+        <div class="breadcrumb">主数据管理 / 属性作用域配置</div>
+    </div>
+
+    <!-- 主容器 -->
+    <div class="container">
+        <!-- 左侧菜单 -->
+        <div class="sidebar">
+            
+        <div class="menu-group">
+            <div class="menu-group-title">
+                <span>📂</span>
+                <span>品类管理</span>
+            </div>
+            <div class="menu-item" data-page="backend-category">
+                后台类目
+            </div>
+            <div class="menu-item" data-page="frontend-category">
+                前台类目
+            </div>
+            <div class="menu-item" data-page="category-mapping">
+                类目映射
+            </div>
+        </div>
+        <div class="menu-group">
+            <div class="menu-group-title">
+                <span>🏷️</span>
+                <span>品牌管理</span>
+            </div>
+            <div class="menu-item" data-page="brand-list">
+                品牌列表
+            </div>
+            <div class="menu-item" data-page="series-list">
+                系列管理
+            </div>
+            <div class="menu-item" data-page="brand-bindng">
+                关联配置
+            </div>
+        </div>
+        <div class="menu-group">
+            <div class="menu-group-title">
+                <span>⚙️</span>
+                <span>属性管理</span>
+            </div>
+            <div class="menu-item" data-page="attr-group-def">
+                属性分组与定义
+            </div>
+            <div class="menu-item" data-page="attr-scope">
+                作用域配置
+            </div>
+            <div class="menu-item" data-page="attr-preview">
+                生效预览
+            </div>
+        </div>
+        <div class="menu-group">
+            <div class="menu-group-title">
+                <span>📦</span>
+                <span>标品管理</span>
+            </div>
+            <div class="menu-item" data-page="spu-list">
+                SPU 管理
+            </div>
+            <div class="menu-item" data-page="sku-list">
+                SKU 管理
+            </div>
+        </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="main-content">
+            
+    <div class="page active" id="page-attr-scope">
+        <div class="page-header">
+            <div class="page-title">属性作用域配置</div>
+            <div class="page-desc">配置不同层级（类目/类目+品牌/类目+系列）下的属性规则，系统按优先级自动解析生效</div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="category">类目层配置</div>
+            <div class="tab" data-tab="category_brand">类目+品牌层配置</div>
+            <div class="tab" data-tab="category_series">类目+系列层配置</div>
+        </div>
+
+        
+        <div class="tab-content" id="tab-category">
+            <div style="margin-bottom: 16px;">
+                <button class="btn btn-primary">+ 添加属性</button>
+                <span style="margin-left: 16px; color: #999;">
+                    配置该类目下所有商品的通用属性
+                </span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>属性名称</th>
+                        <th>属性类型</th>
+                        <th>是否必填</th>
+                        <th>可选值</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+            <tr>
+                <td>颜色</td>
+                <td><span class="tag tag-key">关键</span></td>
+                <td><span class="tag tag-required">必填</span></td>
+                <td>黑色, 白色, 红色...</td>
+                <td>
+                    <button class="btn">编辑</button>
+                    <button class="btn">删除</button>
+                </td>
+            </tr>
+            <tr>
+                <td>款式</td>
+                <td><span class="tag tag-key">关键</span></td>
+                <td><span class="tag tag-required">必填</span></td>
+                <td>文本输入</td>
+                <td>
+                    <button class="btn">编辑</button>
+                    <button class="btn">删除</button>
+                </td>
+            </tr>
+            <tr>
+                <td>材质</td>
+                <td><span class="tag tag-sale">销售</span></td>
+                <td><span class="tag tag-required">必填</span></td>
+                <td>牛皮, 羊皮, 帆布...</td>
+                <td>
+                    <button class="btn">编辑</button>
+                    <button class="btn">删除</button>
+                </td>
+            </tr>
+            <tr>
+                <td>五金颜色</td>
+                <td><span class="tag tag-sale">销售</span></td>
+                <td><span class="tag tag-optional">选填</span></td>
+                <td>金色, 银色</td>
+                <td>
+                    <button class="btn">编辑</button>
+                    <button class="btn">删除</button>
+                </td>
+            </tr>
+            <tr>
+                <td>尺寸</td>
+                <td><span class="tag tag-non_key">描述</span></td>
+                <td><span class="tag tag-required">必填</span></td>
+                <td>文本输入</td>
+                <td>
+                    <button class="btn">编辑</button>
+                    <button class="btn">删除</button>
+                </td>
+            </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="tab-content" id="tab-category_brand">
+            <div style="margin-bottom: 16px;">
+                <button class="btn btn-primary">+ 添加属性</button>
+                <span style="margin-left: 16px; color: #999;">
+                    配置特定品牌在该类目下的差异化属性（覆盖类目层）
+                </span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>属性名称</th>
+                        <th>属性类型</th>
+                        <th>是否必填</th>
+                        <th>可选值</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+            <tr>
+                <td>颜色</td>
+                <td><span class="tag tag-key">关键</span></td>
+                <td><span class="tag tag-required">必填</span></td>
+                <td>黑色, 红色, 棕色...</td>
+                <td>
+                    <button class="btn">编辑</button>
+                    <button class="btn">删除</button>
+                </td>
+            </tr>
+            <tr>
+                <td>材质</td>
+                <td><span class="tag tag-sale">销售</span></td>
+                <td><span class="tag tag-required">必填</span></td>
+                <td>牛皮, 羊皮, 鳄鱼皮</td>
+                <td>
+                    <button class="btn">编辑</button>
+                    <button class="btn">删除</button>
+                </td>
+            </tr>
+            <tr>
+                <td>五金颜色</td>
+                <td><span class="tag tag-sale">销售</span></td>
+                <td><span class="tag tag-required">必填</span></td>
+                <td>金色, 银色, 钯金</td>
+                <td>
+                    <button class="btn">编辑</button>
+                    <button class="btn">删除</button>
+                </td>
+            </tr>
+            <tr>
+                <td>缝线工艺</td>
+                <td><span class="tag tag-sale">销售</span></td>
+                <td><span class="tag tag-required">必填</span></td>
+                <td>手工缝线, Saddle Stitch</td>
+                <td>
+                    <button class="btn">编辑</button>
+                    <button class="btn">删除</button>
+                </td>
+            </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="tab-content" id="tab-category_series">
+            <div style="margin-bottom: 16px;">
+                <button class="btn btn-primary">+ 添加属性</button>
+                <span style="margin-left: 16px; color: #999;">
+                    配置特定系列在该类目下的差异化属性（优先级最高）
+                </span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>属性名称</th>
+                        <th>属性类型</th>
+                        <th>是否必填</th>
+                        <th>可选值</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+            <tr>
+                <td>颜色</td>
+                <td><span class="tag tag-key">关键</span></td>
+                <td><span class="tag tag-required">必填</span></td>
+                <td>黑色, 红色, 米色</td>
+                <td>
+                    <button class="btn">编辑</button>
+                    <button class="btn">删除</button>
+                </td>
+            </tr>
+            <tr>
+                <td>材质</td>
+                <td><span class="tag tag-sale">销售</span></td>
+                <td><span class="tag tag-required">必填</span></td>
+                <td>鳄鱼皮</td>
+                <td>
+                    <button class="btn">编辑</button>
+                    <button class="btn">删除</button>
+                </td>
+            </tr>
+            <tr>
+                <td>缝线工艺</td>
+                <td><span class="tag tag-sale">销售</span></td>
+                <td><span class="tag tag-required">必填</span></td>
+                <td>Saddle Stitch</td>
+                <td>
+                    <button class="btn">编辑</button>
+                    <button class="btn">删除</button>
+                </td>
+            </tr>
+                </tbody>
+            </table>
+        </div>
+
+        
+    <div class="preview-panel">
+        <div class="preview-header">
+            🔍 生效预览
+        </div>
+        <div class="preview-selector">
+            <select id="preview-category">
+                <option value="1">箱包皮具 - 手提包</option>
+                <option value="2">服饰鞋履 - 运动鞋</option>
+            </select>
+            <select id="preview-brand">
+                <option value="">不限品牌</option>
+                <option value="1">爱马仕 (Hermès)</option>
+                <option value="2">香奈儿 (Chanel)</option>
+            </select>
+            <select id="preview-series">
+                <option value="">不限系列</option>
+                <option value="1">Birkin</option>
+                <option value="2">Kelly</option>
+            </select>
+            <button class="btn btn-primary" onclick="updatePreview()">查看生效结果</button>
+        </div>
+        <div class="preview-result" id="preview-result">
+            <div style="color: #999; text-align: center; padding: 24px;">
+                请选择类目、品牌、系列组合后点击"查看生效结果"
+            </div>
+        </div>
+    </div>
+    </div>
+
+                <div class="page" id="page-backend-category">
+                    <div class="page-header">
+                        <div class="page-title">后台类目</div>
+                        <div class="page-desc">功能开发中...</div>
+                    </div>
+                </div>
+
+                <div class="page" id="page-frontend-category">
+                    <div class="page-header">
+                        <div class="page-title">前台类目</div>
+                        <div class="page-desc">功能开发中...</div>
+                    </div>
+                </div>
+
+                <div class="page" id="page-category-mapping">
+                    <div class="page-header">
+                        <div class="page-title">类目映射</div>
+                        <div class="page-desc">功能开发中...</div>
+                    </div>
+                </div>
+
+                <div class="page" id="page-brand-list">
+                    <div class="page-header">
+                        <div class="page-title">品牌列表</div>
+                        <div class="page-desc">功能开发中...</div>
+                    </div>
+                </div>
+
+                <div class="page" id="page-series-list">
+                    <div class="page-header">
+                        <div class="page-title">系列管理</div>
+                        <div class="page-desc">功能开发中...</div>
+                    </div>
+                </div>
+
+                <div class="page" id="page-brand-bindng">
+                    <div class="page-header">
+                        <div class="page-title">关联配置</div>
+                        <div class="page-desc">功能开发中...</div>
+                    </div>
+                </div>
+
+                <div class="page" id="page-attr-group-def">
+                    <div class="page-header">
+                        <div class="page-title">属性分组与定义</div>
+                        <div class="page-desc">功能开发中...</div>
+                    </div>
+                </div>
+
+                <div class="page" id="page-attr-preview">
+                    <div class="page-header">
+                        <div class="page-title">生效预览</div>
+                        <div class="page-desc">功能开发中...</div>
+                    </div>
+                </div>
+
+                <div class="page" id="page-spu-list">
+                    <div class="page-header">
+                        <div class="page-title">SPU 管理</div>
+                        <div class="page-desc">功能开发中...</div>
+                    </div>
+                </div>
+
+                <div class="page" id="page-sku-list">
+                    <div class="page-header">
+                        <div class="page-title">SKU 管理</div>
+                        <div class="page-desc">功能开发中...</div>
+                    </div>
+                </div>
+        </div>
+    </div>
+
+    <script>
+        
+        // 菜单切换
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.addEventListener('click', function() {
+                // 移除所有 active
+                document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+
+                // 添加当前 active
+                this.classList.add('active');
+                const pageId = this.getAttribute('data-page');
+                document.getElementById('page-' + pageId).classList.add('active');
+            });
+        });
+
+        // Tab 切换
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabId = this.getAttribute('data-tab');
+
+                // 移除所有 active
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+                // 添加当前 active
+                this.classList.add('active');
+                document.getElementById('tab-' + tabId).classList.add('active');
+            });
+        });
+
+        // 生效预览逻辑
+        const SAMPLE_DATA = {
+  "backend_categories": [
+    {
+      "id": 1,
+      "name": "箱包皮具",
+      "level": 1,
+      "status": "启用",
+      "children": [
+        {
+          "id": 11,
+          "name": "手提包",
+          "level": 2,
+          "status": "启用",
+          "children": [
+            {
+              "id": 111,
+              "name": "托特包",
+              "level": 3,
+              "status": "启用"
+            },
+            {
+              "id": 112,
+              "name": "波士顿包",
+              "level": 3,
+              "status": "启用"
+            },
+            {
+              "id": 113,
+              "name": "凯莉包",
+              "level": 3,
+              "status": "启用"
+            }
+          ]
+        },
+        {
+          "id": 12,
+          "name": "单肩包",
+          "level": 2,
+          "status": "启用"
+        },
+        {
+          "id": 13,
+          "name": "斜挎包",
+          "level": 2,
+          "status": "启用"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "服饰鞋履",
+      "level": 1,
+      "status": "启用",
+      "children": [
+        {
+          "id": 21,
+          "name": "运动鞋",
+          "level": 2,
+          "status": "启用"
+        },
+        {
+          "id": 22,
+          "name": "皮鞋",
+          "level": 2,
+          "status": "启用"
+        }
+      ]
+    }
+  ],
+  "brands": [
+    {
+      "id": 1,
+      "name": "爱马仕",
+      "name_en": "Hermès",
+      "status": "启用"
+    },
+    {
+      "id": 2,
+      "name": "香奈儿",
+      "name_en": "Chanel",
+      "status": "启用"
+    },
+    {
+      "id": 3,
+      "name": "路易威登",
+      "name_en": "Louis Vuitton",
+      "status": "启用"
+    },
+    {
+      "id": 4,
+      "name": "古驰",
+      "name_en": "Gucci",
+      "status": "启用"
+    }
+  ],
+  "series": [
+    {
+      "id": 1,
+      "brand_id": 1,
+      "name": "Birkin",
+      "name_en": "Birkin",
+      "status": "启用"
+    },
+    {
+      "id": 2,
+      "brand_id": 1,
+      "name": "Kelly",
+      "name_en": "Kelly",
+      "status": "启用"
+    },
+    {
+      "id": 3,
+      "brand_id": 2,
+      "name": "Classic Flap",
+      "name_en": "Classic Flap",
+      "status": "启用"
+    },
+    {
+      "id": 4,
+      "brand_id": 3,
+      "name": "Neverfull",
+      "name_en": "Neverfull",
+      "status": "启用"
+    }
+  ],
+  "attr_groups": [
+    {
+      "id": 1,
+      "category_id": 1,
+      "name": "基本信息",
+      "sort": 1
+    },
+    {
+      "id": 2,
+      "category_id": 1,
+      "name": "材质工艺",
+      "sort": 2
+    },
+    {
+      "id": 3,
+      "category_id": 1,
+      "name": "尺寸规格",
+      "sort": 3
+    }
+  ],
+  "attr_defs": [
+    {
+      "id": 1,
+      "group_id": 1,
+      "name": "颜色",
+      "type": "enum",
+      "input_type": "select"
+    },
+    {
+      "id": 2,
+      "group_id": 1,
+      "name": "款式",
+      "type": "enum",
+      "input_type": "select"
+    },
+    {
+      "id": 3,
+      "group_id": 2,
+      "name": "材质",
+      "type": "enum",
+      "input_type": "multi_select"
+    },
+    {
+      "id": 4,
+      "group_id": 2,
+      "name": "五金颜色",
+      "type": "enum",
+      "input_type": "select"
+    },
+    {
+      "id": 5,
+      "group_id": 2,
+      "name": "缝线工艺",
+      "type": "enum",
+      "input_type": "select"
+    },
+    {
+      "id": 6,
+      "group_id": 3,
+      "name": "尺寸",
+      "type": "text",
+      "input_type": "text"
+    },
+    {
+      "id": 7,
+      "group_id": 3,
+      "name": "容量",
+      "type": "text",
+      "input_type": "text"
+    }
+  ],
+  "attr_options": {
+    "1": [
+      "黑色",
+      "白色",
+      "红色",
+      "蓝色",
+      "棕色",
+      "米色"
+    ],
+    "3": [
+      "牛皮",
+      "羊皮",
+      "鳄鱼皮",
+      "帆布",
+      "尼龙"
+    ],
+    "4": [
+      "金色",
+      "银色",
+      "玫瑰金",
+      "钯金"
+    ],
+    "5": [
+      "手工缝线",
+      "机器缝线",
+      "Saddle Stitch"
+    ]
+  },
+  "scope_configs": {
+    "category": [
+      {
+        "attr_id": 1,
+        "attr_name": "颜色",
+        "type": "key",
+        "required": true,
+        "options": [
+          "黑色",
+          "白色",
+          "红色",
+          "蓝色",
+          "棕色",
+          "米色"
+        ]
+      },
+      {
+        "attr_id": 2,
+        "attr_name": "款式",
+        "type": "key",
+        "required": true,
+        "options": []
+      },
+      {
+        "attr_id": 3,
+        "attr_name": "材质",
+        "type": "sale",
+        "required": true,
+        "options": [
+          "牛皮",
+          "羊皮",
+          "帆布",
+          "尼龙"
+        ]
+      },
+      {
+        "attr_id": 4,
+        "attr_name": "五金颜色",
+        "type": "sale",
+        "required": false,
+        "options": [
+          "金色",
+          "银色"
+        ]
+      },
+      {
+        "attr_id": 6,
+        "attr_name": "尺寸",
+        "type": "non_key",
+        "required": true,
+        "options": []
+      }
+    ],
+    "category_brand": [
+      {
+        "attr_id": 1,
+        "attr_name": "颜色",
+        "type": "key",
+        "required": true,
+        "options": [
+          "黑色",
+          "红色",
+          "棕色",
+          "米色"
+        ]
+      },
+      {
+        "attr_id": 3,
+        "attr_name": "材质",
+        "type": "sale",
+        "required": true,
+        "options": [
+          "牛皮",
+          "羊皮",
+          "鳄鱼皮"
+        ]
+      },
+      {
+        "attr_id": 4,
+        "attr_name": "五金颜色",
+        "type": "sale",
+        "required": true,
+        "options": [
+          "金色",
+          "银色",
+          "钯金"
+        ]
+      },
+      {
+        "attr_id": 5,
+        "attr_name": "缝线工艺",
+        "type": "sale",
+        "required": true,
+        "options": [
+          "手工缝线",
+          "Saddle Stitch"
+        ]
+      }
+    ],
+    "category_series": [
+      {
+        "attr_id": 1,
+        "attr_name": "颜色",
+        "type": "key",
+        "required": true,
+        "options": [
+          "黑色",
+          "红色",
+          "米色"
+        ]
+      },
+      {
+        "attr_id": 3,
+        "attr_name": "材质",
+        "type": "sale",
+        "required": true,
+        "options": [
+          "鳄鱼皮"
+        ]
+      },
+      {
+        "attr_id": 5,
+        "attr_name": "缝线工艺",
+        "type": "sale",
+        "required": true,
+        "options": [
+          "Saddle Stitch"
+        ]
+      }
+    ]
+  }
+};
+
+        function updatePreview() {
+            const category = document.getElementById('preview-category').value;
+            const brand = document.getElementById('preview-brand').value;
+            const series = document.getElementById('preview-series').value;
+
+            // 确定生效层级
+            let effectiveScope = 'category';
+            let effectiveLabel = '类目层';
+            if (series) {
+                effectiveScope = 'category_series';
+                effectiveLabel = '类目+系列层';
+            } else if (brand) {
+                effectiveScope = 'category_brand';
+                effectiveLabel = '类目+品牌层';
+            }
+
+            const configs = SAMPLE_DATA.scope_configs[effectiveScope];
+
+            let html = `<div style="margin-bottom: 12px; padding: 8px; background: #e6f7ff; border-radius: 4px; color: #1890ff;">
+                生效层级：<strong>${effectiveLabel}</strong>（优先级：类目+系列 > 类目+品牌 > 类目）
+            </div>`;
+
+            configs.forEach(cfg => {
+                const typeMap = {'key': '关键', 'sale': '销售', 'non_key': '描述'};
+                const typeClass = 'tag-' + cfg.type;
+                const requiredClass = cfg.required ? 'tag-required' : 'tag-optional';
+                const requiredText = cfg.required ? '必填' : '选填';
+                const optionsText = cfg.options.length === 0 ? '文本输入' : cfg.options.join(', ');
+
+                html += `
+                <div class="preview-item">
+                    <div>
+                        <span class="preview-item-name">${cfg.attr_name}</span>
+                        <span class="tag ${typeClass}">${typeMap[cfg.type]}</span>
+                        <span class="tag ${requiredClass}">${requiredText}</span>
+                    </div>
+                    <div class="preview-item-meta">
+                        <span style="color: #666; font-size: 13px;">${optionsText}</span>
+                        <span class="source-badge">来源：${effectiveLabel}</span>
+                    </div>
+                </div>`;
+            });
+
+            document.getElementById('preview-result').innerHTML = html;
+        }
+
+        // 默认激活第一个菜单项
+        document.querySelector('.menu-item[data-page="attr-scope"]').click();
+    
+    </script>
+</body>
+</html>

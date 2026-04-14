@@ -9,7 +9,7 @@ REPO_DIR="$HOME/looply-docs"
 MODULE_LIST=(
     "$HOME/Desktop/海外业务登录注册|docs"
     "$HOME/Desktop/海外业务首页|docs-首页"
-    "$HOME/Desktop/海外业务商品系统|docs-商品系统"
+    "$HOME/Desktop/海外业务/商品|docs-商品系统"
 )
 
 # 颜色
@@ -57,10 +57,13 @@ sync_files() {
             done
         fi
 
-        # 实体关系图 - HTML
+        # 实体关系图 - HTML + SVG
         if [ -d "$SOURCE_DIR/实体关系图" ]; then
             mkdir -p "$REPO_DIR/$TARGET/实体关系图"
             for f in "$SOURCE_DIR/实体关系图/"*.html; do
+                [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/实体关系图/"
+            done
+            for f in "$SOURCE_DIR/实体关系图/"*.svg; do
                 [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/实体关系图/"
             done
         fi
@@ -107,6 +110,14 @@ sync_files() {
             mkdir -p "$REPO_DIR/$TARGET/UI"
             for f in "$SOURCE_DIR/UI/"*.pen; do
                 [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/UI/"
+            done
+        fi
+
+        # 原型 - HTML
+        if [ -d "$SOURCE_DIR/原型" ]; then
+            mkdir -p "$REPO_DIR/$TARGET/原型"
+            for f in "$SOURCE_DIR/原型/"*.html; do
+                [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/原型/"
             done
         fi
     done

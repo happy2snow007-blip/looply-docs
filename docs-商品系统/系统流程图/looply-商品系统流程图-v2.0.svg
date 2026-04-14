@@ -1,0 +1,1134 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2458" height="8098" viewBox="0 0 2458 8098" font-family="'PingFang SC','Microsoft YaHei','Helvetica Neue',Arial,sans-serif">
+<metadata>
+<![CDATA[
+sections:
+  - title: "① 标品SPU维护"
+    nodes:
+      - type: start_end
+        text: "开始"
+      - type: process
+        lane: "P"
+        text: "录入标品候选信息
+(类目/品牌/系列/型号)"
+      - type: decision
+        lane: "P"
+        text: "需新建SPU?"
+        no_text: "引用已有SPU"
+      - type: process
+        lane: "P"
+        text: "新建SPU(关联类目/品牌/系列/型号)"
+      - type: process
+        lane: "P"
+        text: "加载属性模板
+(按CATEGORY_SERIES→CATEGORY_BRAND→CATEGORY三级回退)"
+      - type: process
+        lane: "P"
+        text: "填写SPU级属性
+(屏幕尺寸/处理器/官方发布日期等)"
+      - type: decision
+        lane: "P"
+        text: "SPU审核通过?"
+        no_text: "驳回修改"
+      - type: process
+        lane: "P"
+        text: "SPU发布,可被SKU引用"
+      - type: start_end
+        text: "SPU就绪"
+      - type: note
+        title: "标品体系说明"
+        lines:
+          - "标品 = 类目 + 品牌 + 系列 + 型号 + 属性模板"
+          - "SPU由平台统一维护,商家/运营只能引用"
+          - "属性作用域三级回退：CATEGORY_SERIES > CATEGORY_BRAND > CATEGORY"
+          - "属性选项作用域：不同品牌/系列下可用选项不同(attribute_option_scope_config)"
+  - title: "② 标品SKU创建"
+    nodes:
+      - type: start_end
+        text: "开始建SKU"
+      - type: process
+        lane: "P"
+        text: "选择已发布的SPU"
+      - type: process
+        lane: "P"
+        text: "选择销售属性组合
+(颜色/存储容量/网络制式等)"
+      - type: process
+        lane: "P"
+        text: "生成standard_sku记录"
+      - type: process
+        lane: "P"
+        text: "填写SKU级信息
+(条形码/官方参考价/重量/尺寸)"
+      - type: process
+        lane: "P"
+        text: "上传SKU级图片
+(颜色特定图/包装图)"
+      - type: decision
+        lane: "P"
+        text: "SKU审核通过?"
+        no_text: "驳回修改"
+      - type: process
+        lane: "P"
+        text: "SKU发布,可被商品实例引用"
+      - type: start_end
+        text: "SKU就绪"
+      - type: note
+        title: "SKU矩阵说明"
+        lines:
+          - "一个SPU可生成多个SKU(销售属性组合)"
+          - "如iPhone 15 Pro Max → 深空黑256GB / 深空黑512GB / 原色钛金属256GB..."
+          - "SKU是商品建档的基础单元(used_item → standard_sku)"
+          - "条形码/官方参考价在SKU级维护"
+  - title: "③ 数据接入"
+    nodes:
+      - type: start_end
+        text: "开始导入"
+      - type: condition
+        lane: "P"
+        text: "数据来源?"
+        yes_label: "人工录入"
+        no_label: "批量导入"
+        yes_branch:
+          - text: "人工录入SPU/SKU"
+        no_branch:
+          - text: "外部数据源导入
+(API/Excel/爬虫)"
+          - text: "数据清洗与去重
+(品牌名标准化/型号归一)"
+          - text: "匹配已有SPU/SKU
+(避免重复建档)"
+      - type: process
+        lane: "P"
+        text: "写入SPU/SKU库"
+      - type: start_end
+        text: "导入完成"
+      - type: note
+        title: "数据接入规则"
+        lines:
+          - "外部数据源：厂商官网/电商平台API/行业数据库"
+          - "清洗规则：品牌名大小写统一、型号去空格、重复数据合并"
+          - "匹配策略：品牌+系列+型号精确匹配 → 模糊匹配 → 人工确认"
+  - title: "④ 商品建档"
+    nodes:
+      - type: start_end
+        text: "开始建档"
+      - type: process
+        lane: "P"
+        text: "选择standard_sku(引用标品SKU)"
+      - type: process
+        lane: "P"
+        text: "选择仓库(warehouse)"
+      - type: process
+        lane: "P"
+        text: "创建商品实例(used_item)
+设置stock_mode(single/bulk)"
+      - type: process
+        lane: "P"
+        text: "加载该SKU的属性模板"
+      - type: process
+        lane: "P"
+        text: "填写Item级属性
+(成色/外观描述/IMEI/序列号)"
+      - type: process
+        lane: "P"
+        text: "上传商品图片
+(主图/详情图/质检图)"
+      - type: decision
+        lane: "P"
+        text: "必填项校验通过?"
+        no_text: "返回缺失项提示"
+      - type: process
+        lane: "P"
+        text: "状态=草稿"
+      - type: condition
+        lane: "P"
+        text: "是否免质检?"
+        yes_label: "是(bulk)"
+        no_label: "否(single)"
+        yes_branch:
+          - text: "状态=待上架"
+        no_branch:
+          - text: "状态=待质检"
+      - type: start_end
+        text: "建档完成"
+      - type: note
+        title: "stock_mode 规则"
+        lines:
+          - "single(一品一件): 必须质检,一物一码管理,IMEI/序列号必填"
+          - "bulk(深库存/配件): 可免质检,按数量管理,无需序列号"
+          - "stock_mode 在创建时设定,不可变更"
+          - "关联层级：used_item → standard_sku → spu"
+  - title: "⑤ 质检与入库"
+    nodes:
+      - type: start_end
+        text: "开始质检"
+      - type: cross
+        from_lane: "P"
+        to_lane: "Q"
+        text: "发起质检任务(关联质检模板)"
+      - type: condition
+        lane: "Q"
+        text: "质检来源?"
+        yes_label: "平台质检"
+        no_label: "商家自报"
+        yes_branch:
+          - text: "平台质检员执行检查"
+        no_branch:
+          - text: "商家自报质检数据"
+      - type: process
+        lane: "Q"
+        text: "生成质检报告(item_condition)
+(各检查项得分/成色等级)"
+      - type: decision
+        lane: "Q"
+        text: "质检通过?"
+        no_text: "状态=已关闭(不合格)"
+      - type: cross
+        from_lane: "Q"
+        to_lane: "P"
+        text: "回写质检结果与成色等级"
+      - type: process
+        lane: "P"
+        text: "状态=待上架"
+      - type: cross
+        from_lane: "P"
+        to_lane: "I"
+        text: "初始化可售库存
+(single=1 / bulk=n)"
+      - type: process
+        lane: "I"
+        text: "库存记录创建
+(按国家/渠道维度)"
+      - type: start_end
+        text: "入库完成"
+      - type: note
+        title: "质检说明"
+        lines:
+          - "质检模板按类目配置(手机/笔记本/配件检查项不同)"
+          - "item_condition记录质检历史(支持多次质检)"
+          - "成色等级影响定价策略"
+  - title: "⑥ 审核与定价"
+    nodes:
+      - type: start_end
+        text: "开始审核"
+      - type: process
+        lane: "P"
+        text: "运营审核商品信息
+(图片/描述/属性完整性)"
+      - type: decision
+        lane: "P"
+        text: "审核通过?"
+        no_text: "驳回修改(状态=草稿)"
+      - type: process
+        lane: "P"
+        text: "设置基础定价
+(成本价/建议零售价)"
+      - type: process
+        lane: "P"
+        text: "状态=待分发"
+      - type: start_end
+        text: "审核完成"
+      - type: note
+        title: "审核规则"
+        lines:
+          - "图片审核：主图清晰/无水印/符合平台规范"
+          - "描述审核：无违禁词/无夸大宣传"
+          - "属性审核：必填项完整/关键属性准确"
+          - "定价策略：基础定价在商品级,渠道差异定价在listing级"
+  - title: "⑦ 选货与分发"
+    nodes:
+      - type: start_end
+        text: "开始选货"
+      - type: condition
+        lane: "P"
+        text: "选货方式?"
+        yes_label: "人工选货"
+        no_label: "自动选货"
+        yes_branch:
+          - text: "运营人工选货
+(勾选商品+目标渠道)"
+        no_branch:
+          - text: "自动选货规则触发
+(类目/品牌/价格区间/成色)"
+          - text: "匹配符合条件的商品"
+      - type: cross
+        from_lane: "P"
+        to_lane: "C"
+        text: "生成渠道分发任务"
+      - type: process
+        lane: "C"
+        text: "为每个渠道创建listing记录"
+      - type: process
+        lane: "C"
+        text: "设置渠道定价策略
+(加价率/折扣/固定价)"
+      - type: process
+        lane: "C"
+        text: "设置渠道可见性
+(按国家/地区)"
+      - type: process
+        lane: "C"
+        text: "listing状态=待发布"
+      - type: start_end
+        text: "分发完成"
+      - type: note
+        title: "选货规则说明"
+        lines:
+          - "自动选货规则：按类目/品牌/价格区间/成色等级筛选"
+          - "渠道类型：线上商城/线下门店/三方平台(亚马逊等)"
+          - "一个used_item可分发到多个渠道(1:N listing)"
+          - "渠道定价独立：同一商品在不同渠道价格可不同"
+  - title: "⑧ 渠道发布"
+    nodes:
+      - type: start_end
+        text: "开始发布"
+      - type: process
+        lane: "C"
+        text: "运营确认listing信息
+(价格/库存/可见性)"
+      - type: decision
+        lane: "C"
+        text: "发布审核通过?"
+        no_text: "驳回修改"
+      - type: process
+        lane: "C"
+        text: "listing状态=已上架"
+      - type: cross
+        from_lane: "C"
+        to_lane: "P"
+        text: "回写商品状态=在售"
+      - type: process
+        lane: "P"
+        text: "前台展示商品
+(按渠道/国家过滤)"
+      - type: start_end
+        text: "发布完成"
+      - type: note
+        title: "发布规则"
+        lines:
+          - "同一商品在不同渠道独立上架(listing级控制)"
+          - "国家币种定价：按listing.country_code转换显示"
+          - "库存同步：listing.available_quantity关联库存域"
+          - "售出全渠道下架：single模式商品成交后所有listing自动下架"
+  - title: "⑨ 在售锁定成交"
+    nodes:
+      - type: start_end
+        text: "商品在售"
+      - type: process
+        lane: "P"
+        text: "用户下单(选择渠道)"
+      - type: cross
+        from_lane: "P"
+        to_lane: "I"
+        text: "锁定库存(预占)"
+      - type: process
+        lane: "I"
+        text: "库存状态=已锁定"
+      - type: cross
+        from_lane: "I"
+        to_lane: "O"
+        text: "创建订单"
+      - type: process
+        lane: "O"
+        text: "订单支付"
+      - type: decision
+        lane: "O"
+        text: "支付成功?"
+        no_text: "释放库存"
+      - type: cross
+        from_lane: "O"
+        to_lane: "I"
+        text: "扣减库存(实际扣减)"
+      - type: process
+        lane: "I"
+        text: "库存状态=已售出"
+      - type: cross
+        from_lane: "I"
+        to_lane: "P"
+        text: "回写商品状态"
+      - type: condition
+        lane: "P"
+        text: "stock_mode?"
+        yes_label: "single"
+        no_label: "bulk"
+        yes_branch:
+          - text: "状态=已售出
+全渠道listing自动下架"
+        no_branch:
+          - text: "可售数量-1
+数量>0继续在售"
+      - type: start_end
+        text: "成交完成"
+      - type: note
+        title: "库存锁定规则"
+        lines:
+          - "下单锁定：库存预占,防止超卖"
+          - "支付超时：自动释放库存(15分钟)"
+          - "single模式：售出后全渠道自动下架(所有listing状态=已下架)"
+          - "bulk模式：按数量扣减,库存>0继续在售"
+  - title: "⑩ 商品编辑"
+    nodes:
+      - type: start_end
+        text: "开始编辑"
+      - type: process
+        lane: "P"
+        text: "商家/运营进入编辑页"
+      - type: condition
+        lane: "P"
+        text: "当前状态?"
+        yes_label: "在售/待上架"
+        no_label: "草稿/已下架"
+        yes_branch:
+          - text: "修改商品信息
+(图片/描述/属性)"
+          - text: "提交审核"
+          - text: "审核通过?"
+          - text: "更新生效"
+        no_branch:
+          - text: "直接修改(草稿/已下架)"
+          - text: "保存生效"
+      - type: start_end
+        text: "编辑完成"
+      - type: note
+        title: "编辑规则"
+        lines:
+          - "在售商品：修改需重新审核,审核期间继续展示旧版本"
+          - "草稿/已下架：直接修改保存"
+          - "价格修改：商品级基础价不影响已发布listing,listing价格独立修改"
+          - "图片修改：主图变更需审核,详情图可直接更新"
+  - title: "⑪ 下架与重新上架"
+    nodes:
+      - type: start_end
+        text: "触发下架"
+      - type: multi_branch
+        lane: "P"
+        text: "下架原因?"
+        branches:
+          - label: "手动下架"
+            nodes:
+              - text: "商家/运营点击下架"
+              - text: "选择下架范围
+(全部渠道/指定渠道)"
+          - label: "违规强制下架"
+            nodes:
+              - text: "系统检测违规
+(图片/描述/价格)"
+              - text: "自动下架+通知商家"
+          - label: "无库存自动下架"
+            nodes:
+              - text: "库存=0"
+              - text: "触发自动下架"
+          - label: "审核驳回下架"
+            nodes:
+              - text: "审核不通过"
+              - text: "状态=已下架"
+      - type: process
+        lane: "P"
+        text: "listing状态=已下架
+(按渠道维度)"
+      - type: process
+        lane: "P"
+        text: "商品状态=已下架"
+      - type: start_end
+        text: "下架完成"
+      - type: start_end
+        text: "---"
+      - type: start_end
+        text: "申请重新上架"
+      - type: decision
+        lane: "P"
+        text: "下架原因已解决?"
+        no_text: "继续下架"
+      - type: process
+        lane: "P"
+        text: "商家/运营提交上架申请"
+      - type: process
+        lane: "P"
+        text: "重新审核商品信息"
+      - type: decision
+        lane: "P"
+        text: "审核通过?"
+        no_text: "驳回(继续下架)"
+      - type: process
+        lane: "P"
+        text: "状态=待上架"
+      - type: process
+        lane: "P"
+        text: "重新分发到渠道
+(listing状态=已上架)"
+      - type: start_end
+        text: "重新上架完成"
+      - type: note
+        title: "下架规则"
+        lines:
+          - "下架维度：可按渠道独立下架(listing级),也可全渠道下架(商品级)"
+          - "违规下架：需整改后重新审核才能上架"
+          - "无库存下架：补货后自动恢复上架(bulk模式)"
+          - "手动下架：可随时申请重新上架"
+]]>
+</metadata>
+<defs>
+<marker id="arr" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#475569"/></marker>
+<marker id="arr-r" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#DC2626"/></marker>
+</defs>
+<rect width="2458" height="8098" fill="#F8FAFC"/>
+<rect width="2458" height="46" fill="#1E1F2E"/>
+<text x="1229" y="30" text-anchor="middle" fill="#fff" font-size="17" font-weight="600">Looply &#183; 商品系统流程图</text>
+<text x="2428" y="30" text-anchor="end" fill="rgba(255,255,255,0.5)" font-size="10">V2.0 &#183; 2026.04</text>
+<rect x="40" y="46" width="872" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="476" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">商品域</text>
+<rect x="912" y="46" width="586" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="1205" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">质检域</text>
+<rect x="1498" y="46" width="320" height="24" fill="#10B981" opacity="0.85"/>
+<text x="1658" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">库存域</text>
+<rect x="1818" y="46" width="320" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="1978" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">渠道域</text>
+<rect x="2138" y="46" width="320" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="2298" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">订单域（示意）</text>
+<rect x="40" y="46" width="872" height="676" fill="rgba(74,108,247,0.04)"/>
+<rect x="912" y="46" width="586" height="676" fill="rgba(245,158,11,0.04)"/>
+<line x1="912" y1="46" x2="912" y2="722" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1498" y="46" width="320" height="676" fill="rgba(16,185,129,0.04)"/>
+<line x1="1498" y1="46" x2="1498" y2="722" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1818" y="46" width="320" height="676" fill="rgba(139,92,246,0.04)"/>
+<line x1="1818" y1="46" x2="1818" y2="722" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2138" y="46" width="320" height="676" fill="rgba(239,68,68,0.04)"/>
+<line x1="2138" y1="46" x2="2138" y2="722" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="722" x2="2458" y2="722" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="46" width="40" height="676" fill="#DBEAFE" rx="0"/>
+<text x="20" y="344" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">①</text>
+<text x="20" y="362" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">标</text>
+<text x="20" y="380" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">品</text>
+<text x="20" y="398" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">SPU</text>
+<text x="20" y="416" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">维</text>
+<text x="20" y="434" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">护</text>
+<rect x="40" y="730" width="872" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="476" y="747" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">商品域</text>
+<rect x="912" y="730" width="586" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="1205" y="747" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">质检域</text>
+<rect x="1498" y="730" width="320" height="24" fill="#10B981" opacity="0.85"/>
+<text x="1658" y="747" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">库存域</text>
+<rect x="1818" y="730" width="320" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="1978" y="747" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">渠道域</text>
+<rect x="2138" y="730" width="320" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="2298" y="747" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">订单域（示意）</text>
+<rect x="40" y="730" width="872" height="654" fill="rgba(74,108,247,0.04)"/>
+<rect x="912" y="730" width="586" height="654" fill="rgba(245,158,11,0.04)"/>
+<line x1="912" y1="730" x2="912" y2="1384" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1498" y="730" width="320" height="654" fill="rgba(16,185,129,0.04)"/>
+<line x1="1498" y1="730" x2="1498" y2="1384" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1818" y="730" width="320" height="654" fill="rgba(139,92,246,0.04)"/>
+<line x1="1818" y1="730" x2="1818" y2="1384" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2138" y="730" width="320" height="654" fill="rgba(239,68,68,0.04)"/>
+<line x1="2138" y1="730" x2="2138" y2="1384" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="1384" x2="2458" y2="1384" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="730" width="40" height="654" fill="#DBEAFE" rx="0"/>
+<text x="20" y="1017" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">②</text>
+<text x="20" y="1035" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">标</text>
+<text x="20" y="1053" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">品</text>
+<text x="20" y="1071" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">SKU</text>
+<text x="20" y="1089" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">创</text>
+<text x="20" y="1107" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">建</text>
+<rect x="40" y="1392" width="872" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="476" y="1409" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">商品域</text>
+<rect x="912" y="1392" width="586" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="1205" y="1409" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">质检域</text>
+<rect x="1498" y="1392" width="320" height="24" fill="#10B981" opacity="0.85"/>
+<text x="1658" y="1409" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">库存域</text>
+<rect x="1818" y="1392" width="320" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="1978" y="1409" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">渠道域</text>
+<rect x="2138" y="1392" width="320" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="2298" y="1409" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">订单域（示意）</text>
+<rect x="40" y="1392" width="872" height="558" fill="rgba(74,108,247,0.04)"/>
+<rect x="912" y="1392" width="586" height="558" fill="rgba(245,158,11,0.04)"/>
+<line x1="912" y1="1392" x2="912" y2="1950" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1498" y="1392" width="320" height="558" fill="rgba(16,185,129,0.04)"/>
+<line x1="1498" y1="1392" x2="1498" y2="1950" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1818" y="1392" width="320" height="558" fill="rgba(139,92,246,0.04)"/>
+<line x1="1818" y1="1392" x2="1818" y2="1950" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2138" y="1392" width="320" height="558" fill="rgba(239,68,68,0.04)"/>
+<line x1="2138" y1="1392" x2="2138" y2="1950" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="1950" x2="2458" y2="1950" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="1392" width="40" height="558" fill="#DBEAFE" rx="0"/>
+<text x="20" y="1640" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">③</text>
+<text x="20" y="1658" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">数</text>
+<text x="20" y="1676" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">据</text>
+<text x="20" y="1694" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">接</text>
+<text x="20" y="1712" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">入</text>
+<rect x="40" y="1958" width="872" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="476" y="1975" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">商品域</text>
+<rect x="912" y="1958" width="586" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="1205" y="1975" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">质检域</text>
+<rect x="1498" y="1958" width="320" height="24" fill="#10B981" opacity="0.85"/>
+<text x="1658" y="1975" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">库存域</text>
+<rect x="1818" y="1958" width="320" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="1978" y="1975" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">渠道域</text>
+<rect x="2138" y="1958" width="320" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="2298" y="1975" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">订单域（示意）</text>
+<rect x="40" y="1958" width="872" height="836" fill="rgba(74,108,247,0.04)"/>
+<rect x="912" y="1958" width="586" height="836" fill="rgba(245,158,11,0.04)"/>
+<line x1="912" y1="1958" x2="912" y2="2794" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1498" y="1958" width="320" height="836" fill="rgba(16,185,129,0.04)"/>
+<line x1="1498" y1="1958" x2="1498" y2="2794" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1818" y="1958" width="320" height="836" fill="rgba(139,92,246,0.04)"/>
+<line x1="1818" y1="1958" x2="1818" y2="2794" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2138" y="1958" width="320" height="836" fill="rgba(239,68,68,0.04)"/>
+<line x1="2138" y1="1958" x2="2138" y2="2794" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="2794" x2="2458" y2="2794" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="1958" width="40" height="836" fill="#DBEAFE" rx="0"/>
+<text x="20" y="2345" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">④</text>
+<text x="20" y="2363" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">商</text>
+<text x="20" y="2381" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">品</text>
+<text x="20" y="2399" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">建</text>
+<text x="20" y="2417" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">档</text>
+<rect x="40" y="2802" width="872" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="476" y="2819" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">商品域</text>
+<rect x="912" y="2802" width="586" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="1205" y="2819" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">质检域</text>
+<rect x="1498" y="2802" width="320" height="24" fill="#10B981" opacity="0.85"/>
+<text x="1658" y="2819" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">库存域</text>
+<rect x="1818" y="2802" width="320" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="1978" y="2819" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">渠道域</text>
+<rect x="2138" y="2802" width="320" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="2298" y="2819" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">订单域（示意）</text>
+<rect x="40" y="2802" width="872" height="788" fill="rgba(74,108,247,0.04)"/>
+<rect x="912" y="2802" width="586" height="788" fill="rgba(245,158,11,0.04)"/>
+<line x1="912" y1="2802" x2="912" y2="3590" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1498" y="2802" width="320" height="788" fill="rgba(16,185,129,0.04)"/>
+<line x1="1498" y1="2802" x2="1498" y2="3590" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1818" y="2802" width="320" height="788" fill="rgba(139,92,246,0.04)"/>
+<line x1="1818" y1="2802" x2="1818" y2="3590" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2138" y="2802" width="320" height="788" fill="rgba(239,68,68,0.04)"/>
+<line x1="2138" y1="2802" x2="2138" y2="3590" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="3590" x2="2458" y2="3590" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="2802" width="40" height="788" fill="#DBEAFE" rx="0"/>
+<text x="20" y="3156" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">⑤</text>
+<text x="20" y="3174" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">质</text>
+<text x="20" y="3192" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">检</text>
+<text x="20" y="3210" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">与</text>
+<text x="20" y="3228" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">入</text>
+<text x="20" y="3246" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">库</text>
+<rect x="40" y="3598" width="872" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="476" y="3615" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">商品域</text>
+<rect x="912" y="3598" width="586" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="1205" y="3615" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">质检域</text>
+<rect x="1498" y="3598" width="320" height="24" fill="#10B981" opacity="0.85"/>
+<text x="1658" y="3615" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">库存域</text>
+<rect x="1818" y="3598" width="320" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="1978" y="3615" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">渠道域</text>
+<rect x="2138" y="3598" width="320" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="2298" y="3615" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">订单域（示意）</text>
+<rect x="40" y="3598" width="872" height="510" fill="rgba(74,108,247,0.04)"/>
+<rect x="912" y="3598" width="586" height="510" fill="rgba(245,158,11,0.04)"/>
+<line x1="912" y1="3598" x2="912" y2="4108" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1498" y="3598" width="320" height="510" fill="rgba(16,185,129,0.04)"/>
+<line x1="1498" y1="3598" x2="1498" y2="4108" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1818" y="3598" width="320" height="510" fill="rgba(139,92,246,0.04)"/>
+<line x1="1818" y1="3598" x2="1818" y2="4108" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2138" y="3598" width="320" height="510" fill="rgba(239,68,68,0.04)"/>
+<line x1="2138" y1="3598" x2="2138" y2="4108" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="4108" x2="2458" y2="4108" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="3598" width="40" height="510" fill="#DBEAFE" rx="0"/>
+<text x="20" y="3813" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">⑥</text>
+<text x="20" y="3831" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">审</text>
+<text x="20" y="3849" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">核</text>
+<text x="20" y="3867" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">与</text>
+<text x="20" y="3885" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">定</text>
+<text x="20" y="3903" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">价</text>
+<rect x="40" y="4116" width="872" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="476" y="4133" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">商品域</text>
+<rect x="912" y="4116" width="586" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="1205" y="4133" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">质检域</text>
+<rect x="1498" y="4116" width="320" height="24" fill="#10B981" opacity="0.85"/>
+<text x="1658" y="4133" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">库存域</text>
+<rect x="1818" y="4116" width="320" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="1978" y="4133" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">渠道域</text>
+<rect x="2138" y="4116" width="320" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="2298" y="4133" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">订单域（示意）</text>
+<rect x="40" y="4116" width="872" height="726" fill="rgba(74,108,247,0.04)"/>
+<rect x="912" y="4116" width="586" height="726" fill="rgba(245,158,11,0.04)"/>
+<line x1="912" y1="4116" x2="912" y2="4842" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1498" y="4116" width="320" height="726" fill="rgba(16,185,129,0.04)"/>
+<line x1="1498" y1="4116" x2="1498" y2="4842" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1818" y="4116" width="320" height="726" fill="rgba(139,92,246,0.04)"/>
+<line x1="1818" y1="4116" x2="1818" y2="4842" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2138" y="4116" width="320" height="726" fill="rgba(239,68,68,0.04)"/>
+<line x1="2138" y1="4116" x2="2138" y2="4842" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="4842" x2="2458" y2="4842" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="4116" width="40" height="726" fill="#DBEAFE" rx="0"/>
+<text x="20" y="4439" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">⑦</text>
+<text x="20" y="4457" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">选</text>
+<text x="20" y="4475" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">货</text>
+<text x="20" y="4493" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">与</text>
+<text x="20" y="4511" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">分</text>
+<text x="20" y="4529" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">发</text>
+<rect x="40" y="4850" width="872" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="476" y="4867" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">商品域</text>
+<rect x="912" y="4850" width="586" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="1205" y="4867" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">质检域</text>
+<rect x="1498" y="4850" width="320" height="24" fill="#10B981" opacity="0.85"/>
+<text x="1658" y="4867" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">库存域</text>
+<rect x="1818" y="4850" width="320" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="1978" y="4867" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">渠道域</text>
+<rect x="2138" y="4850" width="320" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="2298" y="4867" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">订单域（示意）</text>
+<rect x="40" y="4850" width="872" height="566" fill="rgba(74,108,247,0.04)"/>
+<rect x="912" y="4850" width="586" height="566" fill="rgba(245,158,11,0.04)"/>
+<line x1="912" y1="4850" x2="912" y2="5416" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1498" y="4850" width="320" height="566" fill="rgba(16,185,129,0.04)"/>
+<line x1="1498" y1="4850" x2="1498" y2="5416" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1818" y="4850" width="320" height="566" fill="rgba(139,92,246,0.04)"/>
+<line x1="1818" y1="4850" x2="1818" y2="5416" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2138" y="4850" width="320" height="566" fill="rgba(239,68,68,0.04)"/>
+<line x1="2138" y1="4850" x2="2138" y2="5416" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="5416" x2="2458" y2="5416" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="4850" width="40" height="566" fill="#DBEAFE" rx="0"/>
+<text x="20" y="5102" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">⑧</text>
+<text x="20" y="5120" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">渠</text>
+<text x="20" y="5138" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">道</text>
+<text x="20" y="5156" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">发</text>
+<text x="20" y="5174" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">布</text>
+<rect x="40" y="5424" width="872" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="476" y="5441" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">商品域</text>
+<rect x="912" y="5424" width="586" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="1205" y="5441" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">质检域</text>
+<rect x="1498" y="5424" width="320" height="24" fill="#10B981" opacity="0.85"/>
+<text x="1658" y="5441" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">库存域</text>
+<rect x="1818" y="5424" width="320" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="1978" y="5441" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">渠道域</text>
+<rect x="2138" y="5424" width="320" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="2298" y="5441" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">订单域（示意）</text>
+<rect x="40" y="5424" width="872" height="908" fill="rgba(74,108,247,0.04)"/>
+<rect x="912" y="5424" width="586" height="908" fill="rgba(245,158,11,0.04)"/>
+<line x1="912" y1="5424" x2="912" y2="6332" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1498" y="5424" width="320" height="908" fill="rgba(16,185,129,0.04)"/>
+<line x1="1498" y1="5424" x2="1498" y2="6332" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1818" y="5424" width="320" height="908" fill="rgba(139,92,246,0.04)"/>
+<line x1="1818" y1="5424" x2="1818" y2="6332" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2138" y="5424" width="320" height="908" fill="rgba(239,68,68,0.04)"/>
+<line x1="2138" y1="5424" x2="2138" y2="6332" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="6332" x2="2458" y2="6332" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="5424" width="40" height="908" fill="#DBEAFE" rx="0"/>
+<text x="20" y="5829" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">⑨</text>
+<text x="20" y="5847" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">在</text>
+<text x="20" y="5865" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">售</text>
+<text x="20" y="5883" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">锁</text>
+<text x="20" y="5901" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">定</text>
+<text x="20" y="5919" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">成</text>
+<text x="20" y="5937" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">交</text>
+<rect x="40" y="6340" width="872" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="476" y="6357" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">商品域</text>
+<rect x="912" y="6340" width="586" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="1205" y="6357" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">质检域</text>
+<rect x="1498" y="6340" width="320" height="24" fill="#10B981" opacity="0.85"/>
+<text x="1658" y="6357" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">库存域</text>
+<rect x="1818" y="6340" width="320" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="1978" y="6357" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">渠道域</text>
+<rect x="2138" y="6340" width="320" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="2298" y="6357" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">订单域（示意）</text>
+<rect x="40" y="6340" width="872" height="622" fill="rgba(74,108,247,0.04)"/>
+<rect x="912" y="6340" width="586" height="622" fill="rgba(245,158,11,0.04)"/>
+<line x1="912" y1="6340" x2="912" y2="6962" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1498" y="6340" width="320" height="622" fill="rgba(16,185,129,0.04)"/>
+<line x1="1498" y1="6340" x2="1498" y2="6962" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1818" y="6340" width="320" height="622" fill="rgba(139,92,246,0.04)"/>
+<line x1="1818" y1="6340" x2="1818" y2="6962" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2138" y="6340" width="320" height="622" fill="rgba(239,68,68,0.04)"/>
+<line x1="2138" y1="6340" x2="2138" y2="6962" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="6962" x2="2458" y2="6962" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="6340" width="40" height="622" fill="#DBEAFE" rx="0"/>
+<text x="20" y="6620" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">⑩</text>
+<text x="20" y="6638" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">商</text>
+<text x="20" y="6656" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">品</text>
+<text x="20" y="6674" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">编</text>
+<text x="20" y="6692" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">辑</text>
+<rect x="40" y="6970" width="872" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="476" y="6987" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">商品域</text>
+<rect x="912" y="6970" width="586" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="1205" y="6987" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">质检域</text>
+<rect x="1498" y="6970" width="320" height="24" fill="#10B981" opacity="0.85"/>
+<text x="1658" y="6987" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">库存域</text>
+<rect x="1818" y="6970" width="320" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="1978" y="6987" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">渠道域</text>
+<rect x="2138" y="6970" width="320" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="2298" y="6987" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">订单域（示意）</text>
+<rect x="40" y="6970" width="872" height="1050" fill="rgba(74,108,247,0.04)"/>
+<rect x="912" y="6970" width="586" height="1050" fill="rgba(245,158,11,0.04)"/>
+<line x1="912" y1="6970" x2="912" y2="8020" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1498" y="6970" width="320" height="1050" fill="rgba(16,185,129,0.04)"/>
+<line x1="1498" y1="6970" x2="1498" y2="8020" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1818" y="6970" width="320" height="1050" fill="rgba(139,92,246,0.04)"/>
+<line x1="1818" y1="6970" x2="1818" y2="8020" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2138" y="6970" width="320" height="1050" fill="rgba(239,68,68,0.04)"/>
+<line x1="2138" y1="6970" x2="2138" y2="8020" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="8020" x2="2458" y2="8020" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="6970" width="40" height="1050" fill="#DBEAFE" rx="0"/>
+<text x="20" y="7437" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">⑪</text>
+<text x="20" y="7455" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">下</text>
+<text x="20" y="7473" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">架</text>
+<text x="20" y="7491" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">与</text>
+<text x="20" y="7509" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">重</text>
+<text x="20" y="7527" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">新</text>
+<text x="20" y="7545" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">上</text>
+<text x="20" y="7563" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">架</text>
+<line x1="476" y1="116" x2="476" y2="132" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="164" x2="476" y2="183" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="546" y1="208" x2="557" y2="208" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="552" y="201" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="476" y1="233" x2="476" y2="250" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="488" y="246" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="476" y1="282" x2="476" y2="298" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="330" x2="476" y2="346" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="378" x2="476" y2="397" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="546" y1="422" x2="557" y2="422" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="552" y="415" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="476" y1="447" x2="476" y2="464" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="488" y="460" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="476" y1="496" x2="476" y2="515" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="800" x2="476" y2="816" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="848" x2="476" y2="864" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="896" x2="476" y2="912" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="944" x2="476" y2="960" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="992" x2="476" y2="1008" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="1040" x2="476" y2="1059" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="546" y1="1084" x2="557" y2="1084" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="552" y="1077" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="476" y1="1109" x2="476" y2="1126" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="488" y="1122" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="476" y1="1158" x2="476" y2="1177" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="1462" x2="476" y2="1481" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="1531" x2="476" y2="1548" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="488" y="1544" text-anchor="middle" fill="#64748B" font-size="8">批量导入</text>
+<line x1="476" y1="1580" x2="476" y2="1596" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="1628" x2="476" y2="1644" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="546,1506 696,1506 696,1548" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="553" y="1499" text-anchor="middle" fill="#64748B" font-size="8">人工录入</text>
+<line x1="476" y1="1676" x2="476" y2="1708" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="696,1580 696,1724 556,1724" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="1740" x2="476" y2="1759" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="2028" x2="476" y2="2044" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="2076" x2="476" y2="2092" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="2124" x2="476" y2="2140" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="2172" x2="476" y2="2188" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="2220" x2="476" y2="2236" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="2268" x2="476" y2="2284" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="2316" x2="476" y2="2335" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="551" y1="2360" x2="562" y2="2360" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="557" y="2353" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="476" y1="2385" x2="476" y2="2402" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="488" y="2398" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="476" y1="2434" x2="476" y2="2453" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="2503" x2="476" y2="2520" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="488" y="2516" text-anchor="middle" fill="#64748B" font-size="8">否(single)</text>
+<polyline points="546,2478 656,2478 656,2520" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="553" y="2471" text-anchor="middle" fill="#64748B" font-size="8">是(bulk)</text>
+<line x1="476" y1="2552" x2="476" y2="2587" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="656,2552 656,2600 556,2600" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="476,2872 476,2908 1125,2908" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1205" y1="2924" x2="1205" y2="2943" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1205" y1="2993" x2="1205" y2="3010" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1217" y="3006" text-anchor="middle" fill="#64748B" font-size="8">商家自报</text>
+<polyline points="1275,2968 1400,2968 1400,3010" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1282" y="2961" text-anchor="middle" fill="#64748B" font-size="8">平台质检</text>
+<line x1="1205" y1="3042" x2="1205" y2="3074" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1400,3042 1400,3090 1325,3090" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1205" y1="3106" x2="1205" y2="3125" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1270" y1="3150" x2="1281" y2="3150" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="1276" y="3143" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<text x="1217" y="3188" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="1205,3175 1205,3208 556,3208" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="3224" x2="476" y2="3244" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="476,3276 476,3312 1578,3312" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1658" y1="3328" x2="1658" y2="3348" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1658" y1="3380" x2="1658" y2="3399" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="3668" x2="476" y2="3684" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="3716" x2="476" y2="3735" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="541" y1="3760" x2="552" y2="3760" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="547" y="3753" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="476" y1="3785" x2="476" y2="3802" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="488" y="3798" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="476" y1="3834" x2="476" y2="3850" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="3882" x2="476" y2="3901" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="4186" x2="476" y2="4205" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="4255" x2="476" y2="4272" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="488" y="4268" text-anchor="middle" fill="#64748B" font-size="8">自动选货</text>
+<line x1="476" y1="4304" x2="476" y2="4320" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="546,4230 716,4230 716,4272" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="553" y="4223" text-anchor="middle" fill="#64748B" font-size="8">人工选货</text>
+<polyline points="476,4352 476,4404 1898,4404" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="716,4304 716,4404 2068,4404" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1978" y1="4420" x2="1978" y2="4440" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1978" y1="4472" x2="1978" y2="4488" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1978" y1="4520" x2="1978" y2="4536" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1978" y1="4568" x2="1978" y2="4584" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1978" y1="4616" x2="1978" y2="4635" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="476,4920 476,4952 1898,4952" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1978" y1="4968" x2="1978" y2="4987" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="2048" y1="5012" x2="2059" y2="5012" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="2054" y="5005" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="1978" y1="5037" x2="1978" y2="5054" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1990" y="5050" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="1978,5086 1978,5122 556,5122" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="5138" x2="476" y2="5158" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="5190" x2="476" y2="5209" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="5494" x2="476" y2="5510" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="476,5542 476,5578 1578,5578" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1658" y1="5594" x2="1658" y2="5614" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1658,5646 1658,5682 2218,5682" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="2298" y1="5698" x2="2298" y2="5718" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="2298" y1="5750" x2="2298" y2="5769" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="2363" y1="5794" x2="2374" y2="5794" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="2369" y="5787" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<text x="2310" y="5832" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="2298,5819 2298,5852 1738,5852" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1658" y1="5868" x2="1658" y2="5888" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1658,5920 1658,5956 556,5956" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="5972" x2="476" y2="5991" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="6041" x2="476" y2="6058" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="488" y="6054" text-anchor="middle" fill="#64748B" font-size="8">bulk</text>
+<polyline points="541,6016 686,6016 686,6058" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="548" y="6009" text-anchor="middle" fill="#64748B" font-size="8">single</text>
+<line x1="476" y1="6090" x2="476" y2="6125" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="686,6090 686,6138 556,6138" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="6410" x2="476" y2="6426" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="6458" x2="476" y2="6477" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="6527" x2="476" y2="6544" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="488" y="6540" text-anchor="middle" fill="#64748B" font-size="8">草稿/已下架</text>
+<line x1="476" y1="6576" x2="476" y2="6592" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="546,6502 686,6502 686,6544" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="553" y="6495" text-anchor="middle" fill="#64748B" font-size="8">在售/待上架</text>
+<line x1="686" y1="6576" x2="686" y2="6592" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="686" y1="6624" x2="686" y2="6640" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="686" y1="6672" x2="686" y2="6688" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="6624" x2="476" y2="6720" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="6720" x2="476" y2="6755" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="686,6720 686,6768 556,6768" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="7040" x2="476" y2="7059" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="406,7084 156,7084 156,7126" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="281" y="7077" text-anchor="middle" fill="#64748B" font-size="8">手动下架</text>
+<line x1="156" y1="7158" x2="156" y2="7174" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="406,7084 396,7084 396,7126" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="401" y="7077" text-anchor="middle" fill="#64748B" font-size="8">违规强制下架</text>
+<line x1="396" y1="7158" x2="396" y2="7174" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="546,7084 616,7084 616,7126" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="581" y="7077" text-anchor="middle" fill="#64748B" font-size="8">无库存自动下架</text>
+<polyline points="616,7158 616,7190 556,7190" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="546,7084 816,7084 816,7126" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="681" y="7077" text-anchor="middle" fill="#64748B" font-size="8">审核驳回下架</text>
+<line x1="816" y1="7158" x2="816" y2="7174" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="7206" x2="476" y2="7238" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="156,7206 156,7254 376,7254" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="396,7206 396,7254 376,7254" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="816,7206 816,7254 576,7254" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="7270" x2="476" y2="7286" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="7318" x2="476" y2="7337" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="7366" x2="476" y2="7385" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="7414" x2="476" y2="7433" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="7462" x2="476" y2="7481" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="556" y1="7506" x2="567" y2="7506" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="562" y="7499" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="476" y1="7531" x2="476" y2="7548" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="488" y="7544" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="476" y1="7580" x2="476" y2="7596" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="7628" x2="476" y2="7647" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="541" y1="7672" x2="552" y2="7672" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="547" y="7665" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="476" y1="7697" x2="476" y2="7714" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="488" y="7710" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="476" y1="7746" x2="476" y2="7762" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="476" y1="7794" x2="476" y2="7813" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<rect x="431" y="87" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="476" y="104" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始</text>
+<rect x="366" y="132" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="152" text-anchor="middle" fill="#1E293B" font-size="9.5">录入标品候选信息
+(类目/品牌/系列/型号)</text>
+<polygon points="476,183 546,208 476,233 406,208" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="476" y="212" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">需新建SPU?</text>
+<rect x="558" y="195" width="90" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="603" y="212" text-anchor="middle" fill="#1E293B" font-size="9.5">引用已有SPU</text>
+<rect x="356" y="250" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="270" text-anchor="middle" fill="#1E293B" font-size="9.5">新建SPU(关联类目/品牌/系列/型号)</text>
+<rect x="316" y="298" width="320" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="318" text-anchor="middle" fill="#1E293B" font-size="9.5">加载属性模板
+(按CATEGORY_SERIES→CATEGORY_BRAND→CATEGORY三级回退)</text>
+<rect x="346" y="346" width="260" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="366" text-anchor="middle" fill="#1E293B" font-size="9.5">填写SPU级属性
+(屏幕尺寸/处理器/官方发布日期等)</text>
+<polygon points="476,397 546,422 476,447 406,422" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="476" y="426" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">SPU审核通过?</text>
+<rect x="558" y="409" width="80" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="598" y="426" text-anchor="middle" fill="#1E293B" font-size="9.5">驳回修改</text>
+<rect x="376" y="464" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="484" text-anchor="middle" fill="#1E293B" font-size="9.5">SPU发布,可被SKU引用</text>
+<rect x="431" y="515" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="476" y="532" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">SPU就绪</text>
+<rect x="431" y="771" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="476" y="788" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始建SKU</text>
+<rect x="386" y="816" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="836" text-anchor="middle" fill="#1E293B" font-size="9.5">选择已发布的SPU</text>
+<rect x="356" y="864" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="884" text-anchor="middle" fill="#1E293B" font-size="9.5">选择销售属性组合
+(颜色/存储容量/网络制式等)</text>
+<rect x="376" y="912" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="932" text-anchor="middle" fill="#1E293B" font-size="9.5">生成standard_sku记录</text>
+<rect x="356" y="960" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="980" text-anchor="middle" fill="#1E293B" font-size="9.5">填写SKU级信息
+(条形码/官方参考价/重量/尺寸)</text>
+<rect x="376" y="1008" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="1028" text-anchor="middle" fill="#1E293B" font-size="9.5">上传SKU级图片
+(颜色特定图/包装图)</text>
+<polygon points="476,1059 546,1084 476,1109 406,1084" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="476" y="1088" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">SKU审核通过?</text>
+<rect x="558" y="1071" width="80" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="598" y="1088" text-anchor="middle" fill="#1E293B" font-size="9.5">驳回修改</text>
+<rect x="366" y="1126" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="1146" text-anchor="middle" fill="#1E293B" font-size="9.5">SKU发布,可被商品实例引用</text>
+<rect x="431" y="1177" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="476" y="1194" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">SKU就绪</text>
+<rect x="431" y="1433" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="476" y="1450" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始导入</text>
+<polygon points="476,1481 546,1506 476,1531 406,1506" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="476" y="1510" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">数据来源?</text>
+<rect x="376" y="1548" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="1568" text-anchor="middle" fill="#1E293B" font-size="9.5">外部数据源导入
+(API/Excel/爬虫)</text>
+<rect x="366" y="1596" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="1616" text-anchor="middle" fill="#1E293B" font-size="9.5">数据清洗与去重
+(品牌名标准化/型号归一)</text>
+<rect x="376" y="1644" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="1664" text-anchor="middle" fill="#1E293B" font-size="9.5">匹配已有SPU/SKU
+(避免重复建档)</text>
+<rect x="606" y="1548" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="696" y="1568" text-anchor="middle" fill="#1E293B" font-size="9.5">人工录入SPU/SKU</text>
+<rect x="396" y="1708" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="1728" text-anchor="middle" fill="#1E293B" font-size="9.5">写入SPU/SKU库</text>
+<rect x="431" y="1759" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="476" y="1776" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">导入完成</text>
+<rect x="431" y="1999" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="476" y="2016" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始建档</text>
+<rect x="356" y="2044" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="2064" text-anchor="middle" fill="#1E293B" font-size="9.5">选择standard_sku(引用标品SKU)</text>
+<rect x="386" y="2092" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="2112" text-anchor="middle" fill="#1E293B" font-size="9.5">选择仓库(warehouse)</text>
+<rect x="356" y="2140" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="2160" text-anchor="middle" fill="#1E293B" font-size="9.5">创建商品实例(used_item)
+设置stock_mode(single/bulk)</text>
+<rect x="376" y="2188" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="2208" text-anchor="middle" fill="#1E293B" font-size="9.5">加载该SKU的属性模板</text>
+<rect x="356" y="2236" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="2256" text-anchor="middle" fill="#1E293B" font-size="9.5">填写Item级属性
+(成色/外观描述/IMEI/序列号)</text>
+<rect x="376" y="2284" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="2304" text-anchor="middle" fill="#1E293B" font-size="9.5">上传商品图片
+(主图/详情图/质检图)</text>
+<polygon points="476,2335 551,2360 476,2385 401,2360" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="476" y="2364" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">必填项校验通过?</text>
+<rect x="563" y="2347" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="613" y="2364" text-anchor="middle" fill="#1E293B" font-size="9.5">返回缺失项提示</text>
+<rect x="396" y="2402" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="2422" text-anchor="middle" fill="#1E293B" font-size="9.5">状态=草稿</text>
+<polygon points="476,2453 546,2478 476,2503 406,2478" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="476" y="2482" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">是否免质检?</text>
+<rect x="396" y="2520" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="2540" text-anchor="middle" fill="#1E293B" font-size="9.5">状态=待质检</text>
+<rect x="576" y="2520" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="656" y="2540" text-anchor="middle" fill="#1E293B" font-size="9.5">状态=待上架</text>
+<rect x="431" y="2587" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="476" y="2604" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">建档完成</text>
+<rect x="431" y="2843" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="476" y="2860" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始质检</text>
+<rect x="1095" y="2892" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1205" y="2912" text-anchor="middle" fill="#1E293B" font-size="9.5">发起质检任务(关联质检模板)</text>
+<polygon points="1205,2943 1275,2968 1205,2993 1135,2968" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="1205" y="2972" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">质检来源?</text>
+<rect x="1120" y="3010" width="170" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1205" y="3030" text-anchor="middle" fill="#1E293B" font-size="9.5">商家自报质检数据</text>
+<rect x="1310" y="3010" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1400" y="3030" text-anchor="middle" fill="#1E293B" font-size="9.5">平台质检员执行检查</text>
+<rect x="1085" y="3074" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1205" y="3094" text-anchor="middle" fill="#1E293B" font-size="9.5">生成质检报告(item_condition)
+(各检查项得分/成色等级)</text>
+<polygon points="1205,3125 1270,3150 1205,3175 1140,3150" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="1205" y="3154" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">质检通过?</text>
+<rect x="1282" y="3137" width="120" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1342" y="3154" text-anchor="middle" fill="#1E293B" font-size="9.5">状态=已关闭(不合格)</text>
+<rect x="376" y="3192" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="3212" text-anchor="middle" fill="#1E293B" font-size="9.5">回写质检结果与成色等级</text>
+<rect x="396" y="3244" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="3264" text-anchor="middle" fill="#1E293B" font-size="9.5">状态=待上架</text>
+<rect x="1553" y="3296" width="210" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1658" y="3316" text-anchor="middle" fill="#1E293B" font-size="9.5">初始化可售库存
+(single=1 / bulk=n)</text>
+<rect x="1558" y="3348" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1658" y="3368" text-anchor="middle" fill="#1E293B" font-size="9.5">库存记录创建
+(按国家/渠道维度)</text>
+<rect x="1613" y="3399" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1658" y="3416" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">入库完成</text>
+<rect x="431" y="3639" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="476" y="3656" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始审核</text>
+<rect x="366" y="3684" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="3704" text-anchor="middle" fill="#1E293B" font-size="9.5">运营审核商品信息
+(图片/描述/属性完整性)</text>
+<polygon points="476,3735 541,3760 476,3785 411,3760" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="476" y="3764" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">审核通过?</text>
+<rect x="553" y="3747" width="110" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="608" y="3764" text-anchor="middle" fill="#1E293B" font-size="9.5">驳回修改(状态=草稿)</text>
+<rect x="376" y="3802" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="3822" text-anchor="middle" fill="#1E293B" font-size="9.5">设置基础定价
+(成本价/建议零售价)</text>
+<rect x="396" y="3850" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="3870" text-anchor="middle" fill="#1E293B" font-size="9.5">状态=待分发</text>
+<rect x="431" y="3901" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="476" y="3918" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">审核完成</text>
+<rect x="431" y="4157" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="476" y="4174" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始选货</text>
+<polygon points="476,4205 546,4230 476,4255 406,4230" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="476" y="4234" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">选货方式?</text>
+<rect x="356" y="4272" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="4292" text-anchor="middle" fill="#1E293B" font-size="9.5">自动选货规则触发
+(类目/品牌/价格区间/成色)</text>
+<rect x="386" y="4320" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="4340" text-anchor="middle" fill="#1E293B" font-size="9.5">匹配符合条件的商品</text>
+<rect x="616" y="4272" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="716" y="4292" text-anchor="middle" fill="#1E293B" font-size="9.5">运营人工选货
+(勾选商品+目标渠道)</text>
+<rect x="1888" y="4388" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1978" y="4408" text-anchor="middle" fill="#1E293B" font-size="9.5">生成渠道分发任务</text>
+<rect x="1868" y="4440" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1978" y="4460" text-anchor="middle" fill="#1E293B" font-size="9.5">为每个渠道创建listing记录</text>
+<rect x="1878" y="4488" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1978" y="4508" text-anchor="middle" fill="#1E293B" font-size="9.5">设置渠道定价策略
+(加价率/折扣/固定价)</text>
+<rect x="1888" y="4536" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1978" y="4556" text-anchor="middle" fill="#1E293B" font-size="9.5">设置渠道可见性
+(按国家/地区)</text>
+<rect x="1898" y="4584" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1978" y="4604" text-anchor="middle" fill="#1E293B" font-size="9.5">listing状态=待发布</text>
+<rect x="1933" y="4635" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1978" y="4652" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">分发完成</text>
+<rect x="431" y="4891" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="476" y="4908" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始发布</text>
+<rect x="1868" y="4936" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1978" y="4956" text-anchor="middle" fill="#1E293B" font-size="9.5">运营确认listing信息
+(价格/库存/可见性)</text>
+<polygon points="1978,4987 2048,5012 1978,5037 1908,5012" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="1978" y="5016" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">发布审核通过?</text>
+<rect x="2060" y="4999" width="74" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2097" y="5016" text-anchor="middle" fill="#1E293B" font-size="9.5">驳回修改</text>
+<rect x="1898" y="5054" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1978" y="5074" text-anchor="middle" fill="#1E293B" font-size="9.5">listing状态=已上架</text>
+<rect x="386" y="5106" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="5126" text-anchor="middle" fill="#1E293B" font-size="9.5">回写商品状态=在售</text>
+<rect x="376" y="5158" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="5178" text-anchor="middle" fill="#1E293B" font-size="9.5">前台展示商品
+(按渠道/国家过滤)</text>
+<rect x="431" y="5209" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="476" y="5226" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">发布完成</text>
+<rect x="431" y="5465" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="476" y="5482" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">商品在售</text>
+<rect x="386" y="5510" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="5530" text-anchor="middle" fill="#1E293B" font-size="9.5">用户下单(选择渠道)</text>
+<rect x="1578" y="5562" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1658" y="5582" text-anchor="middle" fill="#1E293B" font-size="9.5">锁定库存(预占)</text>
+<rect x="1578" y="5614" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1658" y="5634" text-anchor="middle" fill="#1E293B" font-size="9.5">库存状态=已锁定</text>
+<rect x="2228" y="5666" width="140" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2298" y="5686" text-anchor="middle" fill="#1E293B" font-size="9.5">创建订单</text>
+<rect x="2218" y="5718" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2298" y="5738" text-anchor="middle" fill="#1E293B" font-size="9.5">订单支付</text>
+<polygon points="2298,5769 2363,5794 2298,5819 2233,5794" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="2298" y="5798" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">支付成功?</text>
+<rect x="2375" y="5781" width="79" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2414" y="5798" text-anchor="middle" fill="#1E293B" font-size="9.5">释放库存</text>
+<rect x="1568" y="5836" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1658" y="5856" text-anchor="middle" fill="#1E293B" font-size="9.5">扣减库存(实际扣减)</text>
+<rect x="1578" y="5888" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1658" y="5908" text-anchor="middle" fill="#1E293B" font-size="9.5">库存状态=已售出</text>
+<rect x="396" y="5940" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="5960" text-anchor="middle" fill="#1E293B" font-size="9.5">回写商品状态</text>
+<polygon points="476,5991 541,6016 476,6041 411,6016" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="476" y="6020" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">stock_mode?</text>
+<rect x="386" y="6058" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="6078" text-anchor="middle" fill="#1E293B" font-size="9.5">可售数量-1
+数量>0继续在售</text>
+<rect x="586" y="6058" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="686" y="6078" text-anchor="middle" fill="#1E293B" font-size="9.5">状态=已售出
+全渠道listing自动下架</text>
+<rect x="431" y="6125" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="476" y="6142" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">成交完成</text>
+<rect x="431" y="6381" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="476" y="6398" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始编辑</text>
+<rect x="376" y="6426" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="6446" text-anchor="middle" fill="#1E293B" font-size="9.5">商家/运营进入编辑页</text>
+<polygon points="476,6477 546,6502 476,6527 406,6502" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="476" y="6506" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">当前状态?</text>
+<rect x="386" y="6544" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="6564" text-anchor="middle" fill="#1E293B" font-size="9.5">直接修改(草稿/已下架)</text>
+<rect x="406" y="6592" width="140" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="6612" text-anchor="middle" fill="#1E293B" font-size="9.5">保存生效</text>
+<rect x="586" y="6544" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="686" y="6564" text-anchor="middle" fill="#1E293B" font-size="9.5">修改商品信息
+(图片/描述/属性)</text>
+<rect x="616" y="6592" width="140" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="686" y="6612" text-anchor="middle" fill="#1E293B" font-size="9.5">提交审核</text>
+<rect x="621" y="6640" width="130" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="686" y="6660" text-anchor="middle" fill="#1E293B" font-size="9.5">审核通过?</text>
+<rect x="606" y="6688" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="686" y="6708" text-anchor="middle" fill="#1E293B" font-size="9.5">更新生效</text>
+<rect x="431" y="6755" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="476" y="6772" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">编辑完成</text>
+<rect x="431" y="7011" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="476" y="7028" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">触发下架</text>
+<polygon points="476,7059 546,7084 476,7109 406,7084" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="476" y="7088" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">下架原因?</text>
+<rect x="66" y="7126" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="156" y="7146" text-anchor="middle" fill="#1E293B" font-size="9.5">商家/运营点击下架</text>
+<rect x="56" y="7174" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="156" y="7194" text-anchor="middle" fill="#1E293B" font-size="9.5">选择下架范围
+(全部渠道/指定渠道)</text>
+<rect x="296" y="7126" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="396" y="7146" text-anchor="middle" fill="#1E293B" font-size="9.5">系统检测违规
+(图片/描述/价格)</text>
+<rect x="306" y="7174" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="396" y="7194" text-anchor="middle" fill="#1E293B" font-size="9.5">自动下架+通知商家</text>
+<rect x="546" y="7126" width="140" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="616" y="7146" text-anchor="middle" fill="#1E293B" font-size="9.5">库存=0</text>
+<rect x="396" y="7174" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="7194" text-anchor="middle" fill="#1E293B" font-size="9.5">触发自动下架</text>
+<rect x="746" y="7126" width="140" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="816" y="7146" text-anchor="middle" fill="#1E293B" font-size="9.5">审核不通过</text>
+<rect x="746" y="7174" width="140" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="816" y="7194" text-anchor="middle" fill="#1E293B" font-size="9.5">状态=已下架</text>
+<rect x="376" y="7238" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="7258" text-anchor="middle" fill="#1E293B" font-size="9.5">listing状态=已下架
+(按渠道维度)</text>
+<rect x="396" y="7286" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="7306" text-anchor="middle" fill="#1E293B" font-size="9.5">商品状态=已下架</text>
+<rect x="431" y="7337" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="476" y="7354" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">下架完成</text>
+<rect x="431" y="7385" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="476" y="7402" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">---</text>
+<rect x="431" y="7433" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="476" y="7450" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">申请重新上架</text>
+<polygon points="476,7481 556,7506 476,7531 396,7506" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="476" y="7510" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">下架原因已解决?</text>
+<rect x="568" y="7493" width="80" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="608" y="7510" text-anchor="middle" fill="#1E293B" font-size="9.5">继续下架</text>
+<rect x="366" y="7548" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="7568" text-anchor="middle" fill="#1E293B" font-size="9.5">商家/运营提交上架申请</text>
+<rect x="386" y="7596" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="7616" text-anchor="middle" fill="#1E293B" font-size="9.5">重新审核商品信息</text>
+<polygon points="476,7647 541,7672 476,7697 411,7672" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="476" y="7676" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">审核通过?</text>
+<rect x="553" y="7659" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="603" y="7676" text-anchor="middle" fill="#1E293B" font-size="9.5">驳回(继续下架)</text>
+<rect x="396" y="7714" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="7734" text-anchor="middle" fill="#1E293B" font-size="9.5">状态=待上架</text>
+<rect x="376" y="7762" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="476" y="7782" text-anchor="middle" fill="#1E293B" font-size="9.5">重新分发到渠道
+(listing状态=已上架)</text>
+<rect x="431" y="7813" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="476" y="7830" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">重新上架完成</text>
+<rect x="316" y="558" width="480" height="124" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="556" y="580" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">标品体系说明</text><text x="556" y="598" text-anchor="middle" fill="#7F1D1D" font-size="9">标品 = 类目 + 品牌 + 系列 + 型号 + 属性模板</text><text x="556" y="614" text-anchor="middle" fill="#7F1D1D" font-size="9">SPU由平台统一维护,商家/运营只能引用</text><text x="556" y="630" text-anchor="middle" fill="#7F1D1D" font-size="9">属性作用域三级回退：CATEGORY_SERIES > CATEGORY_BRAND > CATEGORY</text><text x="556" y="646" text-anchor="middle" fill="#7F1D1D" font-size="9">属性选项作用域：不同品牌/系列下可用选项不同(attribute_option_scope_config)</text>
+<rect x="316" y="1220" width="480" height="124" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="556" y="1242" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">SKU矩阵说明</text><text x="556" y="1260" text-anchor="middle" fill="#7F1D1D" font-size="9">一个SPU可生成多个SKU(销售属性组合)</text><text x="556" y="1276" text-anchor="middle" fill="#7F1D1D" font-size="9">如iPhone 15 Pro Max → 深空黑256GB / 深空黑512GB / 原色钛金属256GB...</text><text x="556" y="1292" text-anchor="middle" fill="#7F1D1D" font-size="9">SKU是商品建档的基础单元(used_item → standard_sku)</text><text x="556" y="1308" text-anchor="middle" fill="#7F1D1D" font-size="9">条形码/官方参考价在SKU级维护</text>
+<rect x="331" y="1802" width="450" height="108" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="556" y="1824" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">数据接入规则</text><text x="556" y="1842" text-anchor="middle" fill="#7F1D1D" font-size="9">外部数据源：厂商官网/电商平台API/行业数据库</text><text x="556" y="1858" text-anchor="middle" fill="#7F1D1D" font-size="9">清洗规则：品牌名大小写统一、型号去空格、重复数据合并</text><text x="556" y="1874" text-anchor="middle" fill="#7F1D1D" font-size="9">匹配策略：品牌+系列+型号精确匹配 → 模糊匹配 → 人工确认</text>
+<rect x="331" y="2630" width="450" height="124" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="556" y="2652" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">stock_mode 规则</text><text x="556" y="2670" text-anchor="middle" fill="#7F1D1D" font-size="9">single(一品一件): 必须质检,一物一码管理,IMEI/序列号必填</text><text x="556" y="2686" text-anchor="middle" fill="#7F1D1D" font-size="9">bulk(深库存/配件): 可免质检,按数量管理,无需序列号</text><text x="556" y="2702" text-anchor="middle" fill="#7F1D1D" font-size="9">stock_mode 在创建时设定,不可变更</text><text x="556" y="2718" text-anchor="middle" fill="#7F1D1D" font-size="9">关联层级：used_item → standard_sku → spu</text>
+<rect x="356" y="3442" width="400" height="108" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="556" y="3464" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">质检说明</text><text x="556" y="3482" text-anchor="middle" fill="#7F1D1D" font-size="9">质检模板按类目配置(手机/笔记本/配件检查项不同)</text><text x="556" y="3498" text-anchor="middle" fill="#7F1D1D" font-size="9">item_condition记录质检历史(支持多次质检)</text><text x="556" y="3514" text-anchor="middle" fill="#7F1D1D" font-size="9">成色等级影响定价策略</text>
+<rect x="346" y="3944" width="420" height="124" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="556" y="3966" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">审核规则</text><text x="556" y="3984" text-anchor="middle" fill="#7F1D1D" font-size="9">图片审核：主图清晰/无水印/符合平台规范</text><text x="556" y="4000" text-anchor="middle" fill="#7F1D1D" font-size="9">描述审核：无违禁词/无夸大宣传</text><text x="556" y="4016" text-anchor="middle" fill="#7F1D1D" font-size="9">属性审核：必填项完整/关键属性准确</text><text x="556" y="4032" text-anchor="middle" fill="#7F1D1D" font-size="9">定价策略：基础定价在商品级,渠道差异定价在listing级</text>
+<rect x="331" y="4678" width="450" height="124" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="556" y="4700" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">选货规则说明</text><text x="556" y="4718" text-anchor="middle" fill="#7F1D1D" font-size="9">自动选货规则：按类目/品牌/价格区间/成色等级筛选</text><text x="556" y="4734" text-anchor="middle" fill="#7F1D1D" font-size="9">渠道类型：线上商城/线下门店/三方平台(亚马逊等)</text><text x="556" y="4750" text-anchor="middle" fill="#7F1D1D" font-size="9">一个used_item可分发到多个渠道(1:N listing)</text><text x="556" y="4766" text-anchor="middle" fill="#7F1D1D" font-size="9">渠道定价独立：同一商品在不同渠道价格可不同</text>
+<rect x="326" y="5252" width="460" height="124" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="556" y="5274" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">发布规则</text><text x="556" y="5292" text-anchor="middle" fill="#7F1D1D" font-size="9">同一商品在不同渠道独立上架(listing级控制)</text><text x="556" y="5308" text-anchor="middle" fill="#7F1D1D" font-size="9">国家币种定价：按listing.country_code转换显示</text><text x="556" y="5324" text-anchor="middle" fill="#7F1D1D" font-size="9">库存同步：listing.available_quantity关联库存域</text><text x="556" y="5340" text-anchor="middle" fill="#7F1D1D" font-size="9">售出全渠道下架：single模式商品成交后所有listing自动下架</text>
+<rect x="331" y="6168" width="450" height="124" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="556" y="6190" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">库存锁定规则</text><text x="556" y="6208" text-anchor="middle" fill="#7F1D1D" font-size="9">下单锁定：库存预占,防止超卖</text><text x="556" y="6224" text-anchor="middle" fill="#7F1D1D" font-size="9">支付超时：自动释放库存(15分钟)</text><text x="556" y="6240" text-anchor="middle" fill="#7F1D1D" font-size="9">single模式：售出后全渠道自动下架(所有listing状态=已下架)</text><text x="556" y="6256" text-anchor="middle" fill="#7F1D1D" font-size="9">bulk模式：按数量扣减,库存>0继续在售</text>
+<rect x="316" y="6798" width="480" height="124" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="556" y="6820" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">编辑规则</text><text x="556" y="6838" text-anchor="middle" fill="#7F1D1D" font-size="9">在售商品：修改需重新审核,审核期间继续展示旧版本</text><text x="556" y="6854" text-anchor="middle" fill="#7F1D1D" font-size="9">草稿/已下架：直接修改保存</text><text x="556" y="6870" text-anchor="middle" fill="#7F1D1D" font-size="9">价格修改：商品级基础价不影响已发布listing,listing价格独立修改</text><text x="556" y="6886" text-anchor="middle" fill="#7F1D1D" font-size="9">图片修改：主图变更需审核,详情图可直接更新</text>
+<rect x="316" y="7856" width="480" height="124" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="556" y="7878" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">下架规则</text><text x="556" y="7896" text-anchor="middle" fill="#7F1D1D" font-size="9">下架维度：可按渠道独立下架(listing级),也可全渠道下架(商品级)</text><text x="556" y="7912" text-anchor="middle" fill="#7F1D1D" font-size="9">违规下架：需整改后重新审核才能上架</text><text x="556" y="7928" text-anchor="middle" fill="#7F1D1D" font-size="9">无库存下架：补货后自动恢复上架(bulk模式)</text><text x="556" y="7944" text-anchor="middle" fill="#7F1D1D" font-size="9">手动下架：可随时申请重新上架</text>
+<rect x="0" y="8038" width="2458" height="60" fill="#fff" stroke="#E2E8F0" stroke-width="1"/>
+<text x="20" y="8063" fill="#1E293B" font-size="12" font-weight="600">图例：</text>
+<rect x="75" y="8051" width="50" height="20" rx="10" fill="#fff" stroke="#64748B" stroke-width="1.2"/>
+<text x="100" y="8065" text-anchor="middle" fill="#64748B" font-size="8">开始/结束</text>
+<rect x="140" y="8051" width="50" height="20" rx="3" fill="#fff" stroke="#475569" stroke-width="1.2"/>
+<text x="165" y="8065" text-anchor="middle" fill="#475569" font-size="8">操作步骤</text>
+<polygon points="225,8051 240,8061 225,8071 210,8061" fill="#FEF3C7" stroke="#D97706" stroke-width="1.2"/>
+<text x="225" y="8065" text-anchor="middle" fill="#92400E" font-size="7">判断</text>
+<line x1="260" y1="8061" x2="310" y2="8061" stroke="#475569" stroke-width="1.3" marker-end="url(#arr)"/>
+<text x="285" y="8056" text-anchor="middle" fill="#475569" font-size="8">正常流向</text>
+<line x1="330" y1="8061" x2="380" y2="8061" stroke="#DC2626" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="355" y="8056" text-anchor="middle" fill="#DC2626" font-size="8">异常/回退</text>
+<rect x="420" y="8053" width="12" height="12" rx="2" fill="#4A6CF7" opacity="0.3"/>
+<text x="438" y="8064" fill="#4A6CF7" font-size="9">商品域</text>
+<rect x="520" y="8053" width="12" height="12" rx="2" fill="#F59E0B" opacity="0.3"/>
+<text x="538" y="8064" fill="#F59E0B" font-size="9">质检域</text>
+<rect x="620" y="8053" width="12" height="12" rx="2" fill="#10B981" opacity="0.3"/>
+<text x="638" y="8064" fill="#10B981" font-size="9">库存域</text>
+<rect x="720" y="8053" width="12" height="12" rx="2" fill="#8B5CF6" opacity="0.3"/>
+<text x="738" y="8064" fill="#8B5CF6" font-size="9">渠道域</text>
+<rect x="820" y="8053" width="12" height="12" rx="2" fill="#EF4444" opacity="0.3"/>
+<text x="838" y="8064" fill="#EF4444" font-size="9">订单域（示意）</text>
+</svg>

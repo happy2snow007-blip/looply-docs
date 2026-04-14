@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>实体关系图</title>
+<script>
+const ER_CONFIG = {
+  title: '二手电商平台 · 商品主数据实体关系图（完整版）',
+  version: 'v2.0 · 分层布局 · 2026.04',
+  groups: {layer0:{color:'#1565C0',border:'#90CAF9',bg:'#E3F2FD',label:'第一层 · 标品层'},layer1:{color:'#E65100',border:'#FFCC80',bg:'#FFF3E0',label:'第二层 · 二手商品层'},layer2:{color:'#C62828',border:'#EF9A9A',bg:'#FFEBEE',label:'第三层 · 渠道层'}},
+  layers: [{name:'第一层 · 标品层',note:'厂商定义 · 不可修改',color:'#1565C0',border:'#90CAF9',bg:'#E3F2FD',columns:[['backend_category','frontend_category','category_mapping'],['brand','series','category_brand'],['attribute_group','attribute_def','attribute_scope_config','attribute_option_scope_config'],['attribute_option','series_category','spu','spu_attribute_value','spu_image','standard_sku','standard_sku_attribute','standard_sku_image']]},{name:'第二层 · 二手商品层',note:'一物一码 · 独立状态',color:'#E65100',border:'#FFCC80',bg:'#FFF3E0',columns:[[],['warehouse'],['used_item'],['item_condition']]},{name:'第三层 · 渠道层',note:'多渠道分发 · 独立控价',color:'#C62828',border:'#EF9A9A',bg:'#FFEBEE',columns:[[],[],['listing'],['channel']]}],
+  entities: [{id:'backend_category',name:'后台类目 backend_category',group:'layer0',table:'backend_category',entityColor:'#1565C0',fields:[{n:'类目ID',col:'category_id',t:'BIGINT',constraint:'PK',desc:'类目ID'},{n:'父类目ID',col:'parent_id',t:'BIGINT',constraint:'FK -> backend_category.category_id, NULLABLE',desc:'父类目ID'},{n:'类目名称',col:'category_name',t:'VARCHAR(100)',constraint:'NOT NULL',desc:'类目名称'},{n:'层级深度',col:'level',t:'TINYINT',constraint:'',desc:'层级深度'},{n:'sort_order',col:'sort_order',t:'INT',constraint:'DEFAULT 0',desc:'',tech:true},{n:'status',col:'status',t:'TINYINT',constraint:'DEFAULT 1',desc:''}],techNote:'INDEX(parent_id)'},
+{id:'frontend_category',name:'前台类目 frontend_category',group:'layer0',table:'frontend_category',entityColor:'#7B1FA2',fields:[{n:'前台类目ID',col:'category_id',t:'BIGINT',constraint:'PK',desc:'前台类目ID'},{n:'父类目ID',col:'parent_id',t:'BIGINT',constraint:'NULLABLE',desc:'父类目ID'},{n:'category_name',col:'category_name',t:'VARCHAR(100)',constraint:'NOT NULL',desc:''},{n:'icon_url',col:'icon_url',t:'VARCHAR(500)',constraint:'',desc:''},{n:'sort_order',col:'sort_order',t:'INT',constraint:'DEFAULT 0',desc:'',tech:true},{n:'status',col:'status',t:'TINYINT',constraint:'DEFAULT 1',desc:''}]},
+{id:'category_mapping',name:'类目映射 category_mapping',group:'layer0',table:'category_mapping',entityColor:'#546E7A',fields:[{n:'id',col:'id',t:'BIGINT',constraint:'PK',desc:''},{n:'frontend_id',col:'frontend_id',t:'BIGINT',constraint:'FK -> frontend_category.category_id',desc:''},{n:'backend_id',col:'backend_id',t:'BIGINT',constraint:'FK -> backend_category.category_id',desc:''},{n:'sort_order',col:'sort_order',t:'INT',constraint:'DEFAULT 0',desc:'',tech:true}],techNote:'UNIQUE(frontend_id,backend_id)'},
+{id:'attribute_option',name:'属性选项 attribute_option',group:'layer0',table:'attribute_option',entityColor:'#1565C0',fields:[{n:'option_id',col:'option_id',t:'BIGINT',constraint:'PK',desc:''},{n:'attribute_id',col:'attribute_id',t:'BIGINT',constraint:'FK -> attribute_def.attribute_id',desc:''},{n:'如256GB、深空黑',col:'option_value',t:'VARCHAR(200)',constraint:'NOT NULL',desc:'如256GB、深空黑'},{n:'sort_order',col:'sort_order',t:'INT',constraint:'DEFAULT 0',desc:'',tech:true}],techNote:'INDEX(attribute_id)'},
+{id:'brand',name:'品牌 brand',group:'layer0',table:'brand',entityColor:'#1565C0',fields:[{n:'brand_id',col:'brand_id',t:'BIGINT',constraint:'PK',desc:''},{n:'brand_name',col:'brand_name',t:'VARCHAR(100)',constraint:'NOT NULL',desc:''},{n:'brand_name_en',col:'brand_name_en',t:'VARCHAR(100)',constraint:'',desc:''},{n:'logo_url',col:'logo_url',t:'VARCHAR(500)',constraint:'',desc:''},{n:'status',col:'status',t:'TINYINT',constraint:'DEFAULT 1',desc:''}]},
+{id:'category_brand',name:'类目品牌 category_brand',group:'layer0',table:'category_brand',entityColor:'#546E7A',fields:[{n:'id',col:'id',t:'BIGINT',constraint:'PK',desc:''},{n:'category_id',col:'category_id',t:'BIGINT',constraint:'FK -> backend_category.category_id',desc:''},{n:'brand_id',col:'brand_id',t:'BIGINT',constraint:'FK -> brand.brand_id',desc:''},{n:'sort_order',col:'sort_order',t:'INT',constraint:'DEFAULT 0',desc:'',tech:true}],techNote:'UNIQUE(category_id,brand_id)'},
+{id:'attribute_group',name:'属性分组 attribute_group',group:'layer0',table:'attribute_group',entityColor:'#1565C0',fields:[{n:'group_id',col:'group_id',t:'BIGINT',constraint:'PK',desc:''},{n:'category_id',col:'category_id',t:'BIGINT',constraint:'FK -> backend_category.category_id',desc:''},{n:'group_name',col:'group_name',t:'VARCHAR(50)',constraint:'NOT NULL',desc:''},{n:'sort_order',col:'sort_order',t:'INT',constraint:'DEFAULT 0',desc:'',tech:true}],techNote:'INDEX(category_id)'},
+{id:'attribute_def',name:'属性定义 attribute_def',group:'layer0',table:'attribute_def',entityColor:'#1565C0',fields:[{n:'attribute_id',col:'attribute_id',t:'BIGINT',constraint:'PK',desc:''},{n:'group_id',col:'group_id',t:'BIGINT',constraint:'FK -> attribute_group.group_id',desc:''},{n:'如屏幕尺寸、存储容量',col:'attribute_name',t:'VARCHAR(50)',constraint:'NOT NULL',desc:'如屏幕尺寸、存储容量'},{n:'属性值类型',col:'attribute_type',t:'ENUM',constraint:'',desc:'属性值类型'},{n:'text/select/multi_select/number',col:'input_type',t:'ENUM',constraint:'',desc:'text/select/multi_select/number'},{n:'is_required',col:'is_required',t:'BOOLEAN',constraint:'DEFAULT False',desc:''},{n:'sort_order',col:'sort_order',t:'INT',constraint:'DEFAULT 0',desc:'',tech:true}],techNote:'INDEX(group_id)'},
+{id:'spu',name:'标准产品单元 spu',group:'layer0',table:'spu',entityColor:'#1565C0',fields:[{n:'spu_id',col:'spu_id',t:'BIGINT',constraint:'PK',desc:''},{n:'category_id',col:'category_id',t:'BIGINT',constraint:'FK -> backend_category.category_id',desc:''},{n:'series_id',col:'series_id',t:'BIGINT',constraint:'FK -> series.series_id',desc:''},{n:'如iPhone 15 Pro Max',col:'spu_name',t:'VARCHAR(200)',constraint:'NOT NULL',desc:'如iPhone 15 Pro Max'},{n:'如A3106',col:'model',t:'VARCHAR(100)',constraint:'',desc:'如A3106'},{n:'description',col:'description',t:'TEXT',constraint:'',desc:''},{n:'status',col:'status',t:'TINYINT',constraint:'DEFAULT 1',desc:''}],techNote:'INDEX(category_id) | INDEX(series_id)'},
+{id:'spu_attribute_value',name:'SPU属性值 spu_attribute_value',group:'layer0',table:'spu_attribute_value',entityColor:'#1565C0',fields:[{n:'id',col:'id',t:'BIGINT',constraint:'PK',desc:''},{n:'spu_id',col:'spu_id',t:'BIGINT',constraint:'FK -> spu.spu_id',desc:''},{n:'attribute_id',col:'attribute_id',t:'BIGINT',constraint:'FK -> attribute_def.attribute_id',desc:''},{n:'attribute_value',col:'attribute_value',t:'VARCHAR(500)',constraint:'NOT NULL',desc:''},{n:'option_id',col:'option_id',t:'BIGINT',constraint:'FK -> attribute_option.option_id',desc:''}],techNote:'UNIQUE(spu_id,attribute_id)'},
+{id:'spu_image',name:'SPU图片 spu_image',group:'layer0',table:'spu_image',entityColor:'#1565C0',fields:[{n:'image_id',col:'image_id',t:'BIGINT',constraint:'PK',desc:''},{n:'spu_id',col:'spu_id',t:'BIGINT',constraint:'FK -> spu.spu_id',desc:''},{n:'image_url',col:'image_url',t:'VARCHAR(500)',constraint:'NOT NULL',desc:''},{n:'main/detail/video/certificate',col:'image_type',t:'ENUM',constraint:'',desc:'main/detail/video/certificate'},{n:'sort_order',col:'sort_order',t:'INT',constraint:'DEFAULT 0',desc:'',tech:true}],techNote:'INDEX(spu_id)'},
+{id:'standard_sku',name:'标品SKU standard_sku',group:'layer0',table:'standard_sku',entityColor:'#1565C0',fields:[{n:'standard_sku_id',col:'standard_sku_id',t:'BIGINT',constraint:'PK',desc:''},{n:'spu_id',col:'spu_id',t:'BIGINT',constraint:'FK -> spu.spu_id',desc:''},{n:'如iPhone 15 Pro Max 深空黑 256GB',col:'sku_name',t:'VARCHAR(200)',constraint:'NOT NULL',desc:'如iPhone 15 Pro Max 深空黑 256GB'},{n:'国际条码EAN/UPC',col:'barcode',t:'VARCHAR(50)',constraint:'',desc:'国际条码EAN/UPC'},{n:'官方参考价',col:'market_price',t:'DECIMAL(12,2)',constraint:'',desc:'官方参考价'},{n:'status',col:'status',t:'TINYINT',constraint:'DEFAULT 1',desc:''}],techNote:'INDEX(spu_id)'},
+{id:'standard_sku_attribute',name:'SKU属性 standard_sku_attribute',group:'layer0',table:'standard_sku_attribute',entityColor:'#1565C0',fields:[{n:'id',col:'id',t:'BIGINT',constraint:'PK',desc:''},{n:'standard_sku_id',col:'standard_sku_id',t:'BIGINT',constraint:'FK -> standard_sku.standard_sku_id',desc:''},{n:'attribute_id',col:'attribute_id',t:'BIGINT',constraint:'FK -> attribute_def.attribute_id',desc:''},{n:'attribute_value',col:'attribute_value',t:'VARCHAR(500)',constraint:'NOT NULL',desc:''}],techNote:'UNIQUE(standard_sku_id,attribute_id)'},
+{id:'standard_sku_image',name:'SKU图片 standard_sku_image',group:'layer0',table:'standard_sku_image',entityColor:'#1565C0',fields:[{n:'image_id',col:'image_id',t:'BIGINT',constraint:'PK',desc:''},{n:'standard_sku_id',col:'standard_sku_id',t:'BIGINT',constraint:'FK -> standard_sku.standard_sku_id',desc:''},{n:'image_url',col:'image_url',t:'VARCHAR(500)',constraint:'NOT NULL',desc:''},{n:'main/detail/swatch(色卡)',col:'image_type',t:'ENUM',constraint:'',desc:'main/detail/swatch(色卡)'},{n:'sort_order',col:'sort_order',t:'INT',constraint:'DEFAULT 0',desc:'',tech:true}],techNote:'INDEX(standard_sku_id)'},
+{id:'warehouse',name:'仓库 warehouse',group:'layer1',table:'warehouse',entityColor:'#2E7D32',fields:[{n:'warehouse_id',col:'warehouse_id',t:'BIGINT',constraint:'PK',desc:''},{n:'warehouse_name',col:'warehouse_name',t:'VARCHAR(100)',constraint:'NOT NULL',desc:''},{n:'address',col:'address',t:'VARCHAR(500)',constraint:'',desc:''},{n:'warehouse/store',col:'type',t:'ENUM',constraint:'',desc:'warehouse/store'},{n:'status',col:'status',t:'TINYINT',constraint:'DEFAULT 1',desc:''}]},
+{id:'used_item',name:'二手商品（一物一码） used_item',group:'layer1',table:'used_item',entityColor:'#E65100',fields:[{n:'item_id',col:'item_id',t:'BIGINT',constraint:'PK',desc:''},{n:'关联到具体规格',col:'standard_sku_id',t:'BIGINT',constraint:'FK -> standard_sku.standard_sku_id',desc:'关联到具体规格'},{n:'warehouse_id',col:'warehouse_id',t:'BIGINT',constraint:'FK -> warehouse.warehouse_id',desc:''},{n:'内部条码号',col:'item_code',t:'VARCHAR(50)',constraint:'UNIQUE',desc:'内部条码号'},{n:'title',col:'title',t:'VARCHAR(200)',constraint:'',desc:''},{n:'成色等级S/A/B/C/D',col:'grade',t:'ENUM',constraint:'NOT NULL',desc:'成色等级S/A/B/C/D'},{n:'采购/回收成本',col:'purchase_price',t:'DECIMAL(12,2)',constraint:'',desc:'采购/回收成本'},{n:'基准售价',col:'base_price',t:'DECIMAL(12,2)',constraint:'',desc:'基准售价'},{n:'来源: 回收/寄卖/采购',col:'source',t:'VARCHAR(100)',constraint:'',desc:'来源: 回收/寄卖/采购'},{n:'序列号/IMEI',col:'serial_number',t:'VARCHAR(100)',constraint:'',desc:'序列号/IMEI'},{n:'is_authenticated',col:'is_authenticated',t:'BOOLEAN',constraint:'DEFAULT False',desc:''},{n:'鉴定方',col:'authenticator',t:'VARCHAR(100)',constraint:'',desc:'鉴定方'},{n:'鉴定证书',col:'certificate_url',t:'VARCHAR(500)',constraint:'',desc:'鉴定证书'},{n:'in_stock/locked/sold/returned',col:'stock_status',t:'ENUM',constraint:'',desc:'in_stock/locked/sold/returned'},{n:'实拍图URL数组',col:'images',t:'JSON',constraint:'',desc:'实拍图URL数组'}],techNote:'INDEX(standard_sku_id) | INDEX(stock_status,grade)'},
+{id:'item_condition',name:'质检明细 item_condition',group:'layer1',table:'item_condition',entityColor:'#E65100',fields:[{n:'condition_id',col:'condition_id',t:'BIGINT',constraint:'PK',desc:''},{n:'item_id',col:'item_id',t:'BIGINT',constraint:'FK -> used_item.item_id',desc:''},{n:'appearance/function',col:'check_type',t:'ENUM',constraint:'NOT NULL',desc:'appearance/function'},{n:'如屏幕、边框、电池健康度',col:'check_item',t:'VARCHAR(100)',constraint:'NOT NULL',desc:'如屏幕、边框、电池健康度'},{n:'如轻微划痕、正常、85%',col:'result',t:'VARCHAR(200)',constraint:'NOT NULL',desc:'如轻微划痕、正常、85%'},{n:'瑕疵实拍图',col:'defect_images',t:'JSON',constraint:'',desc:'瑕疵实拍图'},{n:'sort_order',col:'sort_order',t:'INT',constraint:'DEFAULT 0',desc:'',tech:true}],techNote:'INDEX(item_id)'},
+{id:'listing',name:'渠道商品 listing',group:'layer2',table:'listing',entityColor:'#C62828',fields:[{n:'listing_id',col:'listing_id',t:'BIGINT',constraint:'PK',desc:''},{n:'item_id',col:'item_id',t:'BIGINT',constraint:'FK -> used_item.item_id',desc:''},{n:'channel_id',col:'channel_id',t:'BIGINT',constraint:'FK -> channel.channel_id',desc:''},{n:'该渠道售价',col:'listing_price',t:'DECIMAL(12,2)',constraint:'NOT NULL',desc:'该渠道售价'},{n:'活动价',col:'promotion_price',t:'DECIMAL(12,2)',constraint:'',desc:'活动价'},{n:'listed/unlisted/presale',col:'listing_status',t:'ENUM',constraint:'',desc:'listed/unlisted/presale'},{n:'渠道优先级',col:'priority',t:'INT',constraint:'DEFAULT 0',desc:'渠道优先级'},{n:'listed_at',col:'listed_at',t:'DATETIME',constraint:'',desc:''}],techNote:'UNIQUE(item_id,channel_id) | INDEX(listing_status)'},
+{id:'channel',name:'渠道 channel',group:'layer2',table:'channel',entityColor:'#C62828',fields:[{n:'channel_id',col:'channel_id',t:'BIGINT',constraint:'PK',desc:''},{n:'如自营APP、门店、得物',col:'channel_name',t:'VARCHAR(100)',constraint:'NOT NULL',desc:'如自营APP、门店、得物'},{n:'online/offline/third_party',col:'channel_type',t:'ENUM',constraint:'',desc:'online/offline/third_party'},{n:'commission_rate',col:'commission_rate',t:'DECIMAL(5,2)',constraint:'',desc:''},{n:'status',col:'status',t:'TINYINT',constraint:'DEFAULT 1',desc:''}]},
+{id:'series',name:'产品系列 series',group:'layer0',table:'series',entityColor:'#1565C0',fields:[{n:'系列ID',col:'series_id',t:'BIGINT',constraint:'PK',desc:'系列ID'},{n:'所属品牌',col:'brand_id',t:'BIGINT',constraint:'FK -> brand.brand_id',desc:'所属品牌'},{n:'系列名称',col:'series_name',t:'VARCHAR(100)',constraint:'NOT NULL',desc:'系列名称'},{n:'系列英文名',col:'series_name_en',t:'VARCHAR(100)',constraint:'',desc:'系列英文名'},{n:'系列说明',col:'description',t:'TEXT',constraint:'',desc:'系列说明'},{n:'status',col:'status',t:'TINYINT',constraint:'DEFAULT 1',desc:''}],techNote:'INDEX(brand_id) | UNIQUE(brand_id,series_name)'},
+{id:'series_category',name:'系列类目映射 series_category',group:'layer0',table:'series_category',entityColor:'#546E7A',fields:[{n:'id',col:'id',t:'BIGINT',constraint:'PK',desc:''},{n:'series_id',col:'series_id',t:'BIGINT',constraint:'FK -> series.series_id',desc:''},{n:'category_id',col:'category_id',t:'BIGINT',constraint:'FK -> backend_category.category_id',desc:''},{n:'sort_order',col:'sort_order',t:'INT',constraint:'DEFAULT 0',desc:'',tech:true}],techNote:'UNIQUE(series_id,category_id)'},
+{id:'attribute_scope_config',name:'属性作用域配置 attribute_scope_config',group:'layer0',table:'attribute_scope_config',entityColor:'#546E7A',fields:[{n:'作用域配置ID',col:'id',t:'BIGINT',constraint:'PK',desc:'作用域配置ID'},{n:'后台类目ID',col:'category_id',t:'BIGINT',constraint:'FK -> backend_category.category_id',desc:'后台类目ID'},{n:'CATEGORY/CATEGORY_BRAND/CATEGORY_SERIES',col:'scope_type',t:'ENUM',constraint:'NOT NULL',desc:'CATEGORY/CATEGORY_BRAND/CATEGORY_SERIES'},{n:'品牌ID，scope_type=CATEGORY_BRAND时使用',col:'brand_id',t:'BIGINT',constraint:'FK -> brand.brand_id, NULLABLE',desc:'品牌ID，scope_type=CATEGORY_BRAND时使用'},{n:'系列ID，scope_type=CATEGORY_SERIES时使用',col:'series_id',t:'BIGINT',constraint:'FK -> series.series_id, NULLABLE',desc:'系列ID，scope_type=CATEGORY_SERIES时使用'},{n:'属性ID',col:'attribute_id',t:'BIGINT',constraint:'FK -> attribute_def.attribute_id',desc:'属性ID'},{n:'key/sale/non_key',col:'attribute_type',t:'ENUM',constraint:'',desc:'key/sale/non_key'},{n:'是否必填',col:'is_required',t:'BOOLEAN',constraint:'DEFAULT False',desc:'是否必填'},{n:'展示排序',col:'sort_order',t:'INT',constraint:'DEFAULT 0',desc:'展示排序',tech:true},{n:'1=当前作用域启用；0=当前作用域不启用并继续回退下一层',col:'status',t:'TINYINT',constraint:'DEFAULT 1',desc:'1=当前作用域启用；0=当前作用域不启用并继续回退下一层'}],techNote:'UNIQUE(category_id,scope_type,brand_id,series_id,attribute_id) | INDEX(category_id,series_id,attribute_id,status) | INDEX(category_id,brand_id,attribute_id,status) | INDEX(category_id,attribute_id,status)'},
+{id:'attribute_option_scope_config',name:'属性选项作用域配置 attribute_option_scope_config',group:'layer0',table:'attribute_option_scope_config',entityColor:'#546E7A',fields:[{n:'选项作用域配置ID',col:'id',t:'BIGINT',constraint:'PK',desc:'选项作用域配置ID'},{n:'后台类目ID',col:'category_id',t:'BIGINT',constraint:'FK -> backend_category.category_id',desc:'后台类目ID'},{n:'CATEGORY/CATEGORY_BRAND/CATEGORY_SERIES',col:'scope_type',t:'ENUM',constraint:'NOT NULL',desc:'CATEGORY/CATEGORY_BRAND/CATEGORY_SERIES'},{n:'品牌ID，scope_type=CATEGORY_BRAND时使用',col:'brand_id',t:'BIGINT',constraint:'FK -> brand.brand_id, NULLABLE',desc:'品牌ID，scope_type=CATEGORY_BRAND时使用'},{n:'系列ID，scope_type=CATEGORY_SERIES时使用',col:'series_id',t:'BIGINT',constraint:'FK -> series.series_id, NULLABLE',desc:'系列ID，scope_type=CATEGORY_SERIES时使用'},{n:'属性ID',col:'attribute_id',t:'BIGINT',constraint:'FK -> attribute_def.attribute_id',desc:'属性ID'},{n:'允许的属性选项ID',col:'option_id',t:'BIGINT',constraint:'FK -> attribute_option.option_id',desc:'允许的属性选项ID'},{n:'选项排序',col:'sort_order',t:'INT',constraint:'DEFAULT 0',desc:'选项排序',tech:true},{n:'1=当前作用域下该选项可用；0=当前作用域下该选项不可用',col:'status',t:'TINYINT',constraint:'DEFAULT 1',desc:'1=当前作用域下该选项可用；0=当前作用域下该选项不可用'}],techNote:'UNIQUE(category_id,scope_type,brand_id,series_id,attribute_id,option_id) | INDEX(category_id,series_id,attribute_id,status) | INDEX(category_id,brand_id,attribute_id,status) | INDEX(category_id,attribute_id,status) | INDEX(attribute_id,option_id)'}],
+  midTables: [],
+  relations: [{from:'backend_category',to:'backend_category',type:'N:1',label:'类目树父子关系',indirect:true},
+{from:'series',to:'brand',type:'N:1',label:'多个系列属于同一品牌',indirect:false},
+{from:'spu',to:'backend_category',type:'N:1',label:'多个标品属于同一类目',indirect:false},
+{from:'spu',to:'series',type:'N:1',label:'多个标品属于同一产品系列',indirect:false},
+{from:'category_brand',to:'backend_category',type:'N:1',label:'category_brand -> backend_category',indirect:false},
+{from:'category_brand',to:'brand',type:'N:1',label:'category_brand -> brand',indirect:false},
+{from:'series_category',to:'series',type:'N:1',label:'系列可映射多个后台类目',indirect:false},
+{from:'series_category',to:'backend_category',type:'N:1',label:'一个后台类目可关联多个产品系列',indirect:false},
+{from:'category_mapping',to:'frontend_category',type:'N:1',label:'category_mapping -> frontend_category',indirect:false},
+{from:'category_mapping',to:'backend_category',type:'N:1',label:'category_mapping -> backend_category',indirect:false},
+{from:'attribute_group',to:'backend_category',type:'N:1',label:'attribute_group -> backend_category',indirect:false},
+{from:'attribute_def',to:'attribute_group',type:'N:1',label:'attribute_def -> attribute_group',indirect:false},
+{from:'attribute_option',to:'attribute_def',type:'N:1',label:'attribute_option -> attribute_def',indirect:false},
+{from:'attribute_scope_config',to:'backend_category',type:'N:1',label:'属性作用域配置绑定后台类目',indirect:false},
+{from:'attribute_scope_config',to:'brand',type:'N:1',label:'类目+品牌作用域属性配置',indirect:false},
+{from:'attribute_scope_config',to:'series',type:'N:1',label:'类目+系列作用域属性配置',indirect:false},
+{from:'attribute_scope_config',to:'attribute_def',type:'N:1',label:'作用域配置命中属性定义',indirect:false},
+{from:'attribute_option_scope_config',to:'backend_category',type:'N:1',label:'属性选项作用域配置绑定后台类目',indirect:false},
+{from:'attribute_option_scope_config',to:'brand',type:'N:1',label:'类目+品牌作用域选项配置',indirect:false},
+{from:'attribute_option_scope_config',to:'series',type:'N:1',label:'类目+系列作用域选项配置',indirect:false},
+{from:'attribute_option_scope_config',to:'attribute_def',type:'N:1',label:'选项作用域配置命中属性定义',indirect:false},
+{from:'attribute_option_scope_config',to:'attribute_option',type:'N:1',label:'选项作用域配置约束可用选项',indirect:false},
+{from:'spu_attribute_value',to:'spu',type:'N:1',label:'spu_attribute_value -> spu',indirect:false},
+{from:'spu_attribute_value',to:'attribute_def',type:'N:1',label:'spu_attribute_value -> attribute_def',indirect:false},
+{from:'spu_attribute_value',to:'attribute_option',type:'N:1',label:'SPU 选项型属性值',indirect:false},
+{from:'spu_image',to:'spu',type:'N:1',label:'spu_image -> spu',indirect:false},
+{from:'standard_sku',to:'spu',type:'N:1',label:'一个标品对应多个标品SKU',indirect:false},
+{from:'standard_sku_attribute',to:'standard_sku',type:'N:1',label:'standard_sku_attribute -> standard_sku',indirect:false},
+{from:'standard_sku_attribute',to:'attribute_def',type:'N:1',label:'standard_sku_attribute -> attribute_def',indirect:false},
+{from:'standard_sku_image',to:'standard_sku',type:'N:1',label:'standard_sku_image -> standard_sku',indirect:false},
+{from:'used_item',to:'standard_sku',type:'N:1',label:'一个标品SKU对应多件二手实物',indirect:false},
+{from:'used_item',to:'warehouse',type:'N:1',label:'used_item -> warehouse',indirect:false},
+{from:'item_condition',to:'used_item',type:'N:1',label:'item_condition -> used_item',indirect:false},
+{from:'listing',to:'used_item',type:'N:1',label:'一件二手商品可挂多个渠道',indirect:false},
+{from:'listing',to:'channel',type:'N:1',label:'listing -> channel',indirect:false}]
+};
+</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#f8f9fc;min-height:100vh;display:flex;flex-direction:column}
+.hd{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;padding:12px 32px;display:flex;justify-content:center;align-items:center;flex-shrink:0;gap:24px}
+.hd h1{font-size:20px;font-weight:600}
+.hr{display:flex;align-items:center;gap:14px}
+.hr span{color:#8892a4;font-size:12px}
+.tg{display:flex;background:rgba(255,255,255,.12);border-radius:6px;overflow:hidden}
+.tg button{border:none;padding:5px 16px;font-size:13px;cursor:pointer;font-family:inherit;transition:.2s}
+.tg .on{background:#fff;color:#1a1a2e;font-weight:600}
+.tg button:not(.on){background:transparent;color:#8892a4}
+.btn-reset{border:1px solid rgba(255,255,255,.3);background:transparent;color:#8892a4;padding:4px 12px;font-size:12px;border-radius:5px;cursor:pointer;font-family:inherit;transition:.2s}
+.btn-reset:hover{background:rgba(255,255,255,.12);color:#fff}
+.wrap{flex:1;overflow:auto;display:flex;justify-content:center;align-items:flex-start;padding:10px 0}
+.cv{position:relative;flex-shrink:0;transform-origin:top center}
+.card{position:absolute;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.07);border:1.5px solid #ddd;overflow:hidden;z-index:2;cursor:grab;user-select:none}
+.card.dragging{z-index:100;box-shadow:0 8px 24px rgba(0,0,0,.18);cursor:grabbing;opacity:.92}
+.card .ct{padding:6px 12px;font-size:13px;font-weight:600;color:#fff}
+.card .cb{padding:6px 12px 8px}
+.card .cr{font-size:12px;color:#333;line-height:1.7;display:flex;justify-content:space-between;gap:8px}
+.card .cr .cm{color:#999;font-size:10px;white-space:nowrap;display:none;text-align:right}
+.card .cn{font-size:11px;color:#999;border-top:1px dashed #eee;margin-top:4px;padding-top:4px}
+.card .ctn{display:none;font-size:11px;color:#999;border-top:1px dashed #eee;margin-top:4px;padding-top:4px;line-height:1.5;white-space:pre-line}
+.card .ctb{display:none;font-size:10px;color:#333;border-top:1px dashed #eee;margin-top:4px;padding-top:4px}
+.card .ctb table{width:100%;border-collapse:collapse}
+.card .ctb th{text-align:left;font-size:9px;color:#999;padding:1px 4px;border-bottom:1px solid #eee;font-weight:500}
+.card .ctb td{font-size:10px;padding:1px 4px;border-bottom:1px solid #f5f5f5}
+.card .ctb td.col-name{color:#1a73a7;font-weight:600}
+body.tech .card .cr .cm{display:block}
+body.tech .card .ctb{display:block}
+body.tech .card .cr{display:none}
+body.tech .card .cn{display:none}
+body.tech .card .ctn{display:block}
+body.md .wrap{display:none}
+body.md .lg{display:none}
+.md-wrap{display:none;flex:1;overflow:auto;padding:20px 40px}
+body.md .md-wrap{display:block}
+.md-wrap pre{background:#fff;border:1px solid #e8e8e8;border-radius:8px;padding:20px;font-size:13px;line-height:1.8;font-family:'SF Mono','Menlo','Monaco',monospace;white-space:pre-wrap;max-width:1000px;margin:0 auto}
+.md-wrap .md-actions{text-align:center;margin-bottom:12px}
+.md-wrap .md-actions button{border:1px solid #ddd;background:#fff;padding:5px 16px;font-size:13px;border-radius:6px;cursor:pointer;font-family:inherit}
+.lines{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1}
+.rl{position:absolute;z-index:3;pointer-events:none}
+.rl span{font-size:10px;font-weight:600;color:#fff;padding:2px 8px;border-radius:8px;display:inline-block}
+.layer-bar{position:absolute;z-index:0;border-radius:12px;opacity:0.13}
+.layer-label{position:absolute;z-index:5;font-size:14px;font-weight:700;color:#fff;padding:4px 16px;border-radius:6px;letter-spacing:1px}
+.layer-note{position:absolute;z-index:5;font-size:11px;color:#666;padding:2px 8px}
+.lg{background:#fff;border-radius:8px;padding:6px 18px;box-shadow:0 1px 3px rgba(0,0,0,.05);border:1px solid #e8e8e8;flex-shrink:0;margin:0 auto 6px;max-width:1400px;width:calc(100% - 40px)}
+.lw{display:flex;gap:16px;flex-wrap:wrap;align-items:center;justify-content:center}
+.li{display:flex;align-items:center;gap:5px;font-size:11px;color:#666}
+.ld{width:11px;height:11px;border-radius:2px}
+</style>
+</head>
+<body>
+<div class="hd" id="header"></div>
+<div class="wrap"><div class="cv" id="canvas"></div></div>
+<div class="md-wrap" id="mdWrap"></div>
+<div class="lg" id="legend"></div>
+<script>
+const {title,version,groups:GROUPS,layers:LAYERS,entities:ENTITIES,midTables:MID_TABLES,relations:RELATIONS}=ER_CONFIG;
+const STORAGE_KEY='er_pos_product_v2';
+let curPos={},curSizes={},curLayerBounds=[];
+
+/* ========== 持久化 ========== */
+function loadSaved(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||null;}catch(e){return null;}}
+function savePos(){localStorage.setItem(STORAGE_KEY,JSON.stringify(curPos));}
+function clearSaved(){localStorage.removeItem(STORAGE_KEY);}
+
+/* ========== Header / Legend ========== */
+function renderHeader(){
+  const hd=document.getElementById('header');
+  document.title=title;
+  hd.innerHTML=`<h1>${title}</h1><div class="hr"><div class="tg"><button class="on" onclick="sw('p',this)">产品视图</button><button onclick="sw('m',this)">Markdown</button></div><button class="btn-reset" onclick="resetLayout()" title="清除拖拽记录，恢复默认布局">重置布局</button><span>${version}</span></div>`;
+}
+function renderLegend(){
+  const lg=document.getElementById('legend');
+  let h='<div class="lw">';
+  LAYERS.forEach(l=>{h+=`<div class="li"><div class="ld" style="background:${l.color}"></div>${l.name} · ${l.note}</div>`;});
+  const types=[...new Set(RELATIONS.map(r=>r.type))];
+  types.forEach(t=>{h+=`<div class="li"><span style="background:#666;color:#fff;font-size:10px;padding:2px 8px;border-radius:6px;font-weight:600">${t}</span> ${t==='1:N'?'一对多':t==='1:1'?'一对一':t==='M:N'?'多对多':t}</div>`;});
+  h+='<div class="li" style="color:#999;font-size:10px">拖拽卡片调整位置，自动保存</div>';
+  h+='</div>';
+  lg.innerHTML=h;
+}
+
+/* ========== 分层布局引擎 ========== */
+const CARD_W=240,COL_GAP=32,ROW_GAP=28,LAYER_GAP=70,LAYER_HEADER=50,MARGIN=40;
+function layeredLayout(realSizes){
+  const positions={};let currentY=MARGIN;const layerBounds=[];
+  LAYERS.forEach((layer,li)=>{
+    const layerStartY=currentY;currentY+=LAYER_HEADER;
+    let maxColH=0;
+    layer.columns.forEach(col=>{let h=0;col.forEach(eid=>{if(realSizes[eid])h+=realSizes[eid].h+ROW_GAP;});if(h>0)h-=ROW_GAP;maxColH=Math.max(maxColH,h);});
+    layer.columns.forEach((col,ci)=>{let y=currentY;col.forEach(eid=>{if(!realSizes[eid])return;positions[eid]={x:MARGIN+ci*(CARD_W+COL_GAP),y};y+=realSizes[eid].h+ROW_GAP;});});
+    const layerEndY=currentY+maxColH;
+    layerBounds.push({startY:layerStartY,endY:layerEndY,layer});
+    currentY=layerEndY+LAYER_GAP;
+  });
+  return {positions,layerBounds};
+}
+
+/* ========== 连线引擎 ========== */
+function getBestSide(pos,size,tPos,tSize){
+  const cx=pos.x+size.w/2,cy=pos.y+size.h/2,tx=tPos.x+tSize.w/2,ty=tPos.y+tSize.h/2;
+  const dx=tx-cx,dy=ty-cy;
+  if(Math.abs(dx)*size.h>Math.abs(dy)*size.w)return dx>0?'right':'left';
+  return dy>0?'bottom':'top';
+}
+function getAnchor(pos,size,side){
+  switch(side){
+    case 'top':return{x:pos.x+size.w/2,y:pos.y};
+    case 'bottom':return{x:pos.x+size.w/2,y:pos.y+size.h};
+    case 'left':return{x:pos.x,y:pos.y+size.h/2};
+    case 'right':return{x:pos.x+size.w,y:pos.y+size.h/2};
+  }
+}
+function calcCanvasSize(){
+  let maxX=0,maxY=0;
+  Object.keys(curPos).forEach(id=>{const p=curPos[id],s=curSizes[id]||{w:CARD_W,h:60};maxX=Math.max(maxX,p.x+s.w+MARGIN);maxY=Math.max(maxY,p.y+s.h+MARGIN);});
+  return{maxX,maxY};
+}
+
+/* ========== 构建 HTML 片段 ========== */
+function buildCardHtml(e,p,s){
+  const ec=e.entityColor||GROUPS[e.group]?.color||'#546E7A';
+  const borderC=GROUPS[e.group]?.border||'#ddd';
+  let h=`<div class="card" data-id="${e.id}" style="left:${p.x}px;top:${p.y}px;width:${s.w}px;border-color:${borderC}">`;
+  h+=`<div class="ct" style="background:${ec}">${e.name}</div><div class="cb">`;
+  e.fields.forEach(f=>{if(f.tech)return;h+=`<div class="cr"><span>${f.n}</span>${f.t?`<span class="cm">${f.t}</span>`:''}</div>`;});
+  const hasCols=e.fields.some(f=>f.col);
+  if(hasCols){
+    h+='<div class="ctb"><table><tr><th>列名</th><th>类型</th><th>约束</th><th>说明</th></tr>';
+    e.fields.forEach(f=>{if(f.col)h+=`<tr><td class="col-name">${f.col}</td><td>${f.t||''}</td><td>${f.constraint||''}</td><td>${f.desc||f.n}</td></tr>`;});
+    h+='</table></div>';
+  }
+  if(e.techNote)h+=`<div class="ctn">${e.techNote}</div>`;
+  h+='</div></div>';
+  return h;
+}
+function buildOverlayHtml(maxX,maxY){
+  let h='';
+  // Layer backgrounds
+  curLayerBounds.forEach(lb=>{
+    const l=lb.layer;
+    h+=`<div class="layer-bar" style="left:${MARGIN-16}px;top:${lb.startY}px;width:${maxX-MARGIN*2+32}px;height:${lb.endY-lb.startY+16}px;background:${l.color}"></div>`;
+    h+=`<div class="layer-label" style="left:${MARGIN-10}px;top:${lb.startY+6}px;background:${l.color}">${l.name}</div>`;
+    h+=`<div class="layer-note" style="left:${MARGIN+140}px;top:${lb.startY+8}px">${l.note}</div>`;
+  });
+  // SVG lines
+  h+=`<svg class="lines" viewBox="0 0 ${maxX} ${maxY}">`;
+  h+='<defs><marker id="arr" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="7" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,3 L0,6Z" fill="#aaa"/></marker></defs>';
+  const labels=[];
+  RELATIONS.forEach(rel=>{
+    const fp=curPos[rel.from],tp=curPos[rel.to],fs=curSizes[rel.from],ts=curSizes[rel.to];
+    if(!fp||!tp||!fs||!ts)return;
+    const fSide=getBestSide(fp,fs,tp,ts),tSide=getBestSide(tp,ts,fp,fs);
+    const a=getAnchor(fp,fs,fSide),b=getAnchor(tp,ts,tSide);
+    const dash=rel.indirect?' stroke-dasharray="5,3"':'';
+    h+=`<path d="M${a.x},${a.y} L${b.x},${b.y}" stroke="#bbb" stroke-width="1.2" fill="none"${dash} marker-end="url(#arr)"/>`;
+    labels.push({x:(a.x+b.x)/2,y:(a.y+b.y)/2,type:rel.type});
+  });
+  h+='</svg>';
+  labels.forEach(l=>{h+=`<div class="rl" style="left:${l.x-16}px;top:${l.y-9}px"><span style="background:#888">${l.type}</span></div>`;});
+  return h;
+}
+
+/* ========== 拖拽时重绘连线 ========== */
+function redrawOverlay(){
+  const canvas=document.getElementById('canvas');
+  const {maxX,maxY}=calcCanvasSize();
+  canvas.style.width=maxX+'px';canvas.style.height=maxY+'px';
+  canvas.querySelectorAll('.lines,.rl,.layer-bar,.layer-label,.layer-note').forEach(el=>el.remove());
+  canvas.insertAdjacentHTML('afterbegin',buildOverlayHtml(maxX,maxY));
+}
+
+/* ========== 主渲染 ========== */
+function render(){
+  const canvas=document.getElementById('canvas');
+  // Step 1: measure heights
+  let tmp='';
+  ENTITIES.forEach(e=>{
+    const ec=e.entityColor||GROUPS[e.group]?.color||'#546E7A';
+    tmp+=`<div class="card" data-id="${e.id}" style="left:0;top:0;width:${CARD_W}px;visibility:hidden">`;
+    tmp+=`<div class="ct" style="background:${ec}">${e.name}</div><div class="cb">`;
+    e.fields.forEach(f=>{if(!f.tech)tmp+=`<div class="cr"><span>${f.n}</span></div>`;});
+    if(e.techNote)tmp+=`<div class="ctn">${e.techNote}</div>`;
+    tmp+='</div></div>';
+  });
+  canvas.innerHTML=tmp;
+  const realSizes={};
+  ENTITIES.forEach(e=>{const el=canvas.querySelector(`[data-id="${e.id}"]`);realSizes[e.id]={w:CARD_W,h:el?el.offsetHeight:80};});
+  curSizes=realSizes;
+
+  // Step 2: auto layout
+  const {positions,layerBounds}=layeredLayout(realSizes);
+  curLayerBounds=layerBounds;
+
+  // Step 3: merge saved positions
+  const saved=loadSaved();
+  if(saved){Object.keys(positions).forEach(id=>{curPos[id]=saved[id]||positions[id];});}
+  else{curPos={...positions};}
+
+  // Step 4: render
+  const {maxX,maxY}=calcCanvasSize();
+  canvas.style.width=maxX+'px';canvas.style.height=maxY+'px';
+  let html=buildOverlayHtml(maxX,maxY);
+  ENTITIES.forEach(e=>{const p=curPos[e.id];if(!p)return;html+=buildCardHtml(e,p,curSizes[e.id]);});
+  canvas.innerHTML=html;
+  initDrag();
+  fitToScreen();
+}
+
+/* ========== 拖拽引擎 ========== */
+function initDrag(){
+  document.getElementById('canvas').querySelectorAll('.card[data-id]').forEach(card=>{
+    card.addEventListener('pointerdown',onDragStart);
+  });
+}
+let dragState=null;
+function getCanvasScale(){
+  const t=getComputedStyle(document.getElementById('canvas')).transform;
+  if(t&&t!=='none'){const m=t.match(/matrix\(([^,]+)/);if(m)return parseFloat(m[1]);}
+  return 1;
+}
+function onDragStart(e){
+  if(e.button!==0)return;
+  const card=e.currentTarget,id=card.dataset.id;
+  if(!id||!curPos[id])return;
+  card.classList.add('dragging');
+  card.setPointerCapture(e.pointerId);
+  dragState={id,card,startX:e.clientX,startY:e.clientY,origX:curPos[id].x,origY:curPos[id].y,scale:getCanvasScale()};
+  card.addEventListener('pointermove',onDragMove);
+  card.addEventListener('pointerup',onDragEnd);
+  e.preventDefault();
+}
+function onDragMove(e){
+  if(!dragState)return;
+  const dx=(e.clientX-dragState.startX)/dragState.scale;
+  const dy=(e.clientY-dragState.startY)/dragState.scale;
+  curPos[dragState.id]={x:Math.max(0,dragState.origX+dx),y:Math.max(0,dragState.origY+dy)};
+  dragState.card.style.left=curPos[dragState.id].x+'px';
+  dragState.card.style.top=curPos[dragState.id].y+'px';
+  redrawOverlay();
+}
+function onDragEnd(e){
+  if(!dragState)return;
+  dragState.card.classList.remove('dragging');
+  dragState.card.removeEventListener('pointermove',onDragMove);
+  dragState.card.removeEventListener('pointerup',onDragEnd);
+  dragState=null;
+  savePos();
+}
+
+function resetLayout(){clearSaved();curPos={};render();}
+
+function fitToScreen(){
+  const canvas=document.getElementById('canvas');
+  const legendH=document.querySelector('.lg')?.offsetHeight||0;
+  const headerH=document.querySelector('.hd')?.offsetHeight||0;
+  const availW=window.innerWidth-20,availH=window.innerHeight-headerH-legendH-20;
+  const cw=canvas.offsetWidth,ch=canvas.offsetHeight;
+  if(cw<=0||ch<=0)return;
+  const scale=Math.max(Math.min(availW/cw,availH/ch,1),0.35);
+  if(scale<1){canvas.style.transform=`scale(${scale})`;canvas.style.marginBottom=-(ch*(1-scale))+'px';}
+  else{canvas.style.transform='';canvas.style.marginBottom='';}
+}
+window.addEventListener('resize',fitToScreen);
+
+function sw(m,el){
+  document.body.className=m==='t'?'tech':m==='m'?'md':'';
+  document.querySelectorAll('.tg button').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  if(m==='m')renderMarkdown();else render();
+}
+
+function renderMarkdown(){
+  const mdWrap=document.getElementById('mdWrap');
+  let md=`# ${title}\n\n${version}\n\n`;
+  Object.keys(GROUPS).forEach(gk=>{
+    const gi=GROUPS[gk],ents=ENTITIES.filter(e=>e.group===gk);
+    if(!ents.length)return;
+    md+=`## ${gi.label}\n\n`;
+    ents.forEach(e=>{
+      md+=`### ${e.name} \`${e.table}\`\n\n| 列名 | 类型 | 约束 | 说明 |\n|------|------|------|------|\n`;
+      e.fields.forEach(f=>{if(f.col)md+=`| ${f.col} | ${f.t||''} | ${f.constraint||''} | ${f.desc||f.n} |\n`;});
+      if(e.techNote)md+=`\n> ${e.techNote}\n`;
+      md+='\n';
+    });
+  });
+  md+='## 关系\n\n| 从 | 到 | 类型 | 说明 |\n|----|-----|------|------|\n';
+  RELATIONS.forEach(r=>{
+    const fn=ENTITIES.find(e=>e.id===r.from)?.name||r.from;
+    const tn=ENTITIES.find(e=>e.id===r.to)?.name||r.to;
+    md+=`| ${fn} | ${tn} | ${r.type} | ${r.label} |\n`;
+  });
+  mdWrap.innerHTML=`<div class="md-actions"><button onclick="copyMd()">复制 Markdown</button></div><pre id="mdContent">${md.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>`;
+}
+function copyMd(){
+  const pre=document.getElementById('mdContent');
+  navigator.clipboard.writeText(pre.textContent).then(()=>{
+    const btn=document.querySelector('.md-actions button');
+    btn.textContent='已复制';setTimeout(()=>btn.textContent='复制 Markdown',1500);
+  });
+}
+
+renderHeader();renderLegend();render();
+</script>
+</body>
+</html>
