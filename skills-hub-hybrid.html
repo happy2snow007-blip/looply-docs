@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Looply Skills Hub Hybrid - 团队说明 + 操作明细</title>
+<style>
+  #auth-wall {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: #f5f7fa; z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #auth-wall.hidden { display: none; }
+  .auth-box {
+    background: #fff; border-radius: 16px; padding: 40px 36px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.1); text-align: center; width: 360px;
+  }
+  .auth-box h2 { font-size: 20px; color: #1e1e2e; margin-bottom: 8px; }
+  .auth-box p { font-size: 13px; color: #888; margin-bottom: 24px; }
+  .auth-box input {
+    width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px;
+    font-size: 14px; outline: none; transition: border 0.2s;
+  }
+  .auth-box input:focus { border-color: #6366f1; }
+  .auth-box .auth-btn {
+    width: 100%; margin-top: 16px; padding: 10px; border: none; border-radius: 8px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff;
+    font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.2s;
+  }
+  .auth-box .auth-btn:hover { opacity: 0.9; }
+  .auth-box .auth-err { color: #ef4444; font-size: 12px; margin-top: 10px; display: none; }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(180deg, #f5f7fa 0%, #eef2ff 38%, #f8fafc 100%);
+    color: #1f2937; line-height: 1.6;
+  }
+  .hero {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff; padding: 52px 20px 82px; text-align: center;
+  }
+  .hero h1 { font-size: 34px; font-weight: 700; letter-spacing: 0.2px; }
+  .hero p { margin-top: 12px; font-size: 15px; opacity: 0.9; }
+  .hero-meta {
+    margin-top: 18px; display: inline-flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+  }
+  .hero-pill {
+    padding: 6px 12px; border-radius: 999px; font-size: 12px;
+    background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.16);
+  }
+
+  .container { max-width: 1240px; margin: -34px auto 40px; padding: 0 20px; }
+  .panel {
+    background: rgba(255,255,255,0.92); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.7); border-radius: 20px;
+    box-shadow: 0 18px 50px rgba(99,102,241,0.12), 0 4px 14px rgba(15,23,42,0.05);
+    margin-bottom: 20px;
+  }
+  .panel-head {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+    padding: 24px 24px 0; flex-wrap: wrap;
+  }
+  .panel-head h2 { font-size: 22px; color: #111827; }
+  .panel-head p { font-size: 13px; color: #6b7280; max-width: 760px; }
+
+  .operator-band { background: linear-gradient(180deg, rgba(241,245,249,0.96), rgba(255,255,255,0.98)); }
+
+  .filters { padding: 20px 24px 0; }  .filters-grid { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 14px; align-items: end; }
+  .field-search { min-width: 0; }
+  .field label { display: block; font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 6px; }
+  .field input, .field select {
+    width: 100%; padding: 11px 12px; border: 1px solid #dbe1ea; border-radius: 12px;
+    font-size: 14px; background: #fff; color: #111827; outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .field input:focus, .field select:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
+  .filter-hint { padding: 10px 24px 18px; font-size: 12px; color: #6b7280; }
+
+  .table-wrap { padding: 4px 24px 28px; overflow-x: visible; }
+  table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+  thead th {
+    position: sticky; top: 0; z-index: 5; background: #111827; color: #fff;
+    font-size: 12px; text-align: left; padding: 15px 14px; white-space: normal;
+    line-height: 1.45; letter-spacing: 0.2px; border-bottom: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 8px 20px rgba(15,23,42,0.16);
+  }
+  thead th:first-child { border-top-left-radius: 14px; }
+  thead th:last-child { border-top-right-radius: 14px; }
+  tbody td {
+    font-size: 13px; color: #374151; padding: 15px 14px 16px; vertical-align: top;
+    border-bottom: 1px solid #e5e7eb; background: rgba(255,255,255,0.96);
+    line-height: 1.7; white-space: normal; word-break: break-word; overflow-wrap: anywhere;
+  }
+  tbody tr:nth-child(even) td { background: #f8fafc; }
+  tbody tr:hover td { background: #eef2ff; }
+  thead th:nth-child(1), .relation-cell { width: 12%; }
+  thead th:nth-child(2), .name-cell { width: 28%; }
+  thead th:nth-child(3) { width: 24%; }
+  thead th:nth-child(4) { width: 18%; }
+  thead th:nth-child(5) { width: 18%; }
+  .name-cell strong { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; line-height: 1.35; color: #0f172a; }
+  .skill-star { color: #f59e0b; font-size: 13px; line-height: 1; flex: 0 0 auto; }
+  .name-meta { display: grid; gap: 6px; margin-top: 7px; }
+  .trigger-main { display: block; color: #475569; font-size: 12px; line-height: 1.55; }
+  .trigger-sub { display: block; color: #64748b; font-size: 12px; line-height: 1.6; }
+  .status-note { display: grid; gap: 2px; margin-top: 2px; }
+  .status-note span { display: block; color: #7c3aed; font-size: 11px; line-height: 1.5; }
+  .cmd { display: inline-block; justify-self: start; font-family: "SF Mono", Monaco, monospace; font-size: 10px; color: #6366f1; background: rgba(99,102,241,0.09); padding: 2px 7px; border-radius: 999px; max-width: 100%; word-break: break-all; opacity: 0.82; }
+  .path { font-family: "SF Mono", Monaco, monospace; word-break: break-all; color: #475569; }
+  .cell-lines { display: grid; gap: 8px; min-width: 0; }
+  .cell-lines div { line-height: 1.66; }
+  .cell-lines .label { font-weight: 700; color: #111827; }
+  .filter-status { padding: 0 24px 18px; font-size: 12px; color: #64748b; }
+  .filter-status strong { color: #334155; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 999px; margin-bottom: 4px; }
+  .tag-main { background: #dcfce7; color: #166534; }
+  .tag-support { background: #f3e8ff; color: #7e22ce; }
+
+  .footer { text-align: center; padding: 28px 20px; font-size: 12px; color: #94a3b8; }
+
+  @media (max-width: 1024px) {
+    .filters-grid { grid-template-columns: 1fr; }
+    thead th:nth-child(1), .relation-cell { width: 13%; }
+    thead th:nth-child(2), .name-cell { width: 29%; }
+    thead th:nth-child(3) { width: 22%; }
+    thead th:nth-child(4) { width: 18%; }
+    thead th:nth-child(5) { width: 18%; }
+  }
+  @media (max-width: 640px) {
+    .hero h1 { font-size: 28px; }
+    .container { margin-top: -22px; }
+    .table-wrap { padding: 2px 16px 22px; }
+    thead th, tbody td { padding-left: 10px; padding-right: 10px; }
+    .cmd { font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+<div id="auth-wall">
+  <div class="auth-box">
+    <h2>Looply 文档中心</h2>
+    <p>内部文档，请输入访问密码</p>
+    <input type="password" id="auth-pwd" placeholder="请输入密码">
+    <button class="auth-btn" id="auth-btn">进入</button>
+    <div class="auth-err" id="auth-err">密码错误，请重试</div>
+  </div>
+</div>
+
+<script>
+function checkPwd(){
+  var pwd=document.getElementById('auth-pwd').value;
+  if(pwd==='looply'){
+    document.getElementById('auth-wall').classList.add('hidden');
+    sessionStorage.setItem('looply_auth','1');
+  }else{
+    document.getElementById('auth-err').style.display='block';
+    document.getElementById('auth-pwd').value='';
+    document.getElementById('auth-pwd').focus();
+  }
+}
+if(sessionStorage.getItem('looply_auth')==='1'){
+  document.getElementById('auth-wall').classList.add('hidden');
+}
+document.getElementById('auth-btn').addEventListener('click', checkPwd);
+document.getElementById('auth-pwd').addEventListener('keydown', function(event){
+  if(event.key==='Enter') checkPwd();
+});
+document.getElementById('auth-pwd').addEventListener('input', function(){
+  document.getElementById('auth-err').style.display='none';
+});
+</script>
+
+<div class="hero">
+  <h1>Looply PM Skills Center</h1>
+  <div class="hero-meta">
+    <div class="hero-pill">当前视图：全部 Skill 明细表</div>
+    <div class="hero-pill" id="resultSummary" aria-live="polite"><span id="visibleCount">0</span> 个当前结果</div>
+  </div>
+</div>
+
+<div class="container">
+  <section id="operational-table" class="panel operator-band">
+    <div class="panel-head">
+      <div>
+        <h2>全部 Skill 明细</h2>
+      </div>
+    </div>
+    <div class="filters">
+      <div class="filters-grid">
+        <div class="field">
+          <label for="categoryFilter">分类筛选</label>
+          <select id="categoryFilter">
+            <option value="all">全部分类</option>
+          </select>
+        </div>
+        <div class="field field-search">
+          <label for="searchInput">文本搜索</label>
+          <input id="searchInput" type="text" placeholder="搜索 skill 名称 / 指令 / 使用场景 / 工作方法 / 产出内容 / 沉淀规范">
+        </div>
+      </div>
+    </div>
+    <div class="filter-hint">所有路径统一展示到对应 skill 的 SKILL.md 文件（格式如 ~/.claude/skills/admin-prototype/SKILL.md）。页面使用与 index.html 一致的密码墙行为，且不改动任何其他导航页面。</div>
+    <div class="filter-status" id="filterStatus">当前分类：全部分类｜当前关键词：未输入</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>PM Workflow Relation</th>
+            <th>Skill Name</th>
+            <th>工作方法</th>
+            <th>产出内容</th>
+            <th>沉淀规范</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<div class="footer">Looply © 2026 · Hybrid skills hub · 内部使用</div>
+
+<script>
+const skills = [
+  {
+    "name": "acceptance-testing",
+    "title": "验收测试",
+    "path": "~/.claude/skills/acceptance-testing/SKILL.md",
+    "command": "/acceptance-testing",
+    "category": "验收交付",
+    "trigger": "开发提测后，需要按真实用户场景生成验收 checklist 并开展产品验收时使用。",
+    "outputs": "场景化验收 checklist、验收问题反馈单。",
+    "pmRelation": "阶段5 产品验收",
+    "value": "把验收从按功能点罗列改为按用户路径走查，提升覆盖度并减少漏测。",
+    "workMethod": [
+      "从 PRD + 设计稿提取高频用户路径，生成场景化验收 checklist",
+      "逐场景走查，记录问题并分级反馈开发"
+    ],
+    "deliverables": [
+      "场景化验收 checklist",
+      "验收问题反馈单"
+    ],
+    "knowledgeAssets": [
+      "产品验收 skill｜~/.claude/skills/acceptance-testing/SKILL.md"
+    ]
+  },
+  {
+    "name": "admin-prototype",
+    "title": "后台原型",
+    "path": "~/.claude/skills/admin-prototype/SKILL.md",
+    "command": "/admin-prototype",
+    "category": "设计生成",
+    "trigger": "需要为后台管理端快速生成或修改 HTML 原型时使用。",
+    "outputs": "后台原型页面、原型生成或维护脚本。",
+    "pmRelation": "阶段3 需求设计",
+    "value": "统一后台原型风格、结构和维护方式，避免从旧稿零散复制。",
+    "workMethod": [
+      "管理后台模块进入原型阶段时统一使用 skill，不再从旧 HTML 零散复制",
+      "统一复用 logo 资源与后台 UI 规范，保证 Header、菜单、按钮、表格、KPI、Tab 等风格一致",
+      "页面少时直接套用 CSS/HTML 骨架；页面多时复用通用生成模板批量出单文件原型",
+      "功能删除或裁剪时统一使用维护脚本分析与删除，避免手工误删结构"
+    ],
+    "deliverables": [
+      "后台原型 .html（单文件）",
+      "原型生成脚本 .py（按需）",
+      "原型维护脚本 .py / 配置（按需）"
+    ],
+    "knowledgeAssets": [
+      "后台原型 skill｜~/.claude/skills/admin-prototype/SKILL.md",
+      "后台 UI 规范｜memory/looply-admin-ui-spec.md",
+      "静态 CSS 模板｜~/.claude/skills/admin-prototype/admin-prototype-css.md",
+      "通用生成模板｜~/.claude/skills/admin-prototype/gen_prototype_template.py",
+      "统一维护脚本｜~/.claude/skills/admin-prototype/prototype_maintain.py",
+      "品牌 logo 资源｜~/.claude/skills/admin-prototype/logo-new.png"
+    ]
+  },
+  {
+    "name": "competitor-analysis",
+    "title": "竞品分析",
+    "path": "~/.claude/skills/competitor-analysis/SKILL.md",
+    "command": "/competitor-analysis",
+    "category": "调研分析",
+    "trigger": "不是完整启动新模块，只想单独补做某个功能点或专题的竞品分析时使用。",
+    "outputs": "竞品分析结论、可借鉴点整理。",
+    "pmRelation": "阶段1 调研",
+    "value": "帮助产品决策建立外部参照，避免闭门造车。",
+    "workMethod": [
+      "针对单个功能点单独做竞品专题分析，不跑完整模块启动包",
+      "聚焦功能覆盖、UI 交互、差异化、用户评价和可借鉴点"
+    ],
+    "deliverables": [
+      "竞品专题分析文档 .md",
+      "功能对比结论 .md",
+      "可借鉴点清单 .md"
+    ],
+    "knowledgeAssets": [
+      "竞品分析 skill｜~/.claude/skills/competitor-analysis/SKILL.md"
+    ]
+  },
+  {
+    "name": "compliance-check",
+    "title": "合规检查",
+    "path": "~/.claude/skills/compliance-check/SKILL.md",
+    "command": "/compliance-check",
+    "category": "调研分析",
+    "trigger": "不是完整启动新模块，只想快速补查某个功能、业务动作或流程是否合规时使用。",
+    "outputs": "合规检查结论、风险提示与处理建议。",
+    "pmRelation": "阶段1 调研",
+    "value": "尽早暴露红线与前置依赖，减少后期返工。",
+    "workMethod": [
+      "针对单个功能、业务动作或流程做合规快查，不跑完整模块启动包",
+      "按联邦 / 州级 / 平台政策 / 行业惯例梳理风险点"
+    ],
+    "deliverables": [
+      "合规快查结论 .md",
+      "法规要点汇总 .md",
+      "风险提示与建议 .md"
+    ],
+    "knowledgeAssets": [
+      "合规检查 skill｜~/.claude/skills/compliance-check/SKILL.md"
+    ]
+  },
+  {
+    "name": "delivery-diff-summary",
+    "title": "交付差异汇总",
+    "path": "~/.claude/skills/delivery-diff-summary/SKILL.md",
+    "command": "/delivery-diff-summary",
+    "category": "验收交付",
+    "trigger": "准备给开发交付新版本时，需要基于实际文件生成版本差异汇总时使用。",
+    "outputs": "交付版本差异说明、开发需关注的变更清单。",
+    "pmRelation": "交付收口",
+    "value": "让开发快速理解本次交付边界，减少口头补充解释。",
+    "statusNote": [
+      "已并入需求迭代版本管理",
+      "不再作为推荐主入口"
+    ],
+    "workMethod": [
+      "第 1 步：读取上一版本交付包实际文件，明确基线（原型页面数、PRD 章节、功能范围）",
+      "第 2 步：统计本次版本实际内容",
+      "第 3 步：基于实际文件对比分析（删除/新增功能，不用中间迭代版本数据）",
+      "第 4 步：生成核心差异汇总文档（版本对比、删除功能、新增功能、PRD 更新、开发关注重点、FAQ）",
+      "第 5 步：保存到交付包文件夹",
+      "核心原则：基于实际交付文件对比，不基于假设、记忆或中间迭代版本",
+      "核心原则：只有上一版包含、本次删除的才算删除功能",
+      "核心原则：列出所有业务功能模块，不只是交互细节",
+      "核心原则：交付包命名统一为 交付开发 V{版本号}-{日期}（V1.1 起）"
+    ],
+    "deliverables": [
+      "V{上一版本}-V{本次版本}-核心差异汇总.md"
+    ],
+    "knowledgeAssets": [
+      "交付差异汇总 skill｜~/.claude/skills/delivery-diff-summary/SKILL.md"
+    ]
+  },
+  {
+    "name": "req-versioning",
+    "title": "需求迭代版本管理",
+    "path": "~/.claude/skills/req-versioning/SKILL.md",
+    "command": "/req-versioning",
+    "category": "文档产出",
+    "trigger": "修改产品文件需要持续记录版本演进，或准备交付开发需要统一收口版本差异时优先使用。",
+    "outputs": "迭代版本日志、交付差异汇总、开发关注重点。",
+    "pmRelation": "交付收口",
+    "value": "统一承接版本持续记录与交付收口，减少在多个旧入口之间来回判断。",
+    "workMethod": [
+      "模式 A：修改 PRD、原型、架构图、ER 图、流程图后，持续记录进行中版本",
+      "模式 B：准备交付开发时，基于前后交付文件 + 当前版本日志生成最终差异汇总",
+      "统一串联过程留痕、成熟度管理、交付边界确认与开发关注重点"
+    ],
+    "deliverables": [
+      "looply-{模块名}-变更日志.md",
+      "V{上一版本}-V{本次版本}-核心差异汇总.md"
+    ],
+    "knowledgeAssets": [
+      "需求迭代版本管理 skill｜~/.claude/skills/req-versioning/SKILL.md"
+    ]
+  },
+  {
+    "name": "dev-feedback",
+    "title": "开发反馈处理",
+    "path": "~/.claude/skills/dev-feedback/SKILL.md",
+    "command": "/dev-feedback",
+    "category": "评审协同",
+    "trigger": "收到开发问题清单、需求疑问或实现反馈，需要统一处理时使用。",
+    "outputs": "开发问题回复、同步修订后的需求文档。",
+    "pmRelation": "阶段4 评审",
+    "value": "把开发反馈处理流程标准化，确保问题闭环且文档同步。",
+    "workMethod": [
+      "问题确认逐条处理，区分需求澄清 / 设计变更 / 技术建议",
+      "同步修改 PRD + 设计稿，保持两边一致"
+    ],
+    "deliverables": [
+      "问题确认处理记录",
+      "给开发的回复草稿",
+      "修订后的 PRD / 设计稿 / 流程图"
+    ],
+    "knowledgeAssets": [
+      "问题确认 skill｜~/.claude/skills/dev-feedback/SKILL.md"
+    ]
+  },
+  {
+    "name": "er-diagram-generation",
+    "title": "实体关系图生成",
+    "path": "~/.claude/skills/er-diagram-generation/SKILL.md",
+    "command": "/er-diagram-generation",
+    "category": "设计生成",
+    "trigger": "需要设计、修改或评审实体关系图、表结构和字段定义时使用。",
+    "outputs": "实体关系图、ER 图生成脚本或结构化定义。",
+    "pmRelation": "阶段2 产品架构",
+    "value": "把产品实体设计和技术字段设计放在同一份可视化产物里。",
+    "workMethod": [
+      "从架构图提取实体，逐实体定义字段、类型、约束、枚举",
+      "HTML 双视图：产品视图（同色聚集 + 中文 + 连线）+ 技术视图（字段类型 / 约束 / 枚举 / 中间表）"
+    ],
+    "deliverables": [
+      "实体关系图.html（双视图）或 实体关系图.svg",
+      "ER 图生成脚本 .py（按所选方案）"
+    ],
+    "knowledgeAssets": [
+      "ER图 skill｜~/.claude/skills/er-diagram-generation/SKILL.md"
+    ]
+  },
+  {
+    "name": "module-kickoff",
+    "title": "模块启动",
+    "path": "~/.claude/skills/module-kickoff/SKILL.md",
+    "command": "/module-kickoff",
+    "category": "调研分析",
+    "trigger": "启动一个新业务模块，想一次性完整跑完阶段1调研时优先使用；会串起竞品、合规、选型和优先级四类分析。",
+    "outputs": "竞品对标、竞品UI分析、合规扫描、服务商选型、需求优先级、模块启动报告。",
+    "pmRelation": "阶段1 调研",
+    "value": "把新模块 0-1 调研拆成固定五步，形成稳定启动包。",
+    "workMethod": [
+      "竞品对标：选 5-6 家竞品，5 维度扫描（功能覆盖 / UI交互 / 差异化 / 用户评价 / looply启示）",
+      "合规扫描：联邦→州级→平台政策→行业惯例，区分\"必须遵守\"和\"建议遵守\"",
+      "服务商选型：识别外部依赖，每个 2-3 候选，功能/价格/接入复杂度/市场适配度对比",
+      "需求优先级：汇总功能点，RICE 框架评估，划分 MVP / V2 / V3",
+      "模块启动报告：前 4 步关键结论浓缩成一页纸"
+    ],
+    "deliverables": [
+      "竞品对标.md",
+      "竞品UI分析.md",
+      "合规扫描.md",
+      "服务商选型.md",
+      "需求优先级.md",
+      "模块启动报告.md"
+    ],
+    "knowledgeAssets": [
+      "模块启动包 skill｜~/.claude/skills/module-kickoff/SKILL.md"
+    ]
+  },
+  {
+    "name": "prd-review-simulation",
+    "title": "PRD 评审模拟",
+    "path": "~/.claude/skills/prd-review-simulation/SKILL.md",
+    "command": "/prd-review-simulation",
+    "category": "评审协同",
+    "trigger": "PRD 写完后，正式评审前想先模拟开发/测试视角 review 时使用。",
+    "outputs": "评审问题清单、修订建议。",
+    "pmRelation": "阶段4 评审",
+    "value": "提前暴露高风险问题，降低正式评审返工。",
+    "workMethod": [
+      "模拟开发 / 测试多角色视角审查 PRD，问题按 P0-P3 分级",
+      "修订 PRD 后再跑一轮验证，直到无 P0/P1"
+    ],
+    "deliverables": [
+      "模拟评审问题清单（P0-P3 分级）",
+      "PRD 修订稿"
+    ],
+    "knowledgeAssets": [
+      "评审模拟 skill｜~/.claude/skills/prd-review-simulation/SKILL.md"
+    ]
+  },
+  {
+    "name": "prd-writing",
+    "title": "PRD 撰写",
+    "path": "~/.claude/skills/prd-writing/SKILL.md",
+    "command": "/prd-writing",
+    "category": "文档产出",
+    "trigger": "需要撰写、修改或审查任意模块 PRD 时使用。",
+    "outputs": "可交付的 PRD 文档。",
+    "pmRelation": "阶段3 需求设计",
+    "value": "把 PRD 写作流程固定化，确保跨输入源对齐和交付完整。",
+    "workMethod": [
+      "动手前交叉对齐所有输入源（流程图 / 设计稿 / ER图 / 架构图），列出覆盖差异",
+      "按页面/功能逐章撰写，每章关联 PC + H5 设计稿",
+      "写完后路径完整性检查 + 设计稿交叉校验"
+    ],
+    "deliverables": [
+      "PRD .docx（带目录）",
+      "PRD .md（在线阅读版）"
+    ],
+    "knowledgeAssets": [
+      "PRD 写作 skill｜~/.claude/skills/prd-writing/SKILL.md",
+      "PRD 写作规范｜memory/MEMORY.md #PRD写作规范"
+    ]
+  },
+  {
+    "name": "priority-assessment",
+    "title": "优先级评估",
+    "path": "~/.claude/skills/priority-assessment/SKILL.md",
+    "command": "/priority-assessment",
+    "category": "调研分析",
+    "trigger": "不是完整启动新模块，功能清单已基本明确，只想单独补做优先级排序和版本范围划分时使用。",
+    "outputs": "需求优先级结论、版本范围建议。",
+    "pmRelation": "阶段1 调研",
+    "value": "帮助 0-1 阶段聚焦首版范围，避免功能失控。",
+    "workMethod": [
+      "功能清单基本明确后，单独做需求优先级评估",
+      "使用 RICE 框架评分，并划分 MVP / V2 / V3 范围"
+    ],
+    "deliverables": [
+      "需求优先级文档 .md",
+      "RICE 评分结果 .md",
+      "版本范围建议 .md"
+    ],
+    "knowledgeAssets": [
+      "优先级评估 skill｜~/.claude/skills/priority-assessment/SKILL.md"
+    ]
+  },
+  {
+    "name": "product-architecture-diagram",
+    "title": "产品架构图",
+    "path": "~/.claude/skills/product-architecture-diagram/SKILL.md",
+    "command": "/product-architecture-diagram",
+    "category": "设计生成",
+    "trigger": "需要设计、修改或评审产品架构图、模块边界和能力分层时使用。",
+    "outputs": "产品架构图 SVG、架构图生成脚本。",
+    "pmRelation": "阶段2 产品架构",
+    "value": "统一模块边界表达方式，方便产品和技术共用一份结构化底稿。",
+    "workMethod": [
+      "读调研产出，定义模块边界（用户层 / 核心能力 / 外围系统）",
+      "Python 数据驱动生成 SVG，迭代只改数据不碰坐标"
+    ],
+    "deliverables": [
+      "产品架构图.svg（最终图）",
+      "架构图生成脚本 .py"
+    ],
+    "knowledgeAssets": [
+      "架构图 skill｜~/.claude/skills/product-architecture-diagram/SKILL.md",
+      "架构图绘制方法｜memory/product-architecture-diagram.md"
+    ]
+  },
+  {
+    "name": "swimlane-diagram-generation",
+    "title": "泳道图生成",
+    "path": "~/.claude/skills/swimlane-diagram-generation/SKILL.md",
+    "command": "/swimlane-diagram-generation",
+    "category": "设计生成",
+    "trigger": "需要绘制多角色、多系统参与的系统流程图或泳道图时使用。",
+    "outputs": "系统流程图、泳道图生成脚本。",
+    "pmRelation": "阶段3 需求设计",
+    "value": "把复杂流程拆到泳道里统一表达，方便后续 PRD 和 UI 对齐。",
+    "workMethod": [
+      "按用户入口划分段落，每段包含完整技术链路",
+      "engine.py 数据驱动：定义泳道 + 节点序列，自动计算坐标生成 SVG"
+    ],
+    "deliverables": [
+      "系统流程图.svg（泳道图）",
+      "泳道图生成脚本 .py"
+    ],
+    "knowledgeAssets": [
+      "泳道图 skill｜~/.claude/skills/swimlane-diagram-generation/SKILL.md"
+    ]
+  },
+  {
+    "name": "ui-design-workflow",
+    "title": "UI 设计工作流",
+    "path": "~/.claude/skills/ui-design-workflow/SKILL.md",
+    "command": "/ui-design-workflow",
+    "category": "设计生成",
+    "trigger": "需要在 Pencil 中设计页面、组件或对设计稿进行多版本比较时使用。",
+    "outputs": "UI 设计稿、组件库更新结果。",
+    "pmRelation": "阶段3 需求设计",
+    "value": "把 UI 出图前置准备、评估检查和用户确认节点全部标准化。",
+    "workMethod": [
+      "基于流程图逐页面设计，先 PC 后 H5，遵循品牌视觉规范",
+      "引用 looply-design.pen 组件库，新组件提取回组件库（双更新）",
+      "每轮出图后跑评估检查清单，用户确认后定稿"
+    ],
+    "deliverables": [
+      "PC 端 .pen 设计文件",
+      "H5 / APP 端 .pen 设计文件",
+      "组件库文件更新（looply-design.pen）"
+    ],
+    "knowledgeAssets": [
+      "UI 出图流程 skill｜~/.claude/skills/ui-design-workflow/SKILL.md",
+      "品牌视觉规范｜memory/looply-brand-design-guide.md",
+      "设计系统（组件库 + Tokens）｜memory/looply-design.md",
+      "品牌上下文｜~/.impeccable.md"
+    ]
+  },
+  {
+    "name": "vendor-comparison",
+    "title": "服务商对比",
+    "path": "~/.claude/skills/vendor-comparison/SKILL.md",
+    "command": "/vendor-comparison",
+    "category": "调研分析",
+    "trigger": "不是完整启动新模块，只想单独比较某类服务商、平台或外部依赖方案时使用。",
+    "outputs": "服务商对比结论、推荐方案。",
+    "pmRelation": "阶段1 调研",
+    "value": "帮助外部依赖决策更透明，减少拍脑袋选型。",
+    "workMethod": [
+      "针对某类服务商、平台或外部依赖方案单独做选型比较",
+      "对比功能、价格、接入复杂度、市场适配度和推荐结论"
+    ],
+    "deliverables": [
+      "服务商对比文档 .md",
+      "优劣势分析 .md",
+      "推荐结论 .md"
+    ],
+    "knowledgeAssets": [
+      "服务商对比 skill｜~/.claude/skills/vendor-comparison/SKILL.md"
+    ]
+  },
+  {
+    "name": "version-management",
+    "title": "版本管理",
+    "path": "~/.claude/skills/version-management/SKILL.md",
+    "command": "/version-management",
+    "category": "文档产出",
+    "trigger": "修改架构图、ER 图、流程图、原型或 PRD 后，需要同步更新变更日志和交付版本时使用。",
+    "outputs": "版本变更记录、交付版本信息。",
+    "pmRelation": "交付收口",
+    "value": "让版本记录从补记忆变成标准动作，保证交付历史可追踪。",
+    "statusNote": [
+      "已并入需求迭代版本管理",
+      "不再作为推荐主入口"
+    ],
+    "workMethod": [
+      "修改产品架构图、实体关系图、系统流程图、原型、PRD 时自动触发",
+      "记录变更到变更日志，管理功能成熟度（✅ 稳定 / 🔄 迭代中 / 📝 草稿）"
+    ],
+    "deliverables": [
+      "looply-{模块名}-变更日志.md",
+      "交付开发 V{版本号}-{日期}/（按需）"
+    ],
+    "knowledgeAssets": [
+      "版本管理 skill｜~/.claude/skills/version-management/SKILL.md"
+    ]
+  }
+];
+const categoryOrder = ['调研分析','设计生成','文档产出','评审协同','验收交付'];
+const workflowStages = [
+  { key: '阶段1 调研', desc: '调研、验证、选型、优先级。' },
+  { key: '阶段2 产品架构', desc: '架构边界和实体设计。' },
+  { key: '阶段3 需求设计', desc: '流程、UI、原型、PRD。' },
+  { key: '阶段4 评审', desc: '评审预演与开发反馈闭环。' },
+  { key: '阶段5 产品验收', desc: '场景化验收。' },
+  { key: '交付收口', desc: '版本差异与交付记录收口。' }
+];
+
+const validWorkflowKeys = workflowStages.map(function(stage) { return stage.key; });
+const workflowOrderMap = workflowStages.reduce(function(map, stage, index) {
+  map[stage.key] = index;
+  return map;
+}, {});
+
+const enrichedSkills = skills.map(function(item) {
+  const isMainflow = validWorkflowKeys.indexOf(item.pmRelation) > -1;
+  return Object.assign({}, item, {
+    relationType: isMainflow ? 'mainflow' : 'supporting'
+  });
+});
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function renderSummary(filtered) {
+  document.getElementById('visibleCount').textContent = filtered.length;
+}
+
+function renderFilterStatus(keyword, category) {
+  const categoryLabel = category === 'all' ? '全部分类' : category;
+  const keywordLabel = keyword ? keyword : '未输入';
+  document.getElementById('filterStatus').innerHTML = '当前分类：<strong>' + escapeHtml(categoryLabel) + '</strong>｜当前关键词：<strong>' + escapeHtml(keywordLabel) + '</strong>';
+}
+
+function renderCategoryOptions() {
+  const categories = Array.from(new Set(enrichedSkills.map(function(item) { return item.category; })));
+  categoryOrder.concat(categories.filter(function(item) { return categoryOrder.indexOf(item) === -1; })).forEach(function(category) {
+    const option = document.createElement('option');
+    option.value = category;
+    option.textContent = category;
+    document.getElementById('categoryFilter').appendChild(option);
+  });
+}
+
+function renderLineList(lines) {
+  if (!Array.isArray(lines) || !lines.length) return '—';
+  return '<div class="cell-lines">' + lines.map(function(line) {
+    return '<div>' + escapeHtml(line) + '</div>';
+  }).join('') + '</div>';
+}
+
+const triggerShortLabels = {
+  'acceptance-testing': '开发提测后使用',
+  'admin-prototype': '做后台原型时使用',
+  'competitor-analysis': '单项竞品分析时使用',
+  'compliance-check': '单项合规检查时使用',
+  'delivery-diff-summary': '交付前差异汇总时使用',
+  'dev-feedback': '处理开发反馈时使用',
+  'req-versioning': '需求版本统一管理时优先使用',
+  'er-diagram-generation': '设计实体关系图时使用',
+  'module-kickoff': '启动新模块时优先使用',
+  'prd-review-simulation': '正式评审前使用',
+  'prd-writing': '写或改 PRD 时使用',
+  'priority-assessment': '单独排优先级时使用',
+  'product-architecture-diagram': '设计产品架构图时使用',
+  'swimlane-diagram-generation': '绘制系统流程图时使用',
+  'ui-design-workflow': '出 UI 设计稿时使用',
+  'vendor-comparison': '单独做服务商对比时使用',
+  'version-management': '更新交付版本时使用'
+};
+
+const coreProductSkills = [
+  'admin-prototype',
+  'product-architecture-diagram',
+  'prd-writing',
+  'swimlane-diagram-generation',
+  'er-diagram-generation',
+  'ui-design-workflow',
+  'req-versioning'
+];
+
+function renderTrigger(item) {
+  if (!item || !item.trigger) return '—';
+  const shortLabel = triggerShortLabels[item.name];
+  const parts = String(item.trigger).split('，');
+  const sub = parts.length > 1 ? parts.slice(1).join('，') : item.trigger;
+  const main = shortLabel || parts[0];
+  if (!sub || sub === main) return '<span class="trigger-main">' + escapeHtml(main) + '</span>';
+  return '<span class="trigger-main">' + escapeHtml(main) + '</span><span class="trigger-sub">' + escapeHtml(sub) + '</span>';
+}
+
+function tableRow(item) {
+  let relationText = item.relationType === 'mainflow' ? item.pmRelation : '辅助能力';
+  if (item.name === 'module-kickoff') {
+    relationText = '阶段1 调研 · 总入口';
+  } else if (['competitor-analysis', 'compliance-check', 'vendor-comparison', 'priority-assessment'].indexOf(item.name) > -1) {
+    relationText = '阶段1 调研 · 专项能力';
+  }
+  const titleText = escapeHtml(item.title || item.name);
+  const star = coreProductSkills.indexOf(item.name) > -1 ? '<span class="skill-star" aria-label="产品核心常用">☆</span>' : '';
+  const statusNote = Array.isArray(item.statusNote) && item.statusNote.length
+    ? '<div class="status-note">' + item.statusNote.map(function(note){ return '<span>' + escapeHtml(note) + '</span>'; }).join('') + '</div>'
+    : '';
+  return `
+    <tr>
+      <td class="relation-cell">${escapeHtml(relationText)}</td>
+      <td class="name-cell"><strong>${titleText}${star}</strong><div class="name-meta"><span class="cmd">${escapeHtml(item.command)}</span>${renderTrigger(item)}${statusNote}</div></td>
+      <td>${renderLineList(item.workMethod)}</td>
+      <td>${renderLineList(item.deliverables)}</td>
+      <td>${renderLineList(item.knowledgeAssets)}</td>
+    </tr>
+  `;
+}
+
+function applyFilters() {
+  const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+  const category = document.getElementById('categoryFilter').value;
+  const filtered = enrichedSkills.filter(function(item) {
+    const text = [item.name, item.title || '', item.command, item.category, item.trigger, item.outputs, item.path, item.pmRelation, item.value].join(' ').toLowerCase();
+    const keywordMatch = !keyword || text.indexOf(keyword) > -1;
+    const categoryMatch = category === 'all' || item.category === category;
+    return keywordMatch && categoryMatch;
+  }).sort(function(a, b) {
+    const aOrder = a.relationType === 'mainflow' ? workflowOrderMap[a.pmRelation] : 999;
+    const bOrder = b.relationType === 'mainflow' ? workflowOrderMap[b.pmRelation] : 999;
+    if (aOrder !== bOrder) return aOrder - bOrder;
+
+    const stage1Priority = {
+      'module-kickoff': 0,
+      'competitor-analysis': 1,
+      'compliance-check': 2,
+      'vendor-comparison': 3,
+      'priority-assessment': 4
+    };
+    const aStage1 = Object.prototype.hasOwnProperty.call(stage1Priority, a.name) ? stage1Priority[a.name] : 999;
+    const bStage1 = Object.prototype.hasOwnProperty.call(stage1Priority, b.name) ? stage1Priority[b.name] : 999;
+    if (aStage1 !== bStage1) return aStage1 - bStage1;
+
+    const deliveryPriority = {
+      'req-versioning': 0,
+      'version-management': 1,
+      'delivery-diff-summary': 2
+    };
+    const aDelivery = Object.prototype.hasOwnProperty.call(deliveryPriority, a.name) ? deliveryPriority[a.name] : 999;
+    const bDelivery = Object.prototype.hasOwnProperty.call(deliveryPriority, b.name) ? deliveryPriority[b.name] : 999;
+    if (aDelivery !== bDelivery) return aDelivery - bDelivery;
+
+    return (a.title || a.name).localeCompare((b.title || b.name), 'zh-CN');
+  });
+  document.getElementById('tableBody').innerHTML = filtered.length
+    ? filtered.map(tableRow).join('')
+    : '<tr><td colspan="5" style="text-align:center;color:#6b7280;padding:18px 12px;">无匹配结果，请调整筛选条件。</td></tr>';
+  renderSummary(filtered);
+  renderFilterStatus(keyword, category);
+}
+
+renderCategoryOptions();
+applyFilters();
+document.getElementById('searchInput').addEventListener('input', applyFilters);
+document.getElementById('categoryFilter').addEventListener('change', applyFilters);
+</script>
+</body>
+</html>
