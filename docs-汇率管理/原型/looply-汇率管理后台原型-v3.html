@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Looply 汇率管理后台原型 v3</title>
+<style>
+/* ══════════════════════════════════════════
+   Looply Admin Prototype — Style A 活力亲和
+   ══════════════════════════════════════════ */
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937;font-size:14px}
+.header{height:60px;background:#FFFFFF;color:#1F2937;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid #E5E7EB}
+.logo{font-size:18px;font-weight:700;letter-spacing:1px;display:flex;align-items:center}
+.header-divider{width:1px;height:20px;background:#E5E7EB;margin:0 16px}
+.system-label{font-size:14px;font-weight:500;color:#6B7280;letter-spacing:0.3px}
+.container{display:flex;height:calc(100vh - 60px)}
+.sidebar{width:220px;background:#FFFFFF;overflow:auto;flex-shrink:0;border-right:none;box-shadow:3px 0 12px rgba(0,0,0,0.06);padding:8px 0}
+.main{flex:1;overflow:auto;padding:28px}
+.menu-solo{display:flex;align-items:center;padding:12px 16px;color:#374151;cursor:pointer;font-size:14px;font-weight:500;transition:background .15s;border-left:3px solid transparent;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-solo:hover{background:rgba(0,0,0,.04)}
+.menu-solo:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-solo.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.12),transparent);font-weight:600;border-left-color:#7C3AED}
+.menu-solo .mi{width:18px;height:18px;margin-right:10px;flex-shrink:0;opacity:.55}
+.menu-solo.active .mi{opacity:1}
+.menu-divider{height:1px;background:#F3F4F6;margin:8px 16px}
+.menu-group{margin-bottom:0}
+.menu-parent{display:flex;align-items:center;padding:12px 16px;color:#374151;cursor:pointer;font-size:14px;font-weight:500;transition:background .15s;user-select:none;border-left:3px solid transparent;outline:none;overflow:hidden}
+.menu-parent:hover{background:rgba(0,0,0,.04)}
+.menu-parent:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-parent .mi{width:18px;height:18px;margin-right:10px;flex-shrink:0;opacity:.55}
+.menu-parent .arrow{margin-left:auto;width:16px;height:16px;transition:transform .2s;opacity:.4;flex-shrink:0}
+.menu-group.open>.menu-parent .arrow{transform:rotate(90deg)}
+.menu-parent.active-parent{color:#7C3AED;font-weight:600;border-left-color:#7C3AED}
+.menu-parent.active-parent .mi{opacity:1}
+.menu-children{max-height:0;overflow:hidden;transition:max-height .3s cubic-bezier(.4,0,.2,1)}
+.menu-group.open>.menu-children{max-height:none}
+.menu-child{display:flex;align-items:center;padding:10px 16px 10px 44px;color:#4B5563;cursor:pointer;font-size:13px;transition:all .15s;border-left:3px solid transparent;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-child:hover{color:#374151;background:rgba(0,0,0,.03)}
+.menu-child:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-child.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.1),transparent);border-left-color:#7C3AED;font-weight:600}
+.menu-child .ci{width:15px;height:15px;margin-right:8px;flex-shrink:0;opacity:.45}
+.menu-child.active .ci{opacity:.8}
+@media(prefers-reduced-motion:reduce){.menu-children,.menu-parent .arrow,.menu-solo,.menu-child,.menu-parent{transition:none !important}}
+.page{display:none}.page.active{display:block}
+.card{background:#fff;border-radius:16px;box-shadow:0 10px 24px rgba(16,24,40,.06);padding:28px}
+.page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}
+.page-title{font-size:20px;font-weight:700;margin-bottom:6px}
+.page-desc{color:#6B7280;font-size:13px;max-width:760px}
+.head-actions{display:flex;gap:10px;flex-wrap:wrap}
+.toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.toolbar .input,.toolbar select{height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff}
+.btn{height:34px;padding:0 14px;border:1px solid #D1D5DB;background:#fff;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:14px}
+.btn.primary{background:#7C3AED;border-color:#7C3AED;color:#fff}
+.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.summary .item{background:linear-gradient(180deg,#FEFCFF 0%,#F3EEFF 100%);border:1px solid #DDD6FE;border-radius:14px;padding:14px 16px}
+.summary .num{font-size:24px;font-weight:700;color:#7C3AED;margin-bottom:4px}
+.summary .label-sm{font-size:12px;color:#6B7280}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi .item{background:#FAF5FF;border:1px solid #DDD6FE;border-radius:14px;padding:14px}
+.kpi .num{font-size:24px;font-weight:700;margin-bottom:4px;color:#7C3AED}
+.muted{color:#6B7280;font-size:12px}
+.table-wrap{border:1px solid #E5E7EB;border-radius:14px;overflow:hidden;background:#fff}
+table{width:100%;border-collapse:collapse}
+th{background:#FFFFFF;padding:10px 12px;text-align:left;font-size:12px;color:#6B7280;border-bottom:1px solid #E5E7EB;text-transform:uppercase;letter-spacing:.02em}
+td{padding:11px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;vertical-align:top}
+tr:hover{background:#FAF5FF}
+td .btn{font-size:12px;height:28px;padding:0 10px;margin-right:6px}
+td .btn:last-child{margin-right:0}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;margin-right:4px;border:none}
+.tag.sale{background:#EFF6FF;color:#2563EB}
+.tag.desc{background:#F0FDF4;color:#16A34A}
+.tag.enum{background:#FFFBEB;color:#D97706}
+.tag.req{background:#FEF2F2;color:#DC2626}
+.tag.opt{background:#F3F4F6;color:#6B7280}
+.tag.on{background:#F0FDF4;color:#16A34A}
+.tag.pending{background:#FFFBEB;color:#D97706}
+.tag.off{background:#F3F4F6;color:#6B7280}
+.tag.warn{background:#FFF1F2;color:#E11D48}
+.rail-note{padding:12px 14px;border-radius:10px;background:#F3EEFF;border:1px solid #DDD6FE;color:#6D28D9;font-size:12px;line-height:1.6}
+.form-section{margin-bottom:24px}
+.form-section .section-title{font-size:15px;font-weight:600;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #E5E7EB}
+.form-actions{display:flex;gap:12px;justify-content:flex-end;padding-top:16px;border-top:1px solid #E5E7EB;margin-top:24px}
+.collapsed .collapsible-content{display:none}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(2px)}
+.modal-overlay.active{display:flex}
+.modal{background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.3);width:90%;max-width:560px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column}
+.modal-header{padding:20px 24px;border-bottom:1px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center}
+.modal-title{font-size:18px;font-weight:700;color:#1F2937}
+.modal-close{width:32px;height:32px;border:none;background:transparent;cursor:pointer;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#6B7280}
+.modal-close:hover{background:#F3F4F6}
+.modal-body{padding:24px;overflow-y:auto;flex:1}
+.modal-footer{padding:16px 24px;border-top:1px solid #E5E7EB;display:flex;gap:12px;justify-content:flex-end}
+.form-field{margin-bottom:18px}
+.form-field label{display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:6px}
+.form-field input,.form-field select,.form-field textarea{width:100%;height:36px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;font-size:14px;background:#fff}
+.form-field textarea{height:80px;padding:10px 12px;resize:vertical}
+.form-field input:focus,.form-field select:focus,.form-field textarea:focus{outline:none;border-color:#7C3AED;box-shadow:0 0 0 3px rgba(124,58,237,0.1)}
+.form-field .hint{font-size:12px;color:#6B7280;margin-top:4px}
+.empty-state{display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center}
+.empty-state .empty-icon{width:48px;height:48px;color:#9CA3AF;margin-bottom:16px}
+.empty-state .empty-icon.error{color:#DC2626}
+.empty-state .empty-title{font-size:16px;font-weight:600;color:#1F2937;margin-bottom:8px}
+.empty-state .empty-desc{font-size:13px;color:#6B7280;margin-bottom:24px;max-width:360px}
+.empty-state .btn{margin-top:0}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo"><img src="logo.png" height="28" alt="Looply"></div>
+  <div class="header-divider"></div>
+  <span class="system-label">汇率管理</span>
+</div>
+<div class="container">
+  <nav class="sidebar" role="navigation" aria-label="主导航">
+    <div class="menu-group">
+      <div class="menu-parent" tabindex="0" role="button" aria-expanded="false" aria-controls="menu-exchange-children" onclick="toggleGroup(this)">
+        <svg class="mi" aria-hidden="true" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 14V4"/><path d="M6 14V8"/><path d="M10 14V6"/><path d="M14 14V2"/></svg>
+        <span>汇率管理</span>
+        <svg class="arrow" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 4L10 8L6 12"/></svg>
+      </div>
+      <div class="menu-children" id="menu-exchange-children">
+        <div class="menu-child" tabindex="0" role="button" data-page="exchange-source">
+          <svg class="ci" aria-hidden="true" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="7.5" cy="7.5" r="5.5"/><path d="M4.5 7.5h6"/><path d="M7.5 4.5v6"/></svg>
+          <span>数据源管理</span>
+        </div>
+        <div class="menu-child" tabindex="0" role="button" data-page="spread-rule">
+          <svg class="ci" aria-hidden="true" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 11l3-3 2.5 2.5L13 6"/><line x1="2" y1="13" x2="13" y2="13"/></svg>
+          <span>点差规则</span>
+        </div>
+        <div class="menu-child" tabindex="0" role="button" data-page="published-rate">
+          <svg class="ci" aria-hidden="true" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 10.5h11"/><path d="M3.5 8.5L6 6l2 2 3.5-4"/></svg>
+          <span>已发布汇率</span>
+        </div>
+        <div class="menu-child" tabindex="0" role="button" data-page="rate-snapshot">
+          <svg class="ci" aria-hidden="true" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="7.5" cy="8" r="4.5"/><path d="M7.5 5.8v2.5l1.6 1"/><path d="M5 1.8h5"/></svg>
+          <span>历史快照</span>
+        </div>
+        <div class="menu-child" tabindex="0" role="button" data-page="change-log">
+          <svg class="ci" aria-hidden="true" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="2" width="9" height="11" rx="1.5"/><line x1="5.5" y1="5" x2="9.5" y2="5"/><line x1="5.5" y1="7.5" x2="9.5" y2="7.5"/><line x1="5.5" y1="10" x2="8" y2="10"/></svg>
+          <span>变动日志</span>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <main class="main">
+<!-- PAGE: 数据源管理 -->
+<div class="page" id="page-exchange-source">
+<div class="card">
+  <div class="page-head">
+    <div><div class="page-title">数据源管理</div><div class="page-desc">管理已接入的第三方汇率数据源，配置拉取频率与优先级。主数据源优先使用，备用数据源在主源故障时自动切换。新数据源接入需联系开发团队。</div></div>
+  </div>
+  <div class="kpi">
+    <div class="item"><div class="muted">数据源总数</div><div class="num">2</div></div>
+    <div class="item"><div class="muted">主数据源</div><div class="num">1</div></div>
+    <div class="item"><div class="muted">备用数据源</div><div class="num">1</div></div>
+    <div class="item"><div class="muted">最近成功率</div><div class="num">98.6%</div></div>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>数据源名称</th><th>API 地址</th><th>优先级</th><th>拉取间隔</th><th>最近拉取时间</th><th>拉取状态</th><th>启停状态</th><th style="text-align:center">操作</th></tr></thead>
+    <tbody>
+      <tr><td>Open Exchange Rates</td><td>openexchangerates.org/api</td><td><span class="tag sale">主</span></td><td>3600 秒</td><td>2026-04-28 09:00:03</td><td><span class="tag on">成功</span></td><td><span class="tag on">启用</span></td><td><div style="display:grid;grid-template-columns:64px 88px;gap:8px;align-items:center;justify-content:center"><button class="btn" onclick="openModal('edit-source')" style="width:64px;margin-right:0">编辑</button><button class="btn" onclick="openModal('test-source')" style="width:88px;margin-right:0">测试连接</button></div></td></tr>
+      <tr><td>ExchangeRate-API</td><td>v6.exchangerate-api.com</td><td><span class="tag enum">备</span></td><td>3600 秒</td><td>2026-04-28 09:00:05</td><td><span class="tag on">成功</span></td><td><span class="tag on">启用</span></td><td><div style="display:grid;grid-template-columns:64px 88px;gap:8px;align-items:center;justify-content:center"><button class="btn" onclick="openModal('edit-source')" style="width:64px;margin-right:0">编辑</button><button class="btn" onclick="openModal('test-source')" style="width:88px;margin-right:0">测试连接</button></div></td></tr>
+    </tbody>
+  </table></div>
+  <div class="form-section" style="margin-top:28px">
+    <div class="section-title">全局设置</div>
+    <div style="display:grid;grid-template-columns:200px 1fr;gap:12px 16px;align-items:center">
+      <div style="color:#6B7280;font-size:13px">汇率波动阈值</div>
+      <div style="display:flex;align-items:center;gap:8px"><input type="number" value="5" style="width:80px;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px"><span style="font-size:13px;color:#6B7280">%（当日波动超过此值时触发告警）</span></div>
+      <div style="color:#6B7280;font-size:13px">默认拉取间隔</div>
+      <div style="display:flex;align-items:center;gap:8px"><input type="number" value="3600" style="width:100px;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px"><span style="font-size:13px;color:#6B7280">秒（新数据源的默认值）</span></div>
+    </div>
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid #E5E7EB;display:flex;justify-content:flex-end"><button class="btn primary" onclick="alert('全局设置已保存（原型演示）')">保存设置</button></div>
+  </div>
+  <div class="form-section" style="margin-top:28px">
+    <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="this.parentElement.classList.toggle('collapsed');this.querySelector('.toggle-icon').style.transform=this.parentElement.classList.contains('collapsed')?'rotate(0deg)':'rotate(90deg)'">
+      <span>最近拉取记录（每小时自动拉取）</span>
+      <svg class="toggle-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="transition:transform .2s;transform:rotate(90deg)"><path d="M6 4l4 4-4 4"/></svg>
+    </div>
+    <div class="collapsible-content">
+      <div style="color:#6B7280;font-size:12px;margin-bottom:12px;line-height:1.6">展示最近 24 小时内每小时拉取的原始汇率数据，用于监控市场波动、排查异常告警来源、验证数据源稳定性。表中"原始汇率"为三方数据源返回的原始值，未应用点差规则。</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>拉取时间</th><th>币种对</th><th>数据源</th><th>原始汇率</th><th>拉取状态</th><th>与当前生效汇率差异</th></tr></thead>
+        <tbody>
+          <tr><td>2026-04-28 09:00</td><td>USD → EUR</td><td>Open Exchange Rates</td><td>0.9852</td><td><span class="tag on">成功</span></td><td style="color:#DC2626;font-weight:600">+5.83%</td></tr>
+          <tr><td>2026-04-28 09:00</td><td>USD → GBP</td><td>Open Exchange Rates</td><td>0.7921</td><td><span class="tag on">成功</span></td><td style="color:#6B7280">-0.99%</td></tr>
+          <tr><td>2026-04-28 09:00</td><td>USD → JPY</td><td>Open Exchange Rates</td><td>149.60</td><td><span class="tag on">成功</span></td><td style="color:#D97706;font-weight:600">-5.42%</td></tr>
+          <tr><td>2026-04-28 08:00</td><td>USD → EUR</td><td>Open Exchange Rates</td><td>0.9241</td><td><span class="tag on">成功</span></td><td style="color:#6B7280">-0.73%</td></tr>
+          <tr><td>2026-04-28 08:00</td><td>USD → GBP</td><td>Open Exchange Rates</td><td>0.7918</td><td><span class="tag on">成功</span></td><td style="color:#6B7280">-1.03%</td></tr>
+          <tr><td>2026-04-28 08:00</td><td>USD → JPY</td><td>Open Exchange Rates</td><td>154.10</td><td><span class="tag on">成功</span></td><td style="color:#6B7280">-2.58%</td></tr>
+          <tr><td>2026-04-28 07:00</td><td>USD → EUR</td><td>Open Exchange Rates</td><td>0.9235</td><td><span class="tag on">成功</span></td><td style="color:#6B7280">0.00%</td></tr>
+          <tr><td>2026-04-28 07:00</td><td>USD → GBP</td><td>Open Exchange Rates</td><td>0.7921</td><td><span class="tag on">成功</span></td><td style="color:#6B7280">-0.99%</td></tr>
+        </tbody>
+      </table></div>
+      <div style="margin-top:12px;font-size:12px;color:#6B7280">提示：红色标注表示触发异常告警阈值（±5%），黄色标注表示固定模式币种的市场偏离提示。完整历史记录可通过"导出 CSV"功能获取。</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- PAGE: 点差规则 -->
+<div class="page" id="page-spread-rule">
+<div class="card">
+  <div class="page-head">
+    <div><div class="page-title">点差规则</div><div class="page-desc">配置全局默认点差与单币种覆盖规则。单币种点差优先级高于全局默认。</div></div>
+    <div class="head-actions"><button class="btn primary" onclick="openModal('edit-spread')">+ 新增币种点差</button></div>
+  </div>
+  <div class="rail-note" style="margin-bottom:16px">公式：生效汇率 = 原始汇率 × (1 + 点差比例)&nbsp;&nbsp;|&nbsp;&nbsp;优先级：单币种点差 &gt; 全局默认点差</div>
+  <div class="kpi">
+    <div class="item"><div class="muted">规则总数</div><div class="num">4</div></div>
+    <div class="item"><div class="muted">全局规则</div><div class="num">1</div></div>
+    <div class="item"><div class="muted">单币种规则</div><div class="num">3</div></div>
+    <div class="item"><div class="muted">默认点差</div><div class="num">2.0%</div></div>
+  </div>
+  <div class="toolbar">
+    <input class="input" placeholder="搜索币种..." style="width:160px">
+    <select><option>全部状态</option><option>启用</option><option>停用</option></select>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>规则类型</th><th>适用币种</th><th>点差比例</th><th>状态</th><th>更新时间</th><th style="text-align:center">操作</th></tr></thead>
+    <tbody>
+      <tr><td><span class="tag opt">全局默认</span></td><td>所有币种</td><td>2.0%</td><td><span class="tag on">启用</span></td><td>2026-04-20 10:00</td><td><div style="display:grid;grid-template-columns:64px 64px;gap:8px;align-items:center;justify-content:center"><button class="btn" onclick="openModal('edit-spread')" style="width:64px;margin-right:0">编辑</button><span></span></div></td></tr>
+      <tr><td><span class="tag sale">单币种</span></td><td>EUR</td><td>0.8%</td><td><span class="tag on">启用</span></td><td>2026-04-22 14:30</td><td><div style="display:grid;grid-template-columns:64px 64px;gap:8px;align-items:center;justify-content:center"><button class="btn" onclick="openModal('edit-spread')" style="width:64px;margin-right:0">编辑</button><button class="btn" onclick="confirm('确认停用该点差规则？')&&alert('已停用（原型演示）')" style="width:64px;margin-right:0">停用</button></div></td></tr>
+      <tr><td><span class="tag sale">单币种</span></td><td>GBP</td><td>1.0%</td><td><span class="tag on">启用</span></td><td>2026-04-22 14:32</td><td><div style="display:grid;grid-template-columns:64px 64px;gap:8px;align-items:center;justify-content:center"><button class="btn" onclick="openModal('edit-spread')" style="width:64px;margin-right:0">编辑</button><button class="btn" onclick="confirm('确认停用该点差规则？')&&alert('已停用（原型演示）')" style="width:64px;margin-right:0">停用</button></div></td></tr>
+      <tr><td><span class="tag sale">单币种</span></td><td>JPY</td><td>2.5%</td><td><span class="tag on">启用</span></td><td>2026-04-22 14:35</td><td><div style="display:grid;grid-template-columns:64px 64px;gap:8px;align-items:center;justify-content:center"><button class="btn" onclick="openModal('edit-spread')" style="width:64px;margin-right:0">编辑</button><button class="btn" onclick="confirm('确认停用该点差规则？')&&alert('已停用（原型演示）')" style="width:64px;margin-right:0">停用</button></div></td></tr>
+    </tbody>
+  </table></div>
+</div>
+</div>
+
+<!-- PAGE: 已发布汇率 -->
+<div class="page" id="page-published-rate">
+<div class="card">
+  <div class="page-head">
+    <div><div class="page-title">已发布汇率</div><div class="page-desc">展示当前生效的平台汇率，每日 UTC 00:00 定时发布，支持运营手动提前发布。</div></div>
+    <div class="head-actions"><button class="btn primary" onclick="alert('手动发布全部（原型演示）')">手动发布全部</button><button class="btn" onclick="alert('刷新原始汇率（原型演示）')">刷新原始汇率</button></div>
+  </div>
+  <div class="rail-note" style="margin-bottom:16px">汇率模式：<strong>自动</strong> = 每日定时发布时取最新原始汇率 × (1 + 点差)；<strong>固定</strong> = 使用运营手动设定的值，定时发布跳过该币种，直到手动恢复为自动模式。表中"原始汇率"为最近一次发布时的快照值，非实时数据。</div>
+  <div class="kpi">
+    <div class="item"><div class="muted">生效币种对</div><div class="num">3</div></div>
+    <div class="item"><div class="muted">最近发布时间</div><div class="num" style="font-size:16px">2026-04-28 00:00</div></div>
+    <div class="item"><div class="muted">发布方式</div><div class="num" style="font-size:16px">定时发布</div></div>
+    <div class="item"><div class="muted">异常告警</div><div class="num" style="cursor:pointer;color:#DC2626" onclick="document.getElementById('alert-section').scrollIntoView({behavior:'smooth'})">2</div></div>
+  </div>
+  <div class="toolbar">
+    <input class="input" placeholder="搜索币种对..." style="width:160px">
+    <select><option>全部模式</option><option>自动</option><option>固定</option></select>
+    <select><option>全部状态</option><option>生效</option><option>停用</option></select>
+    <button class="btn">查询</button>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>币种对</th><th>汇率模式</th><th>原始汇率</th><th>点差</th><th>生效汇率</th><th>发布方式</th><th>发布人</th><th>发布时间</th><th>状态</th><th style="text-align:center">操作</th></tr></thead>
+    <tbody>
+      <tr><td>USD → EUR</td><td><span class="tag sale">自动</span></td><td>0.9235</td><td>0.8%</td><td>0.9309</td><td>定时</td><td>系统</td><td>2026-04-28 00:00</td><td><span class="tag on">生效</span></td><td><div style="display:grid;grid-template-columns:80px 64px;gap:8px;align-items:center;justify-content:center"><button class="btn" onclick="openModal('override-rate')" style="width:80px;margin-right:0">设置汇率</button><button class="btn" onclick="openModal('view-history')" style="width:64px;margin-right:0">历史</button></div></td></tr>
+      <tr><td>USD → GBP</td><td><span class="tag sale">自动</span></td><td>0.7921</td><td>1.0%</td><td>0.8000</td><td>定时</td><td>系统</td><td>2026-04-28 00:00</td><td><span class="tag on">生效</span></td><td><div style="display:grid;grid-template-columns:80px 64px;gap:8px;align-items:center;justify-content:center"><button class="btn" onclick="openModal('override-rate')" style="width:80px;margin-right:0">设置汇率</button><button class="btn" onclick="openModal('view-history')" style="width:64px;margin-right:0">历史</button></div></td></tr>
+      <tr><td>USD → JPY</td><td><span class="tag enum">固定</span></td><td>154.32</td><td>-</td><td>158.18</td><td>手动</td><td>Olivia</td><td>2026-04-27 15:12</td><td><span class="tag on">生效</span></td><td><div style="display:grid;grid-template-columns:80px 64px;gap:8px;align-items:center;justify-content:center"><button class="btn" onclick="openModal('override-rate')" style="width:80px;margin-right:0">设置汇率</button><button class="btn" onclick="openModal('view-history')" style="width:64px;margin-right:0">历史</button></div></td></tr>
+    </tbody>
+  </table></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:12px 16px;background:#F9FAFB;border-radius:10px">
+    <div style="font-size:13px;color:#6B7280">共 <strong style="color:#1F2937">3</strong> 条记录，每页显示 <strong style="color:#1F2937">10</strong> 条</div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <button class="btn" disabled style="opacity:0.4;cursor:not-allowed">上一页</button>
+      <div style="display:flex;gap:4px">
+        <button class="btn primary" style="min-width:32px;padding:0 10px">1</button>
+      </div>
+      <button class="btn" disabled style="opacity:0.4;cursor:not-allowed">下一页</button>
+    </div>
+  </div>
+  <div id="alert-section" class="form-section" style="margin-top:28px">
+    <div class="section-title">异常告警</div>
+    <div style="color:#6B7280;font-size:13px;margin-bottom:12px">当最新拉取汇率相比当前生效汇率波动超过阈值（±5%）时，系统暂不自动发布并在此展示告警，由运营人工审核处理。固定模式币种仅告警提示，不会自动覆盖当前生效值。</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+      <div style="padding:10px 14px;border-radius:10px;background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;font-size:12px">当前待处理：<strong>2</strong> 条</div>
+      <div style="padding:10px 14px;border-radius:10px;background:#FFFBEB;border:1px solid #FDE68A;color:#92400E;font-size:12px">高风险波动：<strong>1</strong> 条</div>
+      <div style="padding:10px 14px;border-radius:10px;background:#F9FAFB;border:1px solid #E5E7EB;color:#6B7280;font-size:12px">固定模式偏离提示：<strong>1</strong> 条</div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>触发时间</th><th>币种对</th><th>告警类型</th><th>当前值</th><th>最新值</th><th>偏离幅度</th><th>说明</th><th style="text-align:center">操作</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>2026-04-28 09:02</td>
+          <td>USD → EUR</td>
+          <td><span class="tag warn">待处理</span></td>
+          <td>0.9309</td>
+          <td>0.9852</td>
+          <td style="color:#DC2626;font-weight:600">+5.83%</td>
+          <td>自动模式，超过阈值后暂停自动发布</td>
+          <td><div style="display:grid;grid-template-columns:80px 64px;gap:8px;align-items:center;justify-content:center"><button class="btn primary" onclick="openModal('alert-publish')" style="width:80px;margin-right:0">确认发布</button><button class="btn" onclick="openModal('alert-ignore')" style="width:64px;margin-right:0">忽略</button></div></td>
+        </tr>
+        <tr>
+          <td>2026-04-28 09:05</td>
+          <td>USD → JPY</td>
+          <td><span class="tag pending">固定模式提示</span></td>
+          <td>158.18</td>
+          <td>149.60</td>
+          <td style="color:#D97706;font-weight:600">-5.42%</td>
+          <td>固定模式下市场偏离，需判断是否恢复自动</td>
+          <td><div style="display:grid;grid-template-columns:112px 80px;gap:8px;align-items:center;justify-content:center"><button class="btn" onclick="openModal('override-rate')" style="width:112px;margin-right:0">调整固定汇率</button><button class="btn primary" onclick="openModal('alert-resume-auto')" style="width:80px;margin-right:0">恢复自动</button></div></td>
+        </tr>
+      </tbody>
+    </table></div>
+    <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="font-size:12px;color:#6B7280;line-height:1.7">默认仅展示最近待处理的 10 条告警，超过 10 条时进入"全部告警"弹窗查看，避免主页面过长。</div>
+      <button class="btn" onclick="openModal('all-alerts')">查看全部告警</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- PAGE: 历史快照 -->
+<div class="page" id="page-rate-snapshot">
+<div class="card">
+  <div class="page-head">
+    <div><div class="page-title">历史快照</div><div class="page-desc">记录每次发布时的完整汇率快照，按批次维度展示，支持按日期回溯，用于订单核对与问题排查。如需查看单个币种对的历史趋势，请在"已发布汇率"页面点击对应行的"历史"按钮。</div></div>
+    <div class="head-actions"><button class="btn" onclick="alert('导出 CSV（原型演示）')">导出 CSV</button></div>
+  </div>
+  <div class="toolbar">
+    <input class="input" value="2026-04-01 ~ 2026-04-28" style="width:220px">
+    <select><option>全部币种</option><option>EUR</option><option>GBP</option><option>JPY</option></select>
+    <button class="btn">查询</button>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>快照批次号</th><th>快照日期</th><th>触发方式</th><th>包含币种数</th><th>操作人</th><th style="text-align:center">操作</th></tr></thead>
+    <tbody>
+      <tr><td>SNAP-20260428-0001</td><td>2026-04-28 00:00:01</td><td><span class="tag sale">定时发布</span></td><td>3 个币种（EUR, GBP, JPY）</td><td>系统</td><td><div style="display:flex;justify-content:center"><button class="btn" onclick="openModal('view-snapshot')" style="width:88px;margin-right:0">查看详情</button></div></td></tr>
+      <tr><td>SNAP-20260427-0001</td><td>2026-04-27 10:30:15</td><td><span class="tag opt">手动发布</span></td><td>2 个币种（EUR, GBP）</td><td>Grace</td><td><div style="display:flex;justify-content:center"><button class="btn" onclick="openModal('view-snapshot')" style="width:88px;margin-right:0">查看详情</button></div></td></tr>
+      <tr><td>SNAP-20260426-0001</td><td>2026-04-26 00:00:01</td><td><span class="tag sale">定时发布</span></td><td>4 个币种（EUR, GBP, JPY, CAD）</td><td>系统</td><td><div style="display:flex;justify-content:center"><button class="btn" onclick="openModal('view-snapshot')" style="width:88px;margin-right:0">查看详情</button></div></td></tr>
+      <tr><td>SNAP-20260425-0001</td><td>2026-04-25 00:00:01</td><td><span class="tag sale">定时发布</span></td><td>4 个币种（EUR, GBP, JPY, CAD）</td><td>系统</td><td><div style="display:flex;justify-content:center"><button class="btn" onclick="openModal('view-snapshot')" style="width:88px;margin-right:0">查看详情</button></div></td></tr>
+    </tbody>
+  </table></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:12px 16px;background:#F9FAFB;border-radius:10px">
+    <div style="font-size:13px;color:#6B7280">共 <strong style="color:#1F2937">4</strong> 个批次，每页显示 <strong style="color:#1F2937">20</strong> 条</div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <button class="btn" disabled style="opacity:0.4;cursor:not-allowed">上一页</button>
+      <div style="display:flex;gap:4px">
+        <button class="btn primary" style="min-width:32px;padding:0 10px">1</button>
+      </div>
+      <button class="btn" disabled style="opacity:0.4;cursor:not-allowed">下一页</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- PAGE: 变动日志 -->
+<div class="page" id="page-change-log">
+<div class="card">
+  <div class="page-head">
+    <div><div class="page-title">变动日志</div><div class="page-desc">记录汇率发布、设置固定汇率、回滚、币种停用等关键操作，保留操作人、原因与前后值，满足审计追溯需求。手动发布通过"已发布汇率"页面触发，回滚通过本页面操作列触发。<br><span style="color:#DC2626;font-weight:500">⚠️ 回滚时效：仅对 24 小时内的操作记录开放，超过时效的记录无法回滚。回滚后的汇率将在下次定时发布（每日 UTC 00:00）时被最新市场汇率覆盖。</span></div></div>
+    <div class="head-actions"><button class="btn" onclick="alert('导出日志（原型演示）')">导出日志</button></div>
+  </div>
+  <div class="toolbar">
+    <input class="input" value="2026-04-01 ~ 2026-04-28" style="width:220px">
+    <select><option>全部币种</option><option>EUR</option><option>GBP</option><option>JPY</option></select>
+    <select><option>全部操作类型</option><option>定时发布</option><option>手动发布</option><option>设置固定汇率</option><option>回滚</option><option>点差调整</option><option>币种停用</option></select>
+    <button class="btn">查询</button>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>操作时间</th><th>目标币种</th><th>操作类型</th><th>变更前汇率</th><th>变更后汇率</th><th>变更原因</th><th>操作人</th><th style="text-align:center">操作</th></tr></thead>
+    <tbody>
+      <tr><td>2026-04-28 00:00:01</td><td>EUR</td><td><span class="tag sale">定时发布</span></td><td>0.9292</td><td>0.9309</td><td>每日自动发布批次</td><td>系统</td><td><div style="display:grid;grid-template-columns:64px 88px;gap:8px;align-items:center;justify-content:center"><button class="btn" onclick="confirm('确认回滚到汇率 0.9292？回滚后将在下次定时发布时被覆盖。')&&alert('已回滚（原型演示）')" style="width:64px;margin-right:0">回滚</button><button class="btn" onclick="openModal('view-snapshot')" style="width:88px;margin-right:0;color:#7C3AED">查看快照</button></div></td></tr>
+      <tr><td>2026-04-28 00:00:01</td><td>GBP</td><td><span class="tag sale">定时发布</span></td><td>0.7985</td><td>0.8000</td><td>每日自动发布批次</td><td>系统</td><td><div style="display:grid;grid-template-columns:64px 88px;gap:8px;align-items:center;justify-content:center"><button class="btn" onclick="confirm('确认回滚到汇率 0.7985？回滚后将在下次定时发布时被覆盖。')&&alert('已回滚（原型演示）')" style="width:64px;margin-right:0">回滚</button><button class="btn" onclick="openModal('view-snapshot')" style="width:88px;margin-right:0;color:#7C3AED">查看快照</button></div></td></tr>
+      <tr><td>2026-04-27 10:30:15</td><td>EUR</td><td><span class="tag opt">手动发布</span></td><td>0.9275</td><td>0.9292</td><td>运营确认市场波动后提前发布</td><td>Grace</td><td><div style="display:grid;grid-template-columns:64px 88px;gap:8px;align-items:center;justify-content:center"><span style="display:inline-block;width:64px;font-size:12px;color:#9CA3AF;text-align:center">已过期</span><button class="btn" onclick="openModal('view-snapshot')" style="width:88px;margin-right:0;color:#7C3AED">查看快照</button></div></td></tr>
+      <tr><td>2026-04-27 15:12:20</td><td>JPY</td><td><span class="tag pending">设置固定汇率</span></td><td>157.66</td><td>158.18</td><td>市场波动较大，切换为固定模式并设定汇率</td><td>Olivia</td><td><div style="display:grid;grid-template-columns:64px 88px;gap:8px;align-items:center;justify-content:center"><span style="display:inline-block;width:64px;font-size:12px;color:#9CA3AF;text-align:center">已过期</span><span></span></div></td></tr>
+      <tr><td>2026-04-26 14:35:18</td><td>EUR</td><td><span class="tag enum">点差调整</span></td><td>0.8%</td><td>0.9%</td><td>调整 EUR 点差规则以优化利润率</td><td>Grace</td><td><div style="display:grid;grid-template-columns:64px 88px;gap:8px;align-items:center;justify-content:center"><span style="display:inline-block;width:64px;text-align:center">-</span><span></span></div></td></tr>
+      <tr><td>2026-04-25 11:08:42</td><td>CAD</td><td><span class="tag warn">币种停用</span></td><td>1.3841</td><td>-</td><td>币种管理模块关闭 CAD</td><td>Grace</td><td><div style="display:grid;grid-template-columns:64px 88px;gap:8px;align-items:center;justify-content:center"><span style="display:inline-block;width:64px;text-align:center">-</span><span></span></div></td></tr>
+    </tbody>
+  </table></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:12px 16px;background:#F9FAFB;border-radius:10px">
+    <div style="font-size:13px;color:#6B7280">共 <strong style="color:#1F2937">6</strong> 条记录，每页显示 <strong style="color:#1F2937">20</strong> 条</div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <button class="btn" disabled style="opacity:0.4;cursor:not-allowed">上一页</button>
+      <div style="display:flex;gap:4px">
+        <button class="btn primary" style="min-width:32px;padding:0 10px">1</button>
+      </div>
+      <button class="btn" disabled style="opacity:0.4;cursor:not-allowed">下一页</button>
+    </div>
+  </div>
+</div>
+</div>
+  </main>
+</div>
+<!-- 模态框：编辑数据源 -->
+<div class="modal-overlay" id="modal-edit-source">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">编辑数据源</div>
+      <button class="modal-close" onclick="closeModal('edit-source')" aria-label="关闭"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 5l10 10M15 5l-10 10"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-field"><label>数据源名称</label><input type="text" value="Open Exchange Rates" disabled style="background:#f9fafb"><div class="hint">数据源名称由开发团队在接入时设定</div></div>
+      <div class="form-field"><label>API 地址</label><input type="text" value="openexchangerates.org/api" disabled style="background:#f9fafb"><div class="hint">API 地址由开发团队在接入时配置，如需修改请联系开发</div></div>
+      <div class="form-field"><label>API Key</label><input type="password" value="sk-xxxx-xxxx-xxxx"><div class="hint">数据源的 API 密钥，修改后请点击"测试连接"验证</div></div>
+      <div class="form-field"><label>优先级</label><select><option value="main">主数据源</option><option value="backup">备用数据源</option></select></div>
+      <div class="form-field"><label>拉取间隔（秒）</label><input type="number" value="3600"><div class="hint">建议设置为 3600 秒（1 小时）</div></div>
+      <div class="form-field"><label>状态</label><select><option value="enabled">启用</option><option value="disabled">停用</option></select></div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('edit-source')">取消</button><button class="btn primary" onclick="alert('数据源已保存（原型演示）');closeModal('edit-source')">保存</button></div>
+  </div>
+</div>
+
+<!-- 模态框：测试连接 -->
+<div class="modal-overlay" id="modal-test-source">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">测试连接结果</div>
+      <button class="modal-close" onclick="closeModal('test-source')" aria-label="关闭"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 5l10 10M15 5l-10 10"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;padding:14px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;display:flex;align-items:center;gap:10px">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#16A34A" stroke-width="2"><circle cx="10" cy="10" r="8"/><path d="M7 10l2 2 4-4"/></svg>
+        <div><div style="font-weight:600;color:#16A34A">连接成功</div><div style="font-size:12px;color:#6B7280">响应时间：128ms</div></div>
+      </div>
+      <div style="font-weight:600;margin-bottom:8px;font-size:13px">样本数据</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>币种对</th><th>汇率</th><th>更新时间</th></tr></thead>
+        <tbody>
+          <tr><td>USD → EUR</td><td>0.9241</td><td>2026-04-28 09:00</td></tr>
+          <tr><td>USD → GBP</td><td>0.7928</td><td>2026-04-28 09:00</td></tr>
+          <tr><td>USD → JPY</td><td>154.56</td><td>2026-04-28 09:00</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('test-source')">关闭</button></div>
+  </div>
+</div>
+
+<!-- 模态框：新增/编辑点差规则 -->
+<div class="modal-overlay" id="modal-edit-spread">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">新增币种点差</div>
+      <button class="modal-close" onclick="closeModal('edit-spread')" aria-label="关闭"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 5l10 10M15 5l-10 10"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-field"><label>适用币种</label><select><option>EUR</option><option>GBP</option><option>JPY</option><option>CAD</option></select><div class="hint">全局默认点差请在列表页直接编辑，此处仅新增单币种覆盖规则</div></div>
+      <div class="form-field"><label>点差比例（%）</label><input type="number" step="0.1" value="0.8"><div class="hint">生效汇率 = 原始汇率 × (1 + 点差比例)</div></div>
+      <div class="form-field"><label>状态</label><select><option value="enabled">启用</option><option value="disabled">停用</option></select></div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('edit-spread')">取消</button><button class="btn primary" onclick="alert('点差规则已保存（原型演示）');closeModal('edit-spread')">保存</button></div>
+  </div>
+</div>
+
+<!-- 模态框：设置汇率（支持自动/固定两种模式） -->
+<div class="modal-overlay" id="modal-override-rate">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">设置汇率</div>
+      <button class="modal-close" onclick="closeModal('override-rate')" aria-label="关闭"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 5l10 10M15 5l-10 10"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-field"><label>币种对</label><input type="text" value="USD → EUR" disabled style="background:#f9fafb"></div>
+      <div class="form-field"><label>当前生效汇率</label><input type="text" value="0.9309" disabled style="background:#f9fafb"></div>
+      <div class="form-field">
+        <label>汇率模式</label>
+        <div style="display:flex;gap:12px;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:6px;padding:10px 16px;border:2px solid #7C3AED;border-radius:10px;background:#FAF5FF;cursor:pointer;flex:1;font-size:13px" onclick="document.getElementById('override-auto-section').style.display='block';document.getElementById('override-fixed-section').style.display='none';this.style.borderColor='#7C3AED';this.style.background='#FAF5FF';this.nextElementSibling.style.borderColor='#D1D5DB';this.nextElementSibling.style.background='#fff'">
+            <input type="radio" name="rate-mode" value="auto" checked style="accent-color:#7C3AED"> <span><span style="font-weight:600">自动模式</span><br><span style="font-size:11px;color:#6B7280">跟随市场汇率 + 点差，每日定时更新</span></span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;padding:10px 16px;border:2px solid #D1D5DB;border-radius:10px;background:#fff;cursor:pointer;flex:1;font-size:13px" onclick="document.getElementById('override-auto-section').style.display='none';document.getElementById('override-fixed-section').style.display='block';this.style.borderColor='#7C3AED';this.style.background='#FAF5FF';this.previousElementSibling.style.borderColor='#D1D5DB';this.previousElementSibling.style.background='#fff'">
+            <input type="radio" name="rate-mode" value="fixed" style="accent-color:#7C3AED"> <span><span style="font-weight:600">固定模式</span><br><span style="font-size:11px;color:#6B7280">使用手动设定的汇率，定时发布跳过该币种</span></span>
+          </label>
+        </div>
+      </div>
+      <div id="override-auto-section">
+        <div style="margin-bottom:16px;padding:12px 14px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;color:#1E40AF;font-size:12px;line-height:1.6">自动模式下，系统每日 UTC 00:00 自动取最新原始汇率并应用点差规则发布。如需人工干预汇率，请切换到"固定模式"手动设定汇率值。</div>
+        <div style="padding:16px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px">
+          <div style="font-size:13px;color:#6B7280;margin-bottom:8px">当前原始汇率：<strong style="color:#1F2937">0.9235</strong></div>
+          <div style="font-size:13px;color:#6B7280;margin-bottom:8px">点差规则：<strong style="color:#1F2937">0.8%</strong></div>
+          <div style="font-size:13px;color:#6B7280">生效汇率：<strong style="color:#1F2937">0.9309</strong></div>
+        </div>
+      </div>
+      <div id="override-fixed-section" style="display:none">
+        <div style="margin-bottom:16px;padding:12px 14px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;color:#92400E;font-size:12px;line-height:1.6">固定模式下，该币种不再跟随市场汇率变动，定时发布将跳过该币种。直到手动切回自动模式后才恢复跟随。</div>
+        <div class="form-field"><label>固定生效汇率</label><input type="number" step="0.0001" value="0.9309"><div class="hint">直接设定最终生效汇率，不再应用点差规则</div></div>
+      </div>
+      <div class="form-field"><label>变更原因</label><textarea placeholder="请说明变更原因..."></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('override-rate')">取消</button><button class="btn primary" onclick="alert('汇率设置已保存（原型演示）');closeModal('override-rate')">确认保存</button></div>
+  </div>
+</div>
+
+<!-- 模态框：查看历史 -->
+<div class="modal-overlay" id="modal-view-history">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">汇率历史</div>
+      <button class="modal-close" onclick="closeModal('view-history')" aria-label="关闭"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 5l10 10M15 5l-10 10"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:12px;font-weight:600">币种对：USD → EUR</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>发布时间</th><th>原始汇率</th><th>点差</th><th>生效汇率</th><th>发布方式</th></tr></thead>
+        <tbody>
+          <tr><td>2026-04-28 00:00</td><td>0.9235</td><td>0.8%</td><td>0.9309</td><td>定时</td></tr>
+          <tr><td>2026-04-27 00:00</td><td>0.9218</td><td>0.8%</td><td>0.9292</td><td>定时</td></tr>
+          <tr><td>2026-04-26 00:00</td><td>0.9201</td><td>0.8%</td><td>0.9275</td><td>定时</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('view-history')">关闭</button></div>
+  </div>
+</div>
+
+<!-- 模态框：查看快照详情（按批次展示完整快照） -->
+<div class="modal-overlay" id="modal-view-snapshot">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">快照详情（批次维度）</div>
+      <button class="modal-close" onclick="closeModal('view-snapshot')" aria-label="关闭"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 5l10 10M15 5l-10 10"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;padding:12px;background:#F9FAFB;border-radius:8px">
+        <div style="font-weight:600;margin-bottom:4px">SNAP-20260428-0001</div>
+        <div style="font-size:12px;color:#6B7280">2026-04-28 00:00 · 定时发布 · 包含 3 个币种对</div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>币种对</th><th>原始汇率</th><th>点差</th><th>生效汇率</th><th>数据源</th></tr></thead>
+        <tbody>
+          <tr><td>USD → EUR</td><td>0.9235</td><td>0.8%</td><td>0.9309</td><td>Open Exchange Rates</td></tr>
+          <tr><td>USD → GBP</td><td>0.7921</td><td>1.0%</td><td>0.8000</td><td>Open Exchange Rates</td></tr>
+          <tr><td>USD → JPY</td><td>154.32</td><td>2.5%</td><td>158.18</td><td>Open Exchange Rates</td></tr>
+        </tbody>
+      </table></div>
+      <div style="margin-top:12px;font-size:12px;color:#6B7280">提示：此为该批次发布时所有币种对的完整快照。如需查看单个币种对的历史趋势，请在"已发布汇率"页面点击对应行的"历史"按钮。</div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('view-snapshot')">关闭</button></div>
+  </div>
+</div>
+
+<!-- 模态框：查看全部告警 -->
+<div class="modal-overlay" id="modal-all-alerts">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">全部异常告警</div>
+      <button class="modal-close" onclick="closeModal('all-alerts')" aria-label="关闭"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 5l10 10M15 5l-10 10"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;padding:12px 14px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;color:#374151;font-size:12px;line-height:1.6">展示所有待处理的异常告警，包括自动模式超阈值告警和固定模式偏离提示。处理后的告警将自动从列表中移除。</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>触发时间</th><th>币种对</th><th>告警类型</th><th>当前值</th><th>最新值</th><th>偏离幅度</th><th>说明</th><th style="text-align:center">操作</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>2026-04-28 09:02</td>
+            <td>USD → EUR</td>
+            <td><span class="tag warn">待处理</span></td>
+            <td>0.9309</td>
+            <td>0.9852</td>
+            <td style="color:#DC2626;font-weight:600">+5.83%</td>
+            <td>自动模式，超过阈值后暂停自动发布</td>
+            <td><div style="display:grid;grid-template-columns:80px 64px;gap:8px;align-items:center;justify-content:center"><button class="btn primary" onclick="openModal('alert-publish')" style="width:80px;margin-right:0">确认发布</button><button class="btn" onclick="openModal('alert-ignore')" style="width:64px;margin-right:0">忽略</button></div></td>
+          </tr>
+          <tr>
+            <td>2026-04-28 09:05</td>
+            <td>USD → JPY</td>
+            <td><span class="tag pending">固定模式提示</span></td>
+            <td>158.18</td>
+            <td>149.60</td>
+            <td style="color:#D97706;font-weight:600">-5.42%</td>
+            <td>固定模式下市场偏离，需判断是否恢复自动</td>
+            <td><div style="display:grid;grid-template-columns:112px 80px;gap:8px;align-items:center;justify-content:center"><button class="btn" onclick="openModal('override-rate')" style="width:112px;margin-right:0">调整固定汇率</button><button class="btn primary" onclick="openModal('alert-resume-auto')" style="width:80px;margin-right:0">恢复自动</button></div></td>
+          </tr>
+        </tbody>
+      </table></div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('all-alerts')">关闭</button></div>
+  </div>
+</div>
+
+<!-- 模态框：告警确认发布 -->
+<div class="modal-overlay" id="modal-alert-publish">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">确认发布异常汇率</div>
+      <button class="modal-close" onclick="closeModal('alert-publish')" aria-label="关闭"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 5l10 10M15 5l-10 10"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;padding:12px 14px;background:#FFF1F2;border:1px solid #FECDD3;border-radius:10px;color:#E11D48;font-size:12px;line-height:1.6"><strong>风险提示：</strong>该汇率波动超过自动发布阈值，确认后会立即手动发布并写入变动日志，前台价格将同步更新。</div>
+      <div class="form-field"><label>币种对</label><input type="text" value="USD → EUR" disabled style="background:#f9fafb"></div>
+      <div class="form-field"><label>当前生效汇率</label><input type="text" value="0.9309" disabled style="background:#f9fafb"></div>
+      <div class="form-field"><label>待发布汇率</label><input type="text" value="0.9852" disabled style="background:#f9fafb"></div>
+      <div class="form-field"><label>发布原因</label><textarea placeholder="请说明确认发布原因，例如：确认属真实市场波动..."></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('alert-publish')">取消</button><button class="btn primary" onclick="alert('已确认发布异常汇率（原型演示）');closeModal('alert-publish')">确认发布</button></div>
+  </div>
+</div>
+
+<!-- 模态框：忽略异常告警 -->
+<div class="modal-overlay" id="modal-alert-ignore">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">忽略并保留旧值</div>
+      <button class="modal-close" onclick="closeModal('alert-ignore')" aria-label="关闭"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 5l10 10M15 5l-10 10"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;padding:12px 14px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;color:#374151;font-size:12px;line-height:1.6">忽略后，本次异常告警将关闭，系统继续沿用当前生效汇率，等待下一次拉取结果重新判断。</div>
+      <div class="form-field"><label>币种对</label><input type="text" value="USD → EUR" disabled style="background:#f9fafb"></div>
+      <div class="form-field"><label>保留汇率</label><input type="text" value="0.9309" disabled style="background:#f9fafb"></div>
+      <div class="form-field"><label>忽略原因</label><textarea placeholder="请说明忽略原因，例如：疑似源数据异常，继续观察..."></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('alert-ignore')">取消</button><button class="btn primary" onclick="alert('已忽略本次告警并保留旧值（原型演示）');closeModal('alert-ignore')">确认忽略</button></div>
+  </div>
+</div>
+
+<!-- 模态框：恢复自动模式 -->
+<div class="modal-overlay" id="modal-alert-resume-auto">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">恢复自动模式</div>
+      <button class="modal-close" onclick="closeModal('alert-resume-auto')" aria-label="关闭"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 5l10 10M15 5l-10 10"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;padding:12px 14px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;color:#92400E;font-size:12px;line-height:1.6">恢复后，该币种将在下一次定时发布时重新跟随市场汇率和点差规则自动更新。</div>
+      <div class="form-field"><label>币种对</label><input type="text" value="USD → JPY" disabled style="background:#f9fafb"></div>
+      <div class="form-field"><label>当前固定汇率</label><input type="text" value="158.18" disabled style="background:#f9fafb"></div>
+      <div class="form-field"><label>最新市场汇率</label><input type="text" value="149.60" disabled style="background:#f9fafb"></div>
+      <div class="form-field"><label>恢复原因</label><textarea placeholder="请说明切回自动模式原因..."></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('alert-resume-auto')">取消</button><button class="btn primary" onclick="alert('已恢复自动模式（原型演示）');closeModal('alert-resume-auto')">确认恢复</button></div>
+  </div>
+</div>
+<script>
+/* ── 菜单折叠 ── */
+window.toggleGroup = function(parent) {
+  const group = parent.closest('.menu-group');
+  group.classList.toggle('open');
+  parent.setAttribute('aria-expanded', group.classList.contains('open'));
+};
+
+/* ── 清除所有激活态 ── */
+function clearAllActive() {
+  document.querySelectorAll('.menu-solo,.menu-child,.menu-grandchild').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.menu-parent').forEach(el => el.classList.remove('active-parent'));
+}
+
+/* ── 页面导航 ── */
+function navigateTo(pageId, label) {
+  clearAllActive();
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const target = document.getElementById('page-' + pageId);
+  if (target) target.classList.add('active');
+  document.querySelector('.breadcrumb').textContent = label || '';
+}
+
+/* ── 绑定菜单点击 ── */
+document.querySelectorAll('[data-page]').forEach(item => {
+  item.addEventListener('click', function() {
+    const pageId = this.dataset.page;
+    const label = this.querySelector('span')?.textContent || '';
+    navigateTo(pageId, label);
+    this.classList.add('active');
+    const group = this.closest('.menu-group');
+    if (group) {
+      group.classList.add('open');
+      group.querySelector('.menu-parent')?.classList.add('active-parent');
+    }
+  });
+  item.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.click(); }
+  });
+});
+
+/* ── 模态框管理 ── */
+function openModal(modalId) {
+  const overlay = document.getElementById('modal-' + modalId);
+  if (overlay) { overlay.classList.add('active'); document.body.style.overflow = 'hidden'; }
+}
+function closeModal(modalId) {
+  const overlay = document.getElementById('modal-' + modalId);
+  if (overlay) { overlay.classList.remove('active'); document.body.style.overflow = ''; }
+}
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('modal-overlay')) { e.target.classList.remove('active'); document.body.style.overflow = ''; }
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { document.querySelectorAll('.modal-overlay.active').forEach(o => { o.classList.remove('active'); document.body.style.overflow = ''; }); }
+});
+
+/* ── 默认激活第一个菜单 ── */
+const firstMenu = document.querySelector('[data-page]');
+if (firstMenu) firstMenu.click();
+</script>
+</body>
+</html>
