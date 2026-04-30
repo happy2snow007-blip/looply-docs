@@ -113,13 +113,33 @@ sync_files() {
             done
         fi
 
-        # 原型 - HTML
+        # 原型 - HTML + 图片资源
         if [ -d "$SOURCE_DIR/原型" ]; then
             mkdir -p "$REPO_DIR/$TARGET/原型"
             for f in "$SOURCE_DIR/原型/"*.html; do
                 [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/原型/"
             done
+            for f in "$SOURCE_DIR/原型/"*.png "$SOURCE_DIR/原型/"*.jpg "$SOURCE_DIR/原型/"*.svg; do
+                [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/原型/"
+            done
         fi
+
+        # 变更日志 - md（根目录）
+        if [ -f "$SOURCE_DIR/looply-商品系统-变更日志.md" ]; then
+            smart_cp "$SOURCE_DIR/looply-商品系统-变更日志.md" "$REPO_DIR/$TARGET/"
+        fi
+        if [ -f "$SOURCE_DIR/looply-登录注册系统-变更日志.md" ]; then
+            smart_cp "$SOURCE_DIR/looply-登录注册系统-变更日志.md" "$REPO_DIR/$TARGET/"
+        fi
+
+        # 核心差异汇总 - md（交付包内）
+        for delivery_dir in "$SOURCE_DIR"/交付开发*; do
+            if [ -d "$delivery_dir" ]; then
+                for f in "$delivery_dir"/*核心差异*.md; do
+                    [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/"
+                done
+            fi
+        done
     done
 
     # 检查 git 是否有变化
