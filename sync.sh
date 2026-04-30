@@ -10,6 +10,7 @@ MODULE_LIST=(
     "$HOME/Desktop/海外业务登录注册|docs"
     "$HOME/Desktop/海外业务首页|docs-首页"
     "$HOME/Desktop/海外业务/商品|docs-商品系统"
+    "$HOME/Desktop/海外业务/market|docs-market系统"
 )
 
 # 颜色
@@ -124,13 +125,15 @@ sync_files() {
             done
         fi
 
-        # 变更日志 - md（根目录）
-        if [ -f "$SOURCE_DIR/looply-商品系统-变更日志.md" ]; then
-            smart_cp "$SOURCE_DIR/looply-商品系统-变更日志.md" "$REPO_DIR/$TARGET/"
-        fi
-        if [ -f "$SOURCE_DIR/looply-登录注册系统-变更日志.md" ]; then
-            smart_cp "$SOURCE_DIR/looply-登录注册系统-变更日志.md" "$REPO_DIR/$TARGET/"
-        fi
+        # 变更日志 - md（根目录，通配匹配所有模块）
+        for f in "$SOURCE_DIR"/looply-*变更日志*.md; do
+            [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/"
+        done
+
+        # 模块定义文档 - md（根目录）
+        for f in "$SOURCE_DIR"/looply-*模块定义*.md; do
+            [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/"
+        done
 
         # 核心差异汇总 - md（交付包内）
         for delivery_dir in "$SOURCE_DIR"/交付开发*; do
