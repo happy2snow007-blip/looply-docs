@@ -58,15 +58,19 @@ sync_files() {
             done
         fi
 
-        # 实体关系图 - HTML + SVG
+        # 实体关系图 - SVG + HTML（商品模块除外，商品只要 SVG）
         if [ -d "$SOURCE_DIR/实体关系图" ]; then
             mkdir -p "$REPO_DIR/$TARGET/实体关系图"
-            for f in "$SOURCE_DIR/实体关系图/"*.html; do
-                [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/实体关系图/"
-            done
+            # SVG 格式所有模块都同步
             for f in "$SOURCE_DIR/实体关系图/"*.svg; do
                 [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/实体关系图/"
             done
+            # HTML 格式：商品模块不同步，其他模块同步
+            if [[ "$TARGET" != "docs-商品系统" ]]; then
+                for f in "$SOURCE_DIR/实体关系图/"*.html; do
+                    [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/实体关系图/"
+                done
+            fi
         fi
 
         # 系统流程图 - SVG
