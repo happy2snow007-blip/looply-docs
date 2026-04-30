@@ -134,11 +134,6 @@ sync_files() {
             [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/"
         done
 
-        # 模块定义文档 - md（根目录）
-        for f in "$SOURCE_DIR"/looply-*模块定义*.md; do
-            [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/"
-        done
-
         # 核心差异汇总 - md（交付包内）
         for delivery_dir in "$SOURCE_DIR"/交付开发*; do
             if [ -d "$delivery_dir" ]; then
