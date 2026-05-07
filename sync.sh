@@ -10,6 +10,7 @@ MODULE_LIST=(
     "$HOME/Desktop/海外业务登录注册|docs"
     "$HOME/Desktop/海外业务首页|docs-首页"
     "$HOME/Desktop/海外业务/商品|docs-商品系统"
+    "$HOME/Desktop/海外业务/market|docs-market系统"
 )
 
 # 颜色
@@ -57,15 +58,19 @@ sync_files() {
             done
         fi
 
-        # 实体关系图 - HTML + SVG
+        # 实体关系图 - SVG + HTML（商品模块除外，商品只要 SVG）
         if [ -d "$SOURCE_DIR/实体关系图" ]; then
             mkdir -p "$REPO_DIR/$TARGET/实体关系图"
-            for f in "$SOURCE_DIR/实体关系图/"*.html; do
-                [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/实体关系图/"
-            done
+            # SVG 格式所有模块都同步
             for f in "$SOURCE_DIR/实体关系图/"*.svg; do
                 [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/实体关系图/"
             done
+            # HTML 格式：商品模块不同步，其他模块同步
+            if [[ "$TARGET" != "docs-商品系统" ]]; then
+                for f in "$SOURCE_DIR/实体关系图/"*.html; do
+                    [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/实体关系图/"
+                done
+            fi
         fi
 
         # 系统流程图 - SVG
@@ -113,13 +118,30 @@ sync_files() {
             done
         fi
 
-        # 原型 - HTML
+        # 原型 - HTML + 图片资源
         if [ -d "$SOURCE_DIR/原型" ]; then
             mkdir -p "$REPO_DIR/$TARGET/原型"
             for f in "$SOURCE_DIR/原型/"*.html; do
                 [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/原型/"
             done
+            for f in "$SOURCE_DIR/原型/"*.png "$SOURCE_DIR/原型/"*.jpg "$SOURCE_DIR/原型/"*.svg; do
+                [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/原型/"
+            done
         fi
+
+        # 变更日志 - md（根目录，通配匹配所有模块）
+        for f in "$SOURCE_DIR"/looply-*变更日志*.md; do
+            [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/"
+        done
+
+        # 核心差异汇总 - md（交付包内）
+        for delivery_dir in "$SOURCE_DIR"/交付开发*; do
+            if [ -d "$delivery_dir" ]; then
+                for f in "$delivery_dir"/*核心差异*.md; do
+                    [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/"
+                done
+            fi
+        done
     done
 
     # 检查 git 是否有变化

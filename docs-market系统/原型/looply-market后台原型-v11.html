@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang='zh-CN'>
+<head>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width,initial-scale=1.0'>
+<title>Looply MARKET主数据后台原型</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937;font-size:14px}
+.header{height:60px;background:#FFFFFF;color:#1F2937;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid #E5E7EB}
+.logo{font-size:18px;font-weight:700;letter-spacing:1px;display:flex;align-items:center}
+.header-divider{width:1px;height:20px;background:#E5E7EB;margin:0 16px}
+.system-label{font-size:14px;font-weight:500;color:#6B7280;letter-spacing:0.3px}
+.breadcrumb{margin-left:auto;color:#9CA3AF;font-size:13px;font-weight:400}
+.breadcrumb:empty{display:none}
+.container{display:flex;height:calc(100vh - 60px)}
+.sidebar{width:220px;background:#FFFFFF;overflow:auto;flex-shrink:0;border-right:none;box-shadow:3px 0 12px rgba(0,0,0,0.06);padding:8px 0}
+.main{flex:1;overflow:auto;padding:28px}
+.menu-solo{display:flex;align-items:center;padding:12px 16px;color:#374151;cursor:pointer;font-size:14px;font-weight:500;transition:background .15s;border-left:3px solid transparent;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-solo:hover{background:rgba(0,0,0,.04)}
+.menu-solo:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-solo.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.12),transparent);font-weight:600;border-left-color:#7C3AED}
+.menu-solo .mi{width:18px;height:18px;margin-right:10px;flex-shrink:0;opacity:.55}
+.menu-solo.active .mi{opacity:1}
+.menu-divider{height:1px;background:#F3F4F6;margin:8px 16px}
+.menu-group{margin-bottom:0}
+.menu-parent{display:flex;align-items:center;padding:12px 16px;color:#374151;cursor:pointer;font-size:14px;font-weight:500;transition:background .15s;user-select:none;border-left:3px solid transparent;outline:none;overflow:hidden}
+.menu-parent:hover{background:rgba(0,0,0,.04)}
+.menu-parent:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-parent .mi{width:18px;height:18px;margin-right:10px;flex-shrink:0;opacity:.55}
+.menu-parent .arrow{margin-left:auto;width:16px;height:16px;transition:transform .2s;opacity:.4;flex-shrink:0}
+.menu-group.open>.menu-parent .arrow{transform:rotate(90deg)}
+.menu-parent.active-parent{color:#7C3AED;font-weight:600;border-left-color:#7C3AED}
+.menu-parent.active-parent .mi{opacity:1}
+.menu-children{max-height:0;overflow:hidden;transition:max-height .3s cubic-bezier(.4,0,.2,1)}
+.menu-group.open>.menu-children{max-height:none}
+.menu-child{display:flex;align-items:center;padding:10px 16px 10px 44px;color:#4B5563;cursor:pointer;font-size:13px;transition:all .15s;border-left:3px solid transparent;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-child:hover{color:#374151;background:rgba(0,0,0,.03)}
+.menu-child:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-child.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.1),transparent);border-left-color:#7C3AED;font-weight:600}
+.menu-child .ci{width:15px;height:15px;margin-right:8px;flex-shrink:0;opacity:.45}
+.menu-child.active .ci{opacity:.8}
+.menu-subgroup{margin:0}
+.menu-subparent{display:flex;align-items:center;padding:10px 16px 10px 44px;color:#4B5563;cursor:pointer;font-size:13px;font-weight:500;transition:background .15s;user-select:none;outline:none;overflow:hidden}
+.menu-subparent:hover{color:#374151;background:rgba(0,0,0,.03)}
+.menu-subparent:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-subparent .ci{width:15px;height:15px;margin-right:8px;flex-shrink:0;opacity:.45}
+.menu-subparent .arrow-sm{margin-left:auto;width:14px;height:14px;transition:transform .2s;opacity:.35;flex-shrink:0}
+.menu-subgroup.open>.menu-subparent .arrow-sm{transform:rotate(90deg)}
+.menu-subparent.active-parent{color:#7C3AED;font-weight:600}
+.menu-subparent.active-parent .ci{opacity:.8}
+.menu-subchildren{max-height:0;overflow:hidden;transition:max-height .25s cubic-bezier(.4,0,.2,1)}
+.menu-subgroup.open>.menu-subchildren{max-height:none}
+.menu-sublabel{padding:8px 16px 4px 64px;color:#6B7280;font-size:11px;font-weight:600;letter-spacing:.3px;user-select:none}
+.menu-grandchild{display:flex;align-items:center;padding:8px 16px 8px 64px;color:#6B7280;cursor:pointer;font-size:12px;transition:all .15s;border-left:3px solid transparent;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-grandchild:hover{color:#374151;background:rgba(0,0,0,.02)}
+.menu-grandchild:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-grandchild.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.08),transparent);border-left-color:#7C3AED;font-weight:600}
+.menu-grandchild .gi{width:13px;height:13px;margin-right:8px;flex-shrink:0;opacity:.45}
+.menu-grandchild.active .gi{opacity:.75}
+@media(prefers-reduced-motion:reduce){.menu-children,.menu-subchildren,.menu-parent .arrow,.menu-subparent .arrow-sm,.menu-solo,.menu-child,.menu-grandchild,.menu-subparent,.menu-parent{transition:none !important}}
+.page{display:none}.page.active{display:block}
+.card{background:#fff;border-radius:16px;box-shadow:0 10px 24px rgba(16,24,40,.06);padding:28px}
+.page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}
+.page-title{font-size:20px;font-weight:700;margin-bottom:6px}
+.page-desc{color:#6B7280;font-size:13px;max-width:760px}
+.head-actions{display:flex;gap:10px;flex-wrap:wrap}
+.toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.toolbar .input,.toolbar select{height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff}
+.btn{height:34px;padding:0 14px;border:1px solid #D1D5DB;background:#fff;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.btn.primary{background:#7C3AED;border-color:#7C3AED;color:#fff}
+.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.summary .item{background:linear-gradient(180deg,#FEFCFF 0%,#F3EEFF 100%);border:1px solid #DDD6FE;border-radius:14px;padding:14px 16px}
+.summary .num{font-size:24px;font-weight:700;color:#7C3AED;margin-bottom:4px}
+.summary .label-sm{font-size:12px;color:#6B7280}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi .item{background:#FAF5FF;border:1px solid #DDD6FE;border-radius:14px;padding:14px}
+.kpi .num{font-size:24px;font-weight:700;margin-bottom:4px}
+.muted{color:#6B7280;font-size:12px}
+.table-wrap{border:1px solid #E5E7EB;border-radius:14px;overflow:hidden;background:#fff}
+table{width:100%;border-collapse:collapse}
+th{background:#FFFFFF;padding:10px 12px;text-align:left;font-size:12px;color:#6B7280;border-bottom:1px solid #E5E7EB;text-transform:uppercase;letter-spacing:.02em}
+td{padding:11px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;vertical-align:top}
+tr:hover{background:#FAF5FF}
+.split{display:flex;gap:18px}.left{width:280px;flex-shrink:0}.mid{width:300px;flex-shrink:0}.right{flex:1}
+.panel{border:1px solid #E5E7EB;border-radius:14px;background:#FFFFFF;padding:16px;min-height:420px}
+.panel h3{font-size:13px;color:#6B7280;margin-bottom:12px}
+.stack{display:flex;flex-direction:column;gap:16px}
+.tree-node{padding:8px 10px;border-radius:8px;cursor:pointer}
+.tree-node:hover{background:#F3EEFF}
+.tree-selected{background:#F3EEFF;color:#7C3AED;font-weight:600}
+.tree-child{margin-left:18px}
+.form-grid{display:grid;grid-template-columns:150px 1fr;gap:12px 16px;align-items:center}
+.label{color:#6B7280;font-size:13px}
+.field{min-height:36px;border:1px solid #D1D5DB;border-radius:8px;background:#fff;padding:8px 12px;display:flex;align-items:center}
+.form-row{display:flex;gap:16px;margin-bottom:12px}
+.form-row .label{width:120px;text-align:right;line-height:34px;color:#6B7280;flex-shrink:0}
+.form-row .field{flex:1}
+.form-row .input-display{height:34px;line-height:34px;padding:0 12px;border:1px solid #D1D5DB;border-radius:8px;background:#f9fafb}
+.form-row textarea.input-display{height:80px;line-height:1.5;padding:8px 12px}
+.form-section{margin-bottom:24px}
+.form-section .section-title{font-size:15px;font-weight:600;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #E5E7EB}
+.form-actions{display:flex;gap:12px;justify-content:flex-end;padding-top:16px;border-top:1px solid #E5E7EB;margin-top:24px}
+.section{margin-top:18px}
+.section-title{font-size:14px;font-weight:700;margin-bottom:10px;color:#7C3AED}
+.section-note{font-size:12px;color:#6B7280;margin:-4px 0 10px}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;margin-right:4px}
+.tag.sale{background:#EFF6FF;color:#2563EB;border:none}
+.tag.desc{background:#F0FDF4;color:#16A34A;border:none}
+.tag.enum{background:#FFFBEB;color:#D97706;border:none}
+.tag.req{background:#FEF2F2;color:#DC2626;border:none}
+.tag.opt{background:#F3F4F6;color:#6B7280;border:none}
+.tag.on{background:#F0FDF4;color:#16A34A;border:none}
+.tag.pending{background:#FFFBEB;color:#D97706;border:none}
+.tag.off{background:#F3F4F6;color:#6B7280;border:none}
+.tag.warn{background:#FFF1F2;color:#E11D48;border:none}
+.tabs{display:flex;border-bottom:1px solid #E5E7EB;margin-bottom:14px;gap:4px}
+.tab{padding:10px 18px;cursor:pointer;border-bottom:2px solid transparent;color:#6B7280}
+.tab.active{color:#7C3AED;border-bottom-color:#7C3AED;font-weight:600}
+.tab-pane{display:none}.tab-pane.active{display:block}
+.steps{display:flex;gap:8px;margin-bottom:16px}
+.step{flex:1;padding:10px;background:#fafafa;border:1px solid #E5E7EB;border-radius:10px;text-align:center;cursor:pointer;transition:all .2s}
+.step b{display:block;margin-bottom:4px}
+.step.current{background:#F3EEFF;border-color:#DDD6FE;color:#7C3AED;font-weight:600}
+.step.done{background:#ecfdf3;border-color:#abefc6;color:#027a48}
+.step.done b{color:#027a48}
+.wizard-body .wizard-step{display:none}
+.wizard-body .wizard-step.active{display:block}
+.wizard-nav{display:flex;gap:12px;justify-content:flex-end;padding-top:16px;border-top:1px solid #E5E7EB;margin-top:24px}
+.inline-meta{display:flex;gap:8px;flex-wrap:wrap}
+.pill{padding:4px 10px;border-radius:999px;background:#F3F4F6;color:#6B7280;font-size:12px}
+.rail-note{padding:12px 14px;border-radius:10px;background:#F3EEFF;border:1px solid #DDD6FE;color:#6D28D9;font-size:12px;line-height:1.6}
+.placeholder{padding:28px;border:1px dashed #D1D5DB;border-radius:14px;background:#FFFFFF;color:#6B7280}
+.preview{margin-top:18px;padding:16px;border:1px solid #E5E7EB;background:#FFFFFF;border-radius:14px}
+.preview-line{display:flex;justify-content:space-between;gap:20px;padding:10px 0;border-bottom:1px solid #E5E7EB}
+.preview-line:last-child{border-bottom:none}
+.sub-table{margin-top:8px}
+.empty-state{display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center}
+.empty-state .empty-icon{width:48px;height:48px;color:#9CA3AF;margin-bottom:16px}
+.empty-state .empty-icon.error{color:#DC2626}
+.empty-state .empty-title{font-size:16px;font-weight:600;color:#1F2937;margin-bottom:8px}
+.empty-state .empty-desc{font-size:13px;color:#6B7280;margin-bottom:24px;max-width:360px}
+.empty-state .btn{margin-top:0}
+
+
+/* ── v7: Tag-Input 多选模拟组件 ── */
+.tag-input{min-width:360px;min-height:38px;border:1px solid #D1D5DB;border-radius:8px;background:#fff;padding:6px 8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;cursor:text}
+.tag-input:focus-within{border-color:#7C3AED;box-shadow:0 0 0 2px rgba(124,58,237,.15)}
+.tag-input .chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:6px;font-size:12px;color:#6D28D9;white-space:nowrap}
+.tag-input .chip .chip-x{width:14px;height:14px;cursor:pointer;opacity:.5;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;font-size:11px;line-height:1}
+.tag-input .chip .chip-x:hover{opacity:1;background:rgba(124,58,237,.15)}
+.tag-input .tag-placeholder{color:#9CA3AF;font-size:13px;padding:0 4px;user-select:none}
+/* ── v7: Edit row distinction ── */
+tr.editing{position:relative}
+tr.editing td:first-child{box-shadow:inset 3px 0 0 #7C3AED}
+/* v9: required field indicator */
+.req-mark{color:#DC2626;margin-right:2px;font-weight:400}
+/* v9: pagination */
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;font-size:13px;color:#6B7280;border-top:1px solid #F3F4F6}
+.pagination .page-nums{display:flex;gap:4px;align-items:center}
+.pagination .page-num{min-width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #D1D5DB;border-radius:6px;cursor:pointer;font-size:13px;background:#fff}
+.pagination .page-num.active{background:#7C3AED;color:#fff;border-color:#7C3AED}
+.pagination .page-num:hover:not(.active){background:#F3EEFF}
+.pagination select{height:32px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px;background:#fff}
+/* v11: helper text */
+.helper-text{font-size:11px;color:#9CA3AF;margin:-8px 0 12px 136px;line-height:1.4}
+/* v11: tooltip */
+.has-tip{cursor:help;border-bottom:1px dashed #9CA3AF}
+.tip-box{display:none;position:absolute;bottom:calc(100% + 8px);left:0;background:#1F2937;color:#fff;padding:10px 14px;border-radius:8px;font-size:12px;line-height:1.6;width:340px;z-index:20;font-weight:400;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.has-tip:hover .tip-box{display:block}
+/* v11: editing row label */
+.editing-badge{display:inline-block;background:#7C3AED;color:#fff;font-size:10px;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:middle;font-weight:500}
+/* v11: sticky action column */
+.table-wrap table th:last-child,.table-wrap table td:last-child{position:sticky;right:0;background:inherit;z-index:1;box-shadow:-2px 0 4px rgba(0,0,0,.04)}
+tr:hover td:last-child{background:#FAF5FF}
+tr.editing td:last-child{background:#F3EEFF}
+/* v11: audit info */
+.audit-info{margin-top:16px;padding:12px 16px;background:#F9FAFB;border:1px solid #F3F4F6;border-radius:10px;display:flex;gap:24px;flex-wrap:wrap;font-size:12px;color:#9CA3AF}
+.audit-info span{color:#6B7280}
+/* v11: skeleton */
+.skeleton-bar{height:14px;background:linear-gradient(90deg,#E5E7EB 25%,#F3F4F6 50%,#E5E7EB 75%);background-size:200% 100%;border-radius:4px;animation:sk-shimmer 1.5s infinite}
+@keyframes sk-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+/* v11: action dropdown */
+.act-more{position:relative;display:inline-block}
+.act-more .more-btn{width:30px;height:30px;border:1px solid #D1D5DB;background:#fff;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:14px;color:#6B7280}
+.act-more .more-btn:hover{background:#FAF5FF;color:#7C3AED}
+.act-more .dd{display:none;position:absolute;right:0;top:100%;margin-top:4px;min-width:100px;background:#fff;border:1px solid #E5E7EB;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:10;padding:4px 0}
+.act-more.open .dd{display:block}
+.act-more .dd a{display:block;padding:7px 12px;font-size:12px;color:#374151;cursor:pointer;text-decoration:none}
+.act-more .dd a:hover{background:#FAF5FF;color:#7C3AED}
+.act-more .dd a.danger{color:#DC2626}
+.act-more .dd a.danger:hover{background:#FEF2F2}
+/* PLACEHOLDER_APPEND */
+</style>
+</head>
+<body>
+<div class='header'>
+  <div class='logo'>
+    <img src="logo-new.png" height="28" alt="Looply">
+  </div>
+  <div class='header-divider'></div>
+  <span class='system-label'>MARKET主数据</span>
+  <div class='breadcrumb'></div>
+</div>
+<div class='container'>
+  <div class='sidebar' role="navigation" aria-label="主导航">
+<div class="menu-group">
+<div class="menu-parent" tabindex="0" role="button" aria-expanded="false" aria-controls="children-1" onclick="toggleGroup(this)"><svg class="mi" aria-hidden="true" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="6.5"/><circle cx="9" cy="9" r="3.5"/><circle cx="9" cy="9" r="1" fill="currentColor"/></svg><span>Market</span><svg class="arrow" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4L10 8L6 12"/></svg></div>
+<div class="menu-children" id="children-1" role="group">
+<div class="menu-child" tabindex="0" role="menuitem" data-page="market-list"><svg class="ci" aria-hidden="true" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><line x1="3" y1="4" x2="12" y2="4"/><line x1="3" y1="7.5" x2="12" y2="7.5"/><line x1="3" y1="11" x2="12" y2="11"/></svg><span>市场管理</span></div>
+<div class="menu-child" tabindex="0" role="menuitem" data-page="country-list"><svg class="ci" aria-hidden="true" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="7.5" cy="7.5" r="5.5"/><path d="M7.5 2C5.5 2 4 4.5 4 7.5S5.5 13 7.5 13 11 10.5 11 7.5 9.5 2 7.5 2Z"/><line x1="2" y1="7.5" x2="13" y2="7.5"/></svg><span>国家管理</span></div>
+<div class="menu-child" tabindex="0" role="menuitem" data-page="timezone-list"><svg class="ci" aria-hidden="true" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="7.5" r="5.5"/><path d="M7.5 4.2V7.6L9.9 9"/><path d="M7.5 2V3.1"/><path d="M7.5 11.9V13"/></svg><span>时区管理</span></div>
+<div class="menu-child" tabindex="0" role="menuitem" data-page="language-list"><svg class="ci" aria-hidden="true" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 5H8M5 2V5M3 8C3.5 9 4.5 10.5 6 12M6 8C5.5 9 4.5 10.5 3 12"/><path d="M9 3L11 11L13 3"/></svg><span>语言管理</span></div>
+<div class="menu-child" tabindex="0" role="menuitem" data-page="currency-list"><svg class="ci" aria-hidden="true" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="7.5" cy="7.5" r="5.5"/><path d="M7.5 4.5V10.5M5.5 6C5.5 5.2 6.2 4.5 7.5 4.5S9.5 5.2 9.5 6 8.8 7.5 7.5 7.5M7.5 7.5C6.2 7.5 5.5 8.2 5.5 9S6.2 10.5 7.5 10.5 9.5 9.8 9.5 9"/></svg><span>货币管理</span></div>
+</div></div>
+  </div>
+  <div class='main'>
+<div class="page" id="page-market-list-list"><div class="card"><div class="page-head"><div><div class="page-title">市场管理</div><div class="page-desc">管理 Looply 各销售市场的基础配置</div></div><div class="head-actions"><button class="btn primary" onclick="showSubPage('market-list','create')">新建市场</button></div></div><div class="kpi"><div class="item"><div class="num">3</div><div class="muted">市场总数</div></div><div class="item"><div class="num">1</div><div class="muted">运营中</div></div><div class="item"><div class="num">2</div><div class="muted">筹备中</div></div><div class="item"><div class="num">0</div><div class="muted">已暂停</div></div></div><div class="toolbar"><input class="input" placeholder="搜索 Market 代码 / 名称"><select><option>全部状态</option><option>运营中</option><option>筹备中</option><option>已暂停</option></select><button class="btn">查询</button></div><div class="table-wrap"><table><thead><tr><th>Market代码</th><th>Market名称</th><th>基准时区</th><th>业务日切时间</th><th>上线日期</th><th>状态</th><th>操作</th></tr></thead><tbody><tr><td><b>US</b></td><td>US Market</td><td>America/New_York</td><td>00:00</td><td>2026-06-01</td><td><span class="tag on">运营中</span></td><td><button class="btn" onclick="showSubPage('market-list','detail')">查看详情</button> <button class="btn" onclick="enterEditMode('market-list')">编辑</button> <button class="btn" style="color:#DC2626">停用</button></td></tr><tr><td><b>EU</b></td><td>EU Market</td><td>Europe/Paris</td><td>00:00</td><td>2026-09-01</td><td><span class="tag pending">筹备中</span></td><td><button class="btn" onclick="showSubPage('market-list','detail')">查看详情</button> <button class="btn" onclick="enterEditMode('market-list')">编辑</button> <button class="btn" style="color:#DC2626">停用</button></td></tr><tr><td><b>APAC</b></td><td>APAC Market</td><td>Asia/Singapore</td><td>01:00</td><td>2027-01-01</td><td><span class="tag pending">筹备中</span></td><td><button class="btn" onclick="showSubPage('market-list','detail')">查看详情</button> <button class="btn" onclick="enterEditMode('market-list')">编辑</button> <button class="btn" style="color:#DC2626">停用</button></td></tr></tbody></table></div>
+<div class="skeleton-loading" style="display:none;padding:16px">
+<div style="display:flex;flex-direction:column;gap:14px">
+<div class="skeleton-bar" style="width:100%;height:14px"></div>
+<div class="skeleton-bar" style="width:85%;height:14px"></div>
+<div class="skeleton-bar" style="width:92%;height:14px"></div>
+<div class="skeleton-bar" style="width:78%;height:14px"></div>
+<div class="skeleton-bar" style="width:88%;height:14px"></div>
+</div>
+</div>
+<div class="pagination"><span>共 3 条，每页 <select><option>10</option><option>20</option><option>50</option></select> 条</span><div class="page-nums"><span class="page-num" style="cursor:default;opacity:.4">&lt;</span><span class="page-num active">1</span><span class="page-num" style="cursor:default;opacity:.4">&gt;</span></div><span>第 1/1 页</span></div></div></div>
+<div class="page" id="page-market-list-create"><div class="card"><div class="page-head"><div><div class="page-title">新建市场</div><div class="page-desc">先创建 Market 基本信息，再逐步完成国家、语言和货币配置。</div></div><div class="head-actions"><button class="btn" onclick="showSubPage('market-list','list')">返回列表</button></div></div><div class="steps" data-wizard="market-create">
+      <div class="step current" data-step="0"><b>1</b>基本信息</div>
+      <div class="step" data-step="1"><b>2</b>国家配置</div>
+      <div class="step" data-step="2"><b>3</b>语言配置</div>
+      <div class="step" data-step="3"><b>4</b>货币配置</div>
+    </div><div class="wizard-body" data-wizard-body="market-create">
+      <div class="wizard-step active" data-step="0">
+        <div class="form-section">
+          <div class="section-title">基本信息</div>
+          <div class="form-row"><div class="label"><span class="req-mark">*</span>Market 代码</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value="EU"></div>
+          <div class="helper-text">2–4 位大写字母，如 US、EU、APAC，创建后不可修改</div>
+          <div class="form-row"><div class="label"><span class="req-mark">*</span>Market 名称</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value="EU Market"></div>
+          <div class="form-row"><div class="label"><span class="req-mark">*</span>上线日期</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value="2026-09-01"></div>
+          <div class="form-row"><div class="label"><span class="req-mark">*</span>状态</div><select style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option  selected>planning - 筹备中</option><option>active - 运营中</option><option>suspended - 已暂停</option></select></div>
+          <div class="form-row"><div class="label"><span class="req-mark">*</span>Market 基准时区</div><select style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option selected>Europe/Paris</option><option>America/New_York</option><option>Asia/Singapore</option></select></div>
+          <div class="form-row"><div class="label"><span class="req-mark">*</span><span class="has-tip" style="position:relative">业务日切时间<span class="tip-box">每日业务数据的分割时间点。例如设为 00:00，则当天 00:00 至次日 00:00 的订单归为同一业务日。影响报表统计、库存快照等。</span></span></div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value="00:00"></div>
+          <div class="rail-note" style="margin:0 0 12px 136px">时间显示说明：后台默认按 Market 基准时区展示；未来下游业务如无单独指定，优先继承该基准。</div>
+        </div>
+      </div>
+      <div class="wizard-step" data-step="1">
+        <div class="section-title">国家配置</div>
+        <div class="section-note">从国家主数据中选择 Market 覆盖国家，并补充该国家在当前 Market 下的配置。</div>
+        <div class="toolbar" style="margin-bottom:0"><!-- 生产环境用 Ant Design Select mode="multiple" 实现 -->
+        <div class="tag-input" role="listbox" aria-label="选择要添加的国家"><span class="chip">Italy (IT)<span class="chip-x" title="移除">&times;</span></span><span class="chip">Spain (ES)<span class="chip-x" title="移除">&times;</span></span><span class="tag-placeholder">搜索或选择国家…</span></div><button class="btn primary">添加已选国家 (2)</button></div>
+        <div style="margin:8px 0 12px 0;font-size:12px;color:#166534">✓ 时区校验通过 — 基准时区 Europe/Paris 在已配置国家时区范围内</div>
+        <div class="table-wrap"><table><thead><tr><th>国家代码</th><th>国家名称</th><th title="该 Market 的主要运营国家，影响默认语言和货币">主要国家 ⓘ</th><th>优先级</th><th>独立域名</th><th>域名</th><th>本地时区</th><th>本地日切</th><th>上线日期</th><th>状态</th><th>操作</th></tr></thead><tbody><tr><td>FR</td><td>France</td><td><span class="tag on">是</span></td><td>1</td><td><span class="tag on">是</span></td><td>looply.fr</td><td style="color:#6B7280">跟随 Market</td><td style="color:#6B7280">跟随 Market</td><td>2026-09-01</td><td><span class="tag pending">筹备中</span></td><td><button class="btn" style="height:34px;font-size:12px;padding:0 12px;margin-right:6px" onclick="this.closest('tr').classList.add('editing')">编辑</button><button class="btn" style="height:34px;font-size:12px;padding:0 12px;color:#DC2626" onclick="if(!confirm('确认移除该记录？移除后需重新添加。'))return false">移除</button></td></tr><tr class="editing" style="background:#F3EEFF;border-left:3px solid #7C3AED"><td>DE<span class="editing-badge">编辑中</span></td><td>Germany</td><td><select style="height:34px;font-size:12px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px"><option>是</option><option selected>否</option></select></td><td><input style="width:50px;height:34px;font-size:12px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;text-align:center" value="2"></td><td><select style="height:34px;font-size:12px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px"><option selected>是</option><option>否</option></select></td><td><input style="width:90px;height:34px;font-size:12px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px" value="looply.de"></td><td><select style="height:34px;font-size:12px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px"><option>Europe/Paris</option><option selected>Europe/Berlin</option></select></td><td><input style="width:60px;height:34px;font-size:12px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;text-align:center" value="00:00"></td><td><input style="width:100px;height:34px;font-size:12px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px" value="2026-09-01"></td><td><select style="height:34px;font-size:12px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px"><option selected>筹备中</option><option>运营中</option><option>已暂停</option></select></td><td><button class="btn primary" style="height:34px;font-size:12px;padding:0 12px;margin-right:6px">保存</button><button class="btn" style="height:34px;font-size:12px;padding:0 12px">取消</button></td></tr></tbody></table></div>
+        <!-- 空态：当未添加任何国家时显示 -->
+        <div class="empty-state" style="display:none"><svg class="empty-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="24" cy="24" r="20"/><path d="M24 8C18 8 14 16 14 24s4 16 10 16 10-8 10-16S30 8 24 8Z"/><line x1="4" y1="24" x2="44" y2="24"/></svg><div class="empty-title">暂无国家配置</div><div class="empty-desc">请从上方下拉框选择国家并点击「添加所选国家」</div></div>
+      </div>
+      <div class="wizard-step" data-step="2">
+        <div class="section-title">语言配置</div>
+        <div class="section-note">从语言主数据中选择 Market 支持语言，并设置默认语言与排序。</div>
+        <div class="toolbar" style="margin-bottom:0"><!-- 生产环境用 Ant Design Select mode="multiple" 实现 -->
+        <div class="tag-input" role="listbox" aria-label="选择要添加的语言"><span class="chip">German (de)<span class="chip-x" title="移除">&times;</span></span><span class="chip">Italian (it)<span class="chip-x" title="移除">&times;</span></span><span class="tag-placeholder">搜索或选择语言…</span></div><button class="btn primary">添加已选语言 (2)</button></div>
+        <div class="table-wrap"><table><thead><tr><th>语言代码</th><th>语言名称</th><th>是否默认</th><th>优先级</th><th>状态</th><th>操作</th></tr></thead><tbody><tr><td>en</td><td>English</td><td><span class="tag on">是</span></td><td>1</td><td><span class="tag pending">筹备中</span></td><td><button class="btn" style="height:34px;font-size:12px;padding:0 12px;margin-right:6px">编辑</button><button class="btn" style="height:34px;font-size:12px;padding:0 12px;color:#DC2626" onclick="if(!confirm('确认移除该记录？移除后需重新添加。'))return false">移除</button></td></tr><tr class="editing" style="background:#F3EEFF;border-left:3px solid #7C3AED"><td>fr<span class="editing-badge">编辑中</span></td><td>French</td><td><select style="height:34px;font-size:12px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px"><option>是</option><option selected>否</option></select></td><td><input style="width:50px;height:34px;font-size:12px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;text-align:center" value="2"></td><td><select style="height:34px;font-size:12px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px"><option selected>筹备中</option><option>运营中</option><option>已暂停</option></select></td><td><button class="btn primary" style="height:34px;font-size:12px;padding:0 12px;margin-right:6px">保存</button><button class="btn" style="height:34px;font-size:12px;padding:0 12px">取消</button></td></tr></tbody></table></div>
+      </div>
+      <div class="wizard-step" data-step="3">
+        <div class="section-title">货币配置</div>
+        <div class="section-note">从货币主数据中选择 Market 支持货币，并配置默认货币。</div>
+        <div class="toolbar" style="margin-bottom:0"><!-- 生产环境用 Ant Design Select mode="multiple" 实现 -->
+        <div class="tag-input" role="listbox" aria-label="选择要添加的货币"><span class="chip">USD - US Dollar<span class="chip-x" title="移除">&times;</span></span><span class="tag-placeholder">搜索或选择货币…</span></div><button class="btn primary">添加已选货币 (1)</button></div>
+        <div class="table-wrap"><table><thead><tr><th>货币代码</th><th>货币名称</th><th>是否默认</th><th>符号位置</th><th>优先级</th><th>状态</th><th>操作</th></tr></thead><tbody><tr><td>EUR</td><td>Euro</td><td><span class="tag on">是</span></td><td>前置 ($100)</td><td>1</td><td><span class="tag pending">筹备中</span></td><td><button class="btn" style="height:34px;font-size:12px;padding:0 12px;margin-right:6px">编辑</button><button class="btn" style="height:34px;font-size:12px;padding:0 12px;color:#DC2626" onclick="if(!confirm('确认移除该记录？移除后需重新添加。'))return false">移除</button></td></tr><tr class="editing" style="background:#F3EEFF;border-left:3px solid #7C3AED"><td>GBP<span class="editing-badge">编辑中</span></td><td>British Pound</td><td><select style="height:34px;font-size:12px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px"><option>是</option><option selected>否</option></select></td><td><select style="height:34px;font-size:12px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px"><option selected>前置 ($100)</option><option>后置 (100$)</option></select></td><td><input style="width:50px;height:34px;font-size:12px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;text-align:center" value="2"></td><td><select style="height:34px;font-size:12px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px"><option selected>筹备中</option><option>运营中</option><option>已暂停</option></select></td><td><button class="btn primary" style="height:34px;font-size:12px;padding:0 12px;margin-right:6px">保存</button><button class="btn" style="height:34px;font-size:12px;padding:0 12px">取消</button></td></tr></tbody></table></div>
+      </div>
+    </div><div class="wizard-nav">
+      <button class="btn" onclick="if(!confirm('确认离开？未保存的内容将丢失。'))return;showSubPage('market-list','list')">取消</button>
+      <button class="btn" data-wizard-prev="market-create" style="display:none">上一步</button>
+      <button class="btn primary" data-wizard-next="market-create">下一步</button>
+      <button class="btn primary" data-wizard-finish="market-create" style="display:none">保存并创建</button>
+    </div></div></div>
+<div class="page" id="page-market-list-detail"><div class="card"><div class="page-head"><div><div class="page-title">EU Market 详情</div><div class="page-desc"></div></div><div class="head-actions"><button class="btn" onclick="showSubPage('market-list','list')">返回列表</button><button class="btn primary" onclick="enterEditMode('market-list')">编辑</button></div></div><div class="tabs">
+      <div class="tab active" data-pane="detail-tab-basic">基本信息</div>
+      <div class="tab" data-pane="detail-tab-country">国家配置</div>
+      <div class="tab" data-pane="detail-tab-lang">语言配置</div>
+      <div class="tab" data-pane="detail-tab-curr">货币配置</div>
+    </div><div class="tab-pane active" id="detail-tab-basic">
+      <div class="preview">
+        <div class="preview-line"><span class="muted">Market 代码</span><span>EU</span></div>
+        <div class="preview-line"><span class="muted">Market 名称</span><span>EU Market</span></div>
+        <div class="preview-line"><span class="muted">上线日期</span><span>2026-09-01</span></div>
+        <div class="preview-line"><span class="muted">状态</span><span><span class="tag pending">筹备中</span></span></div>
+        <div class="preview-line"><span class="muted">Market 基准时区</span><span>Europe/Paris</span></div>
+        <div class="preview-line"><span class="muted">业务日切时间</span><span>00:00</span></div>
+        <div class="preview-line"><span class="muted">时间显示说明</span><span>后台默认按 Market 基准时区展示</span></div>
+      </div>
+    <div class="audit-info">创建人：<span>admin@looply.com</span>创建时间：<span>2026-03-15 10:30</span>最后修改人：<span>pm@looply.com</span>最后修改时间：<span>2026-04-20 14:22</span></div>
+    </div><div class="tab-pane" id="detail-tab-country">
+      <div class="toolbar"><button class="btn primary" onclick="enterEditMode('market-list');setTimeout(function(){updateWizardState('market-create',1)},50)">添加国家</button></div>
+      <div style="margin:0 0 12px 0;font-size:12px;color:#166534">✓ 时区校验通过 — 基准时区 Europe/Paris 在已配置国家时区范围内</div>
+      <div class="table-wrap"><table><thead><tr><th>国家代码</th><th>国家名称</th><th title="该 Market 的主要运营国家，影响默认语言和货币">主要国家 ⓘ</th><th>优先级</th><th>独立域名</th><th>域名</th><th>本地时区</th><th>本地日切</th><th>上线日期</th><th>状态</th><th>操作</th></tr></thead><tbody><tr><td>FR</td><td>France</td><td><span class="tag on">是</span></td><td>1</td><td><span class="tag on">是</span></td><td>looply.fr</td><td style="color:#6B7280">跟随 Market</td><td style="color:#6B7280">跟随 Market</td><td>2026-09-01</td><td><span class="tag pending">筹备中</span></td><td><button class="btn">编辑</button></td></tr><tr><td>DE</td><td>Germany</td><td><span class="tag off">否</span></td><td>2</td><td><span class="tag on">是</span></td><td>looply.de</td><td>Europe/Berlin</td><td>00:00</td><td>2026-09-01</td><td><span class="tag pending">筹备中</span></td><td><button class="btn">编辑</button></td></tr><tr><td>IT</td><td>Italy</td><td><span class="tag off">否</span></td><td>3</td><td><span class="tag off">否</span></td><td style="color:#6B7280">—</td><td style="color:#6B7280">跟随 Market</td><td style="color:#6B7280">跟随 Market</td><td>2026-10-01</td><td><span class="tag pending">筹备中</span></td><td><button class="btn">编辑</button></td></tr><tr><td>ES</td><td>Spain</td><td><span class="tag off">否</span></td><td>4</td><td><span class="tag off">否</span></td><td style="color:#6B7280">—</td><td style="color:#6B7280">跟随 Market</td><td style="color:#6B7280">跟随 Market</td><td>2026-10-01</td><td><span class="tag pending">筹备中</span></td><td><button class="btn">编辑</button></td></tr></tbody></table></div>
+    </div><div class="tab-pane" id="detail-tab-lang">
+      <div class="toolbar"><button class="btn primary" onclick="enterEditMode('market-list');setTimeout(function(){updateWizardState('market-create',2)},50)">添加语言</button></div>
+      <div class="table-wrap"><table><thead><tr><th>语言代码</th><th>语言名称</th><th>是否默认</th><th>优先级</th><th>状态</th><th>操作</th></tr></thead><tbody><tr><td>en</td><td>English</td><td><span class="tag on">是</span></td><td>1</td><td><span class="tag pending">筹备中</span></td><td><button class="btn">编辑</button></td></tr><tr><td>fr</td><td>French</td><td><span class="tag off">否</span></td><td>2</td><td><span class="tag pending">筹备中</span></td><td><button class="btn">编辑</button></td></tr><tr><td>de</td><td>German</td><td><span class="tag off">否</span></td><td>3</td><td><span class="tag pending">筹备中</span></td><td><button class="btn">编辑</button></td></tr><tr><td>it</td><td>Italian</td><td><span class="tag off">否</span></td><td>4</td><td><span class="tag pending">筹备中</span></td><td><button class="btn">编辑</button></td></tr><tr><td>es</td><td>Spanish</td><td><span class="tag off">否</span></td><td>5</td><td><span class="tag pending">筹备中</span></td><td><button class="btn">编辑</button></td></tr></tbody></table></div>
+    </div><div class="tab-pane" id="detail-tab-curr">
+      <div class="toolbar"><button class="btn primary" onclick="enterEditMode('market-list');setTimeout(function(){updateWizardState('market-create',3)},50)">添加货币</button></div>
+      <div class="table-wrap"><table><thead><tr><th>货币代码</th><th>货币名称</th><th>是否默认</th><th>符号位置</th><th>优先级</th><th>状态</th><th>操作</th></tr></thead><tbody><tr><td>EUR</td><td>Euro</td><td><span class="tag on">是</span></td><td>前置 ($100)</td><td>1</td><td><span class="tag pending">筹备中</span></td><td><button class="btn">编辑</button></td></tr><tr><td>GBP</td><td>British Pound</td><td><span class="tag off">否</span></td><td>前置 ($100)</td><td>2</td><td><span class="tag pending">筹备中</span></td><td><button class="btn">编辑</button></td></tr></tbody></table></div>
+    </div></div></div>
+<div class="page" id="page-country-list-list"><div class="card"><div class="page-head"><div><div class="page-title">国家管理</div><div class="page-desc">管理 Looply 支持的国家基础数据</div></div><div class="head-actions"><button class="btn primary" onclick="showSubPage('country-list','create')">新增国家</button></div></div><div class="kpi"><div class="item"><div class="num">9</div><div class="muted">国家总数</div></div><div class="item"><div class="num">1</div><div class="muted">多时区国家</div></div><div class="item"><div class="num">5</div><div class="muted">欧洲</div></div><div class="item"><div class="num">2</div><div class="muted">亚洲</div></div></div><div class="toolbar"><input class="input" placeholder="搜索国家代码 / 名称"><select><option>全部大洲</option><option>北美洲</option><option>欧洲</option><option>亚洲</option><option>大洋洲</option></select><button class="btn">查询</button></div><div class="table-wrap"><table><thead><tr><th>国家代码</th><th>国家名称</th><th>本地名称</th><th>所属大洲</th><th>是否多时区</th><th>支持时区数</th><th>电话区号</th><th>法定货币</th><th>主要语言</th><th>状态</th><th>操作</th></tr></thead><tbody><tr><td><b>US</b></td><td>United States</td><td>United States</td><td>北美洲</td><td><span class="tag pending">是</span></td><td>4</td><td>+1</td><td>USD</td><td>en</td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('country-list','edit')">编辑</button></td></tr><tr><td><b>FR</b></td><td>France</td><td>France</td><td>欧洲</td><td><span class="tag off">否</span></td><td>1</td><td>+33</td><td>EUR</td><td>fr</td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('country-list','edit')">编辑</button></td></tr><tr><td><b>DE</b></td><td>Germany</td><td>Deutschland</td><td>欧洲</td><td><span class="tag off">否</span></td><td>1</td><td>+49</td><td>EUR</td><td>de</td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('country-list','edit')">编辑</button></td></tr><tr><td><b>IT</b></td><td>Italy</td><td>Italia</td><td>欧洲</td><td><span class="tag off">否</span></td><td>1</td><td>+39</td><td>EUR</td><td>it</td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('country-list','edit')">编辑</button></td></tr><tr><td><b>ES</b></td><td>Spain</td><td>España</td><td>欧洲</td><td><span class="tag off">否</span></td><td>1</td><td>+34</td><td>EUR</td><td>es</td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('country-list','edit')">编辑</button></td></tr><tr><td><b>GB</b></td><td>United Kingdom</td><td>United Kingdom</td><td>欧洲</td><td><span class="tag off">否</span></td><td>1</td><td>+44</td><td>GBP</td><td>en</td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('country-list','edit')">编辑</button></td></tr><tr><td><b>JP</b></td><td>Japan</td><td>日本</td><td>亚洲</td><td><span class="tag off">否</span></td><td>1</td><td>+81</td><td>JPY</td><td>ja</td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('country-list','edit')">编辑</button></td></tr><tr><td><b>KR</b></td><td>South Korea</td><td>대한민국</td><td>亚洲</td><td><span class="tag off">否</span></td><td>1</td><td>+82</td><td>KRW</td><td>ko</td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('country-list','edit')">编辑</button></td></tr><tr><td><b>AU</b></td><td>Australia</td><td>Australia</td><td>大洋洲</td><td><span class="tag pending">是</span></td><td>3</td><td>+61</td><td>AUD</td><td>en</td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('country-list','edit')">编辑</button></td></tr></tbody></table></div>
+<div class="pagination"><span>共 9 条，每页 <select><option>10</option><option>20</option><option>50</option></select> 条</span><div class="page-nums"><span class="page-num" style="cursor:default;opacity:.4">&lt;</span><span class="page-num active">1</span><span class="page-num" style="cursor:default;opacity:.4">&gt;</span></div><span>第 1/1 页</span></div></div></div>
+<div class="page" id="page-country-list-create"><div class="card"><div class="page-head"><div><div class="page-title">新建国家</div><div class="page-desc">创建 Looply 支持的国家基础数据。</div></div><div class="head-actions"><button class="btn" onclick="navigateTo('country-list','国家管理')">返回列表</button></div></div><div class="form-section">
+      <div class="section-title">国家信息</div>
+      <div class="form-row"><div class="label">国家代码</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value=""></div>
+      <div class="form-row"><div class="label">国家名称</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value=""></div>
+      <div class="form-row"><div class="label">本地名称</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value=""></div>
+      <div class="form-row"><div class="label">所属大洲</div><select style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option  selected>北美洲</option><option>欧洲</option><option>亚洲</option><option>大洋洲</option></select></div>
+      <div class="form-row"><div class="label">是否多时区国家</div><select data-multi-timezone-toggle="country-create" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option selected>否</option><option>是</option></select></div>
+      <div class="rail-note" data-multi-timezone-note="country-create" style="margin:0 0 12px 136px">当前按单时区国家处理：支持时区列表仅保留 1 条记录，系统将其作为唯一有效时区。</div>
+      <div class="form-row"><div class="label">电话区号</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value=""></div>
+      <div class="form-row"><div class="label">法定货币</div><select style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option  selected>USD</option><option>EUR</option><option>GBP</option><option>JPY</option><option>KRW</option><option>AUD</option></select></div>
+      <div class="form-row"><div class="label">主要语言</div><select style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option  selected>en</option><option>fr</option><option>de</option><option>it</option><option>es</option><option>ja</option><option>ko</option><option>ar</option></select></div>
+      <div class="form-row"><div class="label">状态</div><select style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option  selected>启用</option><option>停用</option></select></div>
+      <div class="section-title" style="margin-top:24px">支持时区列表</div>
+      <div class="table-wrap"><table><thead><tr><th>IANA 时区标识</th><th>时区名称</th></tr></thead><tbody><tr><td>America/New_York</td><td>Eastern Time</td></tr><tr><td>America/Chicago</td><td>Central Time</td></tr></tbody></table></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="navigateTo('country-list','国家管理')">返回列表</button>
+      <button class="btn" onclick="navigateTo('country-list','国家管理')">取消</button>
+      <button class="btn primary">保存并创建</button>
+    </div></div></div>
+<div class="page" id="page-country-list-edit"><div class="card"><div class="page-head"><div><div class="page-title">编辑国家 — US</div><div class="page-desc"></div></div><div class="head-actions"><button class="btn" onclick="navigateTo('country-list','国家管理')">返回列表</button></div></div><div class="form-section">
+      <div class="section-title">国家信息</div>
+      <div class="form-row"><div class="label">国家代码</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value="US" readonly style="background:#f9fafb"></div>
+      <div class="form-row"><div class="label">国家名称</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value="United States"></div>
+      <div class="form-row"><div class="label">本地名称</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value="United States"></div>
+      <div class="form-row"><div class="label">所属大洲</div><select style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option  selected>北美洲</option><option>欧洲</option><option>亚洲</option><option>大洋洲</option></select></div>
+      <div class="form-row"><div class="label">是否多时区国家</div><select data-multi-timezone-toggle="country-edit" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option>否</option><option selected>是</option></select></div>
+      <div class="rail-note" data-multi-timezone-note="country-edit" style="margin:0 0 12px 136px">当前按多时区国家处理：该国家覆盖多个时区，支持时区列表由系统根据 IANA 数据自动关联，仅作客观记录。</div>
+      <div class="form-row"><div class="label">电话区号</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value="+1"></div>
+      <div class="form-row"><div class="label">法定货币</div><select style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option  selected>USD</option><option>EUR</option><option>GBP</option><option>JPY</option><option>KRW</option><option>AUD</option></select></div>
+      <div class="form-row"><div class="label">主要语言</div><select style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option  selected>en</option><option>fr</option><option>de</option><option>it</option><option>es</option><option>ja</option><option>ko</option><option>ar</option></select></div>
+      <div class="form-row"><div class="label">状态</div><select style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option  selected>启用</option><option>停用</option></select></div>
+      <div class="section-title" style="margin-top:24px">支持时区列表</div>
+      <div class="table-wrap"><table><thead><tr><th>IANA 时区标识</th><th>时区名称</th></tr></thead><tbody><tr><td>America/New_York</td><td>Eastern Time</td></tr><tr><td>America/Chicago</td><td>Central Time</td></tr><tr><td>America/Denver</td><td>Mountain Time</td></tr><tr><td>America/Los_Angeles</td><td>Pacific Time</td></tr></tbody></table></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="navigateTo('country-list','国家管理')">返回列表</button>
+      <button class="btn" onclick="navigateTo('country-list','国家管理')">取消</button>
+      <button class="btn primary">保存</button>
+    </div></div></div>
+<div class="page" id="page-timezone-list-list"><div class="card"><div class="page-head"><div><div class="page-title">时区管理</div><div class="page-desc">数据由系统从 IANA 时区数据库自动同步维护，不支持手动新增或编辑，仅可按需启用或停用。</div></div></div><div class="kpi"><div class="item"><div class="num">8</div><div class="muted">时区总数</div></div><div class="item"><div class="num">2</div><div class="muted">DST 时区</div></div><div class="item"><div class="num">6</div><div class="muted">标准时区</div></div><div class="item"><div class="num">8</div><div class="muted">已启用</div></div></div><div class="toolbar"><input class="input" placeholder="搜索时区 ID / 名称"><select><option>全部 DST 类型</option><option>含 DST</option><option>不含 DST</option></select><select><option>全部状态</option><option>启用</option><option>停用</option></select><button class="btn">查询</button></div><div class="table-wrap"><table><thead><tr><th>IANA 时区标识</th><th>时区名称</th><th>UTC 偏移</th><th>DST</th><th>适用国家数</th><th>状态</th><th>操作</th></tr></thead><tbody><tr><td><b>America/New_York</b></td><td>Eastern Time</td><td>UTC-5 / UTC-4</td><td><span class="tag pending">是</span></td><td>2</td><td><span class="tag on">启用</span></td><td><button class="btn">停用</button></td></tr><tr><td><b>America/Los_Angeles</b></td><td>Pacific Time</td><td>UTC-8 / UTC-7</td><td><span class="tag pending">是</span></td><td>1</td><td><span class="tag on">启用</span></td><td><button class="btn">停用</button></td></tr><tr><td><b>Europe/Paris</b></td><td>Central European Time</td><td>UTC+1 / UTC+2</td><td><span class="tag pending">是</span></td><td>3</td><td><span class="tag on">启用</span></td><td><button class="btn">停用</button></td></tr><tr><td><b>Europe/Berlin</b></td><td>Central European Time</td><td>UTC+1 / UTC+2</td><td><span class="tag pending">是</span></td><td>1</td><td><span class="tag on">启用</span></td><td><button class="btn">停用</button></td></tr><tr><td><b>Asia/Singapore</b></td><td>Singapore Time</td><td>UTC+8</td><td><span class="tag off">否</span></td><td>1</td><td><span class="tag off">停用</span></td><td><button class="btn primary">启用</button></td></tr></tbody></table></div>
+<div class="pagination"><span>共 8 条，每页 <select><option>10</option><option>20</option><option>50</option></select> 条</span><div class="page-nums"><span class="page-num" style="cursor:default;opacity:.4">&lt;</span><span class="page-num active">1</span><span class="page-num" style="cursor:default;opacity:.4">&gt;</span></div><span>第 1/1 页</span></div></div></div>
+<div class="page" id="page-currency-list-list"><div class="card"><div class="page-head"><div><div class="page-title">货币管理</div><div class="page-desc">管理 Looply 支持的货币基础数据</div></div><div class="head-actions"><button class="btn primary" onclick="showSubPage('currency-list','create')">新增货币</button></div></div><div class="kpi"><div class="item"><div class="num">6</div><div class="muted">货币总数</div></div><div class="item"><div class="num">4</div><div class="muted">小数位2位</div></div><div class="item"><div class="num">2</div><div class="muted">小数位0位</div></div><div class="item"><div class="num">6</div><div class="muted">已启用</div></div></div><div class="toolbar"><input class="input" placeholder="搜索货币代码 / 名称"><button class="btn">查询</button></div><div class="table-wrap"><table><thead><tr><th>货币代码</th><th>货币名称</th><th>符号</th><th>小数位数</th><th>状态</th><th>操作</th></tr></thead><tbody><tr><td><b>USD</b></td><td>US Dollar</td><td>$</td><td>2</td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('currency-list','edit')">编辑</button></td></tr><tr><td><b>EUR</b></td><td>Euro</td><td>€</td><td>2</td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('currency-list','edit')">编辑</button></td></tr><tr><td><b>GBP</b></td><td>British Pound</td><td>£</td><td>2</td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('currency-list','edit')">编辑</button></td></tr><tr><td><b>JPY</b></td><td>Japanese Yen</td><td>¥</td><td>0</td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('currency-list','edit')">编辑</button></td></tr><tr><td><b>KRW</b></td><td>South Korean Won</td><td>₩</td><td>0</td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('currency-list','edit')">编辑</button></td></tr><tr><td><b>AUD</b></td><td>Australian Dollar</td><td>A$</td><td>2</td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('currency-list','edit')">编辑</button></td></tr></tbody></table></div>
+<div class="pagination"><span>共 6 条，每页 <select><option>10</option><option>20</option><option>50</option></select> 条</span><div class="page-nums"><span class="page-num" style="cursor:default;opacity:.4">&lt;</span><span class="page-num active">1</span><span class="page-num" style="cursor:default;opacity:.4">&gt;</span></div><span>第 1/1 页</span></div></div></div>
+<div class="page" id="page-currency-list-create"><div class="card"><div class="page-head"><div><div class="page-title">新建货币</div><div class="page-desc">创建 Looply 支持的货币基础数据。</div></div><div class="head-actions"><button class="btn" onclick="navigateTo('currency-list','货币管理')">返回列表</button></div></div><div class="form-section">
+      <div class="section-title">货币信息</div>
+      <div class="form-row"><div class="label">货币代码</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value=""></div>
+      <div class="form-row"><div class="label">货币名称</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value=""></div>
+      <div class="form-row"><div class="label">货币符号</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value=""></div>
+      <div class="form-row"><div class="label">小数位数</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value="2"></div>
+      <div class="form-row"><div class="label">状态</div><select style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option  selected>启用</option><option>停用</option></select></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="navigateTo('currency-list','货币管理')">返回列表</button>
+      <button class="btn" onclick="navigateTo('currency-list','货币管理')">取消</button>
+      <button class="btn primary">保存并创建</button>
+    </div></div></div>
+<div class="page" id="page-currency-list-edit"><div class="card"><div class="page-head"><div><div class="page-title">编辑货币 — USD</div><div class="page-desc"></div></div><div class="head-actions"><button class="btn" onclick="navigateTo('currency-list','货币管理')">返回列表</button></div></div><div class="form-section">
+      <div class="section-title">货币信息</div>
+      <div class="form-row"><div class="label">货币代码</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value="USD" readonly style="background:#f9fafb"></div>
+      <div class="form-row"><div class="label">货币名称</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value="US Dollar"></div>
+      <div class="form-row"><div class="label">货币符号</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value="$"></div>
+      <div class="form-row"><div class="label">小数位数</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value="2"></div>
+      <div class="form-row"><div class="label">状态</div><select style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option  selected>启用</option><option>停用</option></select></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="navigateTo('currency-list','货币管理')">返回列表</button>
+      <button class="btn" onclick="navigateTo('currency-list','货币管理')">取消</button>
+      <button class="btn primary">保存</button>
+    </div></div></div>
+<div class="page" id="page-language-list-list"><div class="card"><div class="page-head"><div><div class="page-title">语言管理</div><div class="page-desc">管理 Looply 支持的语言基础数据</div></div><div class="head-actions"><button class="btn primary" onclick="showSubPage('language-list','create')">新增语言</button></div></div><div class="kpi"><div class="item"><div class="num">8</div><div class="muted">语言总数</div></div><div class="item"><div class="num">7</div><div class="muted">从左到右</div></div><div class="item"><div class="num">1</div><div class="muted">从右到左</div></div><div class="item"><div class="num">8</div><div class="muted">已启用</div></div></div><div class="toolbar"><input class="input" placeholder="搜索语言代码 / 名称"><button class="btn">查询</button></div><div class="table-wrap"><table><thead><tr><th>语言代码</th><th>语言名称</th><th>本地名称</th><th>书写方向</th><th>状态</th><th>操作</th></tr></thead><tbody><tr><td><b>en</b></td><td>English</td><td>English</td><td><span class="tag off">从左到右</span></td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('language-list','edit')">编辑</button></td></tr><tr><td><b>fr</b></td><td>French</td><td>Français</td><td><span class="tag off">从左到右</span></td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('language-list','edit')">编辑</button></td></tr><tr><td><b>de</b></td><td>German</td><td>Deutsch</td><td><span class="tag off">从左到右</span></td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('language-list','edit')">编辑</button></td></tr><tr><td><b>it</b></td><td>Italian</td><td>Italiano</td><td><span class="tag off">从左到右</span></td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('language-list','edit')">编辑</button></td></tr><tr><td><b>es</b></td><td>Spanish</td><td>Español</td><td><span class="tag off">从左到右</span></td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('language-list','edit')">编辑</button></td></tr><tr><td><b>ja</b></td><td>Japanese</td><td>日本語</td><td><span class="tag off">从左到右</span></td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('language-list','edit')">编辑</button></td></tr><tr><td><b>ko</b></td><td>Korean</td><td>한국어</td><td><span class="tag off">从左到右</span></td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('language-list','edit')">编辑</button></td></tr><tr><td><b>ar</b></td><td>Arabic</td><td>العربية</td><td><span class="tag on">从右到左</span></td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('language-list','edit')">编辑</button></td></tr></tbody></table></div>
+<div class="pagination"><span>共 8 条，每页 <select><option>10</option><option>20</option><option>50</option></select> 条</span><div class="page-nums"><span class="page-num" style="cursor:default;opacity:.4">&lt;</span><span class="page-num active">1</span><span class="page-num" style="cursor:default;opacity:.4">&gt;</span></div><span>第 1/1 页</span></div></div></div>
+<div class="page" id="page-language-list-create"><div class="card"><div class="page-head"><div><div class="page-title">新建语言</div><div class="page-desc">创建 Looply 支持的语言基础数据。</div></div><div class="head-actions"><button class="btn" onclick="navigateTo('language-list','语言管理')">返回列表</button></div></div><div class="form-section">
+      <div class="section-title">语言信息</div>
+      <div class="form-row"><div class="label">语言代码</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value=""></div>
+      <div class="form-row"><div class="label">语言名称</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value=""></div>
+      <div class="form-row"><div class="label">本地名称</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value=""></div>
+      <div class="form-row"><div class="label">书写方向</div><select style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option  selected>从左到右</option><option>从右到左</option></select></div>
+      <div class="rail-note" style="margin:0 0 12px 136px">大多数语言使用从左到右；阿拉伯语等少数语言使用从右到左，页面布局会跟着一起调整。</div>
+      <div class="form-row"><div class="label">状态</div><select style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option  selected>启用</option><option>停用</option></select></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="navigateTo('language-list','语言管理')">返回列表</button>
+      <button class="btn" onclick="navigateTo('language-list','语言管理')">取消</button>
+      <button class="btn primary">保存并创建</button>
+    </div></div></div>
+<div class="page" id="page-language-list-edit"><div class="card"><div class="page-head"><div><div class="page-title">编辑语言 — en</div><div class="page-desc"></div></div><div class="head-actions"><button class="btn" onclick="navigateTo('language-list','语言管理')">返回列表</button></div></div><div class="form-section">
+      <div class="section-title">语言信息</div>
+      <div class="form-row"><div class="label">语言代码</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value="en" readonly style="background:#f9fafb"></div>
+      <div class="form-row"><div class="label">语言名称</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value="English"></div>
+      <div class="form-row"><div class="label">本地名称</div><input class="input-display" style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" value="English"></div>
+      <div class="form-row"><div class="label">书写方向</div><select style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option  selected>从左到右</option><option>从右到左</option></select></div>
+      <div class="rail-note" style="margin:0 0 12px 136px">大多数语言使用从左到右；阿拉伯语等少数语言使用从右到左，页面布局会跟着一起调整。</div>
+      <div class="form-row"><div class="label">状态</div><select style="flex:1;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option  selected>启用</option><option>停用</option></select></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="navigateTo('language-list','语言管理')">返回列表</button>
+      <button class="btn" onclick="navigateTo('language-list','语言管理')">取消</button>
+      <button class="btn primary">保存</button>
+    </div></div></div>
+  </div>
+</div>
+<script>
+window.toggleGroup = function(parent) {
+  var group = parent.closest('.menu-group');
+  group.classList.toggle('open');
+  parent.setAttribute('aria-expanded', group.classList.contains('open'));
+};
+window.toggleSubgroup = function(subparent) {
+  var group = subparent.closest('.menu-subgroup');
+  group.classList.toggle('open');
+  subparent.setAttribute('aria-expanded', group.classList.contains('open'));
+};
+function clearAllActive() {
+  document.querySelectorAll('.menu-solo,.menu-child,.menu-grandchild').forEach(function(el){el.classList.remove('active')});
+  document.querySelectorAll('.menu-parent').forEach(function(el){el.classList.remove('active-parent')});
+  document.querySelectorAll('.menu-subparent').forEach(function(el){el.classList.remove('active-parent')});
+}
+function navigateTo(pageId, label) {
+  clearAllActive();
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
+  var target = document.getElementById('page-' + pageId + '-list') || document.getElementById('page-' + pageId);
+  if (target) target.classList.add('active');
+  document.querySelector('.breadcrumb').textContent = label || '';
+  var menuItem = document.querySelector('[data-page="' + pageId + '"]');
+  if (menuItem) {
+    menuItem.classList.add('active');
+    var group = menuItem.closest('.menu-group');
+    if (group) { group.classList.add('open'); var p = group.querySelector('.menu-parent'); if(p) p.classList.add('active-parent'); }
+  }
+}
+function showSubPage(module, action) {
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
+  var target = document.getElementById('page-' + module + '-' + action);
+  if (target) target.classList.add('active');
+}
+document.querySelectorAll('[data-page]').forEach(function(item) {
+  item.addEventListener('click', function() {
+    var pageId = this.dataset.page;
+    var label = this.querySelector('span') ? this.querySelector('span').textContent : '';
+    navigateTo(pageId, label);
+  });
+});
+document.querySelectorAll('.tabs').forEach(function(tabBar) {
+  tabBar.querySelectorAll('.tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      var paneId = this.dataset.pane;
+      tabBar.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});
+      this.classList.add('active');
+      var container = tabBar.parentElement;
+      container.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active')});
+      var pane = container.querySelector('#' + paneId);
+      if (pane) pane.classList.add('active');
+    });
+  });
+});
+function updateWizardState(wizardName, stepIndex) {
+  var steps = document.querySelectorAll('[data-wizard="' + wizardName + '"] .step');
+  var panes = document.querySelectorAll('[data-wizard-body="' + wizardName + '"] .wizard-step');
+  var prevBtn = document.querySelector('[data-wizard-prev="' + wizardName + '"]');
+  var nextBtn = document.querySelector('[data-wizard-next="' + wizardName + '"]');
+  var finishBtn = document.querySelector('[data-wizard-finish="' + wizardName + '"]');
+  steps.forEach(function(step, index) {
+    step.classList.remove('current', 'done');
+    if (index < stepIndex) step.classList.add('done');
+    if (index === stepIndex) step.classList.add('current');
+  });
+  panes.forEach(function(pane, index) {
+    pane.classList.toggle('active', index === stepIndex);
+  });
+  if (prevBtn) prevBtn.style.display = stepIndex === 0 ? 'none' : 'inline-flex';
+  if (nextBtn) nextBtn.style.display = stepIndex === steps.length - 1 ? 'none' : 'inline-flex';
+  if (finishBtn) finishBtn.style.display = stepIndex === steps.length - 1 ? 'inline-flex' : 'none';
+}
+document.querySelectorAll('[data-wizard-next]').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var wizardName = this.dataset.wizardNext;
+    var current = document.querySelector('[data-wizard="' + wizardName + '"] .step.current');
+    if (!current) return;
+    var nextIndex = Number(current.dataset.step) + 1;
+    updateWizardState(wizardName, nextIndex);
+  });
+});
+document.querySelectorAll('[data-wizard-prev]').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var wizardName = this.dataset.wizardPrev;
+    var current = document.querySelector('[data-wizard="' + wizardName + '"] .step.current');
+    if (!current) return;
+    var prevIndex = Number(current.dataset.step) - 1;
+    updateWizardState(wizardName, prevIndex);
+  });
+});
+document.querySelectorAll('[data-wizard-finish]').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    showSubPage('market-list','detail');
+  });
+});
+/* Fix: 步骤条点击跳转 */
+document.querySelectorAll('.steps .step').forEach(function(step) {
+  step.addEventListener('click', function() {
+    var wizardName = this.closest('.steps').dataset.wizard;
+    var stepIndex = Number(this.dataset.step);
+    updateWizardState(wizardName, stepIndex);
+  });
+});
+function syncMultiTimezoneNote(groupName) {
+  var toggle = document.querySelector('[data-multi-timezone-toggle="' + groupName + '"]');
+  if (!toggle) return;
+  var multi = toggle.value === '是';
+  var note = document.querySelector('[data-multi-timezone-note="' + groupName + '"]');
+  if (note) {
+    note.textContent = multi
+      ? '当前按多时区国家处理：该国家覆盖多个时区，支持时区列表由系统根据 IANA 数据自动关联，仅作客观记录。'
+      : '当前按单时区国家处理：支持时区列表仅保留 1 条记录，系统将其作为唯一有效时区。';
+  }
+}
+document.querySelectorAll('[data-multi-timezone-toggle]').forEach(function(el) {
+  el.addEventListener('change', function() {
+    syncMultiTimezoneNote(this.dataset.multiTimezoneToggle);
+  });
+  syncMultiTimezoneNote(el.dataset.multiTimezoneToggle);
+});
+/* v9: Edit mode - change wizard title */
+function enterEditMode(module) {
+  showSubPage(module, 'create');
+  var titleEl = document.querySelector('#page-' + module + '-create .page-title');
+  if (titleEl) titleEl.textContent = '编辑市场';
+  var descEl = document.querySelector('#page-' + module + '-create .page-desc');
+  if (descEl) descEl.textContent = '修改 Market 基本信息及国家、语言、货币配置。';
+}
+/* v9: Ensure "新建市场" resets title */
+document.querySelectorAll('[onclick*="showSubPage(\'market-list\',\'create\')"]').forEach(function(btn) {
+  var origOnclick = btn.getAttribute('onclick');
+  btn.setAttribute('onclick', origOnclick + ";var t=document.querySelector('#page-market-list-create .page-title');if(t)t.textContent='新建市场';var d=document.querySelector('#page-market-list-create .page-desc');if(d)d.textContent='先创建 Market 基本信息，再逐步完成国家、语言和货币配置。';");
+});
+var firstMenu = document.querySelector('[data-page]');
+if (firstMenu) firstMenu.click();
+
+</script>
+</body>
+</html>

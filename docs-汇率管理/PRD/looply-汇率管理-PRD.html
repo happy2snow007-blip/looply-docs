@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Looply 汇率管理模块 PRD v3.1</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937;font-size:14px;line-height:1.8;max-width:960px;margin:0 auto;padding:40px 32px}
+h1{font-size:26px;font-weight:700;margin:32px 0 16px;color:#1F2937;border-bottom:2px solid #7C3AED;padding-bottom:8px}
+h2{font-size:20px;font-weight:700;margin:28px 0 12px;color:#7C3AED;border-bottom:1px solid #E5E7EB;padding-bottom:6px}
+h3{font-size:17px;font-weight:600;margin:24px 0 10px;color:#374151}
+h4{font-size:15px;font-weight:600;margin:20px 0 8px;color:#4B5563}
+p{margin:6px 0}
+strong{font-weight:600}
+code{background:#F3F4F6;padding:1px 5px;border-radius:4px;font-size:13px;color:#7C3AED}
+pre{background:#1F2937;color:#E5E7EB;padding:16px;border-radius:10px;overflow-x:auto;margin:12px 0;font-size:13px;line-height:1.6}
+pre code{background:none;color:inherit;padding:0}
+hr{border:none;border-top:1px solid #E5E7EB;margin:24px 0}
+ol,ul{margin:8px 0 8px 24px}
+li{margin:4px 0}
+.table-wrap{border:1px solid #E5E7EB;border-radius:10px;overflow:hidden;margin:12px 0}
+table{width:100%;border-collapse:collapse}
+th{background:#FAF5FF;padding:8px 12px;text-align:left;font-size:12px;color:#6B7280;border-bottom:1px solid #E5E7EB;font-weight:600}
+td{padding:8px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;vertical-align:top}
+tr:hover{background:#FAF5FF}
+</style>
+</head>
+<body>
+<h1>Looply 汇率管理模块 PRD</h1>
+<p><strong>文档版本</strong>：v3.1</p>
+<p><strong>创建日期</strong>：2026-04-29</p>
+<p><strong>产品负责人</strong>：产品团队</p>
+<p><strong>目标上线</strong>：MVP 阶段</p>
+<hr>
+<h2>一、概述</h2>
+<h3>1.1 背景与目标</h3>
+<p>Looply 是面向美国市场的跨境二手电商平台，从二手奢侈品（包袋、首饰、配饰）切入。平台以 USD 为系统基准货币，需要为欧洲、英国、日本等多国用户提供本地货币价格展示。</p>
+<p>汇率管理模块是平台的<strong>用户价格换算基础设施</strong>，核心目标：</p>
+<ol>
+<li>从外部数据源定时采集原始汇率</li>
+<li>通过点差规则加工生成平台生效汇率</li>
+<li>每日定时发布，保证用户端价格稳定</li>
+<li>支持运营监控、手动干预与异常兜底</li>
+<li>提供完整的变动日志与审计追溯</li>
+</ol>
+<h3>1.2 不做什么</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>明确不做</th><th>原因</th></tr></thead>
+<tbody>
+<tr><td>金额换算计算</td><td>调用方自行计算：目标金额 = USD 底价 × 生效汇率</td></tr>
+<tr><td>金额格式化与展示</td><td>符号、千分位、小数点由前端/格式化服务负责</td></tr>
+<tr><td>报价锁定</td><td>属于结算/支付模块职责</td></tr>
+<tr><td>心理价修正</td><td>属于商品定价/营销模块职责</td></tr>
+<tr><td>支付结算与财务对账</td><td>属于支付/财务模块职责</td></tr>
+<tr><td>多汇率源智能比价</td><td>MVP 后续迭代</td></tr>
+<tr><td>自动汇率对冲策略</td><td>MVP 后续迭代</td></tr>
+</tbody></table></div>
+<h3>1.3 用户角色</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>角色</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>运营人员</td><td>通过后台管理汇率：配置点差、查看生效汇率、处理异常告警、手动发布、回滚操作</td></tr>
+<tr><td>系统（定时任务）</td><td>每小时采集原始汇率、每日 UTC 00:00 自动发布生效汇率、触发异常告警</td></tr>
+</tbody></table></div>
+<p>本模块为纯后台管理模块，无 APP 端，无终端用户直接交互。</p>
+<h3>1.4 核心场景</h3>
+<ol>
+<li><strong>日常运营</strong>：系统每日自动采集并发布汇率，运营通过"生效汇率"页面监控当前状态</li>
+<li><strong>点差调整</strong>：运营根据业务需要调整全局或单币种点差，下次发布时自动生效</li>
+<li><strong>异常处理</strong>：采集汇率波动超过阈值时，系统暂停自动发布并告警，运营审核后决定发布或忽略</li>
+<li><strong>手动干预</strong>：市场剧烈波动时，运营可将币种切换为固定模式手动设定汇率，或提前手动发布</li>
+<li><strong>问题排查</strong>：通过变动日志回溯某一时刻的汇率数据，同批次发布记录可聚合查看完整快照，支持订单核对与审计</li>
+</ol>
+<h3>1.5 全局页面流转</h3>
+<pre><code>
+生效汇率 ──「设置汇率」──→ 设置汇率弹窗（自动/固定模式切换）
+
+
+生效汇率 ──「历史」──→ 汇率历史弹窗
+
+
+生效汇率 ──「异常告警数字」──→ 异常告警页面
+
+
+点差规则 ──「新增/编辑」──→ 点差规则弹窗
+
+
+数据源管理 ──「编辑」──→ 编辑数据源弹窗
+
+
+数据源管理 ──「测试连接」──→ 测试连接结果弹窗
+
+
+汇率采集 ──（查看数据，无跳转）
+
+
+变动日志 ──「回滚」──→ 回滚确认
+
+
+变动日志 ──「查看批次」──→ 发布批次详情弹窗
+
+
+异常告警 ──「确认发布」──→ 确认发布弹窗
+
+
+异常告警 ──「忽略」──→ 忽略确认弹窗
+
+
+异常告警 ──「调整固定汇率」──→ 设置汇率弹窗
+
+
+异常告警 ──「恢复自动」──→ 恢复自动模式弹窗
+</code></pre>
+<h3>1.6 术语说明</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>术语</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>基准货币</td><td>汇率换算的基准，Looply 统一使用 USD</td></tr>
+<tr><td>目标货币</td><td>需要换算到的货币（如 EUR、GBP、JPY）</td></tr>
+<tr><td>原始汇率</td><td>从第三方数据源采集的未加工汇率</td></tr>
+<tr><td>点差</td><td>平台在原始汇率基础上叠加的调整比例</td></tr>
+<tr><td>生效汇率</td><td>应用点差后实际对外提供的汇率</td></tr>
+<tr><td>自动模式</td><td>币种跟随市场汇率 + 点差，每日定时自动发布</td></tr>
+<tr><td>固定模式</td><td>运营手动设定汇率值，定时发布跳过该币种</td></tr>
+<tr><td>采集</td><td>系统从第三方数据源获取原始汇率的动作</td></tr>
+<tr><td>发布</td><td>将加工后的生效汇率推送给业务系统使用的动作</td></tr>
+<tr><td>发布批次号</td><td>同一次发布操作中所有币种共享的批次标识，用于聚合查看完整快照</td></tr>
+</tbody></table></div>
+<div class="table-wrap"><table>
+<thead><tr><th>最近成功率</th><th>数据源最近 24 小时内成功采集次数 / 总采集次数 × 100%</th></tr></thead>
+<tbody>
+</tbody></table></div>
+<h3>1.7 多语言 / 多国家策略</h3>
+<p>本模块为内部运营后台，仅支持中文界面，不涉及多语言。汇率数据本身以 ISO 4217 币种代码标识，天然支持国际化。</p>
+<hr>
+<h2>二、需求详细描述</h2>
+<h3>2.1 生效汇率</h3>
+<h4>模块概述</h4>
+<p>生效汇率是运营日常使用频率最高的页面，展示当前对外生效的平台汇率。每日 UTC 00:00 系统定时发布，运营也可手动提前发布。每个币种支持"自动"和"固定"两种汇率模式。</p>
+<h4>2.1.1 生效汇率列表（页面型）</h4>
+<p><strong>功能描述</strong></p>
+<p>展示所有已启用币种对的当前生效汇率，包括汇率模式、原始汇率、点差、涨跌幅、发布信息等，支持筛选和搜索。</p>
+<p><strong>前置条件</strong></p>
+<ul>
+<li>至少有一个数据源已启用且采集成功</li>
+<li>至少有一个币种已启用</li>
+</ul>
+<p><strong>页面布局</strong></p>
+<ul>
+<li>顶部：页面标题 + 说明 + 操作按钮（手动发布全部、刷新原始汇率）</li>
+<li>说明区：汇率模式（自动/固定）的含义说明</li>
+<li>KPI 卡片：生效币种对数、最近发布时间、发布方式、异常告警数（可点击跳转）</li>
+<li>工具栏：搜索币种对、筛选模式（全部/自动/固定）、筛选状态（全部/生效/停用）</li>
+<li>数据表格 + 分页</li>
+</ul>
+<p><strong>页面元素</strong></p>
+<div class="table-wrap"><table>
+<thead><tr><th>列名</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>币种对</td><td>如 USD → EUR</td></tr>
+<tr><td>汇率模式</td><td>自动（蓝色标签）/ 固定（黄色标签）</td></tr>
+<tr><td>原始汇率</td><td>最近一次发布时的快照值，非实时数据</td></tr>
+<tr><td>点差</td><td>当前应用的点差比例，固定模式显示"-"</td></tr>
+<tr><td>生效汇率</td><td>当前对外生效的汇率值</td></tr>
+<tr><td>涨跌</td><td>与上一次发布的变化幅度，绿色上涨/红色下跌</td></tr>
+<tr><td>发布方式</td><td>定时 / 手动</td></tr>
+<tr><td>发布人</td><td>系统 / 运营人员姓名</td></tr>
+<tr><td>发布时间</td><td>最近一次发布的时间</td></tr>
+<tr><td>状态</td><td>生效 / 停用</td></tr>
+<tr><td>操作</td><td>设置汇率、历史</td></tr>
+</tbody></table></div>
+<p><strong>操作流程</strong></p>
+<p>主流程——查看当前汇率：</p>
+<ol>
+<li>进入页面，默认展示所有生效币种对</li>
+<li>可通过搜索框和筛选条件缩小范围</li>
+<li>查看各币种的汇率模式、生效汇率、涨跌幅等信息</li>
+</ol>
+<p>分支流程——手动发布全部：</p>
+<ol>
+<li>点击"手动发布全部"按钮</li>
+<li>弹出二次确认弹窗，展示发布范围摘要（自动模式币种数、固定模式币种数）和风险提示</li>
+<li>运营填写发布原因（必填）</li>
+<li>点击"确认发布"，系统取所有自动模式币种的最新原始汇率，应用点差规则，生成新的生效汇率</li>
+<li>固定模式币种不受影响</li>
+<li>发布成功后关闭弹窗，刷新列表，发布方式显示"手动"，发布人显示当前运营</li>
+</ol>
+<p>分支流程——刷新原始汇率：</p>
+<ol>
+<li>点击"刷新原始汇率"按钮</li>
+<li>系统立即触发一次数据源采集</li>
+<li>仅更新原始汇率数据，不触发发布</li>
+</ol>
+<p><strong>校验规则</strong></p>
+<div class="table-wrap"><table>
+<thead><tr><th>字段</th><th>规则</th><th>校验时机</th></tr></thead>
+<tbody>
+<tr><td>发布原因（手动发布弹窗）</td><td>必填、最少 2 个字符</td><td>提交时</td></tr>
+</tbody></table></div>
+<p><strong>交互说明</strong></p>
+<ul>
+<li>手动发布全部：点击后弹出确认弹窗，包含风险提示、发布范围摘要、发布原因文本域；确认后执行发布</li>
+<li>KPI 区域"异常告警"数字可点击，跳转到异常告警页面</li>
+<li>表格行 hover 高亮</li>
+<li>分页：默认每页 10 条</li>
+</ul>
+<p><strong>异常处理</strong></p>
+<ul>
+<li>手动发布失败：提示"发布失败，请稍后重试"，不关闭弹窗</li>
+<li>数据源全部不可用时，列表仍展示最近一次发布的数据，KPI 区域提示"数据源异常"</li>
+<li>网络异常：提示"网络异常，请稍后重试"</li>
+</ul>
+<p><strong>UI 关联</strong></p>
+<ul>
+<li>PC 端：V7 原型「生效汇率」页面 + 「确认手动发布全部」弹窗</li>
+<li>APP 端：不涉及</li>
+</ul>
+<h4>2.1.2 设置汇率（页面型——弹窗）</h4>
+<p><strong>功能描述</strong></p>
+<p>对单个币种设置汇率模式（自动/固定）和汇率值。自动模式下展示当前原始汇率和点差计算结果；固定模式下运营手动输入生效汇率值。模式切换需二次确认。</p>
+<p><strong>前置条件</strong></p>
+<ul>
+<li>从生效汇率列表点击"设置汇率"按钮打开</li>
+</ul>
+<p><strong>页面布局</strong></p>
+<ul>
+<li>弹窗形式，包含：币种对（只读）、当前生效汇率（只读）、汇率模式选择（自动/固定卡片式单选）、模式对应的内容区、变更原因（必填）</li>
+</ul>
+<p><strong>页面元素</strong></p>
+<div class="table-wrap"><table>
+<thead><tr><th>元素</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>币种对</td><td>只读，如 USD → EUR</td></tr>
+<tr><td>当前生效汇率</td><td>只读，展示当前值</td></tr>
+<tr><td>汇率模式</td><td>卡片式单选：自动模式 / 固定模式，当前模式高亮</td></tr>
+<tr><td>自动模式内容区</td><td>展示当前原始汇率、点差规则、计算后的生效汇率（均只读）</td></tr>
+<tr><td>固定模式内容区</td><td>输入框：固定生效汇率（数字，精度 4 位小数）</td></tr>
+<tr><td>变更原因</td><td>文本域，必填</td></tr>
+</tbody></table></div>
+<p><strong>页面状态变体</strong></p>
+<ul>
+<li>默认态：展示当前模式对应的内容区</li>
+<li>切换模式时：触发二次确认弹窗，确认后切换内容区</li>
+</ul>
+<p><strong>操作流程</strong></p>
+<p>主流程——保持当前模式修改：</p>
+<ol>
+<li>打开弹窗，默认展示当前模式</li>
+<li>自动模式下为只读展示，固定模式下可修改汇率值</li>
+<li>填写变更原因</li>
+<li>点击"确认保存"</li>
+</ol>
+<p>分支流程——切换汇率模式：</p>
+<ol>
+<li>点击另一个模式卡片</li>
+<li>弹出二次确认弹窗，说明切换后的影响</li>
+<li>确认后切换内容区</li>
+<li>填写变更原因</li>
+<li>点击"确认保存"</li>
+</ol>
+<p><strong>校验规则</strong></p>
+<div class="table-wrap"><table>
+<thead><tr><th>字段</th><th>规则</th><th>校验时机</th></tr></thead>
+<tbody>
+<tr><td>固定生效汇率</td><td>必填（固定模式下）、大于 0、最多 4 位小数</td><td>提交时</td></tr>
+<tr><td>变更原因</td><td>必填、最少 2 个字符</td><td>提交时</td></tr>
+</tbody></table></div>
+<p><strong>交互说明</strong></p>
+<ul>
+<li>模式切换的二次确认弹窗：</li>
+</ul>
+<p>  - 切换为固定模式：提示"该币种将不再跟随市场汇率自动更新、定时发布将跳过该币种、需手动设定生效汇率值"</p>
+<p>  - 切换为自动模式：提示"该币种将在下次定时发布时跟随市场汇率更新、当前固定汇率将被覆盖"</p>
+<ul>
+<li>取消二次确认时，模式选择恢复原状</li>
+</ul>
+<p><strong>异常处理</strong></p>
+<ul>
+<li>提交失败：提示"保存失败，请稍后重试"，不关闭弹窗</li>
+<li>网络异常：提示"网络异常，请检查网络连接"</li>
+</ul>
+<p><strong>UI 关联</strong></p>
+<ul>
+<li>PC 端：V7 原型「设置汇率」弹窗 + 「模式切换二次确认」弹窗</li>
+<li>APP 端：不涉及</li>
+</ul>
+<h4>2.1.3 汇率历史（页面型——弹窗）</h4>
+<p><strong>功能描述</strong></p>
+<p>查看单个币种对的历史发布记录，展示每次发布时的原始汇率、点差、生效汇率和涨跌幅。</p>
+<p><strong>前置条件</strong></p>
+<ul>
+<li>从生效汇率列表点击"历史"按钮打开</li>
+</ul>
+<p><strong>页面布局</strong></p>
+<ul>
+<li>弹窗形式，顶部显示币种对名称，下方为历史记录表格</li>
+</ul>
+<p><strong>页面元素</strong></p>
+<div class="table-wrap"><table>
+<thead><tr><th>列名</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>发布时间</td><td>每次发布的时间</td></tr>
+<tr><td>原始汇率</td><td>发布时的原始汇率</td></tr>
+<tr><td>点差</td><td>发布时应用的点差比例</td></tr>
+<tr><td>生效汇率</td><td>发布时的最终汇率</td></tr>
+<tr><td>涨跌</td><td>与上一次发布的变化幅度</td></tr>
+<tr><td>发布方式</td><td>定时 / 手动</td></tr>
+</tbody></table></div>
+<p><strong>数据范围与分页</strong></p>
+<ul>
+<li>默认展示最近 30 天的发布记录</li>
+<li>支持分页，每页 20 条</li>
+<li>无日期筛选（如需更久历史，去变动日志页面查询）</li>
+</ul>
+<p><strong>异常处理</strong></p>
+<ul>
+<li>无历史数据时展示空状态</li>
+</ul>
+<p><strong>UI 关联</strong></p>
+<ul>
+<li>PC 端：V7 原型「汇率历史」弹窗</li>
+<li>APP 端：不涉及</li>
+</ul>
+<hr>
+<h3>2.2 点差规则</h3>
+<h4>模块概述</h4>
+<p>点差规则决定了平台生效汇率与市场原始汇率之间的差值。支持全局默认点差和单币种覆盖，单币种优先级高于全局默认。</p>
+<h4>2.2.1 点差规则列表（页面型）</h4>
+<p><strong>功能描述</strong></p>
+<p>展示全局默认点差和各币种的单独点差配置，支持新增、编辑、停用操作。</p>
+<p><strong>前置条件</strong></p>
+<ul>
+<li>无</li>
+</ul>
+<p><strong>页面布局</strong></p>
+<ul>
+<li>顶部：页面标题 + 说明 + "新增币种点差"按钮</li>
+<li>公式说明区：生效汇率 = 原始汇率 × (1 + 点差比例)，优先级说明</li>
+<li>KPI 卡片：规则总数、全局规则数、单币种规则数、默认点差值</li>
+<li>工具栏：搜索币种、筛选状态</li>
+<li>数据表格</li>
+</ul>
+<p><strong>页面元素</strong></p>
+<div class="table-wrap"><table>
+<thead><tr><th>列名</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>规则类型</td><td>全局默认（灰色标签）/ 单币种（蓝色标签）</td></tr>
+<tr><td>适用币种</td><td>全局默认显示"所有币种"，单币种显示具体币种代码</td></tr>
+<tr><td>点差比例</td><td>如 2.0%、0.8%</td></tr>
+<tr><td>状态</td><td>启用 / 停用</td></tr>
+<tr><td>更新时间</td><td>最近修改时间</td></tr>
+<tr><td>操作</td><td>编辑；单币种规则额外支持停用</td></tr>
+</tbody></table></div>
+<p><strong>操作流程</strong></p>
+<p>主流程——查看规则列表：</p>
+<ol>
+<li>进入页面，展示全局默认规则（置顶）和所有单币种规则</li>
+<li>可通过搜索和筛选缩小范围</li>
+</ol>
+<p>分支流程——停用单币种规则：</p>
+<ol>
+<li>点击"停用"按钮</li>
+<li>弹出确认提示"确认停用该点差规则？"</li>
+<li>确认后该币种回退使用全局默认点差</li>
+</ol>
+<p><strong>校验规则</strong></p>
+<ul>
+<li>全局默认规则不可停用，不可删除</li>
+<li>同一币种不可重复创建规则</li>
+</ul>
+<p><strong>异常处理</strong></p>
+<ul>
+<li>网络异常：提示"操作失败，请稍后重试"</li>
+</ul>
+<p><strong>UI 关联</strong></p>
+<ul>
+<li>PC 端：V7 原型「点差规则」页面</li>
+<li>APP 端：不涉及</li>
+</ul>
+<h4>2.2.2 新增/编辑点差规则（页面型——弹窗）</h4>
+<p><strong>功能描述</strong></p>
+<p>新增单币种点差规则或编辑已有规则的点差比例和状态。</p>
+<p><strong>前置条件</strong></p>
+<ul>
+<li>新增：点击"新增币种点差"按钮</li>
+<li>编辑：点击列表中的"编辑"按钮</li>
+</ul>
+<p><strong>页面元素</strong></p>
+<div class="table-wrap"><table>
+<thead><tr><th>元素</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>适用币种</td><td>下拉选择，新增时可选，编辑时只读</td></tr>
+<tr><td>点差比例（%）</td><td>数字输入，支持 1 位小数</td></tr>
+<tr><td>状态</td><td>启用 / 停用</td></tr>
+</tbody></table></div>
+<p><strong>校验规则</strong></p>
+<div class="table-wrap"><table>
+<thead><tr><th>字段</th><th>规则</th><th>校验时机</th></tr></thead>
+<tbody>
+<tr><td>适用币种</td><td>必选，不可与已有规则重复</td><td>提交时</td></tr>
+<tr><td>点差比例</td><td>必填、≥ 0、最多 1 位小数</td><td>提交时</td></tr>
+</tbody></table></div>
+<p><strong>异常处理</strong></p>
+<ul>
+<li>币种已存在规则：提示"该币种已有点差规则，请直接编辑"</li>
+<li>提交失败：提示错误信息，不关闭弹窗</li>
+</ul>
+<p><strong>UI 关联</strong></p>
+<ul>
+<li>PC 端：V7 原型「新增币种点差」弹窗</li>
+<li>APP 端：不涉及</li>
+</ul>
+<hr>
+<h3>2.3 数据源管理</h3>
+<h4>模块概述</h4>
+<p>管理已接入的第三方汇率数据源，配置采集频率与优先级。主数据源优先使用，备用数据源在主源故障时自动切换。新数据源接入需联系开发团队。</p>
+<h4>2.3.1 数据源列表（页面型）</h4>
+<p><strong>功能描述</strong></p>
+<p>展示所有已接入的数据源及其运行状态，支持编辑配置和测试连接。</p>
+<p><strong>前置条件</strong></p>
+<ul>
+<li>数据源由开发团队在系统中预先接入</li>
+</ul>
+<p><strong>页面布局</strong></p>
+<ul>
+<li>顶部：页面标题 + 说明（含"新数据源接入需联系开发团队"提示）</li>
+<li>KPI 卡片：数据源总数、主数据源数、备用数据源数、最近成功率</li>
+<li>数据表格</li>
+</ul>
+<p><strong>页面元素</strong></p>
+<div class="table-wrap"><table>
+<thead><tr><th>列名</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>数据源名称</td><td>如 Open Exchange Rates</td></tr>
+<tr><td>API 地址</td><td>数据源的 API 域名</td></tr>
+<tr><td>优先级</td><td>主（蓝色标签）/ 备（黄色标签）</td></tr>
+<tr><td>采集间隔</td><td>单位：秒，如 3600 秒</td></tr>
+<tr><td>最近采集时间</td><td>上一次成功采集的时间</td></tr>
+<tr><td>采集状态</td><td>成功（绿色）/ 失败（红色）</td></tr>
+<tr><td>启停状态</td><td>启用 / 停用</td></tr>
+<tr><td>操作</td><td>编辑、测试连接</td></tr>
+</tbody></table></div>
+<p><strong>操作流程</strong></p>
+<p>主流程——查看数据源状态：</p>
+<ol>
+<li>进入页面，展示所有数据源及运行状态</li>
+<li>关注采集状态和最近采集时间，判断数据源是否正常</li>
+</ol>
+<p>分支流程——测试连接：</p>
+<ol>
+<li>点击"测试连接"按钮</li>
+<li>系统调用该数据源 API 获取样本数据</li>
+<li>弹窗展示连接结果（成功/失败）、响应时间、样本汇率数据</li>
+</ol>
+<p><strong>异常处理</strong></p>
+<ul>
+<li>测试连接超时：弹窗提示"连接超时，请检查数据源配置"</li>
+<li>测试连接失败：弹窗提示失败原因（如 API Key 无效、网络不可达）</li>
+</ul>
+<p><strong>UI 关联</strong></p>
+<ul>
+<li>PC 端：V7 原型「数据源管理」页面</li>
+<li>APP 端：不涉及</li>
+</ul>
+<h4>2.3.2 编辑数据源（页面型——弹窗）</h4>
+<p><strong>功能描述</strong></p>
+<p>编辑数据源的 API Key、优先级、采集间隔和启停状态。数据源名称和 API 地址由开发团队在接入时设定，运营不可修改。</p>
+<p><strong>前置条件</strong></p>
+<ul>
+<li>从数据源列表点击"编辑"按钮打开</li>
+</ul>
+<p><strong>页面元素</strong></p>
+<div class="table-wrap"><table>
+<thead><tr><th>元素</th><th>可编辑</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>数据源名称</td><td>否</td><td>只读，开发团队设定</td></tr>
+<tr><td>API 地址</td><td>否</td><td>只读，开发团队配置</td></tr>
+<tr><td>API Key</td><td>是</td><td>密码输入框，修改后需测试连接验证</td></tr>
+<tr><td>优先级</td><td>是</td><td>下拉选择：主数据源 / 备用数据源</td></tr>
+<tr><td>采集间隔（秒）</td><td>是</td><td>数字输入，建议 3600 秒</td></tr>
+<tr><td>状态</td><td>是</td><td>启用 / 停用</td></tr>
+</tbody></table></div>
+<p><strong>校验规则</strong></p>
+<div class="table-wrap"><table>
+<thead><tr><th>字段</th><th>规则</th><th>校验时机</th></tr></thead>
+<tbody>
+<tr><td>API Key</td><td>必填</td><td>提交时</td></tr>
+<tr><td>采集间隔</td><td>必填、≥ 60 秒、整数</td><td>提交时</td></tr>
+</tbody></table></div>
+<p><strong>交互说明</strong></p>
+<ul>
+<li>修改 API Key 后，提示"修改后请点击测试连接验证"</li>
+<li>将数据源设为停用时，若该源为唯一主数据源，提示"停用后将无主数据源，请先设置其他数据源为主"</li>
+</ul>
+<p><strong>异常处理</strong></p>
+<ul>
+<li>提交失败：提示错误信息，不关闭弹窗</li>
+</ul>
+<p><strong>UI 关联</strong></p>
+<ul>
+<li>PC 端：V7 原型「编辑数据源」弹窗</li>
+<li>APP 端：不涉及</li>
+</ul>
+<h4>2.3.3 主备自动切换（机制型）</h4>
+<p><strong>功能描述</strong></p>
+<p>当主数据源采集失败时，系统自动切换到备用数据源继续采集，保证汇率数据不中断。</p>
+<p><strong>触发条件</strong></p>
+<ul>
+<li>主数据源连续 3 次采集失败</li>
+</ul>
+<p><strong>处理流程</strong></p>
+<ol>
+<li>主数据源采集失败，记录失败日志</li>
+<li>连续 3 次失败后，系统自动切换到优先级次高的备用数据源</li>
+<li>备用数据源采集成功后，后续采集任务使用备用源</li>
+<li>同时触发"数据源失败告警"通知运营</li>
+<li>运营修复主数据源后，可手动切回或等待系统下次尝试主源</li>
+</ol>
+<p><strong>规则说明</strong></p>
+<ul>
+<li>切换判断基于连续失败次数，单次失败不触发切换</li>
+<li>所有数据源均失败时，系统保留最近一次成功采集的数据，不发布新汇率</li>
+<li>切换事件记录到变动日志</li>
+</ul>
+<p><strong>异常处理</strong></p>
+<ul>
+<li>所有数据源均不可用：触发紧急告警，运营需手动介入</li>
+</ul>
+<p><strong>技术说明</strong></p>
+<ul>
+<li>失败计数器在采集成功后重置</li>
+<li>切换动作写入系统日志，便于排查</li>
+</ul>
+<hr>
+<h3>2.4 汇率采集</h3>
+<h4>模块概述</h4>
+<p>展示最近 24 小时内每小时从数据源采集的原始汇率数据，用于监控市场波动、排查异常告警来源、验证数据源稳定性。</p>
+<h4>2.4.1 采集记录列表（页面型）</h4>
+<p><strong>功能描述</strong></p>
+<p>按时间倒序展示采集记录，每条记录包含采集时间、币种对、数据源、原始汇率、采集状态，以及与当前生效汇率的差异幅度。</p>
+<p><strong>前置条件</strong></p>
+<ul>
+<li>至少有一个数据源已启用且执行过采集</li>
+</ul>
+<p><strong>页面布局</strong></p>
+<ul>
+<li>顶部：页面标题 + 说明 + "导出 CSV"按钮</li>
+<li>工具栏：日期选择、币种筛选、数据源筛选、查询按钮</li>
+<li>数据表格 + 分页</li>
+<li>底部提示：颜色标注说明</li>
+</ul>
+<p><strong>页面元素</strong></p>
+<div class="table-wrap"><table>
+<thead><tr><th>列名</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>采集时间</td><td>数据采集的时间点</td></tr>
+<tr><td>币种对</td><td>如 USD → EUR</td></tr>
+<tr><td>数据源</td><td>采集来源名称</td></tr>
+<tr><td>原始汇率</td><td>数据源返回的原始值，未应用点差</td></tr>
+<tr><td>采集状态</td><td>成功（绿色）/ 失败（红色）</td></tr>
+<tr><td>与当前生效汇率差异</td><td>百分比，红色 = 超过告警阈值，黄色 = 固定模式偏离提示，灰色 = 正常范围</td></tr>
+</tbody></table></div>
+<p><strong>操作流程</strong></p>
+<p>主流程——查看采集记录：</p>
+<ol>
+<li>进入页面，默认展示当天的采集记录</li>
+<li>可通过日期范围选择查询最近 30 天，筛选币种和数据源</li>
+<li>关注差异列的颜色标注，识别异常数据</li>
+</ol>
+<p>分支流程——导出 CSV：</p>
+<ol>
+<li>点击"导出 CSV"按钮</li>
+<li>按当前筛选条件导出完整历史记录</li>
+</ol>
+<p><strong>交互说明</strong></p>
+<ul>
+<li>差异列颜色规则：</li>
+</ul>
+<p>  - 红色加粗：波动超过告警阈值（默认 ±5%），对应自动模式币种</p>
+<p>  - 黄色加粗：固定模式币种的市场偏离超过阈值</p>
+<p>  - 灰色：正常范围内</p>
+<ul>
+<li>默认每页 20 条</li>
+<li>底部提示中的告警阈值动态读取异常告警页面配置（如"当前阈值：±5%"）</li>
+<li>"导出 CSV"导出当前筛选条件下的完整记录（不受分页限制）</li>
+</ul>
+<p><strong>异常处理</strong></p>
+<ul>
+<li>无采集记录时展示空状态</li>
+<li>导出失败：提示"导出失败，请稍后重试"</li>
+</ul>
+<p><strong>UI 关联</strong></p>
+<ul>
+<li>PC 端：V7 原型「汇率采集」页面</li>
+<li>APP 端：不涉及</li>
+</ul>
+<h4>2.4.2 定时采集任务（机制型）</h4>
+<p><strong>功能描述</strong></p>
+<p>系统按各数据源配置的采集间隔，定时从第三方 API 获取原始汇率数据。</p>
+<p><strong>触发条件</strong></p>
+<ul>
+<li>按数据源配置的采集间隔周期性触发（默认每 3600 秒 / 1 小时）</li>
+</ul>
+<p><strong>处理流程</strong></p>
+<ol>
+<li>读取所有已启用数据源的配置</li>
+<li>按优先级顺序调用数据源 API</li>
+<li>获取所有已启用币种的 USD → 目标币种汇率</li>
+<li>写入原始汇率记录表</li>
+<li>与当前生效汇率对比，计算差异幅度</li>
+<li>差异超过告警阈值时，触发异常告警</li>
+</ol>
+<p><strong>规则说明</strong></p>
+<ul>
+<li>只采集币种管理模块中"已启用"的币种，不采集全量</li>
+<li>采集结果不直接影响生效汇率，需通过发布流程才能生效</li>
+<li>每次采集记录成功/失败状态和响应时间</li>
+</ul>
+<p><strong>异常处理</strong></p>
+<ul>
+<li>单次采集超时（30 秒）：标记为失败，等待下次重试</li>
+<li>数据源返回异常数据（如汇率为 0 或负数）：丢弃该条数据，标记为失败</li>
+<li>连续失败触发主备切换（见 2.3.3）</li>
+</ul>
+<hr>
+<h3>2.5 变动日志</h3>
+<h4>模块概述</h4>
+<p>记录汇率发布、设置固定汇率、回滚、币种停用等关键操作，保留操作人、原因与前后值，满足审计追溯需求。支持 24 小时内的操作回滚。同一批次发布的记录共享批次号，可聚合查看该批次的完整汇率快照。</p>
+<h4>2.5.1 变动日志列表（页面型）</h4>
+<p><strong>功能描述</strong></p>
+<p>按时间倒序展示所有汇率相关的变动记录，支持按日期、币种、操作类型筛选，支持导出。同批次发布的记录通过批次号关联，可点击"查看批次"查看该批次的完整发布快照。</p>
+<p><strong>前置条件</strong></p>
+<ul>
+<li>无</li>
+</ul>
+<p><strong>页面布局</strong></p>
+<ul>
+<li>顶部：页面标题 + 说明（含回滚时效提示：仅对 24 小时内的操作记录开放）+ "导出日志"按钮</li>
+<li>工具栏：日期范围、批次号输入框、币种筛选、操作类型筛选、查询按钮</li>
+<li>数据表格 + 分页</li>
+</ul>
+<p><strong>页面元素</strong></p>
+<div class="table-wrap"><table>
+<thead><tr><th>列名</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>操作时间</td><td>变动发生的时间</td></tr>
+<tr><td>批次号</td><td>发布批次号（如 SNAP-0428-01），非发布类操作显示"-"</td></tr>
+<tr><td>目标币种</td><td>被操作的币种</td></tr>
+<tr><td>操作类型</td><td>定时发布 / 手动发布 / 设置固定汇率 / 回滚 / 点差调整 / 币种停用</td></tr>
+<tr><td>变更前汇率</td><td>操作前的值</td></tr>
+<tr><td>变更后汇率</td><td>操作后的值</td></tr>
+<tr><td>变更原因</td><td>操作时填写的原因说明</td></tr>
+<tr><td>操作人</td><td>系统 / 运营人员姓名</td></tr>
+<tr><td>操作</td><td>回滚（24h 内）</td></tr>
+</tbody></table></div>
+<p><strong>操作流程</strong></p>
+<p>主流程——查看变动日志：</p>
+<ol>
+<li>进入页面，默认展示最近 30 天的变动记录</li>
+<li>可通过筛选条件缩小范围</li>
+<li>查看每条记录的变更前后值和原因</li>
+</ol>
+<p>分支流程——回滚操作：</p>
+<ol>
+<li>点击 24 小时内记录的"回滚"按钮</li>
+<li>弹出确认提示"确认回滚到汇率 X.XXXX？"</li>
+<li>确认后系统将该币种的生效汇率恢复为变更前的值</li>
+<li>回滚操作本身也会生成一条新的变动日志</li>
+</ol>
+<p>分支流程——按批次号筛选：</p>
+<ol>
+<li>在工具栏批次号输入框输入批次号（如 SNAP-0428-01）</li>
+<li>点击查询，列表只展示该批次的所有记录</li>
+<li>可直接在列表中查看该批次的完整汇率快照</li>
+</ol>
+<p><strong>交互说明</strong></p>
+<ul>
+<li>批次号列：有批次号的记录以紫色高亮显示批次号</li>
+<li>超过 24 小时的记录，回滚按钮显示为"已过期"（灰色文字，不可点击）</li>
+<li>点差调整和币种停用类型的记录无回滚操作</li>
+<li>操作类型标签颜色：定时发布（蓝色）、手动发布（灰色）、设置固定汇率（黄色）、回滚（绿色）、点差调整（橙色）、币种停用（红色）、数据源切换（紫色）</li>
+<li>默认每页 20 条</li>
+</ul>
+<p><strong>校验规则</strong></p>
+<ul>
+<li>回滚操作需确认，不可连续回滚同一条记录</li>
+</ul>
+<p><strong>异常处理</strong></p>
+<ul>
+<li>回滚失败：提示"回滚失败，请稍后重试"</li>
+<li>导出失败：提示"导出失败，请稍后重试"</li>
+</ul>
+<p><strong>UI 关联</strong></p>
+<ul>
+<li>PC 端：V7 原型「变动日志」页面</li>
+<li>APP 端：不涉及</li>
+</ul>
+<hr>
+<h3>2.6 异常告警</h3>
+<h4>模块概述</h4>
+<p>当最新采集汇率相比当前生效汇率波动超过阈值时，系统暂不自动发布并在此展示告警，由运营人工审核处理。告警阈值可在本页面直接配置。固定模式币种仅告警提示，不会自动覆盖当前生效值。</p>
+<h4>2.6.1 告警阈值设置（页面型——内嵌区块）</h4>
+<p><strong>功能描述</strong></p>
+<p>在异常告警页面顶部展示当前告警阈值，支持运营直接编辑修改。</p>
+<p><strong>页面布局</strong></p>
+<ul>
+<li>只读态：一行展示"告警阈值：±5%"+ 说明文字 + 编辑按钮</li>
+<li>编辑态：输入框 + 取消/保存按钮</li>
+</ul>
+<p><strong>页面元素</strong></p>
+<div class="table-wrap"><table>
+<thead><tr><th>元素</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>阈值显示</td><td>只读态展示当前值，如"±5%"</td></tr>
+<tr><td>说明文字</td><td>"波动超过此值时触发告警"</td></tr>
+<tr><td>编辑按钮</td><td>点击切换为编辑态</td></tr>
+<tr><td>阈值输入框</td><td>数字输入，单位 %</td></tr>
+<tr><td>取消按钮</td><td>恢复只读态，不保存</td></tr>
+<tr><td>保存按钮</td><td>保存新阈值，恢复只读态</td></tr>
+</tbody></table></div>
+<p><strong>校验规则</strong></p>
+<div class="table-wrap"><table>
+<thead><tr><th>字段</th><th>规则</th><th>校验时机</th></tr></thead>
+<tbody>
+<tr><td>告警阈值</td><td>必填、> 0、≤ 50、最多 1 位小数</td><td>保存时</td></tr>
+</tbody></table></div>
+<p><strong>交互说明</strong></p>
+<ul>
+<li>点击"编辑"：只读区域隐藏，编辑区域显示</li>
+<li>点击"取消"或"保存"：编辑区域隐藏，只读区域恢复显示</li>
+<li>保存成功后，新阈值立即生效，后续采集对比使用新阈值</li>
+</ul>
+<p><strong>异常处理</strong></p>
+<ul>
+<li>保存失败：提示"保存失败，请稍后重试"，保持编辑态</li>
+</ul>
+<p><strong>UI 关联</strong></p>
+<ul>
+<li>PC 端：V7 原型「异常告警」页面顶部阈值区块</li>
+<li>APP 端：不涉及</li>
+</ul>
+<h4>2.6.2 告警列表（页面型）</h4>
+<p><strong>功能描述</strong></p>
+<p>展示所有异常告警记录，区分"待处理"和"固定模式提示"两种类型，运营可对每条告警执行相应操作。</p>
+<p><strong>前置条件</strong></p>
+<ul>
+<li>采集汇率与生效汇率的差异超过告警阈值时自动生成</li>
+</ul>
+<p><strong>页面布局</strong></p>
+<ul>
+<li>顶部：页面标题 + 说明</li>
+<li>告警阈值设置区（见 2.6.1）</li>
+<li>统计卡片：当前待处理数、高风险波动数、固定模式偏离提示数</li>
+<li>工具栏：类型筛选（全部/待处理/固定模式提示/已处理）、币种筛选、查询按钮</li>
+<li>数据表格 + 分页</li>
+</ul>
+<p><strong>页面元素</strong></p>
+<div class="table-wrap"><table>
+<thead><tr><th>列名</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>触发时间</td><td>告警生成的时间</td></tr>
+<tr><td>币种对</td><td>如 USD → EUR</td></tr>
+<tr><td>告警类型</td><td>待处理（红色标签）/ 固定模式提示（黄色标签）/ 已处理（灰色标签）</td></tr>
+<tr><td>当前值</td><td>当前生效汇率</td></tr>
+<tr><td>最新值</td><td>最新采集的原始汇率</td></tr>
+<tr><td>偏离幅度</td><td>百分比，红色 = 超阈值，黄色 = 固定模式偏离</td></tr>
+<tr><td>说明</td><td>告警原因描述</td></tr>
+<tr><td>操作</td><td>根据告警类型不同（见下方）</td></tr>
+</tbody></table></div>
+<p><strong>操作按钮规则</strong></p>
+<div class="table-wrap"><table>
+<thead><tr><th>告警类型</th><th>可用操作</th></tr></thead>
+<tbody>
+<tr><td>待处理（自动模式币种）</td><td>确认发布、忽略</td></tr>
+<tr><td>固定模式提示</td><td>调整固定汇率、恢复自动</td></tr>
+</tbody></table></div>
+<p><strong>操作流程</strong></p>
+<p>分支流程——确认发布（自动模式币种超阈值）：</p>
+<ol>
+<li>点击"确认发布"按钮</li>
+<li>弹窗展示风险提示、当前值、待发布值</li>
+<li>运营填写发布原因（必填）</li>
+<li>确认后系统立即发布该汇率，写入变动日志</li>
+<li>告警状态变为"已处理"</li>
+</ol>
+<p>分支流程——忽略告警：</p>
+<ol>
+<li>点击"忽略"按钮</li>
+<li>弹窗说明忽略后的效果（继续沿用当前汇率，等待下次采集重新判断）</li>
+<li>运营填写忽略原因（必填）</li>
+<li>确认后告警关闭，系统继续使用当前生效汇率</li>
+</ol>
+<p>分支流程——调整固定汇率（固定模式币种偏离）：</p>
+<ol>
+<li>点击"调整固定汇率"按钮</li>
+<li>打开设置汇率弹窗（同 2.1.2），预填当前币种</li>
+<li>运营修改固定汇率值并保存</li>
+</ol>
+<p>分支流程——恢复自动模式：</p>
+<ol>
+<li>点击"恢复自动"按钮</li>
+<li>弹窗展示当前固定汇率和最新市场汇率</li>
+<li>提示"恢复后该币种将在下次定时发布时跟随市场汇率更新"</li>
+<li>运营填写恢复原因（必填）</li>
+<li>确认后该币种切回自动模式</li>
+</ol>
+<p><strong>校验规则</strong></p>
+<div class="table-wrap"><table>
+<thead><tr><th>字段</th><th>规则</th><th>校验时机</th></tr></thead>
+<tbody>
+<tr><td>发布原因</td><td>必填、最少 2 个字符</td><td>提交时</td></tr>
+<tr><td>忽略原因</td><td>必填、最少 2 个字符</td><td>提交时</td></tr>
+<tr><td>恢复原因</td><td>必填、最少 2 个字符</td><td>提交时</td></tr>
+</tbody></table></div>
+<p><strong>交互说明</strong></p>
+<ul>
+<li>侧边栏菜单"异常告警"旁显示红色数字 badge，数值为当前待处理告警数</li>
+<li>生效汇率页面 KPI 区域的"异常告警"数字可点击跳转到本页面</li>
+<li>默认每页 10 条</li>
+</ul>
+<p><strong>异常处理</strong></p>
+<ul>
+<li>操作失败：提示具体错误信息，不关闭弹窗</li>
+<li>网络异常：提示"网络异常，请稍后重试"</li>
+</ul>
+<p><strong>UI 关联</strong></p>
+<ul>
+<li>PC 端：V7 原型「异常告警」页面 + 「确认发布」弹窗 + 「忽略」弹窗 + 「恢复自动模式」弹窗</li>
+<li>APP 端：不涉及</li>
+</ul>
+<h4>2.6.3 异常告警触发机制（机制型）</h4>
+<p><strong>功能描述</strong></p>
+<p>系统在每次采集完成后，自动对比最新原始汇率与当前生效汇率，超过阈值时生成告警并暂停该币种的自动发布。</p>
+<p><strong>触发条件</strong></p>
+<ul>
+<li>每次采集任务完成后自动执行对比</li>
+</ul>
+<p><strong>处理流程</strong></p>
+<ol>
+<li>采集完成，获得最新原始汇率</li>
+<li>计算与当前生效汇率的差异百分比：|(新值 - 旧值) / 旧值| × 100%</li>
+<li>差异超过告警阈值时：</li>
+</ol>
+<p>   - 自动模式币种：生成"待处理"告警，暂停该币种的下次自动发布</p>
+<p>   - 固定模式币种：生成"固定模式提示"告警，仅提示不影响当前生效值</p>
+<ol>
+<li>差异未超过阈值：不生成告警，正常流程</li>
+</ol>
+<p><strong>规则说明</strong></p>
+<ul>
+<li>告警阈值默认 ±5%，运营可在告警页面修改</li>
+<li>自动模式币种触发告警后，该币种的自动发布被暂停，直到运营处理（确认发布或忽略）</li>
+<li>忽略后，下次采集如果差异仍超阈值，会再次生成新告警</li>
+<li>固定模式币种的告警仅为提示性质，不影响当前生效汇率</li>
+</ul>
+<p><strong>异常处理</strong></p>
+<ul>
+<li>告警生成失败不影响采集流程本身</li>
+</ul>
+<hr>
+<h3>2.7 定时发布机制（机制型）</h3>
+<p><strong>功能描述</strong></p>
+<p>系统每日 UTC 00:00 自动执行汇率发布，将最新原始汇率应用点差规则后生成新的生效汇率。</p>
+<p><strong>触发条件</strong></p>
+<ul>
+<li>每日 UTC 00:00 定时触发</li>
+</ul>
+<p><strong>处理流程</strong></p>
+<ol>
+<li>读取所有已启用且为自动模式的币种</li>
+<li>获取每个币种最近一次成功采集的原始汇率</li>
+<li>查询每个币种当前生效的点差规则（单币种优先，无则用全局默认）</li>
+<li>计算生效汇率：原始汇率 × (1 + 点差比例)</li>
+<li>检查是否有未处理的异常告警：</li>
+</ol>
+<p>   - 有告警的币种：跳过，不发布</p>
+<p>   - 无告警的币种：写入新的生效汇率</p>
+<ol>
+<li>固定模式币种：跳过，不发布</li>
+<li>生成发布批次号，写入变动日志</li>
+<li>旧的生效汇率标记为过期</li>
+</ol>
+<p><strong>规则说明</strong></p>
+<ul>
+<li>发布频率：每日 1 次（UTC 00:00）</li>
+<li>固定模式币种不参与定时发布</li>
+<li>有未处理告警的币种不参与定时发布</li>
+<li>发布后所有业务系统查询到的汇率立即更新</li>
+<li>运营可通过"手动发布全部"按钮在任意时间触发发布</li>
+<li>同一批次发布的所有币种共享同一个批次号，在变动日志中可聚合查看</li>
+</ul>
+<p><strong>异常处理</strong></p>
+<ul>
+<li>定时任务执行失败：记录错误日志，触发系统告警，等待下次手动触发</li>
+<li>部分币种发布失败：成功的币种正常生效，失败的币种保留旧值并告警</li>
+</ul>
+<p><strong>技术说明</strong></p>
+<ul>
+<li>发布为原子操作，同一批次内的币种要么全部成功要么全部回滚（按币种粒度）</li>
+<li>发布完成后清除 Redis 缓存，业务系统下次查询获取最新值</li>
+</ul>
+<hr>
+<h3>2.8 币种停用联动（机制型）</h3>
+<p><strong>功能描述</strong></p>
+<p>当币种管理模块将某币种设为停用后，汇率管理模块自动执行联动处理。</p>
+<p><strong>触发条件</strong></p>
+<ul>
+<li>币种管理模块将某币种状态设为"停用"</li>
+</ul>
+<p><strong>处理流程</strong></p>
+<ol>
+<li>立即停止该币种的后续汇率采集</li>
+<li>后续发布批次不再包含该币种</li>
+<li>对外汇率查询接口默认不返回该币种</li>
+<li>该币种的生效汇率状态标记为"因币种停用而失效"</li>
+<li>写入变动日志（操作类型：币种停用）</li>
+</ol>
+<p><strong>规则说明</strong></p>
+<ul>
+<li>变动日志、采集记录全部保留，不物理删除</li>
+<li>后台支持筛选"已停用币种"查看历史数据（只读）</li>
+<li>币种重新启用后，系统立即触发一次采集，成功后恢复正常流程</li>
+</ul>
+<p><strong>异常处理</strong></p>
+<ul>
+<li>联动失败：记录错误日志，不影响币种管理模块的操作结果，后台提示运营手动处理</li>
+</ul>
+<hr>
+<h2>三、依赖与风险</h2>
+<h3>3.1 上下游系统依赖</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>依赖方向</th><th>系统</th><th>依赖内容</th></tr></thead>
+<tbody>
+<tr><td>上游</td><td>币种管理模块</td><td>已启用币种清单、币种启停事件通知</td></tr>
+<tr><td>上游</td><td>Open Exchange Rates</td><td>主数据源，提供原始汇率 API</td></tr>
+<tr><td>上游</td><td>ExchangeRate-API</td><td>备用数据源，主源故障时自动切换</td></tr>
+<tr><td>下游</td><td>商品系统</td><td>调用汇率查询接口获取生效汇率</td></tr>
+<tr><td>下游</td><td>运费系统</td><td>调用汇率查询接口获取生效汇率</td></tr>
+<tr><td>下游</td><td>购物车 / 结算页</td><td>调用汇率查询接口获取生效汇率</td></tr>
+<tr><td>下游</td><td>支付路由</td><td>调用汇率查询接口获取生效汇率</td></tr>
+<tr><td>下游</td><td>营销系统</td><td>调用汇率查询接口获取生效汇率</td></tr>
+</tbody></table></div>
+<h3>3.2 外部服务依赖</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>服务</th><th>用途</th><th>费用</th><th>风险</th></tr></thead>
+<tbody>
+<tr><td>Open Exchange Rates</td><td>主汇率数据源</td><td>~$12/月（Developer 档）</td><td>API 限流、服务中断</td></tr>
+<tr><td>ExchangeRate-API</td><td>备用汇率数据源</td><td>~$9.99/月（Basic 档）</td><td>同上</td></tr>
+</tbody></table></div>
+<p><strong>前置准备</strong>：</p>
+<ul>
+<li>两个数据源均需注册开发者账号并获取 API Key</li>
+<li>月度总成本约 $22</li>
+<li>需确认 API 调用额度是否满足每小时采集频率（Open Exchange Rates: 10,000 次/月，ExchangeRate-API: 30,000 次/月）</li>
+</ul>
+<h3>3.3 风险评估</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>风险</th><th>影响</th><th>应对措施</th></tr></thead>
+<tbody>
+<tr><td>数据源服务中断</td><td>无法获取最新汇率</td><td>主备切换机制 + 保留最近成功数据</td></tr>
+<tr><td>数据源返回异常数据</td><td>可能导致错误汇率发布</td><td>异常阈值检测 + 人工审核</td></tr>
+<tr><td>汇率剧烈波动（黑天鹅事件）</td><td>用户端价格大幅变动</td><td>告警暂停发布 + 固定模式兜底</td></tr>
+<tr><td>展示价与 PSP 结算价不一致</td><td>用户投诉</td><td>由结算/支付模块负责报价锁定（不在本模块范围）</td></tr>
+<tr><td>API 调用额度耗尽</td><td>采集中断</td><td>监控剩余额度，提前预警</td></tr>
+</tbody></table></div>
+<hr>
+<h2>四、版本规划</h2>
+<h3>4.1 当前版本（MVP）</h3>
+<p><strong>目标</strong>：上线基础汇率管理能力，支撑多币种价格展示</p>
+<p><strong>功能范围</strong>：</p>
+<ul>
+<li>接入 1 主 + 1 备汇率数据源</li>
+<li>支持 USD → EUR / GBP / JPY 三个币种</li>
+<li>全局默认点差 + 单币种点差覆盖</li>
+<li>每日定时发布 + 手动发布</li>
+<li>自动/固定两种汇率模式</li>
+<li>异常告警与人工审核</li>
+<li>告警阈值可配置</li>
+<li>变动日志与批次聚合查看</li>
+<li>24 小时内回滚能力</li>
+<li>币种停用联动</li>
+</ul>
+<h3>4.2 后续迭代方向</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>方向</th><th>说明</th><th>优先级</th></tr></thead>
+<tbody>
+<tr><td>多数据源智能比价</td><td>自动选择最优汇率源</td><td>中</td></tr>
+<tr><td>更多币种支持</td><td>扩展到 10+ 币种</td><td>中</td></tr>
+<tr><td>汇率变动趋势图表</td><td>可视化历史走势</td><td>低</td></tr>
+<tr><td>自动化点差调整建议</td><td>基于历史数据推荐点差</td><td>低</td></tr>
+<tr><td>结算汇率分层</td><td>展示汇率与结算汇率分离</td><td>高（业务验证后）</td></tr>
+<tr><td>汇率缓冲与价格保护</td><td>减少用户端价格波动感知</td><td>中</td></tr>
+<tr><td>与支付网关汇率对比</td><td>监控展示价与结算价差异</td><td>中</td></tr>
+</tbody></table></div>
+<hr>
+<h2>五、数据与埋点</h2>
+<p>本模块为内部运营后台，暂无前端埋点需求。关键操作通过变动日志记录，满足审计追溯。</p>
+<p>后续如需运营行为分析，可在以下节点增加埋点：</p>
+<ul>
+<li>手动发布操作频次</li>
+<li>告警处理响应时间</li>
+<li>固定模式使用频率</li>
+</ul>
+<p>本模块不涉及终端用户行为埋点，故本章节省略详细埋点表。</p>
+<hr>
+<h2>六、权限与角色矩阵</h2>
+<p>本模块 MVP 阶段仅涉及"运营人员"单一角色，所有功能对运营人员全量开放，暂不做细粒度权限控制。</p>
+<p>后续如需引入多角色（如只读查看者、审批者），再扩展权限矩阵。故本章节省略。</p>
+<hr>
+<h2>七、附录</h2>
+<h3>7.1 设计稿索引</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>页面</th><th>PC 端设计稿</th><th>APP 端</th></tr></thead>
+<tbody>
+<tr><td>生效汇率列表</td><td>V7 原型「生效汇率」</td><td>不涉及</td></tr>
+<tr><td>确认手动发布全部弹窗</td><td>V7 原型「确认手动发布全部」弹窗</td><td>不涉及</td></tr>
+<tr><td>设置汇率弹窗</td><td>V7 原型「设置汇率」弹窗</td><td>不涉及</td></tr>
+<tr><td>模式切换二次确认</td><td>V7 原型「确认切换模式」弹窗</td><td>不涉及</td></tr>
+<tr><td>汇率历史弹窗</td><td>V7 原型「汇率历史」弹窗</td><td>不涉及</td></tr>
+<tr><td>点差规则列表</td><td>V7 原型「点差规则」</td><td>不涉及</td></tr>
+<tr><td>新增/编辑点差弹窗</td><td>V7 原型「新增币种点差」弹窗</td><td>不涉及</td></tr>
+<tr><td>数据源管理列表</td><td>V7 原型「数据源管理」</td><td>不涉及</td></tr>
+<tr><td>编辑数据源弹窗</td><td>V7 原型「编辑数据源」弹窗</td><td>不涉及</td></tr>
+<tr><td>测试连接结果弹窗</td><td>V7 原型「测试连接结果」弹窗</td><td>不涉及</td></tr>
+<tr><td>汇率采集列表</td><td>V7 原型「汇率采集」</td><td>不涉及</td></tr>
+<tr><td>变动日志列表</td><td>V7 原型「变动日志」</td><td>不涉及</td></tr>
+<tr><td>异常告警列表</td><td>V7 原型「异常告警」</td><td>不涉及</td></tr>
+<tr><td>告警阈值设置</td><td>V7 原型「异常告警」页面顶部</td><td>不涉及</td></tr>
+<tr><td>确认发布弹窗</td><td>V7 原型「确认发布异常汇率」弹窗</td><td>不涉及</td></tr>
+<tr><td>忽略告警弹窗</td><td>V7 原型「忽略并保留旧值」弹窗</td><td>不涉及</td></tr>
+<tr><td>恢复自动模式弹窗</td><td>V7 原型「恢复自动模式」弹窗</td><td>不涉及</td></tr>
+</tbody></table></div>
+<h3>7.2 参考文档</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>文档</th><th>路径</th></tr></thead>
+<tbody>
+<tr><td>需求分析报告 v1.0</td><td><code>~/Desktop/海外业务汇率管理/looply-汇率管理-需求分析报告-v1.0.md</code></td></tr>
+<tr><td>产品架构图 v2.0</td><td><code>~/Desktop/海外业务汇率管理/looply-汇率管理-产品架构图-v2.0.svg</code></td></tr>
+<tr><td>实体关系图 v2.0</td><td><code>~/Desktop/海外业务汇率管理/looply-汇率管理实体关系图-v2.0.svg</code></td></tr>
+<tr><td>后台原型 v7</td><td><code>~/Desktop/海外业务汇率管理/looply-汇率管理后台原型-v7.html</code></td></tr>
+</tbody></table></div>
+<hr>
+<p><strong>文档结束</strong></p>
+</body>
+</html>
