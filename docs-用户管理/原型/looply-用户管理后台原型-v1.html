@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang='zh-CN'>
+<head>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width,initial-scale=1.0'>
+<title>Looply 用户管理后台原型</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937;font-size:14px}
+.op-log{margin-top:24px}
+.op-log-title{font-size:14px;font-weight:700;color:#7C3AED;margin-bottom:12px}
+.op-log .table-wrap{margin-top:0}
+.op-time{color:#6B7280;font-size:12px}
+.op-user{color:#374151}
+.op-type{font-weight:500}
+.op-detail{color:#4B5563}
+.header{height:60px;background:#FFFFFF;color:#1F2937;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid #E5E7EB}
+.logo{font-size:18px;font-weight:700;letter-spacing:1px;display:flex;align-items:center}
+.header-divider{width:1px;height:20px;background:#E5E7EB;margin:0 16px}
+.system-label{font-size:14px;font-weight:500;color:#6B7280;letter-spacing:0.3px}
+.breadcrumb{margin-left:auto;color:#9CA3AF;font-size:13px;font-weight:400}
+.breadcrumb:empty{display:none}
+.container{display:flex;height:calc(100vh - 60px)}
+.sidebar{width:220px;background:#FFFFFF;overflow:auto;flex-shrink:0;border-right:none;box-shadow:3px 0 12px rgba(0,0,0,0.06);padding:8px 0}
+.main{flex:1;overflow:auto;padding:28px}
+.menu-solo{display:flex;align-items:center;padding:12px 16px;color:#374151;cursor:pointer;font-size:14px;font-weight:500;transition:background .15s;border-left:3px solid transparent;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-solo:hover{background:rgba(0,0,0,.04)}
+.menu-solo:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-solo.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.12),transparent);font-weight:600;border-left-color:#7C3AED}
+.menu-solo .mi{width:18px;height:18px;margin-right:10px;flex-shrink:0;opacity:.55}
+.menu-solo.active .mi{opacity:1}
+.menu-divider{height:1px;background:#F3F4F6;margin:8px 16px}
+.menu-group{margin-bottom:0}
+.menu-parent{display:flex;align-items:center;padding:12px 16px;color:#374151;cursor:pointer;font-size:14px;font-weight:500;transition:background .15s;user-select:none;border-left:3px solid transparent;outline:none;overflow:hidden}
+.menu-parent:hover{background:rgba(0,0,0,.04)}
+.menu-parent:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-parent .mi{width:18px;height:18px;margin-right:10px;flex-shrink:0;opacity:.55}
+.menu-parent .arrow{margin-left:auto;width:16px;height:16px;transition:transform .2s;opacity:.4;flex-shrink:0}
+.menu-group.open>.menu-parent .arrow{transform:rotate(90deg)}
+.menu-parent.active-parent{color:#7C3AED;font-weight:600;border-left-color:#7C3AED}
+.menu-parent.active-parent .mi{opacity:1}
+.menu-children{max-height:0;overflow:hidden;transition:max-height .3s cubic-bezier(.4,0,.2,1)}
+.menu-group.open>.menu-children{max-height:none}
+.menu-child{display:flex;align-items:center;padding:10px 16px 10px 44px;color:#4B5563;cursor:pointer;font-size:13px;transition:all .15s;border-left:3px solid transparent;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-child:hover{color:#374151;background:rgba(0,0,0,.03)}
+.menu-child:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-child.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.1),transparent);border-left-color:#7C3AED;font-weight:600}
+.menu-child .ci{width:15px;height:15px;margin-right:8px;flex-shrink:0;opacity:.45}
+.menu-child.active .ci{opacity:.8}
+.menu-subgroup{margin:0}
+.menu-subparent{display:flex;align-items:center;padding:10px 16px 10px 44px;color:#4B5563;cursor:pointer;font-size:13px;font-weight:500;transition:background .15s;user-select:none;outline:none;overflow:hidden}
+.menu-subparent:hover{color:#374151;background:rgba(0,0,0,.03)}
+.menu-subparent:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-subparent .ci{width:15px;height:15px;margin-right:8px;flex-shrink:0;opacity:.45}
+.menu-subparent .arrow-sm{margin-left:auto;width:14px;height:14px;transition:transform .2s;opacity:.35;flex-shrink:0}
+.menu-subgroup.open>.menu-subparent .arrow-sm{transform:rotate(90deg)}
+.menu-subparent.active-parent{color:#7C3AED;font-weight:600}
+.menu-subparent.active-parent .ci{opacity:.8}
+.menu-subchildren{max-height:0;overflow:hidden;transition:max-height .25s cubic-bezier(.4,0,.2,1)}
+.menu-subgroup.open>.menu-subchildren{max-height:none}
+.menu-sublabel{padding:8px 16px 4px 64px;color:#6B7280;font-size:11px;font-weight:600;letter-spacing:.3px;user-select:none}
+.menu-grandchild{display:flex;align-items:center;padding:8px 16px 8px 64px;color:#6B7280;cursor:pointer;font-size:12px;transition:all .15s;border-left:3px solid transparent;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-grandchild:hover{color:#374151;background:rgba(0,0,0,.02)}
+.menu-grandchild:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-grandchild.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.08),transparent);border-left-color:#7C3AED;font-weight:600}
+.menu-grandchild .gi{width:13px;height:13px;margin-right:8px;flex-shrink:0;opacity:.45}
+.menu-grandchild.active .gi{opacity:.75}
+@media(prefers-reduced-motion:reduce){.menu-children,.menu-subchildren,.menu-parent .arrow,.menu-subparent .arrow-sm,.menu-solo,.menu-child,.menu-grandchild,.menu-subparent,.menu-parent{transition:none !important}}
+.page{display:none}.page.active{display:block}
+.card{background:#fff;border-radius:16px;box-shadow:0 10px 24px rgba(16,24,40,.06);padding:28px}
+.page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}
+.page-title{font-size:20px;font-weight:700;margin-bottom:6px}
+.page-desc{color:#6B7280;font-size:13px;max-width:760px}
+.head-actions{display:flex;gap:10px;flex-wrap:wrap}
+.toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.toolbar .input,.toolbar select{height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff}
+.btn{height:34px;padding:0 14px;border:1px solid #D1D5DB;background:#fff;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.btn.primary{background:#7C3AED;border-color:#7C3AED;color:#fff}
+.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.summary .item{background:linear-gradient(180deg,#FEFCFF 0%,#F3EEFF 100%);border:1px solid #DDD6FE;border-radius:14px;padding:14px 16px}
+.summary .num{font-size:24px;font-weight:700;color:#7C3AED;margin-bottom:4px}
+.summary .label-sm{font-size:12px;color:#6B7280}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi .item{background:#FAF5FF;border:1px solid #DDD6FE;border-radius:14px;padding:14px}
+.kpi .num{font-size:24px;font-weight:700;margin-bottom:4px}
+.muted{color:#6B7280;font-size:12px}
+.table-wrap{border:1px solid #E5E7EB;border-radius:14px;overflow-x:auto;background:#fff}
+table{width:100%;border-collapse:collapse}
+th{background:#FFFFFF;padding:10px 12px;text-align:left;font-size:12px;color:#6B7280;border-bottom:1px solid #E5E7EB;text-transform:uppercase;letter-spacing:.02em}
+td{padding:11px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;vertical-align:top}
+tr:hover{background:#FAF5FF}
+.split{display:flex;gap:18px}.left{width:280px;flex-shrink:0}.mid{width:300px;flex-shrink:0}.right{flex:1}
+.panel{border:1px solid #E5E7EB;border-radius:14px;background:#FFFFFF;padding:16px;min-height:420px}
+.panel h3{font-size:13px;color:#6B7280;margin-bottom:12px}
+.stack{display:flex;flex-direction:column;gap:16px}
+.tree-node{padding:8px 10px;border-radius:8px;cursor:pointer}
+.tree-node:hover{background:#F3EEFF}
+.tree-selected{background:#F3EEFF;color:#7C3AED;font-weight:600}
+.tree-child{margin-left:18px}
+.form-grid{display:grid;grid-template-columns:150px 1fr;gap:12px 16px;align-items:center}
+.label{color:#6B7280;font-size:13px}
+.field{min-height:36px;border:1px solid #D1D5DB;border-radius:8px;background:#fff;padding:8px 12px;display:flex;align-items:center}
+.form-row{display:flex;gap:16px;margin-bottom:12px}
+.form-row .label{width:120px;text-align:right;line-height:34px;color:#6B7280;flex-shrink:0}
+.form-row .field{flex:1}
+.form-row .input-display{height:34px;line-height:34px;padding:0 12px;border:1px solid #D1D5DB;border-radius:8px;background:#f9fafb}
+.form-row textarea.input-display{height:80px;line-height:1.5;padding:8px 12px}
+.form-section{margin-bottom:24px}
+.form-section .section-title{font-size:15px;font-weight:600;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #E5E7EB}
+.form-actions{display:flex;gap:12px;justify-content:flex-end;padding-top:16px;border-top:1px solid #E5E7EB;margin-top:24px}
+.section{margin-top:18px}
+.section-title{font-size:14px;font-weight:700;margin-bottom:10px;color:#7C3AED}
+.section-note{font-size:12px;color:#6B7280;margin:-4px 0 10px}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;margin-right:4px}
+.tag.sale{background:#EFF6FF;color:#2563EB;border:none}
+.tag.desc{background:#F0FDF4;color:#16A34A;border:none}
+.tag.enum{background:#FFFBEB;color:#D97706;border:none}
+.tag.req{background:#FEF2F2;color:#DC2626;border:none}
+.tag.opt{background:#F3F4F6;color:#6B7280;border:none}
+.tag.on{background:#F0FDF4;color:#16A34A;border:none}
+.tag.pending{background:#FFFBEB;color:#D97706;border:none}
+.tag.off{background:#F3F4F6;color:#6B7280;border:none}
+.tag.warn{background:#FFF1F2;color:#E11D48;border:none}
+.tabs{display:flex;border-bottom:1px solid #E5E7EB;margin-bottom:14px;gap:4px}
+.tab{padding:10px 18px;cursor:pointer;border-bottom:2px solid transparent;color:#6B7280}
+.tab.active{color:#7C3AED;border-bottom-color:#7C3AED;font-weight:600}
+.tab-pane{display:none}.tab-pane.active{display:block}
+.steps{display:flex;gap:8px;margin-bottom:16px}
+.step{flex:1;padding:10px;background:#fafafa;border:1px solid #E5E7EB;border-radius:10px;text-align:center;cursor:pointer;transition:all .2s}
+.step b{display:block;margin-bottom:4px}
+.step.current{background:#F3EEFF;border-color:#DDD6FE;color:#7C3AED;font-weight:600}
+.step.done{background:#ecfdf3;border-color:#abefc6;color:#027a48}
+.step.done b{color:#027a48}
+.wizard-body .wizard-step{display:none}
+.wizard-body .wizard-step.active{display:block}
+.wizard-nav{display:flex;gap:12px;justify-content:flex-end;padding-top:16px;border-top:1px solid #E5E7EB;margin-top:24px}
+.inline-meta{display:flex;gap:8px;flex-wrap:wrap}
+.pill{padding:4px 10px;border-radius:999px;background:#F3F4F6;color:#6B7280;font-size:12px}
+.rail-note{padding:12px 14px;border-radius:10px;background:#F3EEFF;border:1px solid #DDD6FE;color:#6D28D9;font-size:12px;line-height:1.6}
+.placeholder{padding:28px;border:1px dashed #D1D5DB;border-radius:14px;background:#FFFFFF;color:#6B7280}
+.preview{margin-top:18px;padding:16px;border:1px solid #E5E7EB;background:#FFFFFF;border-radius:14px}
+.preview-line{display:flex;justify-content:space-between;gap:20px;padding:10px 0;border-bottom:1px solid #E5E7EB}
+.preview-line:last-child{border-bottom:none}
+.sub-table{margin-top:8px}
+.empty-state{display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center}
+.empty-state .empty-icon{width:48px;height:48px;color:#9CA3AF;margin-bottom:16px}
+.empty-state .empty-icon.error{color:#DC2626}
+.empty-state .empty-title{font-size:16px;font-weight:600;color:#1F2937;margin-bottom:8px}
+.empty-state .empty-desc{font-size:13px;color:#6B7280;margin-bottom:24px;max-width:360px}
+.empty-state .btn{margin-top:0}
+.list-data-view{}
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;font-size:13px;color:#6B7280;border-top:1px solid #F3F4F6}
+.pagination .page-nums{display:flex;gap:4px;align-items:center}
+.pagination .page-num{min-width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #D1D5DB;border-radius:6px;cursor:pointer;font-size:13px;background:#fff}
+.pagination .page-num.active{background:#7C3AED;color:#fff;border-color:#7C3AED}
+.pagination .page-num:hover:not(.active){background:#F3EEFF}
+.pagination select{height:32px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px;background:#fff}
+.empty-state-toggle{margin-top:12px;display:flex;gap:8px;justify-content:center}
+
+</style>
+</head>
+<body>
+<div class='header'>
+  <div class='logo'><img src="logo-new.png" height="28" alt="Looply"></div>
+  <div class='header-divider'></div>
+  <span class='system-label'>用户管理系统</span>
+  <div class='breadcrumb'></div>
+</div>
+<div class='container'>
+  <div class='sidebar' role="navigation" aria-label="主导航">
+<div class="menu-solo" tabindex="0" role="menuitem" data-page="user-list"><svg class="mi" aria-hidden="true" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="6" r="3"/><path d="M2 15c0-2.8 2.2-5 5-5s5 2.2 5 5"/><circle cx="13" cy="7" r="2"/><path d="M16 15c0-2 -1.3-3.5-3-4"/></svg><span>用户列表</span></div>
+<div class="menu-divider" role="separator"></div>
+<div class="menu-solo" tabindex="0" role="menuitem" data-page="tag-mgmt"><svg class="mi" aria-hidden="true" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9.2V3.5A1.5 1.5 0 013.5 2h5.7a1.5 1.5 0 011.06.44l5.3 5.3a1.5 1.5 0 010 2.12l-5.3 5.3a1.5 1.5 0 01-2.12 0l-5.3-5.3A1.5 1.5 0 012 9.2Z"/><circle cx="6" cy="6" r="1" fill="currentColor"/></svg><span>用户标签</span></div>
+  </div>
+  <div class='main'>
+<div class="page" id="page-user-list-list"><div class="card">
+      <div class="page-head"><div><div class="page-title">用户列表</div><div class="page-desc">管理平台所有注册用户，支持按标签筛选和批量打标</div></div><div class="head-actions"><button class="btn" onclick="openBatchTagDialog()">批量打标</button></div></div>
+      <div class="kpi"><div class="item"><div class="num">1,286</div><div class="muted">用户总数</div></div><div class="item"><div class="num">1,142</div><div class="muted">正常</div></div><div class="item"><div class="num">38</div><div class="muted">冻结</div></div><div class="item"><div class="num">106</div><div class="muted">已注销</div></div></div>
+      <div class="toolbar"><input class="input" placeholder="搜索用户ID / 昵称 / 邮箱" style="width:220px"><select><option>全部渠道</option><option>Web</option><option>App</option><option>H5</option></select><select><option>全部状态</option><option>正常</option><option>冻结</option><option>注销</option></select><select><option>全部标签</option><option>高净值用户</option><option>价格敏感型</option><option>高复购潜力</option><option>低活跃待召回</option></select><button class="btn">查询</button></div>
+      <div class="list-data-view"><div class="table-wrap"><table><thead><tr><th>用户ID</th><th>昵称</th><th>邮箱</th><th>渠道</th><th>国家</th><th>状态</th><th>标签</th><th>注册时间</th><th>操作</th></tr></thead><tbody><tr><td><b>U100001</b></td><td>Alex Johnson</td><td>alex.j@gmail.com</td><td>Web</td><td>US</td><td><span class="tag on">正常</span></td><td><span class="tag sale">高净值用户</span><span class="tag sale">高复购潜力</span><span style="display:inline-block;padding:2px 6px;border-radius:999px;font-size:11px;background:#F3F4F6;color:#6B7280">+2</span></td><td>2026-04-15 09:22</td><td><button class="btn" onclick="showSubPage('user-list','detail')">详情</button> <button class="btn" onclick="openAddTagDialog()">打标</button> <button class="btn" style="border-color:#DC2626;color:#DC2626">冻结</button></td></tr><tr><td><b>U100002</b></td><td>Maria Garcia</td><td>maria.g@outlook.com</td><td>App</td><td>US</td><td><span class="tag on">正常</span></td><td><span class="tag sale">价格敏感型</span></td><td>2026-04-12 14:08</td><td><button class="btn" onclick="showSubPage('user-list','detail')">详情</button> <button class="btn" onclick="openAddTagDialog()">打标</button> <button class="btn" style="border-color:#DC2626;color:#DC2626">冻结</button></td></tr><tr><td><b>U100003</b></td><td>James Wilson</td><td>j.wilson@yahoo.com</td><td>H5</td><td>US</td><td><span class="tag pending">冻结</span></td><td><span style="color:#9CA3AF;font-size:12px">—</span></td><td>2026-03-28 11:45</td><td><button class="btn" onclick="showSubPage('user-list','detail')">详情</button> <button class="btn" onclick="openAddTagDialog()">打标</button> <button class="btn">解冻</button></td></tr><tr><td><b>U100004</b></td><td>Emma Davis</td><td>emma.d@icloud.com</td><td>App</td><td>US</td><td><span class="tag on">正常</span></td><td><span class="tag sale">高净值用户</span></td><td>2026-03-20 16:33</td><td><button class="btn" onclick="showSubPage('user-list','detail')">详情</button> <button class="btn" onclick="openAddTagDialog()">打标</button> <button class="btn" style="border-color:#DC2626;color:#DC2626">冻结</button></td></tr><tr><td><b>U100005</b></td><td>Robert Brown</td><td>r.brown@gmail.com</td><td>Web</td><td>US</td><td><span class="tag on">正常</span></td><td><span class="tag sale">低活跃待召回</span></td><td>2026-03-15 08:12</td><td><button class="btn" onclick="showSubPage('user-list','detail')">详情</button> <button class="btn" onclick="openAddTagDialog()">打标</button> <button class="btn" style="border-color:#DC2626;color:#DC2626">冻结</button></td></tr></tbody></table></div><div class="pagination"><span>共 1286 条，每页 <select><option>10</option><option>20</option><option>50</option></select> 条</span><div class="page-nums"><span class="page-num" style="cursor:default;opacity:.4">&lt;</span><span class="page-num active">1</span><span class="page-num" style="cursor:default;opacity:.4">&gt;</span></div><span>第 1/1 页</span></div></div>
+      <!-- 空态：零数据引导 -->
+      <div class="empty-state-zero" style="display:none"><div class="empty-state">
+        <div class="empty-icon"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="8" y="8" width="32" height="32" rx="4"/><line x1="16" y1="20" x2="32" y2="20"/><line x1="16" y1="28" x2="28" y2="28"/></svg></div>
+        <div class="empty-title">暂无用户</div>
+        <div class="empty-desc">点击下方按钮创建第一个用户</div>
+        
+    </div></div>
+      <!-- 空态：筛选无匹配 -->
+      <div class="empty-state-no-match" style="display:none"><div class="empty-state">
+        <div class="empty-icon"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="22" cy="22" r="12"/><line x1="31" y1="31" x2="40" y2="40"/></svg></div>
+        <div class="empty-title">未找到匹配结果</div>
+        <div class="empty-desc">请尝试调整搜索关键词或筛选条件</div>
+        <button class="btn">清除筛选条件</button>
+    </div></div>
+      <!-- 空态：网络异常 -->
+      <div class="empty-state-error" style="display:none"><div class="empty-state">
+        <div class="empty-icon error"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="24" cy="24" r="18"/><line x1="24" y1="14" x2="24" y2="28"/><circle cx="24" cy="34" r="1.5" fill="currentColor"/></svg></div>
+        <div class="empty-title">加载失败</div>
+        <div class="empty-desc">网络异常，请检查网络连接后重试</div>
+        <button class="btn primary" onclick="location.reload()">重试</button>
+    </div></div>
+      <!-- 原型演示：空态切换按钮 -->
+      <div class="empty-state-toggle" style="margin-top:12px;display:flex;gap:8px;justify-content:center">
+        <button class="btn" onclick="toggleEmptyState(this,'data')">正常数据</button>
+        <button class="btn" onclick="toggleEmptyState(this,'zero')">零数据态</button>
+        <button class="btn" onclick="toggleEmptyState(this,'no-match')">无匹配态</button>
+        <button class="btn" onclick="toggleEmptyState(this,'error')">异常态</button>
+      </div>
+    </div></div>
+<div class="page" id="page-user-list-detail">
+      <div class="card">
+        <div class="page-head"><div><div class="page-title">用户详情 — U100001</div><div class="page-desc">Alex Johnson / alex.j@gmail.com</div></div><div class="head-actions"><button class="btn" onclick="navigateTo('user-list','用户列表');document.querySelector('[data-page=user-list]').click()">返回列表</button><button class="btn" style="border-color:#DC2626;color:#DC2626">冻结账号</button></div></div>
+        
+    <div style="background:#FAF5FF;border:1px solid #DDD6FE;border-radius:10px;padding:12px 16px;margin-bottom:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="font-size:12px;color:#6B7280;font-weight:500">用户标签：</span>
+      <span class="tag sale" style="margin-bottom:4px">高净值用户 <span style="cursor:pointer;margin-left:4px;color:#93C5FD" onclick="removeTag(this)">&times;</span></span><span class="tag sale" style="margin-bottom:4px">高复购潜力 <span style="cursor:pointer;margin-left:4px;color:#93C5FD" onclick="removeTag(this)">&times;</span></span><span class="tag sale" style="margin-bottom:4px">价格敏感型 <span style="cursor:pointer;margin-left:4px;color:#93C5FD" onclick="removeTag(this)">&times;</span></span><span class="tag sale" style="margin-bottom:4px">低活跃待召回 <span style="cursor:pointer;margin-left:4px;color:#93C5FD" onclick="removeTag(this)">&times;</span></span>
+      <button class="btn" style="height:26px;padding:0 10px;font-size:12px" onclick="openAddTagDialog()">+ 打标</button>
+    </div>
+        <div class="tabs">
+      <div class="tab active" data-pane="tab-basic">基本信息</div>
+      <div class="tab" data-pane="tab-credential">登录凭证</div>
+      <div class="tab" data-pane="tab-device">设备列表</div>
+      <div class="tab" data-pane="tab-login-session">登录与会话</div>
+      <div class="tab" data-pane="tab-risk">风控记录</div>
+      <div class="tab" data-pane="tab-audit">账号变更日志</div>
+      <div class="tab" data-pane="tab-consent">合规同意</div>
+    </div>
+        <div class="tab-pane active" id="tab-basic">
+      <div class="form-section"><div class="section-title">账号信息</div>
+        <div class="form-grid">
+          <div class="label">用户ID</div><div class="field">U100001</div>
+          <div class="label">注册渠道</div><div class="field">Web</div>
+          <div class="label">国家地区</div><div class="field">US</div>
+          <div class="label">注册时间</div><div class="field">2026-04-15 09:22</div>
+          <div class="label">账号状态</div><div class="field"><span class="tag on">正常</span></div>
+          <div class="label">密码状态</div><div class="field"><span class="tag on">已设置</span></div>
+        </div>
+      </div>
+      <div class="form-section"><div class="section-title">个人资料</div>
+        <div class="form-grid">
+          <div class="label">昵称</div><div class="field">Alex Johnson</div>
+          <div class="label">头像</div><div class="field"><div style="width:40px;height:40px;border-radius:50%;background:#F3EEFF;display:flex;align-items:center;justify-content:center;color:#7C3AED;font-weight:600">AJ</div></div>
+          <div class="label">性别</div><div class="field">男</div>
+          <div class="label">生日</div><div class="field">1992-06-15</div>
+          <div class="label">语言偏好</div><div class="field">English</div>
+          <div class="label">个人简介</div><div class="field">Vintage fashion enthusiast</div>
+        </div>
+      </div>
+    </div><div class="tab-pane" id="tab-credential">
+      <div class="form-section"><div class="section-title">邮箱/手机凭证</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>凭证类型</th><th>凭证值</th><th>验证状态</th><th>绑定时间</th></tr></thead>
+          <tbody>
+            <tr><td>邮箱</td><td>alex.j@gmail.com</td><td><span class="tag on">已验证</span></td><td>2026-04-15 09:22</td></tr>
+            <tr><td>手机</td><td>+1 (555) 012-3456</td><td><span class="tag on">已验证</span></td><td>2026-04-16 10:05</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="form-section" style="margin-top:18px"><div class="section-title">三方账号绑定</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>平台</th><th>平台用户ID</th><th>平台邮箱</th><th>绑定时间</th></tr></thead>
+          <tbody>
+            <tr><td>Google</td><td>g_1029384756</td><td>alex.j@gmail.com</td><td>2026-04-15 09:25</td></tr>
+            <tr><td>Apple</td><td>a_8273649102</td><td>relay+abc@privaterelay.appleid.com</td><td>2026-04-20 11:30</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div><div class="tab-pane" id="tab-login-session">
+      <div class="table-wrap"><table>
+        <thead><tr><th>时间</th><th>设备</th><th>方式</th><th>IP地址</th><th>地理位置</th><th>事件</th><th>会话状态</th><th>操作</th></tr></thead>
+        <tbody>
+          <tr><td>2026-05-07 08:15</td><td>fp_a8c3d9e2f1 (macOS)</td><td>密码</td><td>72.134.56.78</td><td>US / New York</td><td><span class="tag on">登录成功</span></td><td><span class="tag on">活跃</span></td><td><button class="btn" style="border-color:#DC2626;color:#DC2626">强制下线</button></td></tr>
+          <tr><td>2026-05-06 19:42</td><td>fp_b7d4e1f3a2 (iOS)</td><td>三方(Google)</td><td>72.134.56.78</td><td>US / New York</td><td><span class="tag on">登录成功</span></td><td><span class="tag off">过期</span></td><td><span style="color:#9CA3AF;font-size:12px">—</span></td></tr>
+          <tr><td>2026-05-05 14:30</td><td>fp_c6e5f2a4b3 (Windows)</td><td>密码</td><td>98.210.44.12</td><td>US / Chicago</td><td><span class="tag req">登录失败</span></td><td><span style="color:#9CA3AF;font-size:12px">—</span></td><td><span style="color:#9CA3AF;font-size:12px">—</span></td></tr>
+          <tr><td>2026-05-04 18:30</td><td>fp_a8c3d9e2f1 (macOS)</td><td>—</td><td>72.134.56.78</td><td>US / New York</td><td><span class="tag opt">退出登录</span></td><td><span class="tag pending">已终止</span></td><td><span style="color:#9CA3AF;font-size:12px">—</span></td></tr>
+          <tr><td>2026-05-04 09:00</td><td>fp_a8c3d9e2f1 (macOS)</td><td>验证码</td><td>72.134.56.78</td><td>US / New York</td><td><span class="tag on">登录成功</span></td><td><span class="tag pending">已终止</span></td><td><span style="color:#9CA3AF;font-size:12px">—</span></td></tr>
+          <tr><td>2026-05-03 22:18</td><td>fp_c6e5f2a4b3 (Windows)</td><td>密码</td><td>185.220.101.5</td><td>DE / Berlin</td><td><span class="tag pending">登录拦截</span></td><td><span style="color:#9CA3AF;font-size:12px">—</span></td><td><span style="color:#9CA3AF;font-size:12px">—</span></td></tr>
+          <tr><td>2026-05-03 14:20</td><td>fp_c6e5f2a4b3 (Windows)</td><td>—</td><td>10.0.1.50</td><td>运营后台</td><td><span class="tag warn">强制下线</span></td><td><span class="tag pending">已终止</span></td><td><span style="color:#9CA3AF;font-size:12px">—</span></td></tr>
+        </tbody>
+      </table></div>
+    </div><div class="tab-pane" id="tab-device">
+      <div class="table-wrap"><table>
+        <thead><tr><th>设备指纹</th><th>操作系统</th><th>信任状态</th><th>首次登录</th><th>最近登录</th><th>活跃会话数</th></tr></thead>
+        <tbody>
+          <tr><td>fp_a8c3d9e2f1</td><td>macOS</td><td><span class="tag on">信任</span></td><td>2026-04-15</td><td>2026-05-07</td><td>1</td></tr>
+          <tr><td>fp_b7d4e1f3a2</td><td>iOS</td><td><span class="tag on">信任</span></td><td>2026-04-16</td><td>2026-05-06</td><td>0</td></tr>
+          <tr><td>fp_c6e5f2a4b3</td><td>Windows</td><td><span class="tag off">不信任</span></td><td>2026-05-05</td><td>2026-05-05</td><td>0</td></tr>
+        </tbody>
+      </table></div>
+    </div><div class="tab-pane" id="tab-risk">
+      <div class="table-wrap"><table>
+        <thead><tr><th>触发时间</th><th>风控类型</th><th>触发规则</th><th>处置动作</th><th>验证方式</th><th>最终放行</th><th>IP</th></tr></thead>
+        <tbody>
+          <tr><td>2026-05-07 03:12</td><td>新设备</td><td>首次使用该设备登录</td><td><span class="tag on">放行</span></td><td>—</td><td><span class="tag on">是</span></td><td>72.134.56.78</td></tr>
+          <tr><td>2026-05-05 14:30</td><td>暴力破解</td><td>10分钟内同IP 10次登录</td><td><span class="tag pending">验证</span></td><td>人机验证</td><td><span class="tag on">是</span></td><td>98.210.44.12</td></tr>
+          <tr><td>2026-05-03 22:18</td><td>异地登录</td><td>IP地理位置跨国</td><td><span class="tag req">拦截</span></td><td>—</td><td><span class="tag req">否</span></td><td>185.220.101.5</td></tr>
+          <tr><td>2026-04-28 09:45</td><td>暴力破解</td><td>同账号连续5次密码错误</td><td><span class="tag off">封禁</span></td><td>—</td><td><span class="tag req">否</span></td><td>45.33.12.99</td></tr>
+        </tbody>
+      </table></div>
+    </div><div class="tab-pane" id="tab-audit">
+      <div class="table-wrap"><table>
+        <thead><tr><th>操作时间</th><th>操作类型</th><th>操作详情</th><th>IP</th><th>设备</th></tr></thead>
+        <tbody>
+          <tr><td>2026-05-05 16:42</td><td>注销</td><td>用户自助注销，原因：不再使用该平台</td><td>72.134.56.78</td><td>macOS / Safari</td></tr>
+          <tr><td>2026-05-01 10:15</td><td>改密码</td><td>用户主动修改登录密码</td><td>72.134.56.78</td><td>macOS / Chrome</td></tr>
+          <tr><td>2026-04-29 15:20</td><td>解绑凭证</td><td>解绑手机号 +1 (555) 012-3456</td><td>72.134.56.78</td><td>macOS / Chrome</td></tr>
+          <tr><td>2026-04-28 09:30</td><td>解绑三方</td><td>解绑 Facebook 账号</td><td>72.134.56.78</td><td>macOS / Chrome</td></tr>
+          <tr><td>2026-04-20 11:30</td><td>绑定三方</td><td>绑定 Apple 账号</td><td>72.134.56.78</td><td>macOS / Safari</td></tr>
+          <tr><td>2026-04-16 10:05</td><td>绑定凭证</td><td>绑定手机号 +1 (555) 012-3456</td><td>72.134.56.78</td><td>macOS / Chrome</td></tr>
+          <tr><td>2026-04-15 09:25</td><td>绑定三方</td><td>绑定 Google 账号</td><td>72.134.56.78</td><td>macOS / Chrome</td></tr>
+          <tr><td>2026-04-15 09:22</td><td>注册</td><td>邮箱注册 alex.j@gmail.com</td><td>72.134.56.78</td><td>macOS / Chrome</td></tr>
+        </tbody>
+      </table></div>
+      <div style="font-size:11px;color:#9CA3AF;margin-top:10px">* 账号变更记录保留 24 个月（CCPA §1798.105 合规要求）</div>
+    </div><div class="tab-pane" id="tab-consent">
+      <div class="table-wrap"><table>
+        <thead><tr><th>同意类型</th><th>协议版本</th><th>适用国家</th><th>同意时间</th></tr></thead>
+        <tbody>
+          <tr><td>隐私政策</td><td>v1.0</td><td>US</td><td>2026-04-15 09:22</td></tr>
+          <tr><td>用户协议</td><td>v1.0</td><td>US</td><td>2026-04-15 09:22</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+      </div>
+    </div>
+<div class="page" id="page-tag-mgmt-list"><div class="card">
+      <div class="page-head"><div><div class="page-title">用户标签</div><div class="page-desc">维护运营标签池，管理标签的新增、编辑和停用</div></div><div class="head-actions"><button class="btn primary" onclick="openCreateTagDialog()">新增标签</button></div></div>
+      <div class="kpi"><div class="item"><div class="num">5</div><div class="muted">标签总数</div></div><div class="item"><div class="num">4</div><div class="muted">启用中</div></div><div class="item"><div class="num">1</div><div class="muted">已停用</div></div><div class="item"><div class="num">985</div><div class="muted">累计打标次数</div></div></div>
+      <div class="toolbar"><input class="input" placeholder="搜索标签名称" style="width:180px"><select><option>全部状态</option><option>启用</option><option>停用</option></select><button class="btn">查询</button></div>
+      <div class="list-data-view"><div class="table-wrap"><table><thead><tr><th>标签ID</th><th>标签名称</th><th>状态</th><th>说明</th><th>已打标用户数</th><th>创建时间</th><th>操作</th></tr></thead><tbody><tr><td><b>T001</b></td><td>高净值用户</td><td><span class="tag on">启用</span></td><td>消费金额累计超过$500</td><td>128</td><td>2026-04-01</td><td><button class="btn" onclick="openEditTagDialog()">编辑</button> <button class="btn">停用</button></td></tr><tr><td><b>T002</b></td><td>价格敏感型</td><td><span class="tag on">启用</span></td><td>频繁使用优惠券、关注折扣商品</td><td>356</td><td>2026-04-01</td><td><button class="btn" onclick="openEditTagDialog()">编辑</button> <button class="btn">停用</button></td></tr><tr><td><b>T003</b></td><td>高复购潜力</td><td><span class="tag on">启用</span></td><td>浏览频次高但下单少</td><td>89</td><td>2026-04-05</td><td><button class="btn" onclick="openEditTagDialog()">编辑</button> <button class="btn">停用</button></td></tr><tr><td><b>T004</b></td><td>低活跃待召回</td><td><span class="tag on">启用</span></td><td>30天内无登录和浏览行为</td><td>412</td><td>2026-04-10</td><td><button class="btn" onclick="openEditTagDialog()">编辑</button> <button class="btn">停用</button></td></tr><tr><td><b>T005</b></td><td>新客首单未完成</td><td><span class="tag off">停用</span></td><td>注册7天内未下单</td><td>0</td><td>2026-04-12</td><td><button class="btn" onclick="openEditTagDialog()">编辑</button> <button class="btn">启用</button></td></tr></tbody></table></div><div class="pagination"><span>共 5 条，每页 <select><option>10</option><option>20</option><option>50</option></select> 条</span><div class="page-nums"><span class="page-num" style="cursor:default;opacity:.4">&lt;</span><span class="page-num active">1</span><span class="page-num" style="cursor:default;opacity:.4">&gt;</span></div><span>第 1/1 页</span></div></div>
+      <!-- 空态：零数据引导 -->
+      <div class="empty-state-zero" style="display:none"><div class="empty-state">
+        <div class="empty-icon"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="8" y="8" width="32" height="32" rx="4"/><line x1="16" y1="20" x2="32" y2="20"/><line x1="16" y1="28" x2="28" y2="28"/></svg></div>
+        <div class="empty-title">暂无标签</div>
+        <div class="empty-desc">点击下方按钮创建第一个标签</div>
+        <button class="btn primary" onclick="openCreateTagDialog()">新增标签</button>
+    </div></div>
+      <!-- 空态：筛选无匹配 -->
+      <div class="empty-state-no-match" style="display:none"><div class="empty-state">
+        <div class="empty-icon"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="22" cy="22" r="12"/><line x1="31" y1="31" x2="40" y2="40"/></svg></div>
+        <div class="empty-title">未找到匹配结果</div>
+        <div class="empty-desc">请尝试调整搜索关键词或筛选条件</div>
+        <button class="btn">清除筛选条件</button>
+    </div></div>
+      <!-- 空态：网络异常 -->
+      <div class="empty-state-error" style="display:none"><div class="empty-state">
+        <div class="empty-icon error"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="24" cy="24" r="18"/><line x1="24" y1="14" x2="24" y2="28"/><circle cx="24" cy="34" r="1.5" fill="currentColor"/></svg></div>
+        <div class="empty-title">加载失败</div>
+        <div class="empty-desc">网络异常，请检查网络连接后重试</div>
+        <button class="btn primary" onclick="location.reload()">重试</button>
+    </div></div>
+      <!-- 原型演示：空态切换按钮 -->
+      <div class="empty-state-toggle" style="margin-top:12px;display:flex;gap:8px;justify-content:center">
+        <button class="btn" onclick="toggleEmptyState(this,'data')">正常数据</button>
+        <button class="btn" onclick="toggleEmptyState(this,'zero')">零数据态</button>
+        <button class="btn" onclick="toggleEmptyState(this,'no-match')">无匹配态</button>
+        <button class="btn" onclick="toggleEmptyState(this,'error')">异常态</button>
+      </div>
+    </div></div>
+
+    <!-- 弹窗：新增/编辑标签 -->
+    <div id="tag-dialog" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:999;align-items:center;justify-content:center">
+      <div style="background:#fff;border-radius:16px;padding:28px;width:480px;box-shadow:0 20px 60px rgba(0,0,0,.15)">
+        <div style="font-size:18px;font-weight:700;margin-bottom:18px">新增标签</div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="display:grid;grid-template-columns:80px 1fr;gap:12px;align-items:center">
+            <span style="color:#6B7280;font-size:13px">标签名称</span>
+            <input style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px" placeholder="输入标签名称">
+          </div>
+          <div style="display:grid;grid-template-columns:80px 1fr;gap:12px;align-items:start">
+            <span style="color:#6B7280;font-size:13px;padding-top:8px">标签说明</span>
+            <textarea style="height:80px;border:1px solid #D1D5DB;border-radius:8px;padding:8px 12px;resize:none" placeholder="描述标签的定义和适用场景"></textarea>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:18px">
+          <button class="btn" onclick="closeDialog('tag-dialog')">取消</button>
+          <button class="btn primary" onclick="closeDialog('tag-dialog')">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：批量打标签 -->
+    <div id="batch-tag-dialog" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:999;align-items:center;justify-content:center">
+      <div style="background:#fff;border-radius:16px;padding:28px;width:480px;box-shadow:0 20px 60px rgba(0,0,0,.15)">
+        <div style="font-size:18px;font-weight:700;margin-bottom:18px">批量打标签</div>
+        <div style="margin-bottom:14px;padding:10px 14px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:8px;font-size:12px;color:#6D28D9">已选择 <b>3</b> 个用户，请选择要添加的标签：</div>
+        <div style="max-height:240px;overflow-y:auto;padding:0 4px">
+          <label style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #F3F4F6;cursor:pointer"><input type="checkbox" style="accent-color:#7C3AED"> 高净值用户<span style="color:#9CA3AF;font-size:11px;margin-left:auto">128人</span></label><label style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #F3F4F6;cursor:pointer"><input type="checkbox" style="accent-color:#7C3AED"> 价格敏感型<span style="color:#9CA3AF;font-size:11px;margin-left:auto">356人</span></label><label style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #F3F4F6;cursor:pointer"><input type="checkbox" style="accent-color:#7C3AED"> 高复购潜力<span style="color:#9CA3AF;font-size:11px;margin-left:auto">89人</span></label><label style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #F3F4F6;cursor:pointer"><input type="checkbox" style="accent-color:#7C3AED"> 低活跃待召回<span style="color:#9CA3AF;font-size:11px;margin-left:auto">412人</span></label>
+        </div>
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:18px">
+          <button class="btn" onclick="closeDialog('batch-tag-dialog')">取消</button>
+          <button class="btn primary" onclick="closeDialog('batch-tag-dialog')">确认打标</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：管理用户标签（打标+摘标） -->
+    <div id="add-tag-dialog" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:999;align-items:center;justify-content:center">
+      <div style="background:#fff;border-radius:16px;padding:28px;width:480px;box-shadow:0 20px 60px rgba(0,0,0,.15)">
+        <div style="font-size:18px;font-weight:700;margin-bottom:18px">打标</div>
+        <div style="margin-bottom:14px;font-size:13px;color:#6B7280">为用户 <b>U100001 (Alex Johnson)</b> 设置标签，勾选=打标，取消勾选=摘标：</div>
+        <div style="max-height:240px;overflow-y:auto;padding:0 4px">
+          <label style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #F3F4F6;cursor:pointer"><input type="checkbox" style="accent-color:#7C3AED"checked> 高净值用户<span style="color:#9CA3AF;font-size:11px;margin-left:auto">128人</span></label><label style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #F3F4F6;cursor:pointer"><input type="checkbox" style="accent-color:#7C3AED"checked> 价格敏感型<span style="color:#9CA3AF;font-size:11px;margin-left:auto">356人</span></label><label style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #F3F4F6;cursor:pointer"><input type="checkbox" style="accent-color:#7C3AED"checked> 高复购潜力<span style="color:#9CA3AF;font-size:11px;margin-left:auto">89人</span></label><label style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #F3F4F6;cursor:pointer"><input type="checkbox" style="accent-color:#7C3AED"checked> 低活跃待召回<span style="color:#9CA3AF;font-size:11px;margin-left:auto">412人</span></label>
+        </div>
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:18px">
+          <button class="btn" onclick="closeDialog('add-tag-dialog')">取消</button>
+          <button class="btn primary" onclick="closeDialog('add-tag-dialog')">确认</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+window.toggleGroup = function(parent) {
+  var group = parent.closest('.menu-group');
+  group.classList.toggle('open');
+  parent.setAttribute('aria-expanded', group.classList.contains('open'));
+};
+window.toggleSubgroup = function(subparent) {
+  var group = subparent.closest('.menu-subgroup');
+  group.classList.toggle('open');
+  subparent.setAttribute('aria-expanded', group.classList.contains('open'));
+};
+function clearAllActive() {
+  document.querySelectorAll('.menu-solo,.menu-child,.menu-grandchild').forEach(function(el){el.classList.remove('active')});
+  document.querySelectorAll('.menu-parent').forEach(function(el){el.classList.remove('active-parent')});
+  document.querySelectorAll('.menu-subparent').forEach(function(el){el.classList.remove('active-parent')});
+}
+function navigateTo(pageId, label) {
+  clearAllActive();
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
+  var target = document.getElementById('page-' + pageId + '-list') || document.getElementById('page-' + pageId);
+  if (target) target.classList.add('active');
+  document.querySelector('.breadcrumb').textContent = label || '';
+}
+function showSubPage(module, action) {
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
+  var target = document.getElementById('page-' + module + '-' + action);
+  if (target) target.classList.add('active');
+}
+document.querySelectorAll('[data-page]').forEach(function(item) {
+  item.addEventListener('click', function() {
+    var pageId = this.dataset.page;
+    var label = this.querySelector('span') ? this.querySelector('span').textContent : '';
+    navigateTo(pageId, label);
+    this.classList.add('active');
+    var group = this.closest('.menu-group');
+    if (group) { group.classList.add('open'); var p = group.querySelector('.menu-parent'); if(p) p.classList.add('active-parent'); }
+    var subgroup = this.closest('.menu-subgroup');
+    if (subgroup) { subgroup.classList.add('open'); var sp = subgroup.querySelector('.menu-subparent'); if(sp) sp.classList.add('active-parent'); }
+  });
+});
+document.querySelectorAll('.tabs').forEach(function(tabBar) {
+  tabBar.querySelectorAll('.tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      var paneId = this.dataset.pane;
+      tabBar.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});
+      this.classList.add('active');
+      var container = tabBar.parentElement;
+      container.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active')});
+      var pane = container.querySelector('#' + paneId);
+      if (pane) pane.classList.add('active');
+    });
+  });
+});
+window.toggleEmptyState = function(btn, mode) {
+  var card = btn.closest('.card');
+  if (!card) return;
+  var dataView = card.querySelector('.list-data-view');
+  var zero = card.querySelector('.empty-state-zero');
+  var noMatch = card.querySelector('.empty-state-no-match');
+  var error = card.querySelector('.empty-state-error');
+  if (dataView) dataView.style.display = mode === 'data' ? '' : 'none';
+  if (zero) zero.style.display = mode === 'zero' ? '' : 'none';
+  if (noMatch) noMatch.style.display = mode === 'no-match' ? '' : 'none';
+  if (error) error.style.display = mode === 'error' ? '' : 'none';
+};
+var firstMenu = document.querySelector('[data-page]');
+if (firstMenu) firstMenu.click();
+
+
+function openCreateTagDialog(){ document.getElementById('tag-dialog').style.display='flex'; }
+function openEditTagDialog(){ document.getElementById('tag-dialog').style.display='flex'; }
+function openBatchTagDialog(){ document.getElementById('batch-tag-dialog').style.display='flex'; }
+function openAddTagDialog(){ document.getElementById('add-tag-dialog').style.display='flex'; }
+function closeDialog(id){ document.getElementById(id).style.display='none'; }
+
+</script>
+</body>
+</html>
