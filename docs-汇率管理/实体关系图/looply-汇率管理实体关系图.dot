@@ -1,0 +1,115 @@
+digraph ER {
+	graph [bgcolor="#f8f9fc" compound=true fontname="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" fontsize=14 label=<<B>looply · 汇率管理 实体关系图</B><BR/><FONT POINT-SIZE="10">v3.3 · 2026-05-14</FONT>> labelloc=t nodesep=0.3 pad=0.8 rankdir=LR ranksep=0.6]
+	node [fontname="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" margin=0 shape=none]
+	edge [arrowsize=0.7 color="#999999" fontname="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" fontsize=10 penwidth=1.0]
+	subgraph cluster_ref {
+		color="#9ca3af" fillcolor="#f3f4f6" fontcolor="#6b7280" fontsize=14 label=<<B>外部引用(币种管理模块)</B>> margin=16 penwidth=2.5 style="filled,rounded"
+		currency [label=<
+      <TABLE BORDER="2" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6">
+        <TR><TD COLSPAN="2" BGCOLOR="#6b7280"><FONT COLOR="white"><B>币种主数据 currency</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT">id 主键</TD><TD>[PK]</TD></TR>
+<TR><TD ALIGN="LEFT">code ISO 4217简码</TD><TD>[UK]</TD></TR>
+<TR><TD ALIGN="LEFT">symbol 币种符号</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">decimal_precision 小数精度</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">status 启停状态</TD><TD></TD></TR>
+</TABLE>
+    >]
+	}
+	subgraph cluster_source {
+		color="#f59e0b" fillcolor="#fef3c7" fontcolor="#92400e" fontsize=14 label=<<B>数据获取</B>> margin=16 penwidth=2.5 style="filled,rounded"
+		exchange_rate_source [label=<
+      <TABLE BORDER="2" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6">
+        <TR><TD COLSPAN="2" BGCOLOR="#d97706"><FONT COLOR="white"><B>汇率数据源 exchange_rate_source</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT">id 主键</TD><TD>[PK]</TD></TR>
+<TR><TD ALIGN="LEFT">name 数据源名称</TD><TD>[UK]</TD></TR>
+<TR><TD ALIGN="LEFT">api_url API地址</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">api_key API密钥(加密)</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">priority 优先级(主/备)</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">fetch_interval 拉取间隔(秒)</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">status 启停状态</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">last_fetch_at 最近拉取时间</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">last_fetch_status 最近拉取状态</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">created_at 创建时间</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">updated_at 更新时间</TD><TD></TD></TR>
+</TABLE>
+    >]
+		exchange_rate_raw [label=<
+      <TABLE BORDER="2" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6">
+        <TR><TD COLSPAN="2" BGCOLOR="#d97706"><FONT COLOR="white"><B>原始汇率 exchange_rate_raw</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT">id 主键</TD><TD>[PK]</TD></TR>
+<TR><TD ALIGN="LEFT">source_id 数据源(派生为空)</TD><TD>[FK]</TD></TR>
+<TR><TD ALIGN="LEFT">base_currency_id 基准币种</TD><TD>[FK]</TD></TR>
+<TR><TD ALIGN="LEFT">target_currency_id 目标币种</TD><TD>[FK]</TD></TR>
+<TR><TD ALIGN="LEFT">source_type 来源(直接采集/派生)</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">market_rate 中间价</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">fetched_at 采集/计算时间</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">expires_at 失效时间</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">status 状态(正常/异常)</TD><TD></TD></TR>
+<TR><TD COLSPAN="2" BGCOLOR="#E3F2FD"><FONT POINT-SIZE="10"><I>UK: base + target + fetched_at; 直接采集仅USD→X; 派生记录source_id为空</I></FONT></TD></TR>
+</TABLE>
+    >]
+	}
+	subgraph cluster_process {
+		color="#3b82f6" fillcolor="#dbeafe" fontcolor="#1e40af" fontsize=14 label=<<B>数据加工</B>> margin=16 penwidth=2.5 style="filled,rounded"
+		spread_rule [label=<
+      <TABLE BORDER="2" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6">
+        <TR><TD COLSPAN="2" BGCOLOR="#2563eb"><FONT COLOR="white"><B>点差规则 spread_rule</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT">id 主键</TD><TD>[PK]</TD></TR>
+<TR><TD ALIGN="LEFT">base_currency_id 基准币种(空=全局)</TD><TD>[FK]</TD></TR>
+<TR><TD ALIGN="LEFT">target_currency_id 目标币种(空=全局)</TD><TD>[FK]</TD></TR>
+<TR><TD ALIGN="LEFT">spread_rate 点差比例(如0.02)</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">priority 优先级</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">status 启停状态</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">created_at 创建时间</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">updated_at 更新时间</TD><TD></TD></TR>
+<TR><TD COLSPAN="2" BGCOLOR="#E3F2FD"><FONT POINT-SIZE="10"><I>全局: base+target=NULL; 方向点差覆盖全局; UK: base+target</I></FONT></TD></TR>
+</TABLE>
+    >]
+	}
+	subgraph cluster_publish {
+		color="#6366f1" fillcolor="#e0e7ff" fontcolor="#4338ca" fontsize=14 label=<<B>发布与服务</B>> margin=16 penwidth=2.5 style="filled,rounded"
+		exchange_rate_published [label=<
+      <TABLE BORDER="2" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6">
+        <TR><TD COLSPAN="2" BGCOLOR="#4f46e5"><FONT COLOR="white"><B>已发布汇率 exchange_rate_published</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT">id 主键</TD><TD>[PK]</TD></TR>
+<TR><TD ALIGN="LEFT">base_currency_id 基准币种</TD><TD>[FK]</TD></TR>
+<TR><TD ALIGN="LEFT">target_currency_id 目标币种</TD><TD>[FK]</TD></TR>
+<TR><TD ALIGN="LEFT">market_rate 中间价(含派生)</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">source_type 来源(直接/逆向/交叉)</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">spread_rate 应用的点差</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">published_rate 平台汇率</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">publish_type 发布方式(定时/手动)</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">published_by 发布人(系统/运营)</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">published_at 发布时间</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">status 状态(生效/已替换/停用)</TD><TD></TD></TR>
+<TR><TD COLSPAN="2" BGCOLOR="#E3F2FD"><FONT POINT-SIZE="10"><I>UK: base + target; 同一有向币种对仅一条生效; 币种停用后置为 disabled_by_currency</I></FONT></TD></TR>
+</TABLE>
+    >]
+	}
+	subgraph cluster_audit {
+		color="#ef4444" fillcolor="#fee2e2" fontcolor="#991b1b" fontsize=14 label=<<B>审计与日志</B>> margin=16 penwidth=2.5 style="filled,rounded"
+		rate_change_log [label=<
+      <TABLE BORDER="2" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6">
+        <TR><TD COLSPAN="2" BGCOLOR="#dc2626"><FONT COLOR="white"><B>汇率变动日志 rate_change_log</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT">id 主键</TD><TD>[PK]</TD></TR>
+<TR><TD ALIGN="LEFT">snapshot_batch_id 发布批次号(可空)</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">target_currency_id 目标币种</TD><TD>[FK]</TD></TR>
+<TR><TD ALIGN="LEFT">operation_type 操作类型</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">old_rate 变更前汇率</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">new_rate 变更后汇率</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">change_reason 变更原因</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">operator 操作人</TD><TD></TD></TR>
+<TR><TD ALIGN="LEFT">created_at 操作时间</TD><TD></TD></TR>
+<TR><TD COLSPAN="2" BGCOLOR="#E3F2FD"><FONT POINT-SIZE="10"><I>操作类型: 定时发布/手动发布/设置固定汇率/回滚/点差调整/币种停用; 同批次发布共享 batch_id</I></FONT></TD></TR>
+</TABLE>
+    >]
+	}
+	exchange_rate_raw -> exchange_rate_source [label="N:1 来源" color="#d97706" fontcolor="#d97706" penwidth=1.4]
+	exchange_rate_raw -> currency [label="N:1 基准/目标币种" color="#6b7280" fontcolor="#6b7280" penwidth=1.2]
+	spread_rule -> currency [label="N:1 基准/目标币种(可空)" color="#2563eb" fontcolor="#2563eb" penwidth=1.2 style=dashed]
+	exchange_rate_published -> currency [label="N:1 基准/目标币种" color="#4f46e5" fontcolor="#4f46e5" penwidth=1.4]
+	exchange_rate_published -> exchange_rate_raw [label="N:1 加工来源" color="#2563eb" fontcolor="#2563eb" penwidth=1.2 style=dashed]
+	exchange_rate_published -> spread_rule [label="N:1 应用点差" color="#2563eb" fontcolor="#2563eb" style=dashed]
+	rate_change_log -> currency [label="N:1 目标币种" color="#dc2626" fontcolor="#dc2626"]
+	rate_change_log -> exchange_rate_published [label="N:1 关联发布记录" color="#dc2626" fontcolor="#dc2626" penwidth=1.2 style=dashed]
+}
