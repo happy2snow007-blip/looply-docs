@@ -12,6 +12,7 @@ MODULE_LIST=(
     "$HOME/Desktop/海外业务/商品|docs-商品系统"
     "$HOME/Desktop/海外业务/market|docs-market系统"
     "$HOME/Desktop/海外业务/翻译|docs-翻译管理"
+    "$HOME/Desktop/海外业务/库存|docs-库存管理"
 )
 
 # 颜色
