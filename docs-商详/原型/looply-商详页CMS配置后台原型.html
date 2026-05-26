@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Looply 商详页CMS配置后台原型</title>
+<style>
+
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937;font-size:14px}
+.header{height:60px;background:#FFFFFF;color:#1F2937;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid #E5E7EB}
+.logo{font-size:18px;font-weight:700;letter-spacing:1px;display:flex;align-items:center}
+.header-divider{width:1px;height:20px;background:#E5E7EB;margin:0 16px}
+.system-label{font-size:14px;font-weight:500;color:#6B7280;letter-spacing:0.3px}
+.breadcrumb{margin-left:auto;color:#9CA3AF;font-size:13px;font-weight:400}
+.container{display:flex;height:calc(100vh - 60px)}
+.sidebar{width:220px;background:#FFFFFF;overflow:auto;flex-shrink:0;border-right:none;box-shadow:3px 0 12px rgba(0,0,0,0.06);padding:8px 0}
+.main{flex:1;overflow:auto;padding:28px}
+.menu-solo{display:flex;align-items:center;padding:12px 16px;color:#374151;cursor:pointer;font-size:14px;font-weight:500;transition:background .15s;border-left:3px solid transparent;outline:none}
+.menu-solo:hover{background:rgba(0,0,0,.04)}
+.menu-solo.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.12),transparent);font-weight:600;border-left-color:#7C3AED}
+.menu-solo .mi{width:18px;height:18px;margin-right:10px;flex-shrink:0;opacity:.55}
+.menu-solo.active .mi{opacity:1}
+.menu-divider{height:1px;background:#F3F4F6;margin:8px 16px}
+.menu-group{margin-bottom:0}
+.menu-parent{display:flex;align-items:center;padding:12px 16px;color:#374151;cursor:pointer;font-size:14px;font-weight:500;transition:background .15s;user-select:none;border-left:3px solid transparent;outline:none}
+.menu-parent:hover{background:rgba(0,0,0,.04)}
+.menu-parent .mi{width:18px;height:18px;margin-right:10px;flex-shrink:0;opacity:.55}
+.menu-parent .arrow{margin-left:auto;width:16px;height:16px;transition:transform .2s;opacity:.4;flex-shrink:0}
+.menu-group.open>.menu-parent .arrow{transform:rotate(90deg)}
+.menu-parent.active-parent{color:#7C3AED;font-weight:600;border-left-color:#7C3AED}
+.menu-parent.active-parent .mi{opacity:1}
+.menu-children{max-height:0;overflow:hidden;transition:max-height .3s cubic-bezier(.4,0,.2,1)}
+.menu-group.open>.menu-children{max-height:none}
+.menu-child{display:flex;align-items:center;padding:10px 16px 10px 44px;color:#4B5563;cursor:pointer;font-size:13px;transition:all .15s;border-left:3px solid transparent;outline:none}
+.menu-child:hover{color:#374151;background:rgba(0,0,0,.03)}
+.menu-child.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.1),transparent);border-left-color:#7C3AED;font-weight:600}
+.menu-child .ci{width:15px;height:15px;margin-right:8px;flex-shrink:0;opacity:.45}
+.menu-child.active .ci{opacity:.8}
+.page{display:none}.page.active{display:block}
+.card{background:#fff;border-radius:16px;box-shadow:0 10px 24px rgba(16,24,40,.06);padding:28px}
+.page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}
+.page-title{font-size:20px;font-weight:700;margin-bottom:6px}
+.page-desc{color:#6B7280;font-size:13px;max-width:760px}
+.head-actions{display:flex;gap:10px;flex-wrap:wrap}
+.toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.toolbar .input,.toolbar select{height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff}
+.btn{height:34px;padding:0 14px;border:1px solid #D1D5DB;background:#fff;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:13px}
+.btn.primary{background:#7C3AED;border-color:#7C3AED;color:#fff}
+.btn.sm{height:28px;padding:0 10px;font-size:12px}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi .item{background:#FAF5FF;border:1px solid #DDD6FE;border-radius:14px;padding:14px}
+.kpi .num{font-size:24px;font-weight:700;color:#7C3AED;margin-bottom:4px}
+.muted{color:#6B7280;font-size:12px}
+.table-wrap{border:1px solid #E5E7EB;border-radius:14px;overflow-x:auto;background:#fff}
+table{width:100%;border-collapse:collapse}
+th{background:#FFFFFF;padding:10px 12px;text-align:left;font-size:12px;color:#6B7280;border-bottom:1px solid #E5E7EB;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap}
+td{padding:11px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;vertical-align:top}
+tr:hover{background:#FAF5FF}
+tr:last-child td{border-bottom:none}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;margin-right:4px}
+.tag.on{background:#F0FDF4;color:#16A34A}
+.tag.pending{background:#FFFBEB;color:#D97706}
+.tag.off{background:#F3F4F6;color:#6B7280}
+.section{margin-top:18px}
+.section-title{font-size:14px;font-weight:700;margin-bottom:10px;color:#7C3AED}
+.tabs{display:flex;border-bottom:1px solid #E5E7EB;margin-bottom:14px;gap:4px}
+.tab{padding:10px 18px;cursor:pointer;border-bottom:2px solid transparent;color:#6B7280;font-size:13px}
+.tab.active{color:#7C3AED;border-bottom-color:#7C3AED;font-weight:600}
+.tab-pane{display:none}.tab-pane.active{display:block}
+.split{display:flex;gap:18px}
+.panel{border:1px solid #E5E7EB;border-radius:14px;background:#FFFFFF;padding:16px;min-height:420px}
+.panel h3{font-size:13px;color:#6B7280;margin-bottom:12px}
+.form-grid{display:grid;grid-template-columns:150px 1fr;gap:12px 16px;align-items:center}
+.label{color:#6B7280;font-size:13px}
+.field{min-height:36px;border:1px solid #D1D5DB;border-radius:8px;background:#fff;padding:8px 12px;display:flex;align-items:center}
+.input{height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff;font-size:13px;outline:none;transition:border-color .15s}
+.input:focus{border-color:#7C3AED}
+.pagination{display:flex;align-items:center;justify-content:center;gap:24px;padding:12px 16px;font-size:13px;color:#6B7280;border-top:1px solid #F3F4F6}
+.pagination .pag-section{display:flex;align-items:center;gap:8px}
+.pagination .divider{width:1px;height:20px;background:#E5E7EB}
+.pagination .page-nums{display:flex;gap:2px;align-items:center}
+.pagination .page-num{min-width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;font-size:13px;background:transparent;color:#374151;transition:all .15s;border:none}
+.pagination .page-num.active{background:#7C3AED;color:#fff;font-weight:600}
+.pagination .page-num.arrow{width:32px;height:32px;border:1px solid #E5E7EB;border-radius:8px;background:#fff}
+
+/* === PDP CMS Specific === */
+.module-list{list-style:none;padding:0}
+.module-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #E5E7EB;border-radius:10px;margin-bottom:8px;background:#fff;cursor:pointer;transition:all .15s}
+.module-item:hover{border-color:#DDD6FE;background:#FAF5FF}
+.module-item.active{border-color:#7C3AED;background:#F3EEFF}
+.module-item .drag-handle{color:#9CA3AF;cursor:grab;font-size:16px;flex-shrink:0}
+.module-item .module-name{flex:1;font-size:13px;font-weight:500;color:#1F2937}
+.module-item .module-tag{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:600}
+.module-item .module-tag.core{background:#F0FDF4;color:#16A34A}
+.module-item .module-tag.info{background:#EFF6FF;color:#2563EB}
+.module-item .module-tag.trust{background:#FFFBEB;color:#D97706}
+.module-item .module-tag.nav{background:#F3F4F6;color:#6B7280}
+.toggle{position:relative;width:36px;height:20px;background:#D1D5DB;border-radius:10px;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle.on{background:#7C3AED}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s}
+.toggle.on::after{transform:translateX(16px)}
+.toggle.locked{background:#E5E7EB;cursor:not-allowed;opacity:.6}
+.config-panel{border:1px solid #E5E7EB;border-radius:14px;background:#fff;padding:20px;min-height:500px}
+.config-panel h3{font-size:15px;font-weight:700;color:#1F2937;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #E5E7EB}
+.config-section{margin-bottom:20px}
+.config-section-title{font-size:13px;font-weight:600;color:#374151;margin-bottom:10px}
+.config-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.config-row .label{width:120px;flex-shrink:0;font-size:13px;color:#6B7280}
+.config-row .value{flex:1}
+.attr-item{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid #E5E7EB;border-radius:8px;margin-bottom:6px;background:#fff}
+.attr-item .drag-handle{color:#9CA3AF;cursor:grab;font-size:14px}
+.attr-item .attr-name{flex:1;font-size:13px;color:#1F2937}
+.attr-item .attr-source{font-size:11px;color:#9CA3AF}
+.attr-item input[type=checkbox]{width:16px;height:16px;accent-color:#7C3AED}
+.tree-node{padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:#4B5563}
+.tree-node:hover{background:#F3EEFF}
+.tree-node.selected{background:#F3EEFF;color:#7C3AED;font-weight:600}
+.tree-child{margin-left:18px}
+.preview-card{border:1px solid #E5E7EB;border-radius:10px;padding:16px;background:#FAFAFA}
+.preview-card .preview-title{font-size:12px;font-weight:600;color:#6B7280;margin-bottom:12px;text-transform:uppercase;letter-spacing:.3px}
+.preview-attr{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #F3F4F6;font-size:13px}
+.preview-attr:last-child{border-bottom:none}
+.preview-attr .attr-label{color:#6B7280}
+.preview-attr .attr-val{color:#1F2937;font-weight:500}
+.rich-text-placeholder{border:1px dashed #D1D5DB;border-radius:8px;padding:12px;min-height:80px;background:#F9FAFB;color:#9CA3AF;font-size:12px}
+.checkbox-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.checkbox-item{display:flex;align-items:center;gap:6px;font-size:12px;color:#374151}
+.checkbox-item input{width:14px;height:14px;accent-color:#7C3AED}
+.market-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:8px;font-size:13px;font-weight:600;color:#7C3AED}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px}
+.modal-box{background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.2);width:100%;max-width:920px;max-height:90vh;display:flex;flex-direction:column}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;border-bottom:1px solid #E5E7EB}
+.modal-title{font-size:17px;font-weight:700;color:#1F2937}
+.modal-close{width:32px;height:32px;border:none;background:none;font-size:22px;color:#9CA3AF;cursor:pointer;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:#F3F4F6;color:#374151}
+.modal-body{padding:20px 24px;overflow-y:auto;flex:1}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;padding:16px 24px;border-top:1px solid #E5E7EB}
+
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo"><img src="logo-new.png" height="28" alt="Looply"></div>
+  <div class="header-divider"></div>
+  <span class="system-label">CMS 管理系统</span>
+  <div class="breadcrumb"></div>
+</div>
+<div class="container">
+
+<div class="sidebar" role="navigation" aria-label="主导航">
+  <div class="menu-solo active" data-page="pdp-config">
+    <svg class="mi" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="1.5" width="12" height="12" rx="2"/><path d="M4 5h7M4 7.5h5M4 10h6"/></svg>
+    <span>商详页配置</span>
+  </div>
+  <div class="menu-solo" data-page="plp-config">
+    <svg class="mi" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="1" width="5.5" height="5.5" rx="1"/><rect x="8.5" y="1" width="5.5" height="5.5" rx="1"/><rect x="1" y="8.5" width="5.5" height="5.5" rx="1"/><rect x="8.5" y="8.5" width="5.5" height="5.5" rx="1"/></svg>
+    <span>列表页配置</span>
+  </div>
+  <div class="menu-solo" data-page="home-config">
+    <svg class="mi" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5L7.5 2L13 7.5"/><path d="M4 6.5V12.5h7V6.5"/></svg>
+    <span>首页配置</span>
+  </div>
+</div>
+<div class="main">
+
+<div class="page" id="page-pdp-config" style="display:none"></div>
+
+<div class="page active" id="page-pdp-config-edit">
+  <div class="card">
+    <div class="page-head">
+      <div>
+        <div class="page-title">商详页配置</div>
+        <div class="page-desc">管理商详页的模块显隐和内容配置。点击模块配置展示规则。</div>
+      </div>
+      <div class="head-actions">
+        <button class="btn">保存草稿</button>
+        <button class="btn primary">发布</button>
+      </div>
+    </div>
+    <div class="split" style="gap:20px">
+      <!-- Left: Module List -->
+      <div style="width:320px;flex-shrink:0">
+        <div class="panel" style="padding:14px">
+          <h3 style="margin-bottom:14px;font-size:13px;font-weight:600;color:#374151">模块列表 <span style="font-weight:400;color:#9CA3AF"></span></h3>
+          <ul class="module-list">
+            <li class="module-item" onclick="showModuleConfig('cta')">
+                            <span class="module-name">1. CTA & 支付方式</span>
+              <span class="module-tag core">核心</span>
+              <span class="toggle on locked"></span>
+            </li>
+            <li class="module-item" onclick="showModuleConfig('condition')">
+                            <span class="module-name">2. Condition 成色</span>
+              <span class="module-tag trust">信任</span>
+              <span class="toggle on"></span>
+            </li>
+            <li class="module-item active" onclick="showModuleConfig('description')">
+                            <span class="module-name">3. Description 描述</span>
+              <span class="module-tag info">信息</span>
+              <span class="toggle on"></span>
+            </li>
+            <li class="module-item" onclick="showModuleConfig('shipping')">
+                            <span class="module-name">4. Shipping & Returns</span>
+              <span class="module-tag info">信息</span>
+              <span class="toggle on"></span>
+            </li>
+          </ul>
+          <div style="margin-top:12px;padding:10px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;font-size:11px;color:#92400E">
+            仅展示有配置项的模块。Breadcrumb、Gallery、商品信息区等固定模块无需配置。
+          </div>
+        </div>
+      </div>
+      <!-- Right: Config Panel -->
+      <div style="flex:1">
+        <!-- Module 7: Description Config (default shown) -->
+        <div class="config-panel" id="config-description">
+          <h3 style="display:flex;justify-content:space-between;align-items:center">
+            Module 3 — Description 描述折叠区
+            <button class="btn primary btn-sm" style="font-size:12px;height:30px" onclick="showAttrPage('edit')">新增规则</button>
+          </h3>
+          <div class="config-section">
+            <div class="config-section-title">属性展示配置</div>
+            <p style="font-size:12px;color:#6B7280;margin-bottom:12px">按「类目 > 品牌 > 系列」维度配置 Description 区域展示哪些属性及排序。子级未配置时自动继承父级规则。</p>
+            <!-- 继承说明 -->
+            <div style="padding:10px 14px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:8px;margin-bottom:14px;font-size:12px;color:#4B5563;line-height:1.7">
+              <strong style="color:#7C3AED">继承规则：</strong>前台按 <strong>系列 > 品牌 > 类目</strong> 逐级查找，命中即停。例：LV Monogram 项链 → 先找「Jewelry > LV > Monogram」，无 → 找「Jewelry > LV」，无 → 找「Jewelry」兜底。
+            </div>
+            <!-- 筛选 -->
+            <div style="display:flex;gap:8px;margin-bottom:12px">
+              <select style="height:30px;border:1px solid #D1D5DB;border-radius:6px;padding:0 10px;background:#fff;font-size:12px">
+                <option>全部类目</option><option>Jewelry & Accessories</option><option>Bags</option><option>Electronics</option>
+              </select>
+              <select style="height:30px;border:1px solid #D1D5DB;border-radius:6px;padding:0 10px;background:#fff;font-size:12px">
+                <option>全部品牌</option><option>LOUIS VUITTON</option><option>CHANEL</option><option>GUCCI</option>
+              </select>
+              <button class="btn sm">查询</button>
+            </div>
+            <!-- 规则列表 -->
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>作用域</th><th>层级</th><th>已启用属性</th><th>继承自</th><th>操作</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Jewelry & Accessories</strong></td>
+                    <td><span class="tag on">类目级</span></td>
+                    <td>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Material</span>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Color</span>
+                      <span style="font-size:11px;color:#9CA3AF">+3</span>
+                    </td>
+                    <td><span style="color:#9CA3AF;font-size:12px">--</span></td>
+                    <td><button class="btn sm" onclick="showAttrPage('edit')">编辑</button> <button class="btn sm">删除</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Jewelry > LOUIS VUITTON</strong></td>
+                    <td><span class="tag pending">品牌级</span></td>
+                    <td>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Material</span>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Color</span>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Length</span>
+                    </td>
+                    <td><span style="color:#9CA3AF;font-size:12px">--</span></td>
+                    <td><button class="btn sm" onclick="showAttrPage('edit')">编辑</button> <button class="btn sm">删除</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Jewelry > LV > Monogram</strong></td>
+                    <td><span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;background:#EFF6FF;color:#2563EB">系列级</span></td>
+                    <td>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Material</span>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Color</span>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Pattern</span>
+                      <span style="font-size:11px;color:#9CA3AF">+2</span>
+                    </td>
+                    <td><span style="color:#9CA3AF;font-size:12px">--</span></td>
+                    <td><button class="btn sm" onclick="showAttrPage('edit')">编辑</button> <button class="btn sm">删除</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Bags</strong></td>
+                    <td><span class="tag on">类目级</span></td>
+                    <td>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Material</span>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Color</span>
+                      <span style="font-size:11px;color:#9CA3AF">+5</span>
+                    </td>
+                    <td><span style="color:#9CA3AF;font-size:12px">--</span></td>
+                    <td><button class="btn sm" onclick="showAttrPage('edit')">编辑</button> <button class="btn sm">删除</button></td>
+                  </tr>
+                  <tr style="background:#F9FAFB">
+                    <td style="color:#9CA3AF"><em>Bags > CHANEL</em></td>
+                    <td><span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;background:#F3F4F6;color:#9CA3AF">未配置</span></td>
+                    <td style="color:#9CA3AF;font-size:12px">继承 Bags 的 8 个属性</td>
+                    <td><span style="font-size:12px;color:#7C3AED">Bags（类目级）</span></td>
+                    <td><button class="btn sm" onclick="showAttrPage('edit')">新建覆盖</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Electronics</strong></td>
+                    <td><span class="tag on">类目级</span></td>
+                    <td>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Storage</span>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Color</span>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Screen Size</span>
+                      <span style="font-size:11px;color:#9CA3AF">+4</span>
+                    </td>
+                    <td><span style="color:#9CA3AF;font-size:12px">--</span></td>
+                    <td><button class="btn sm" onclick="showAttrPage('edit')">编辑</button> <button class="btn sm">删除</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Module 5: CTA Config -->
+        <div class="config-panel" id="config-cta" style="display:none">
+          <h3>Module 1 — CTA & 支付方式</h3>
+          <div class="config-section">
+            <div class="config-section-title">支付方式图标</div>
+            <p style="font-size:12px;color:#6B7280;margin-bottom:12px">选择在商详页展示的支付方式图标（纯展示，不影响实际支付能力）</p>
+            <div class="checkbox-grid">
+              <label class="checkbox-item"><input type="checkbox" checked> AMEX</label>
+              <label class="checkbox-item"><input type="checkbox" checked> Apple Pay</label>
+              <label class="checkbox-item"><input type="checkbox" checked> Diners Club</label>
+              <label class="checkbox-item"><input type="checkbox" checked> Discover</label>
+              <label class="checkbox-item"><input type="checkbox" checked> Google Pay</label>
+              <label class="checkbox-item"><input type="checkbox" checked> JCB</label>
+              <label class="checkbox-item"><input type="checkbox" checked> Maestro</label>
+              <label class="checkbox-item"><input type="checkbox" checked> Mastercard</label>
+              <label class="checkbox-item"><input type="checkbox" checked> PayPal</label>
+              <label class="checkbox-item"><input type="checkbox" checked> UnionPay</label>
+              <label class="checkbox-item"><input type="checkbox" checked> VISA</label>
+              <label class="checkbox-item"><input type="checkbox" checked> Klarna</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Module 5: Condition Config -->
+        <div class="config-panel" id="config-condition" style="display:none">
+          <h3 style="display:flex;justify-content:space-between;align-items:center">
+            Module 2 — Condition 成色折叠区
+            <button class="btn primary btn-sm" style="font-size:12px;height:30px" onclick="showConditionModal('add')">新增规则</button>
+          </h3>
+          <div class="config-section">
+            <div class="config-section-title">质检项展示配置</div>
+            <p style="font-size:12px;color:#6B7280;margin-bottom:12px">按「类目 > 品牌 > 系列」维度配置 Condition 区域展示哪些质检项。质检项来源于商品系统的质检报告模板，按维度（外观/五金/配件等）分组。</p>
+            <!-- 继承说明 -->
+            <div style="padding:10px 14px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:8px;margin-bottom:14px;font-size:12px;color:#4B5563;line-height:1.7">
+              <strong style="color:#7C3AED">继承规则：</strong>前台按 <strong>系列 > 品牌 > 类目</strong> 逐级查找，命中即停。例：LV Speedy 手袋 → 先找「Bags > LV > Speedy」，无 → 找「Bags > LV」，无 → 找「Bags」兜底。
+            </div>
+            <!-- 固定展示项说明 -->
+            <div style="padding:10px 14px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;margin-bottom:14px;font-size:12px;color:#92400E;line-height:1.7">
+              <strong>固定展示项：</strong>Overall Grade（整体成色等级）和 Authentication Badge（鉴定认证徽章）为所有类目固定展示，不在规则中配置。以下规则仅控制「质检明细」部分的展示项。
+            </div>
+            <!-- 筛选 -->
+            <div style="display:flex;gap:8px;margin-bottom:12px">
+              <select style="height:30px;border:1px solid #D1D5DB;border-radius:6px;padding:0 10px;background:#fff;font-size:12px">
+                <option>全部类目</option><option>Bags</option><option>Jewelry & Accessories</option><option>Electronics</option>
+              </select>
+              <select style="height:30px;border:1px solid #D1D5DB;border-radius:6px;padding:0 10px;background:#fff;font-size:12px">
+                <option>全部品牌</option><option>LOUIS VUITTON</option><option>CHANEL</option><option>GUCCI</option>
+              </select>
+              <button class="btn sm">查询</button>
+            </div>
+            <!-- 规则列表 -->
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>作用域</th><th>层级</th><th>展示维度</th><th>展示质检项</th><th>继承自</th><th>操作</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Bags</strong></td>
+                    <td><span class="tag on">类目级</span></td>
+                    <td>
+                      <span style="padding:2px 6px;background:#FEF3C7;border:1px solid #FDE68A;border-radius:4px;font-size:11px;color:#92400E;margin-right:2px">外观</span>
+                      <span style="padding:2px 6px;background:#FEF3C7;border:1px solid #FDE68A;border-radius:4px;font-size:11px;color:#92400E;margin-right:2px">五金</span>
+                      <span style="padding:2px 6px;background:#FEF3C7;border:1px solid #FDE68A;border-radius:4px;font-size:11px;color:#92400E;margin-right:2px">配件</span>
+                    </td>
+                    <td>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">表面皮革</span>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">锁扣</span>
+                      <span style="font-size:11px;color:#9CA3AF">+8</span>
+                    </td>
+                    <td><span style="color:#9CA3AF;font-size:12px">--</span></td>
+                    <td><button class="btn sm" onclick="showConditionModal('edit')">编辑</button> <button class="btn sm">删除</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Bags > LOUIS VUITTON</strong></td>
+                    <td><span class="tag pending">品牌级</span></td>
+                    <td>
+                      <span style="padding:2px 6px;background:#FEF3C7;border:1px solid #FDE68A;border-radius:4px;font-size:11px;color:#92400E;margin-right:2px">外观</span>
+                      <span style="padding:2px 6px;background:#FEF3C7;border:1px solid #FDE68A;border-radius:4px;font-size:11px;color:#92400E;margin-right:2px">五金</span>
+                    </td>
+                    <td>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">表面皮革</span>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">底部</span>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">锁扣</span>
+                      <span style="font-size:11px;color:#9CA3AF">+3</span>
+                    </td>
+                    <td><span style="color:#9CA3AF;font-size:12px">--</span></td>
+                    <td><button class="btn sm" onclick="showConditionModal('edit')">编辑</button> <button class="btn sm">删除</button></td>
+                  </tr>
+                  <tr style="background:#F9FAFB">
+                    <td style="color:#9CA3AF"><em>Bags > CHANEL</em></td>
+                    <td><span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;background:#F3F4F6;color:#9CA3AF">未配置</span></td>
+                    <td colspan="2" style="color:#9CA3AF;font-size:12px">继承 Bags 的 3 个维度、10 个质检项</td>
+                    <td><span style="font-size:12px;color:#7C3AED">Bags（类目级）</span></td>
+                    <td><button class="btn sm" onclick="showConditionModal('add')">新建覆盖</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Jewelry & Accessories</strong></td>
+                    <td><span class="tag on">类目级</span></td>
+                    <td>
+                      <span style="padding:2px 6px;background:#FEF3C7;border:1px solid #FDE68A;border-radius:4px;font-size:11px;color:#92400E;margin-right:2px">外观</span>
+                      <span style="padding:2px 6px;background:#FEF3C7;border:1px solid #FDE68A;border-radius:4px;font-size:11px;color:#92400E;margin-right:2px">配件</span>
+                    </td>
+                    <td>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">表面</span>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">宝石</span>
+                      <span style="font-size:11px;color:#9CA3AF">+3</span>
+                    </td>
+                    <td><span style="color:#9CA3AF;font-size:12px">--</span></td>
+                    <td><button class="btn sm" onclick="showConditionModal('edit')">编辑</button> <button class="btn sm">删除</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Electronics</strong></td>
+                    <td><span class="tag on">类目级</span></td>
+                    <td>
+                      <span style="padding:2px 6px;background:#FEF3C7;border:1px solid #FDE68A;border-radius:4px;font-size:11px;color:#92400E;margin-right:2px">屏幕</span>
+                      <span style="padding:2px 6px;background:#FEF3C7;border:1px solid #FDE68A;border-radius:4px;font-size:11px;color:#92400E;margin-right:2px">机身</span>
+                      <span style="padding:2px 6px;background:#FEF3C7;border:1px solid #FDE68A;border-radius:4px;font-size:11px;color:#92400E;margin-right:2px">功能</span>
+                    </td>
+                    <td>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">屏幕划痕</span>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">机身磕碰</span>
+                      <span style="font-size:11px;color:#9CA3AF">+6</span>
+                    </td>
+                    <td><span style="color:#9CA3AF;font-size:12px">--</span></td>
+                    <td><button class="btn sm" onclick="showConditionModal('edit')">编辑</button> <button class="btn sm">删除</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Module 8: Shipping Config -->
+        <div class="config-panel" id="config-shipping" style="display:none">
+          <h3>Module 4 — Shipping & Returns 折叠区</h3>
+          <div class="config-section">
+            <div class="config-section-title">Free Shipping 文案</div>
+            <div class="rich-text-placeholder">Free standard shipping on all U.S. orders. Orders are typically shipped within 1-3 business days after payment, with delivery in 3-7 business days after shipment.</div>
+          </div>
+          <div class="config-section">
+            <div class="config-section-title">Easy Returns 文案</div>
+            <div class="rich-text-placeholder">15-day return. Original condition required. A $9.99 return processing fee applies.</div>
+          </div>
+          <div class="config-section">
+            <div class="config-section-title">Policy 链接</div>
+            <div class="config-row">
+              <span class="label">链接地址</span>
+              <div class="value"><input class="input" style="width:100%" value="https://looply.com/pages/return-policy"></div>
+            </div>
+          </div>
+        </div>
+
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 属性展示配置：Modal 弹窗 -->
+<div class="modal-overlay" id="modal-attr-edit" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">编辑属性展示规则</div>
+      <button class="modal-close" onclick="closeAttrModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <!-- 作用域选择 -->
+      <div style="padding:14px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;margin-bottom:18px">
+        <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:10px">作用域</div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <div>
+            <div style="font-size:11px;color:#9CA3AF;margin-bottom:4px">类目（必选）</div>
+            <select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;font-size:13px;background:#fff;min-width:170px">
+              <option selected>Jewelry & Accessories</option><option>Bags</option><option>Electronics</option>
+            </select>
+          </div>
+          <div style="color:#D1D5DB;font-size:18px;margin-top:16px">></div>
+          <div>
+            <div style="font-size:11px;color:#9CA3AF;margin-bottom:4px">品牌（可选）</div>
+            <select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;font-size:13px;background:#fff;min-width:150px">
+              <option>不限（类目级规则）</option><option selected>LOUIS VUITTON</option><option>CHANEL</option><option>GUCCI</option>
+            </select>
+          </div>
+          <div style="color:#D1D5DB;font-size:18px;margin-top:16px">></div>
+          <div>
+            <div style="font-size:11px;color:#9CA3AF;margin-bottom:4px">系列（可选）</div>
+            <select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;font-size:13px;background:#fff;min-width:150px">
+              <option selected>不限（品牌级规则）</option><option>Monogram</option><option>Damier</option><option>Epi</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:8px;font-size:12px;color:#6B7280">当前作用域：<strong style="color:#7C3AED">Jewelry & Accessories > LOUIS VUITTON > 全系列</strong></div>
+      </div>
+      <div style="display:flex;gap:16px">
+        <!-- Left: Attribute List -->
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px">
+            可展示属性 <span style="font-weight:400;color:#9CA3AF;font-size:12px">（勾选启用）</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <span style="font-size:12px;padding:3px 8px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:6px;color:#7C3AED;font-weight:500">已选 3</span>
+            <span style="font-size:12px;padding:3px 8px;background:#F3F4F6;border-radius:6px;color:#6B7280">共 19 个属性</span>
+          </div>
+          <div style="margin-bottom:6px;font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:.3px">已启用（拖拽调整展示顺序）</div>
+          <div class="attr-item" style="border-color:#DDD6FE;background:#FAF5FF"><input type="checkbox" checked><span class="attr-name">Material</span><span class="attr-source">描述属性</span></div>
+          <div class="attr-item" style="border-color:#DDD6FE;background:#FAF5FF"><input type="checkbox" checked><span class="attr-name">Color</span><span class="attr-source">销售属性</span></div>
+          <div class="attr-item" style="border-color:#DDD6FE;background:#FAF5FF"><input type="checkbox" checked><span class="attr-name">Length</span><span class="attr-source">描述属性</span></div>
+          <div style="margin:12px 0 6px;font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:.3px">未启用</div>
+          <div class="attr-item"><input type="checkbox"><span class="attr-name">Pendant Material</span><span class="attr-source">描述属性</span></div>
+          <div class="attr-item"><input type="checkbox"><span class="attr-name">Chain Type</span><span class="attr-source">描述属性</span></div>
+          <div class="attr-item"><input type="checkbox"><span class="attr-name">Clasp Type</span><span class="attr-source">描述属性</span></div>
+          <div class="attr-item"><input type="checkbox"><span class="attr-name">Width</span><span class="attr-source">描述属性</span></div>
+          <div class="attr-item"><input type="checkbox"><span class="attr-name">Weight</span><span class="attr-source">描述属性</span></div>
+          <div class="attr-item"><input type="checkbox"><span class="attr-name">Stone Type</span><span class="attr-source">描述属性</span></div>
+          <div class="attr-item"><input type="checkbox"><span class="attr-name">Stone Count</span><span class="attr-source">描述属性</span></div>
+          <div class="attr-item"><input type="checkbox"><span class="attr-name">Plating</span><span class="attr-source">描述属性</span></div>
+          <div class="attr-item"><input type="checkbox"><span class="attr-name">Country of Origin</span><span class="attr-source">描述属性</span></div>
+          <div class="attr-item"><input type="checkbox"><span class="attr-name">Year of Production</span><span class="attr-source">描述属性</span></div>
+          <!-- Size Guide 位置配置 -->
+          <div style="margin-top:14px;padding:12px 14px;background:#FAF5FF;border:1px solid #DDD6FE;border-radius:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span style="font-size:13px;font-weight:600;color:#7C3AED">Size Guide</span>
+            <span style="font-size:13px;color:#374151">展示在</span>
+            <select style="height:30px;border:1px solid #D1D5DB;border-radius:6px;padding:0 10px;font-size:12px;background:#fff">
+              <option>Material</option>
+              <option>Color</option>
+              <option selected>Length</option>
+            </select>
+            <span style="font-size:13px;color:#374151">之前</span>
+            <span style="font-size:11px;color:#9CA3AF">（仅当该类目有测量方法时生效）</span>
+          </div>
+        </div>
+        <!-- Right: Preview -->
+        <div style="width:280px;flex-shrink:0">
+          <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px">前台预览效果</div>
+          <div class="preview-card">
+            <div class="preview-title">Description 区域预览</div>
+            <div style="padding:6px 0;font-size:12px;color:#9CA3AF;border-bottom:1px solid #F3F4F6;margin-bottom:8px">jewelry item #: 1010701657</div>
+            <div class="preview-attr"><span class="attr-label">Material</span><span class="attr-val">Silver-tone Metal</span></div>
+            <div class="preview-attr"><span class="attr-label">Color</span><span class="attr-val">Silver</span></div>
+            <div class="preview-attr"><span class="attr-label">Size</span><span class="attr-val"><a href="#" style="color:#7C3AED;text-decoration:underline;font-weight:500">Size Guide</a></span></div>
+            <div class="preview-attr"><span class="attr-label">Length</span><span class="attr-val">22.8 in</span></div>
+          </div>
+          <div style="margin-top:14px;padding:10px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;font-size:11px;color:#92400E;line-height:1.6">
+            <strong>覆盖说明：</strong>此规则将完全替代父级「Jewelry」的配置，不会合并。删除后回退到继承父级。
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeAttrModal()">取消</button>
+      <button class="btn">保存</button>
+      <button class="btn primary">保存并发布</button>
+    </div>
+  </div>
+</div>
+
+<!-- 质检项展示配置：Modal 弹窗 -->
+<div class="modal-overlay" id="modal-condition-edit" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">编辑质检项展示规则</div>
+      <button class="modal-close" onclick="closeConditionModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <!-- 作用域选择 -->
+      <div style="padding:14px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;margin-bottom:18px">
+        <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:10px">作用域</div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <div>
+            <div style="font-size:11px;color:#9CA3AF;margin-bottom:4px">类目（必选）</div>
+            <select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;font-size:13px;background:#fff;min-width:170px">
+              <option selected>Bags</option><option>Jewelry & Accessories</option><option>Electronics</option>
+            </select>
+          </div>
+          <div style="color:#D1D5DB;font-size:18px;margin-top:16px">></div>
+          <div>
+            <div style="font-size:11px;color:#9CA3AF;margin-bottom:4px">品牌（可选）</div>
+            <select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;font-size:13px;background:#fff;min-width:150px">
+              <option>不限（类目级规则）</option><option selected>LOUIS VUITTON</option><option>CHANEL</option><option>GUCCI</option>
+            </select>
+          </div>
+          <div style="color:#D1D5DB;font-size:18px;margin-top:16px">></div>
+          <div>
+            <div style="font-size:11px;color:#9CA3AF;margin-bottom:4px">系列（可选）</div>
+            <select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;font-size:13px;background:#fff;min-width:150px">
+              <option selected>不限（品牌级规则）</option><option>Speedy</option><option>Neverfull</option><option>Alma</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:8px;font-size:12px;color:#6B7280">当前作用域：<strong style="color:#7C3AED">Bags > LOUIS VUITTON > 全系列</strong></div>
+      </div>
+      <!-- 质检模板来源 -->
+      <div style="padding:10px 14px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;margin-bottom:18px;font-size:12px;color:#1E40AF;line-height:1.7">
+        <strong>质检模板来源：</strong>以下质检项读取自商品系统「<strong>奢侈品包袋质检模板</strong>」（QCT001），该模板绑定类目「Bags」。如需调整质检项本身，请前往商品系统 > 质检报告模板。
+      </div>
+      <div style="display:flex;gap:16px">
+        <!-- Left: Inspection Items by Dimension -->
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px">
+            可展示质检项 <span style="font-weight:400;color:#9CA3AF;font-size:12px">（按维度分组，勾选启用）</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <span style="font-size:12px;padding:3px 8px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:6px;color:#7C3AED;font-weight:500">已选 6</span>
+            <span style="font-size:12px;padding:3px 8px;background:#F3F4F6;border-radius:6px;color:#6B7280">共 10 个质检项</span>
+          </div>
+          <!-- 维度：外观 -->
+          <div style="margin-bottom:16px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:6px 10px;background:#FEF3C7;border:1px solid #FDE68A;border-radius:6px">
+              <input type="checkbox" checked style="width:14px;height:14px;accent-color:#7C3AED">
+              <span style="font-size:12px;font-weight:600;color:#92400E">维度：外观 Appearance</span>
+              <span style="font-size:11px;color:#B45309;margin-left:auto">3/3 项已启用</span>
+            </div>
+            <div class="attr-item" style="border-color:#DDD6FE;background:#FAF5FF;margin-left:16px"><input type="checkbox" checked><span class="attr-name">表面皮革 Surface Leather</span><span class="attr-source">枚举单选</span></div>
+            <div class="attr-item" style="border-color:#DDD6FE;background:#FAF5FF;margin-left:16px"><input type="checkbox" checked><span class="attr-name">底部 Bottom</span><span class="attr-source">枚举单选</span></div>
+            <div class="attr-item" style="border-color:#DDD6FE;background:#FAF5FF;margin-left:16px"><input type="checkbox" checked><span class="attr-name">把手/肩带 Handle/Strap</span><span class="attr-source">枚举单选</span></div>
+          </div>
+          <!-- 维度：五金 -->
+          <div style="margin-bottom:16px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:6px 10px;background:#FEF3C7;border:1px solid #FDE68A;border-radius:6px">
+              <input type="checkbox" checked style="width:14px;height:14px;accent-color:#7C3AED">
+              <span style="font-size:12px;font-weight:600;color:#92400E">维度：五金 Hardware</span>
+              <span style="font-size:11px;color:#B45309;margin-left:auto">3/3 项已启用</span>
+            </div>
+            <div class="attr-item" style="border-color:#DDD6FE;background:#FAF5FF;margin-left:16px"><input type="checkbox" checked><span class="attr-name">锁扣 Clasp</span><span class="attr-source">枚举单选</span></div>
+            <div class="attr-item" style="border-color:#DDD6FE;background:#FAF5FF;margin-left:16px"><input type="checkbox" checked><span class="attr-name">拉链 Zipper</span><span class="attr-source">枚举单选</span></div>
+            <div class="attr-item" style="border-color:#DDD6FE;background:#FAF5FF;margin-left:16px"><input type="checkbox" checked><span class="attr-name">脚钉 Feet</span><span class="attr-source">枚举单选</span></div>
+          </div>
+          <!-- 维度：配件 -->
+          <div style="margin-bottom:16px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:6px 10px;background:#F3F4F6;border:1px solid #E5E7EB;border-radius:6px">
+              <input type="checkbox" style="width:14px;height:14px;accent-color:#7C3AED">
+              <span style="font-size:12px;font-weight:600;color:#6B7280">维度：配件 Accessories</span>
+              <span style="font-size:11px;color:#9CA3AF;margin-left:auto">0/4 项已启用</span>
+            </div>
+            <div class="attr-item" style="margin-left:16px"><input type="checkbox"><span class="attr-name">包装盒 Box</span><span class="attr-source">枚举单选</span></div>
+            <div class="attr-item" style="margin-left:16px"><input type="checkbox"><span class="attr-name">防尘袋 Dust Bag</span><span class="attr-source">枚举单选</span></div>
+            <div class="attr-item" style="margin-left:16px"><input type="checkbox"><span class="attr-name">保卡 Card</span><span class="attr-source">枚举单选</span></div>
+            <div class="attr-item" style="margin-left:16px"><input type="checkbox"><span class="attr-name">购买小票 Receipt</span><span class="attr-source">枚举单选</span></div>
+          </div>
+        </div>
+        <!-- Right: Preview -->
+        <div style="width:280px;flex-shrink:0">
+          <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px">前台预览效果</div>
+          <div class="preview-card">
+            <div class="preview-title">Condition 区域预览</div>
+            <!-- 固定项：Overall Grade -->
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F3F4F6">
+              <span style="font-size:13px;color:#6B7280">Overall Grade</span>
+              <span style="font-size:13px;font-weight:600;color:#16A34A;background:#F0FDF4;padding:2px 8px;border-radius:4px">Excellent</span>
+            </div>
+            <!-- 固定项：Authentication -->
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F3F4F6">
+              <span style="font-size:13px;color:#6B7280">Authentication</span>
+              <span style="font-size:13px;font-weight:500;color:#7C3AED">✓ Verified</span>
+            </div>
+            <!-- 维度：外观 -->
+            <div style="margin-top:10px;font-size:11px;font-weight:600;color:#92400E;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px">Appearance</div>
+            <div class="preview-attr"><span class="attr-label">Surface Leather</span><span class="attr-val">轻微使用痕迹</span></div>
+            <div class="preview-attr"><span class="attr-label">Bottom</span><span class="attr-val">无瑕疵</span></div>
+            <div class="preview-attr"><span class="attr-label">Handle/Strap</span><span class="attr-val">明显使用痕迹</span></div>
+            <!-- 维度：五金 -->
+            <div style="margin-top:10px;font-size:11px;font-weight:600;color:#92400E;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px">Hardware</div>
+            <div class="preview-attr"><span class="attr-label">Clasp</span><span class="attr-val">完好</span></div>
+            <div class="preview-attr"><span class="attr-label">Zipper</span><span class="attr-val">轻微氧化</span></div>
+            <div class="preview-attr"><span class="attr-label">Feet</span><span class="attr-val">轻微磨损</span></div>
+          </div>
+          <div style="margin-top:14px;padding:10px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;font-size:11px;color:#92400E;line-height:1.6">
+            <strong>覆盖说明：</strong>此规则将完全替代父级「Bags」的配置，不会合并。删除后回退到继承父级。
+          </div>
+          <div style="margin-top:8px;padding:10px;background:#F3F4F6;border-radius:8px;font-size:11px;color:#6B7280;line-height:1.6">
+            <strong>固定项说明：</strong>Overall Grade 和 Authentication 为所有类目固定展示，不受规则影响。
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeConditionModal()">取消</button>
+      <button class="btn">保存</button>
+      <button class="btn primary">保存并发布</button>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-plp-config">
+  <div class="card">
+    <div class="page-head"><div><div class="page-title">列表页配置</div><div class="page-desc">管理商品列表页的布局和筛选配置（待建设）。</div></div></div>
+    <div style="padding:60px;text-align:center;color:#9CA3AF"><div style="font-size:36px;margin-bottom:12px">🚧</div><div style="font-size:14px;color:#6B7280">功能建设中</div></div>
+  </div>
+</div>
+<div class="page" id="page-home-config">
+  <div class="card">
+    <div class="page-head"><div><div class="page-title">首页配置</div><div class="page-desc">管理首页模块和内容配置（待建设）。</div></div></div>
+    <div style="padding:60px;text-align:center;color:#9CA3AF"><div style="font-size:36px;margin-bottom:12px">🚧</div><div style="font-size:14px;color:#6B7280">功能建设中</div></div>
+  </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /container -->
+
+<script>
+/* Menu toggle */
+window.toggleGroup = function(parent) {
+  const group = parent.closest('.menu-group');
+  group.classList.toggle('open');
+};
+
+/* Clear active */
+function clearAllActive() {
+  document.querySelectorAll('.menu-solo').forEach(el => el.classList.remove('active'));
+}
+
+/* Navigate */
+function navigateTo(pageId, label) {
+  clearAllActive();
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  // 商详页配置直接跳编辑页（无 Market 列表）
+  const targetId = pageId === 'pdp-config' ? 'page-pdp-config-edit' : 'page-' + pageId;
+  const target = document.getElementById(targetId);
+  if (target) target.classList.add('active');
+  document.querySelector('.breadcrumb').textContent = label || '';
+  const menuItem = document.querySelector('[data-page="' + pageId + '"]');
+  if (menuItem) menuItem.classList.add('active');
+}
+
+/* Sub page (list/edit) */
+function showSubPage(module, action) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const target = document.getElementById('page-' + module + '-' + action);
+  if (target) target.classList.add('active');
+}
+
+/* Attribute display config modal */
+function showAttrPage(action) {
+  if (action === 'edit') {
+    document.getElementById('modal-attr-edit').style.display = 'flex';
+  }
+}
+function closeAttrModal() {
+  document.getElementById('modal-attr-edit').style.display = 'none';
+}
+
+/* Condition display config modal */
+function showConditionModal(action) {
+  document.getElementById('modal-condition-edit').style.display = 'flex';
+}
+function closeConditionModal() {
+  document.getElementById('modal-condition-edit').style.display = 'none';
+}
+
+/* Module config panel switch */
+function showModuleConfig(moduleKey) {
+  // Hide all config panels
+  document.querySelectorAll('.config-panel').forEach(p => p.style.display = 'none');
+  // Show target
+  const configMap = {
+    'cta': 'config-cta',
+    'condition': 'config-condition',
+    'description': 'config-description',
+    'shipping': 'config-shipping',
+  };
+  const panelId = configMap[moduleKey];
+  if (!panelId) return;
+  const panel = document.getElementById(panelId);
+  if (panel) panel.style.display = 'block';
+  // Highlight module item
+  document.querySelectorAll('.module-item').forEach(item => item.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+}
+
+/* Bind menu clicks */
+document.querySelectorAll('[data-page]').forEach(item => {
+  item.addEventListener('click', function() {
+    const pageId = this.dataset.page;
+    const label = this.querySelector('span:last-child')?.textContent || '';
+    navigateTo(pageId, label);
+  });
+});
+
+/* Toggle switch */
+document.querySelectorAll('.toggle:not(.locked)').forEach(t => {
+  t.addEventListener('click', function(e) {
+    e.stopPropagation();
+    this.classList.toggle('on');
+  });
+});
+
+/* Default: show first page */
+const firstMenu = document.querySelector('[data-page]');
+if (firstMenu) firstMenu.click();
+</script>
+
+</body>
+</html>
