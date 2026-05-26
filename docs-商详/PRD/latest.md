@@ -78,7 +78,7 @@ Recently Viewed 浏览历史
 Footer 页脚
 ```
 
-其中 Lightbox（灯箱）为 Gallery 主图点击后的全屏查看器，APP Sticky 底部购买栏为 APP 端常驻底部的购买入口。
+其中 Lightbox（灯箱）为 Gallery 主图点击后的全屏查看器。
 
 ### 1.6 术语说明
 
@@ -390,7 +390,7 @@ Breadcrumb、Gallery、商品信息区、商品描述、推荐区、浏览历史
 
 **功能描述**
 
-核心转化模块，包含 Add to Cart 按钮、Checkout 按钮和支付方式图标展示。APP 端的 CTA 按钮在 Sticky 底部购买栏中（详见 2.17），本节定义通用的业务逻辑。
+核心转化模块，包含 Add to Cart 按钮、Checkout 按钮和支付方式图标展示。PC 端 CTA 按钮在页面内独立展示，APP 端 CTA 按钮在 Sticky 底部购买栏中（常驻屏幕底部，替代 APP 底部 TabBar）。
 
 #### 商品可售性判断
 
@@ -408,9 +408,10 @@ Breadcrumb、Gallery、商品信息区、商品描述、推荐区、浏览历史
 
 | 页面元素 | 数据源 | 取值逻辑 |
 |---------|-------|---------|
-| Add to Cart 按钮价格 | 同 2.7 现价 | 展示当前现价 |
+| Add to Cart 按钮价格 | 同 2.7 现价 | 展示当前现价，做币种转换 |
 | 按钮文案 | 翻译模块 | `resource_type='ui'`，如 `btn.add_to_cart`、`btn.checkout` |
 | 支付方式图标 | CMS 配置 | **本期写死**（12 个固定图标），后期由支付模块按 `market_id` / `country` 动态配置 |
+| Verified 标记（APP 端） | `product.is_authenticated` | `true` 时在 Sticky 底部栏显示绿色 "✓ Verified" 认证标记 |
 
 **支付方式图标列表（本期固定）**
 
@@ -426,10 +427,12 @@ AMEX / Apple Pay / Diners Club / Discover / Google Pay / JCB / Maestro / Masterc
 - Checkout：点击直接进入结算流程（跳过购物车，直接结算当前商品）
 - 支付方式图标纯展示，不可点击
 - 未登录时点击按钮，先触发登录流程
+- APP 端 Sticky 底部栏：三栏布局（左侧价格 | Add to Cart | Checkout），仅展示现价，不重复展示划线价和 Save（上方信息区已有）
+- APP 端商详页隐藏底部 TabBar，由 Sticky 底部购买栏替代
 
 **边界情况**
 
-- 描述为空时：CTA 按钮上移
+- 描述为空时：CTA 按钮上移（PC 端）
 - Sold Out 时：两个按钮均禁用，变灰色
 
 **UI 关联**
@@ -714,33 +717,6 @@ Gallery 主图点击后的全屏图片查看器，支持左右切换浏览所有
 
 ---
 
-### 2.17 APP Sticky 底部购买栏
-
-**功能描述**
-
-APP 端独有的常驻底部购买栏，替代 APP 底部 TabBar。始终固定在屏幕底部，用户随时可以购买。
-
-**数据来源与取值规则**
-
-| 页面元素 | 数据源 | 取值逻辑 |
-|---------|-------|---------|
-| 价格 | 同 2.7 现价 | 展示当前促销价（有促销时）或 listing_price（无促销时），做币种转换。不重复展示划线价和 Save（上方信息区已有） |
-| Verified 标记 | `product.is_authenticated` | `true` 时显示绿色 "✓ Verified" 认证标记 |
-| Add to Cart 按钮状态 | 同 2.9 商品可售性判断 | 受 listing_status + 库存状态约束 |
-| Checkout 按钮 | -- | 点击直接进入结算流程 |
-
-**展示规则**
-
-- 三栏布局：左侧价格 | Add to Cart | Checkout
-- 商详页隐藏 APP 底部 TabBar，由此栏替代
-
-**UI 关联**
-
-- PC 端：无（PC 端 CTA 按钮在页面内，详见 2.9）
-- APP 端：looply-商详页-APP-v3.html → Module 12
-
----
-
 ## 三、依赖与风险
 
 ### 上下游系统依赖
@@ -819,7 +795,7 @@ APP 端独有的常驻底部购买栏，替代 APP 底部 TabBar。始终固定�
 | Add to Cart 反馈 | 文字变 "Added ✓"，2 秒恢复 | 文字变 "Added ✓" + 浅绿色背景，1.5 秒恢复 |
 | Footer 导航展示 | 链接列表直接展示 | 手风琴展开 |
 | Footer 免责声明 | 有 | 无 |
-| Sticky 底部购买栏 | 无 | 有（含 Verified 标记） |
+| Sticky 底部购买栏 | 无 | 有（详见 2.9 APP Sticky 部分） |
 
 ### 5.3 待补充项汇总
 

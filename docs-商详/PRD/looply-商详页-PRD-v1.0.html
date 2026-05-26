@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>looply 商详页展示逻辑 PRD V1.0</title>
+<title>looply 商详页 PRD V1.0</title>
 <style>
 :root {
   --bg: #ffffff;
@@ -246,7 +246,7 @@ blockquote {
 <div class="container">
 
 <div class="cover">
-  <h1>looply 商详页展示逻辑 PRD</h1>
+  <h1>looply 商详页 PRD</h1>
   <div class="meta">
     <strong>版本</strong>：V1.0 &nbsp;|&nbsp; <strong>日期</strong>：2026-05-26<br>
     <strong>定位</strong>：本文档定义商详页所有模块的数据来源、取值规则、业务逻辑和边界处理。<br>
@@ -283,7 +283,6 @@ blockquote {
 <a href="#2-14-recently-viewed-浏览历史" class="toc-l3">2.14 Recently Viewed 浏览历史</a>
 <a href="#2-15-footer-页脚" class="toc-l3">2.15 Footer 页脚</a>
 <a href="#2-16-lightbox-灯箱" class="toc-l3">2.16 Lightbox 灯箱</a>
-<a href="#2-17-app-sticky-底部购买栏" class="toc-l3">2.17 APP Sticky 底部购买栏</a>
 <a href="#三-依赖与风险" class="toc-l2">三、依赖与风险</a>
 <a href="#上下游系统依赖" class="toc-l3">上下游系统依赖</a>
 <a href="#风险项" class="toc-l3">风险项</a>
@@ -410,7 +409,7 @@ Recently Viewed 浏览历史
   ↓
 Footer 页脚
 </code></pre>
-<p>其中 Lightbox（灯箱）为 Gallery 主图点击后的全屏查看器，APP Sticky 底部购买栏为 APP 端常驻底部的购买入口。</p>
+<p>其中 Lightbox（灯箱）为 Gallery 主图点击后的全屏查看器。</p>
 <h3 id="1-6-术语说明">1.6 术语说明</h3>
 <div class="table-wrap"><table>
 <thead><tr>
@@ -921,7 +920,7 @@ Footer 页脚
 </ul>
 <h3 id="2-9-cta-按钮-支付方式">2.9 CTA 按钮 & 支付方式</h3>
 <p><strong>功能描述</strong></p>
-<p>核心转化模块，包含 Add to Cart 按钮、Checkout 按钮和支付方式图标展示。APP 端的 CTA 按钮在 Sticky 底部购买栏中（详见 2.17），本节定义通用的业务逻辑。</p>
+<p>核心转化模块，包含 Add to Cart 按钮、Checkout 按钮和支付方式图标展示。PC 端 CTA 按钮在页面内独立展示，APP 端 CTA 按钮在 Sticky 底部购买栏中（常驻屏幕底部，替代 APP 底部 TabBar）。</p>
 <h4 id="商品可售性判断">商品可售性判断</h4>
 <p>商详页按钮状态由 <code>listing_status</code> + 库存状态共同决定：</p>
 <div class="table-wrap"><table>
@@ -959,7 +958,7 @@ Footer 页脚
 <tr>
 <td>Add to Cart 按钮价格</td>
 <td>同 2.7 现价</td>
-<td>展示当前现价</td>
+<td>展示当前现价，做币种转换</td>
 </tr>
 <tr>
 <td>按钮文案</td>
@@ -970,6 +969,11 @@ Footer 页脚
 <td>支付方式图标</td>
 <td>CMS 配置</td>
 <td><strong>本期写死</strong>（12 个固定图标），后期由支付模块按 <code>market_id</code> / <code>country</code> 动态配置</td>
+</tr>
+<tr>
+<td>Verified 标记（APP 端）</td>
+<td><code>product.is_authenticated</code></td>
+<td><code>true</code> 时在 Sticky 底部栏显示绿色 "✓ Verified" 认证标记</td>
 </tr>
 </tbody></table></div>
 <p><strong>支付方式图标列表（本期固定）</strong></p>
@@ -982,10 +986,12 @@ Footer 页脚
 <li>Checkout：点击直接进入结算流程（跳过购物车，直接结算当前商品）</li>
 <li>支付方式图标纯展示，不可点击</li>
 <li>未登录时点击按钮，先触发登录流程</li>
+<li>APP 端 Sticky 底部栏：三栏布局（左侧价格 | Add to Cart | Checkout），仅展示现价，不重复展示划线价和 Save（上方信息区已有）</li>
+<li>APP 端商详页隐藏底部 TabBar，由 Sticky 底部购买栏替代</li>
 </ul>
 <p><strong>边界情况</strong></p>
 <ul>
-<li>描述为空时：CTA 按钮上移</li>
+<li>描述为空时：CTA 按钮上移（PC 端）</li>
 <li>Sold Out 时：两个按钮均禁用，变灰色</li>
 </ul>
 <p><strong>UI 关联</strong></p>
@@ -1378,48 +1384,6 @@ Footer 页脚
 <li>PC 端：looply-商详页-PC-交互说明.html → Module 12</li>
 <li>APP 端：looply-商详页-APP-v3.html → Module 2（Lightbox 部分）</li>
 </ul>
-<h3 id="2-17-app-sticky-底部购买栏">2.17 APP Sticky 底部购买栏</h3>
-<p><strong>功能描述</strong></p>
-<p>APP 端独有的常驻底部购买栏，替代 APP 底部 TabBar。始终固定在屏幕底部，用户随时可以购买。</p>
-<p><strong>数据来源与取值规则</strong></p>
-<div class="table-wrap"><table>
-<thead><tr>
-<th>页面元素</th>
-<th>数据源</th>
-<th>取值逻辑</th>
-</tr></thead>
-<tbody>
-<tr>
-<td>价格</td>
-<td>同 2.7 现价</td>
-<td>展示当前促销价（有促销时）或 listing_price（无促销时），做币种转换。不重复展示划线价和 Save（上方信息区已有）</td>
-</tr>
-<tr>
-<td>Verified 标记</td>
-<td><code>product.is_authenticated</code></td>
-<td><code>true</code> 时显示绿色 "✓ Verified" 认证标记</td>
-</tr>
-<tr>
-<td>Add to Cart 按钮状态</td>
-<td>同 2.9 商品可售性判断</td>
-<td>受 listing_status + 库存状态约束</td>
-</tr>
-<tr>
-<td>Checkout 按钮</td>
-<td>--</td>
-<td>点击直接进入结算流程</td>
-</tr>
-</tbody></table></div>
-<p><strong>展示规则</strong></p>
-<ul>
-<li>三栏布局：左侧价格 | Add to Cart | Checkout</li>
-<li>商详页隐藏 APP 底部 TabBar，由此栏替代</li>
-</ul>
-<p><strong>UI 关联</strong></p>
-<ul>
-<li>PC 端：无（PC 端 CTA 按钮在页面内，详见 2.9）</li>
-<li>APP 端：looply-商详页-APP-v3.html → Module 12</li>
-</ul>
 <h2 id="三-依赖与风险">三、依赖与风险</h2>
 <h3 id="上下游系统依赖">上下游系统依赖</h3>
 <div class="table-wrap"><table>
@@ -1658,7 +1622,7 @@ Footer 页脚
 <tr>
 <td>Sticky 底部购买栏</td>
 <td>无</td>
-<td>有（含 Verified 标记）</td>
+<td>有（详见 2.9 APP Sticky 部分）</td>
 </tr>
 </tbody></table></div>
 <h3 id="5-3-待补充项汇总">5.3 待补充项汇总</h3>
