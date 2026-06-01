@@ -36,6 +36,10 @@ MODULES = {
                 'subdir': '实体关系图',
                 'pattern': r'looply-商品主数据实体关系图-v(.+?)\.svg',
             },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'商品-交付开发 V(.+?)\.zip',
+            },
         },
     },
     'market': {
