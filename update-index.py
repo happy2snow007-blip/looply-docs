@@ -204,6 +204,30 @@ def find_latest_file(module_dir, subdir, pattern, exclude=None):
     return best_file, best_ver
 
 
+def find_all_files(module_dir, subdir, pattern, exclude=None):
+    """扫描目录，返回所有匹配文件，按版本号降序排列。返回 [(filename, ver_str), ...]"""
+    if subdir == '.':
+        search_dir = os.path.join(REPO_DIR, module_dir)
+    else:
+        search_dir = os.path.join(REPO_DIR, module_dir, subdir)
+
+    if not os.path.isdir(search_dir):
+        return []
+
+    results = []
+    for fname in os.listdir(search_dir):
+        if exclude and re.search(exclude, fname):
+            continue
+        m = re.match(pattern, fname)
+        if m:
+            ver_str = m.group(1)
+            parsed = parse_version(ver_str)
+            results.append((fname, ver_str, parsed))
+
+    results.sort(key=lambda x: x[2], reverse=True)
+    return [(fname, ver_str) for fname, ver_str, _ in results]
+
+
 # ─── prototype-config.js 更新 ──────────────────────────────────────────────────
 
 def update_prototype_config(latest_prototypes):
@@ -249,11 +273,12 @@ var PROTOTYPE_CONFIG = {
 
 # ─── index.html 更新（只改"最新"条目，不动历史版本） ─────────────────────────────
 
-def update_index_html(updates, all_versions):
+def update_index_html(updates, all_versions, delivery_history=None):
     """
     两遍处理 index.html：
     第一遍：替换 href，记录每个 doc-item 块对应的 update 条目
     第二遍：根据记录更新 doc-name 版本号和交付包 doc-desc
+    第三遍：为交付包插入/更新历史版本列表
     """
     index_path = os.path.join(REPO_DIR, 'index.html')
     lines = open(index_path, 'r', encoding='utf-8').readlines()
@@ -324,14 +349,19 @@ def update_index_html(updates, all_versions):
             upd = item_map[current_item_start]
             new_ver = upd.get('new_ver', '')
             if new_ver:
-                ver_regex = re.compile(r'([vV])(\d+(?:\.\d+)?(?:-[^\s<"]*)?)\s*(<span)')
+                # 提取纯数字版本号（去掉 -风格A-活力亲和 等后缀）
+                numeric_m = re.match(r'(\d+(?:\.\d+)?)', new_ver)
+                numeric_ver = numeric_m.group(1) if numeric_m else new_ver
+                # 匹配版本号，允许版本号和 <span> 之间有任意文字（如 " · 风格A 活力亲和 "）
+                ver_regex = re.compile(r'([vV])(\d+(?:\.\d+)?)(.*?)(<span)')
                 ver_match = ver_regex.search(new_line)
                 if ver_match:
                     old_ver_text = ver_match.group(2)
-                    if old_ver_text != new_ver:
+                    if old_ver_text != numeric_ver:
                         new_line = (new_line[:ver_match.start(2)]
-                                    + new_ver + ' '
-                                    + new_line[ver_match.start(3):])
+                                    + numeric_ver
+                                    + ver_match.group(3)  # 保留中间描述文字
+                                    + new_line[ver_match.start(4):])
                         changed = True
 
         # 更新交付包 doc-desc
@@ -379,6 +409,69 @@ def update_index_html(updates, all_versions):
 
         new_lines.append(new_line)
 
+    # ── 第三遍：为交付包插入/更新历史版本列表 ──
+    if delivery_history:
+        final_lines = []
+        i = 0
+        while i < len(new_lines):
+            line = new_lines[i]
+
+            # 检测交付包的 </ul>，在其后插入/更新历史版本
+            matched_mod = None
+            if '</ul>' in line and i >= 2:
+                lookback = ''.join(new_lines[max(0, i-8):i+1])
+                for mod_name, hist_info in delivery_history.items():
+                    mod_dir = hist_info['dir']
+                    subdir = hist_info['subdir']
+                    if subdir == '.':
+                        href_prefix = f'{mod_dir}/'
+                    else:
+                        href_prefix = f'{mod_dir}/{subdir}/'
+                    if href_prefix in lookback and '交付开发' in lookback and 'history-list' not in lookback:
+                        matched_mod = mod_name
+                        break
+
+            if matched_mod:
+                hist_info = delivery_history[matched_mod]
+                mod_dir = hist_info['dir']
+                subdir = hist_info['subdir']
+                history = hist_info['history']
+                if subdir == '.':
+                    href_prefix = f'{mod_dir}/'
+                else:
+                    href_prefix = f'{mod_dir}/{subdir}/'
+
+                # 先输出当前 </ul> 行
+                final_lines.append(line)
+                i += 1
+
+                # 如果下一行是旧的 history-toggle，跳过旧历史区域
+                if i < len(new_lines) and 'history-toggle' in new_lines[i]:
+                    i += 1  # skip toggle
+                    # 跳过 history-list 的 <ul>...</ul>
+                    while i < len(new_lines):
+                        if '</ul>' in new_lines[i]:
+                            i += 1  # skip </ul>
+                            break
+                        i += 1
+                    changed = True
+
+                # 插入新的历史版本（仅当有历史时）
+                if history:
+                    indent = '        '
+                    final_lines.append(f'{indent}<div class="history-toggle" onclick="this.nextElementSibling.classList.toggle(\'open\')">历史版本 ▾</div>\n')
+                    final_lines.append(f'{indent}<ul class="doc-list history-list">\n')
+                    for hist_file, hist_ver in history:
+                        href = f'{href_prefix}{hist_file}'
+                        final_lines.append(f'{indent}  <li class="history-item">V{hist_ver} <a href="{href}" download>下载</a></li>\n')
+                    final_lines.append(f'{indent}</ul>\n')
+                    changed = True
+            else:
+                final_lines.append(line)
+                i += 1
+
+        new_lines = final_lines
+
     if changed:
         with open(index_path, 'w', encoding='utf-8') as f:
             f.writelines(new_lines)
@@ -395,6 +488,7 @@ def main():
     latest_prototypes = {}  # config_key -> relative_path
     index_updates = []      # 用于更新 index.html
     all_versions = {}       # (mod_name, art_type) -> ver_str
+    delivery_history = {}   # mod_name -> [(filename, ver_str), ...] 按版本降序，不含最新
 
     # art_type 到 doc-name 显示关键词的映射
     ART_DISPLAY_MAP = {
@@ -433,6 +527,16 @@ def main():
             # 记录版本号
             all_versions[(mod_name, art_type)] = latest_ver
 
+            # delivery 类型：收集历史版本（除最新外的所有版本）
+            if art_type == 'delivery':
+                all_files = find_all_files(module_dir, subdir, pattern, exclude)
+                # all_files 已按版本降序，第一个是最新，其余是历史
+                delivery_history[mod_name] = {
+                    'dir': module_dir,
+                    'subdir': subdir,
+                    'history': all_files[1:] if len(all_files) > 1 else [],
+                }
+
             # 原型 → 更新 prototype-config.js
             if art_type == 'prototype' and config_key:
                 if subdir == '.':
@@ -462,9 +566,9 @@ def main():
         update_prototype_config(latest_prototypes)
         print('  [更新] prototype-config.js 已更新')
 
-    # 更新 index.html（改链接 + 改版本号文字 + 改交付包描述）
+    # 更新 index.html（改链接 + 改版本号文字 + 改交付包描述 + 交付包历史版本）
     if index_updates:
-        update_index_html(index_updates, all_versions)
+        update_index_html(index_updates, all_versions, delivery_history)
 
 
 if __name__ == '__main__':
