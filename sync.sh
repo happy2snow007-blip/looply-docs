@@ -146,6 +146,9 @@ sync_files() {
         done
     done
 
+    # 自动更新 index.html 和 prototype-config.js（检测最新版本）
+    python3 "$REPO_DIR/update-index.py"
+
     # 检查 git 是否有变化
     cd "$REPO_DIR"
     if [ -n "$(git status --porcelain)" ]; then
