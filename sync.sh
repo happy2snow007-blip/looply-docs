@@ -7,7 +7,7 @@ REPO_DIR="$HOME/looply-docs"
 
 # 模块配置：源目录|目标目录（用 | 分隔）
 MODULE_LIST=(
-    "$HOME/Desktop/海外业务登录注册|docs"
+    "$HOME/Desktop/海外业务/登录注册|docs"
     "$HOME/Desktop/海外业务首页|docs-首页"
     "$HOME/Desktop/海外业务/商品|docs-商品系统"
     "$HOME/Desktop/海外业务/market|docs-market系统"

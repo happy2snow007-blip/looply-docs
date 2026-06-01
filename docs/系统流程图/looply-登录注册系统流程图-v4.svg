@@ -1,4 +1,536 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="7820" viewBox="0 0 1000 7820" font-family="'PingFang SC','Microsoft YaHei','Helvetica Neue',Arial,sans-serif">
+<metadata>
+<![CDATA[
+# Looply · 登录注册模块系统流程图 V4.0 · 2026.03
+# 研发编码参考数据，从 SVG <metadata> 提取
+
+swimlanes:
+  - key: "A"
+    name: "登录注册系统"
+  - key: "M"
+    name: "消息通知"
+  - key: "E"
+    name: "外部服务"
+
+sections:
+  - name: "① 注册流程"
+    steps:
+      - type: start_end
+        text: "开始注册"
+      - type: process
+        lane: "A"
+        text: "接收注册请求(邮箱+密码)"
+      - type: decision
+        lane: "A"
+        text: "格式校验通过?"
+        on_no: "返回格式错误"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "已勾选协议?"
+        on_no: "返回未勾选"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "邮箱已注册?"
+        on_no: "返回已注册"
+        yes_label: "否"
+        no_label: "是"
+      - type: decision
+        lane: "A"
+        text: "注册限频?"
+        on_no: "返回请求过多"
+        yes_label: "否"
+        no_label: "是"
+      - type: process
+        lane: "A"
+        text: "请求发送验证码"
+      - type: cross_lane
+        from: "A"
+        to: "M"
+        text: "生成验证码并存储"
+      - type: cross_lane
+        from: "M"
+        to: "E"
+        text: "邮件服务商投递"
+      - type: cross_lane
+        from: "E"
+        to: "A"
+        text: "接收验证码输入"
+      - type: cross_lane
+        from: "A"
+        to: "M"
+        text: "校验验证码"
+      - type: decision
+        lane: "M"
+        text: "验证码正确?"
+        on_no: "返回验证码错误"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "M"
+        text: "是否过期?"
+        on_no: "返回已过期"
+        yes_label: "否"
+        no_label: "是"
+      - type: cross_lane
+        from: "M"
+        to: "A"
+        text: "创建账号"
+      - type: process
+        lane: "A"
+        text: "签发Token"
+      - type: start_end
+        text: "注册完成"
+  - name: "② 登录流程"
+    steps:
+      - type: start_end
+        text: "开始登录"
+      - type: process
+        lane: "A"
+        text: "接收登录请求(邮箱+密码)"
+      - type: decision
+        lane: "A"
+        text: "格式校验通过?"
+        on_no: "返回格式错误"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "邮箱存在?"
+        on_no: "返回账号不存在"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "密码正确?"
+        on_no: "返回密码错误"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "错误>=5次?"
+        on_no: "锁定账号30分钟"
+        yes_label: "否"
+        no_label: "是"
+      - type: process
+        lane: "A"
+        text: "签发Token设Cookie"
+      - type: start_end
+        text: "登录完成"
+  - name: "③ 忘记密码"
+    steps:
+      - type: start_end
+        text: "开始"
+      - type: process
+        lane: "A"
+        text: "接收重置密码请求(邮箱)"
+      - type: process
+        lane: "A"
+        text: "请求发送验证码"
+      - type: decision
+        lane: "M"
+        text: "发信限频?"
+        on_no: "返回请求过多"
+        yes_label: "否"
+        no_label: "是"
+      - type: process
+        lane: "M"
+        text: "生成验证码并存储"
+      - type: cross_lane
+        from: "M"
+        to: "E"
+        text: "邮件服务商投递"
+      - type: cross_lane
+        from: "E"
+        to: "A"
+        text: "接收验证码输入"
+      - type: cross_lane
+        from: "A"
+        to: "M"
+        text: "校验验证码"
+      - type: decision
+        lane: "M"
+        text: "验证码有效?"
+        on_no: "返回错误/已过期"
+        yes_label: "是"
+        no_label: "否"
+      - type: cross_lane
+        from: "M"
+        to: "A"
+        text: "接收新密码(两次输入)"
+      - type: decision
+        lane: "A"
+        text: "密码规则校验?"
+        on_no: "返回格式错误"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "与旧密码相同?"
+        on_no: "返回不能相同"
+        yes_label: "否"
+        no_label: "是"
+      - type: process
+        lane: "A"
+        text: "更新密码失效旧Token"
+      - type: start_end
+        text: "流程结束"
+  - name: "④ 退出流程"
+    steps:
+      - type: start_end
+        text: "开始"
+      - type: process
+        lane: "A"
+        text: "接收退出请求"
+      - type: process
+        lane: "A"
+        text: "清除Session/Token"
+      - type: start_end
+        text: "退出完成"
+      - type: note
+        title: "会话失效（被动退出）"
+        lines:
+          - "1. 接口返回 401"
+          - "2. 检测到 Token 失效"
+          - "3. 清除本地 Token / Cookie"
+          - "4. 跳转首页 + 提示 Session expired"
+          - "触发：Token过期 / 密码修改 / 管理员强制下线"
+  - name: "⑤ OAuth三方注册"
+    steps:
+      - type: start_end
+        text: "开始"
+      - type: process
+        lane: "A"
+        text: "接收三方注册请求"
+      - type: cross_lane
+        from: "A"
+        to: "E"
+        text: "跳转OAuth授权页"
+      - type: process
+        lane: "E"
+        text: "用户授权,返回授权码"
+      - type: cross_lane
+        from: "E"
+        to: "A"
+        text: "用code换取token"
+      - type: process
+        lane: "A"
+        text: "获取用户信息"
+      - type: decision
+        lane: "A"
+        text: "provider_uid已绑定?"
+        on_no: "转登录流程"
+        yes_label: "否"
+        no_label: "是"
+      - type: decision
+        lane: "A"
+        text: "邮箱已注册?"
+        on_no: "自动关联账号"
+        yes_label: "否"
+        no_label: "是"
+      - type: process
+        lane: "A"
+        text: "创建新账号"
+      - type: process
+        lane: "A"
+        text: "写入OAuth绑定记录"
+      - type: decision
+        lane: "A"
+        text: "Apple Hide My Email?"
+        on_no: "不写凭证表"
+        yes_label: "是"
+        no_label: "是"
+      - type: process
+        lane: "A"
+        text: "provider_email写入凭证表"
+      - type: process
+        lane: "A"
+        text: "provider_name预填昵称"
+      - type: decision
+        lane: "A"
+        text: "Facebook无邮箱?"
+        on_no: "标记待补邮箱"
+        yes_label: "是"
+        no_label: "是"
+      - type: process
+        lane: "A"
+        text: "签发Token"
+      - type: start_end
+        text: "注册完成"
+  - name: "⑥ OAuth三方登录"
+    steps:
+      - type: start_end
+        text: "开始"
+      - type: process
+        lane: "A"
+        text: "接收三方登录请求"
+      - type: cross_lane
+        from: "A"
+        to: "E"
+        text: "跳转OAuth授权页"
+      - type: process
+        lane: "E"
+        text: "用户授权,返回授权码"
+      - type: cross_lane
+        from: "E"
+        to: "A"
+        text: "用code换取token"
+      - type: decision
+        lane: "A"
+        text: "provider_uid已绑定?"
+        on_no: "转注册流程(⑤)"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "查找关联用户"
+      - type: decision
+        lane: "A"
+        text: "账号状态正常?"
+        on_no: "返回账号已冻结"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "记录登录日志"
+      - type: process
+        lane: "A"
+        text: "签发Token设Cookie"
+      - type: start_end
+        text: "登录完成"
+  - name: "⑦ Token刷新"
+    steps:
+      - type: start_end
+        text: "触发"
+      - type: process
+        lane: "A"
+        text: "检测access_token过期"
+      - type: process
+        lane: "A"
+        text: "携带refresh_token请求刷新"
+      - type: decision
+        lane: "A"
+        text: "refresh_token有效?"
+        on_no: "返回401"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "Session状态活跃?"
+        on_no: "返回401(已吊销)"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "签发新access_token"
+      - type: process
+        lane: "A"
+        text: "滑动续期refresh_token"
+      - type: start_end
+        text: "刷新完成"
+  - name: "⑧ 风控决策"
+    steps:
+      - type: start_end
+        text: "触发"
+      - type: process
+        lane: "A"
+        text: "收到登录/注册请求"
+      - type: process
+        lane: "A"
+        text: "采集设备指纹+IP"
+      - type: decision
+        lane: "A"
+        text: "设备指纹已知?"
+        on_no: "创建设备记录"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "是否信任设备?"
+        on_no: "标记需额外验证"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "IP地理位置异常?"
+        on_no: "异地登录风险"
+        yes_label: "否"
+        no_label: "是"
+      - type: decision
+        lane: "A"
+        text: "暴力破解检测?"
+        on_no: "触发拦截/封禁"
+        yes_label: "否"
+        no_label: "是"
+      - type: decision
+        lane: "A"
+        text: "综合风险等级?"
+        on_no: "高→拦截提示 / 中→发验证码"
+        yes_label: "低"
+        no_label: "高/中"
+      - type: process
+        lane: "A"
+        text: "放行 → 继续登录"
+      - type: process
+        lane: "A"
+        text: "写入风控记录(RiskRecord)"
+      - type: process
+        lane: "A"
+        text: "写入登录日志(LoginLog)"
+      - type: start_end
+        text: "风控完成"
+  - name: "⑨ 密码修改"
+    steps:
+      - type: start_end
+        text: "开始"
+      - type: process
+        lane: "A"
+        text: "接收修改密码请求"
+      - type: decision
+        lane: "A"
+        text: "旧密码正确?"
+        on_no: "返回密码错误"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "新旧密码相同?"
+        on_no: "返回不能相同"
+        yes_label: "否"
+        no_label: "是"
+      - type: decision
+        lane: "A"
+        text: "密码规则校验?"
+        on_no: "返回格式错误"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "更新密码哈希"
+      - type: process
+        lane: "A"
+        text: "吊销所有其他Session"
+      - type: process
+        lane: "A"
+        text: "写入审计日志(改密码)"
+      - type: start_end
+        text: "流程结束"
+  - name: "⑩ 账号注销"
+    steps:
+      - type: start_end
+        text: "开始"
+      - type: process
+        lane: "A"
+        text: "接收注销请求"
+      - type: decision
+        lane: "A"
+        text: "密码验证通过?"
+        on_no: "返回密码错误"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "标记status=注销"
+      - type: process
+        lane: "A"
+        text: "记录deactivated_at"
+      - type: process
+        lane: "A"
+        text: "吊销所有Session"
+      - type: process
+        lane: "A"
+        text: "写入审计日志(注销)"
+      - type: start_end
+        text: "注销完成"
+      - type: note
+        title: "注销冷静期说明"
+        lines:
+          - "1. 注销后 30 天内可联系客服恢复"
+          - "2. 超过 30 天数据永久删除"
+          - "3. 冷静期内账号不可登录"
+  - name: "⑪ 协议版本更新"
+    steps:
+      - type: start_end
+        text: "触发"
+      - type: process
+        lane: "A"
+        text: "用户访问任意页面"
+      - type: decision
+        lane: "A"
+        text: "协议版本有更新?"
+        on_no: "正常访问"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "弹出协议更新弹窗"
+      - type: decision
+        lane: "A"
+        text: "用户同意?"
+        on_no: "强制退出登录"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "提交同意请求"
+      - type: process
+        lane: "A"
+        text: "写入ConsentRecord"
+      - type: process
+        lane: "A"
+        text: "记录协议版本+国家"
+      - type: start_end
+        text: "完成"
+  - name: "⑫ 设备指纹与信任"
+    steps:
+      - type: start_end
+        text: "触发"
+      - type: process
+        lane: "A"
+        text: "用户登录成功"
+      - type: process
+        lane: "A"
+        text: "采集设备指纹(JS SDK)"
+      - type: process
+        lane: "A"
+        text: "上报设备指纹"
+      - type: decision
+        lane: "A"
+        text: "指纹已存在?"
+        on_no: "创建Device记录"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "更新last_login_at"
+      - type: process
+        lane: "A"
+        text: "关联Session与Device"
+      - type: decision
+        lane: "A"
+        text: "是否信任设备?"
+        on_no: "跳过信任提示"
+        yes_label: "否"
+        no_label: "是"
+      - type: process
+        lane: "A"
+        text: "提示:是否信任此设备?"
+      - type: decision
+        lane: "A"
+        text: "用户选择信任?"
+        on_no: "保持不信任"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "更新is_trusted=1"
+      - type: start_end
+        text: "完成"
+]]>
+</metadata>
 <defs>
 <marker id="arr" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#475569"/></marker>
 <marker id="arr-r" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#DC2626"/></marker>
