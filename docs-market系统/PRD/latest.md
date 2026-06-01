@@ -47,7 +47,7 @@ Market（市场）是 Looply 的核心商业运营单元。一个 Market 代表�
 运营管理员创建一个新的 Market（如 EU Market），配置覆盖国家（法国、德国等）、支持语言（英语、法语、德语等）、支持货币（EUR、GBP 等），设置基准时区和业务日切时间，为下游业务模块提供基础配置。
 
 **场景 2：扩展已有市场的国家覆盖**
-EU Market 运营成熟后，新增意大利和西班牙两个国家。运营管理员在 Market 国家配置中添加新国家，设置优先级、域名策略、本地时区覆盖等。
+EU Market 运营成熟后，新增意大利和西班牙两个国家。运营管理员在 Market 国家配置中添加新国家，设置优先级、本地时区覆盖等。
 
 **场景 3：维护基础参考数据**
 系统管理员根据业务需要，新增一个国家（如巴西）到国家主数据中，配置其法定货币、主要语言、时区关联等基础信息，供后续 Market 配置时选用。
@@ -156,7 +156,7 @@ EU Market 运营成熟后，新增意大利和西班牙两个国家。运营管�
 | 权限不足 | 隐藏"新建市场"按钮和操作列中的"编辑""停用"按钮 |
 
 **UI 关联**
-PC 端设计稿：原型 v15 — 市场列表页（page-market-list-list）
+PC 端设计稿：原型 v20 — 市场列表页（page-market-list-list）
 
 ---
 
@@ -214,7 +214,7 @@ PC 端设计稿：原型 v15 — 市场列表页（page-market-list-list）
 | 国家选择器 | 多选下拉（Tag-Input 样式），搜索或选择国家 |
 | 添加按钮 | "添加已选国家 (N)"，将选中的国家加入配置表 |
 | 时区校验提示 | 校验基准时区是否在已配置国家的时区范围内 |
-| 国家配置表格 | 11 列宽表格，支持行内编辑 |
+| 国家配置表格 | 9 列宽表格，支持行内编辑 |
 
 **国家配置表格字段**
 
@@ -348,7 +348,7 @@ PC 端设计稿：原型 v15 — 市场列表页（page-market-list-list）
 | 国家已被其他 Market 占用 | 添加国家时即时提示，不允许添加 |
 
 **UI 关联**
-PC 端设计稿：原型 v15 — 新建市场页（page-market-list-create）
+PC 端设计稿：原型 v20 — 新建市场页（page-market-list-create）
 
 ---
 
@@ -385,7 +385,7 @@ Tab 栏：基本信息 / 国家配置 / 语言配置 / 货币配置
 
 - 顶部"添加国家"按钮（点击后跳转到编辑模式的国家配置步骤）
 - 时区校验提示
-- 国家配置表格（只读模式，列同向导步骤 2，操作列仅"编辑"按钮）
+- 国家配置表格（只读模式，9 列：国家代码、国家名称、主要国家、优先级、本地时区、本地日切、上线日期、状态、操作，操作列仅"编辑"按钮）
 
 ##### Tab 3：语言配置
 
@@ -396,6 +396,17 @@ Tab 栏：基本信息 / 国家配置 / 语言配置 / 货币配置
 
 - 顶部"添加货币"按钮
 - 货币配置表格（只读模式，列同向导步骤 4）
+
+##### 操作记录
+
+详情页底部（Tab 内容区下方）展示该 Market 的操作历史，按时间倒序排列。
+
+| 列名 | 说明 |
+|------|------|
+| 操作时间 | 操作发生的时间 |
+| 操作人 | 执行操作的账号 |
+| 操作类型 | 创建 / 编辑 |
+| 操作内容 | 具体变更描述 |
 
 **操作流程**
 
@@ -408,7 +419,7 @@ Tab 栏：基本信息 / 国家配置 / 语言配置 / 货币配置
 - 编辑模式复用新建向导页面，回填已有数据
 
 **UI 关联**
-PC 端设计稿：原型 v15 — 市场详情页（page-market-list-detail）
+PC 端设计稿：原型 v20 — 市场详情页（page-market-list-detail）
 
 ---
 
@@ -433,7 +444,7 @@ PC 端设计稿：原型 v15 — 市场详情页（page-market-list-detail）
 - 修改完成后点击"保存"，成功后跳转到市场详情页
 
 **UI 关联**
-PC 端设计稿：原型 v15 — 复用新建市场页（page-market-list-create，标题动态切换）
+PC 端设计稿：原型 v20 — 复用新建市场页（page-market-list-create，标题动态切换）
 
 ### 2.2 国家管理
 
@@ -503,7 +514,7 @@ PC 端设计稿：原型 v15 — 复用新建市场页（page-market-list-create
 - 筛选无结果：显示"未找到匹配结果，请调整筛选条件" + "清除筛选"按钮
 
 **UI 关联**
-PC 端设计稿：原型 v15 — page-country-list-list
+PC 端设计稿：原型 v20 — page-country-list-list
 
 #### 2.2.3 新建国家
 
@@ -566,7 +577,7 @@ PC 端设计稿：原型 v15 — page-country-list-list
 - 必填项未填：字段下方显示红色错误提示
 
 **UI 关联**
-PC 端设计稿：原型 v15 — page-country-list-create
+PC 端设计稿：原型 v20 — page-country-list-create
 
 #### 2.2.4 编辑国家
 
@@ -593,8 +604,10 @@ PC 端设计稿：原型 v15 — page-country-list-create
 
 与新建国家相同，但国家代码不参与唯一性校验（只读字段）
 
+页面底部展示该记录的操作历史，表格列同市场详情页操作记录。
+
 **UI 关联**
-PC 端设计稿：原型 v15 — page-country-list-edit
+PC 端设计稿：原型 v20 — page-country-list-edit
 
 ### 2.3 时区管理
 
@@ -631,10 +644,9 @@ PC 端设计稿：原型 v15 — page-country-list-edit
 | UTC 偏移 | 相对 UTC 的偏移量 | UTC-5 |
 | 是否夏令时 | 是/否 | 是 |
 | 当前时间 | 该时区当前时间 | 2026-04-30 10:30 |
+| 适用国家数 | 关联该时区的国家数量 | 2 |
 | 状态 | 启用/停用 | 启用 |
 | 操作 | 启用/停用按钮 | — |
-
-> 注：原型 v15 中时区列表暂无"当前时间"列,该列为 PRD 新增需求,后续原型迭代补充。
 
 **操作流程**
 
@@ -660,7 +672,7 @@ PC 端设计稿：原型 v15 — page-country-list-edit
 - 筛选无结果：显示"未找到匹配结果，请调整筛选条件" + "清除筛选"按钮
 
 **UI 关联**
-PC 端设计稿：原型 v15 — page-timezone-list-list
+PC 端设计稿：原型 v20 — page-timezone-list-list
 
 ### 2.4 语言管理
 
@@ -686,8 +698,6 @@ PC 端设计稿：原型 v15 — page-timezone-list-list
 - KPI 统计卡片（4 列）：总语言数、LTR 语言数、RTL 语言数、已启用语言数
 - 工具栏：搜索框（语言代码/语言名称）+ 书写方向筛选下拉框 + "查询"按钮
 - 表格区域：6 列数据表格
-
-> 注：原型 v15 中语言列表工具栏暂无"书写方向筛选下拉框"，该筛选项为 PRD 新增需求，后续原型迭代补充。
 
 **表格列定义**
 
@@ -726,7 +736,7 @@ PC 端设计稿：原型 v15 — page-timezone-list-list
 - 筛选无结果：显示"未找到匹配结果，请调整筛选条件" + "清除筛选"按钮
 
 **UI 关联**
-PC 端设计稿：原型 v15 — page-language-list-list
+PC 端设计稿：原型 v20 — page-language-list-list
 
 #### 2.4.3 新建语言
 
@@ -775,7 +785,7 @@ PC 端设计稿：原型 v15 — page-language-list-list
 - 必填项未填：字段下方显示红色错误提示
 
 **UI 关联**
-PC 端设计稿：原型 v15 — page-language-list-create
+PC 端设计稿：原型 v20 — page-language-list-create
 
 #### 2.4.4 编辑语言
 
@@ -802,8 +812,10 @@ PC 端设计稿：原型 v15 — page-language-list-create
 
 与新建语言相同，但语言代码不参与唯一性校验（只读字段）
 
+页面底部展示该记录的操作历史，表格列同市场详情页操作记录。
+
 **UI 关联**
-PC 端设计稿：原型 v15 — page-language-list-edit
+PC 端设计稿：原型 v20 — page-language-list-edit
 
 ### 2.5 货币管理
 
@@ -829,8 +841,6 @@ PC 端设计稿：原型 v15 — page-language-list-edit
 - KPI 统计卡片（4 列）：总货币数、2 位小数货币数、0 位小数货币数、已启用货币数
 - 工具栏：搜索框（货币代码/货币名称）+ 小数位数筛选下拉框 + "查询"按钮
 - 表格区域：6 列数据表格
-
-> 注：原型 v15 中货币列表工具栏暂无"小数位数筛选下拉框"，该筛选项为 PRD 新增需求，后续原型迭代补充。
 
 **表格列定义**
 
@@ -868,7 +878,7 @@ PC 端设计稿：原型 v15 — page-language-list-edit
 - 筛选无结果：显示"未找到匹配结果，请调整筛选条件" + "清除筛选"按钮
 
 **UI 关联**
-PC 端设计稿：原型 v15 — page-currency-list-list
+PC 端设计稿：原型 v20 — page-currency-list-list
 
 #### 2.5.3 新建货币
 
@@ -918,7 +928,7 @@ PC 端设计稿：原型 v15 — page-currency-list-list
 - 必填项未填：字段下方显示红色错误提示
 
 **UI 关联**
-PC 端设计稿：原型 v15 — page-currency-list-create
+PC 端设计稿：原型 v20 — page-currency-list-create
 
 #### 2.5.4 编辑货币
 
@@ -945,8 +955,10 @@ PC 端设计稿：原型 v15 — page-currency-list-create
 
 与新建货币相同，但货币代码不参与唯一性校验（只读字段）
 
+页面底部展示该记录的操作历史，表格列同市场详情页操作记录。
+
 **UI 关联**
-PC 端设计稿：原型 v15 — page-currency-list-edit
+PC 端设计稿：原型 v20 — page-currency-list-edit
 
 ## 三、依赖与风险
 
@@ -993,7 +1005,7 @@ PC 端设计稿：原型 v15 — page-currency-list-edit
 - Market 批量操作（批量启用/停用）
 - 国家批量导入（Excel 导入）
 - 时区数据自动同步机制（定时任务）
-- Market 域名配置增强（支持多域名）
+- Market 国家级独立域名配置（按国家启用独立域名）
 
 **V2.0 可能新增**
 - 内容翻译层管理（本 PRD 不涉及）
@@ -1020,20 +1032,20 @@ PC 端设计稿：原型 v15 — page-currency-list-edit
 
 | 页面名称 | PC 端设计稿 | 说明 |
 |----------|-------------|------|
-| 市场列表页 | 原型 v15 — page-market-list-list | 展示所有 Market，支持搜索、筛选、新建、编辑、详情 |
-| 市场详情页 | 原型 v15 — page-market-list-detail | 展示 Market 基本信息、国家列表、语言列表、货币列表 |
-| 新建市场页 | 原型 v15 — page-market-list-create | 4 步向导：基本信息 → 国家配置 → 语言配置 → 货币配置 |
-| 编辑市场页 | 原型 v15 — 复用新建市场页 | 标题动态切换为"编辑市场"，代码字段只读 |
-| 国家列表页 | 原型 v15 — page-country-list-list | 展示所有国家，支持搜索、筛选、新建、编辑 |
-| 新建国家页 | 原型 v15 — page-country-list-create | 填写国家基础信息 + 配置支持时区列表 |
-| 编辑国家页 | 原型 v15 — page-country-list-edit | 修改国家信息，代码字段只读 |
-| 时区列表页 | 原型 v15 — page-timezone-list-list | 展示所有时区（只读数据），支持启用/停用 |
-| 语言列表页 | 原型 v15 — page-language-list-list | 展示所有语言，支持搜索、筛选、新建、编辑 |
-| 新建语言页 | 原型 v15 — page-language-list-create | 填写语言基础信息 + 配置书写方向 |
-| 编辑语言页 | 原型 v15 — page-language-list-edit | 修改语言信息，代码字段只读 |
-| 货币列表页 | 原型 v15 — page-currency-list-list | 展示所有货币，支持搜索、筛选、新建、编辑 |
-| 新建货币页 | 原型 v15 — page-currency-list-create | 填写货币基础信息 + 配置小数位数 |
-| 编辑货币页 | 原型 v15 — page-currency-list-edit | 修改货币信息，代码字段只读 |
+| 市场列表页 | 原型 v20 — page-market-list-list | 展示所有 Market，支持搜索、筛选、新建、编辑、详情 |
+| 市场详情页 | 原型 v20 — page-market-list-detail | 展示 Market 基本信息、国家列表、语言列表、货币列表 |
+| 新建市场页 | 原型 v20 — page-market-list-create | 4 步向导：基本信息 → 国家配置 → 语言配置 → 货币配置 |
+| 编辑市场页 | 原型 v20 — 复用新建市场页 | 标题动态切换为"编辑市场"，代码字段只读 |
+| 国家列表页 | 原型 v20 — page-country-list-list | 展示所有国家，支持搜索、筛选、新建、编辑 |
+| 新建国家页 | 原型 v20 — page-country-list-create | 填写国家基础信息 + 配置支持时区列表 |
+| 编辑国家页 | 原型 v20 — page-country-list-edit | 修改国家信息，代码字段只读 |
+| 时区列表页 | 原型 v20 — page-timezone-list-list | 展示所有时区（只读数据），支持启用/停用 |
+| 语言列表页 | 原型 v20 — page-language-list-list | 展示所有语言，支持搜索、筛选、新建、编辑 |
+| 新建语言页 | 原型 v20 — page-language-list-create | 填写语言基础信息 + 配置书写方向 |
+| 编辑语言页 | 原型 v20 — page-language-list-edit | 修改语言信息，代码字段只读 |
+| 货币列表页 | 原型 v20 — page-currency-list-list | 展示所有货币，支持搜索、筛选、新建、编辑 |
+| 新建货币页 | 原型 v20 — page-currency-list-create | 填写货币基础信息 + 配置小数位数 |
+| 编辑货币页 | 原型 v20 — page-currency-list-edit | 修改货币信息，代码字段只读 |
 
 ---
 
