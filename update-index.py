@@ -249,48 +249,133 @@ var PROTOTYPE_CONFIG = {
 
 # ─── index.html 更新（只改"最新"条目，不动历史版本） ─────────────────────────────
 
-def update_index_html(updates):
+def update_index_html(updates, all_versions):
     """
-    逐行解析 index.html，只在非 history-list 区域内替换匹配的 href。
-    updates: list of dicts with {href_dir, file_pattern, new_file}
+    两遍处理 index.html：
+    第一遍：替换 href，记录每个 doc-item 块对应的 update 条目
+    第二遍：根据记录更新 doc-name 版本号和交付包 doc-desc
     """
     index_path = os.path.join(REPO_DIR, 'index.html')
     lines = open(index_path, 'r', encoding='utf-8').readlines()
-
-    in_history = False
     changed = False
+
+    # ── 第一遍：替换 href，记录 doc-item 块 → update 的映射 ──
+    # item_map: line_index_of_doc_item_start → upd
+    item_map = {}
+    in_history = False
+    current_item_start = None
+
+    for i, line in enumerate(lines):
+        if 'history-list' in line and '<ul' in line:
+            in_history = True
+        if in_history and '</ul>' in line:
+            in_history = False
+            continue
+        if in_history:
+            continue
+
+        if '<li class="doc-item">' in line:
+            current_item_start = i
+
+        if '</li>' in line and current_item_start is not None:
+            current_item_start = None
+
+        for upd in updates:
+            href_dir = upd['href_dir']
+            file_pattern = upd['file_pattern']
+            new_file = upd['new_file']
+
+            regex = re.compile(r'(href="' + re.escape(href_dir) + r')([^"]+)(")')
+            match = regex.search(lines[i])
+            if match:
+                old_filename = match.group(2)
+                if re.match(file_pattern, old_filename):
+                    # 记录块
+                    if current_item_start is not None and upd.get('art_type') != 'delivery':
+                        item_map[current_item_start] = upd
+                    # 替换文件名
+                    if old_filename != new_file:
+                        lines[i] = lines[i][:match.start()] + match.group(1) + new_file + match.group(3) + lines[i][match.end():]
+                        changed = True
+
+    # ── 第二遍：更新 doc-name 版本号 + 交付包 doc-desc ──
+    in_history = False
+    current_item_start = None
     new_lines = []
 
-    for line in lines:
-        # 检测是否进入/离开 history-list 区域
+    for i, line in enumerate(lines):
         if 'history-list' in line and '<ul' in line:
             in_history = True
         if in_history and '</ul>' in line:
             in_history = False
             new_lines.append(line)
             continue
-
         if in_history:
-            # 历史版本区域，不修改
             new_lines.append(line)
             continue
 
-        # 非历史区域，尝试替换
-        new_line = line
-        for upd in updates:
-            href_dir = upd['href_dir']
-            file_pattern = upd['file_pattern']
-            new_file = upd['new_file']
+        if '<li class="doc-item">' in line:
+            current_item_start = i
 
-            # 匹配 href="目录/文件名"
-            regex = re.compile(r'(href="' + re.escape(href_dir) + r')([^"]+)(")')
-            match = regex.search(new_line)
-            if match:
-                old_filename = match.group(2)
-                if re.match(file_pattern, old_filename):
-                    new_line = new_line[:match.start()] + match.group(1) + new_file + match.group(3) + new_line[match.end():]
-                    if old_filename != new_file:
+        new_line = line
+
+        # 更新 doc-name 版本号
+        if current_item_start in item_map and 'doc-name' in line and '<span class="badge">' in line:
+            upd = item_map[current_item_start]
+            new_ver = upd.get('new_ver', '')
+            if new_ver:
+                ver_regex = re.compile(r'([vV])(\d+(?:\.\d+)?(?:-[^\s<"]*)?)\s*(<span)')
+                ver_match = ver_regex.search(new_line)
+                if ver_match:
+                    old_ver_text = ver_match.group(2)
+                    if old_ver_text != new_ver:
+                        new_line = (new_line[:ver_match.start(2)]
+                                    + new_ver + ' '
+                                    + new_line[ver_match.start(3):])
                         changed = True
+
+        # 更新交付包 doc-desc
+        if 'doc-desc' in new_line and '含 PRD' in new_line:
+            for mod_name in set(upd.get('mod_name', '') for upd in updates):
+                if not mod_name:
+                    continue
+                mod_dir = MODULES.get(mod_name, {}).get('dir', '')
+                if not mod_dir:
+                    continue
+                # 确认交付包属于该模块：
+                # 方式1: 前10行包含模块目录（href 在 desc 前面的情况）
+                # 方式2: doc-name 中包含模块名关键词（如 "market-交付开发"）
+                recent = ''.join(new_lines[-10:])
+                # 模块名关键词映射
+                mod_keywords = {
+                    'market': 'market',
+                    'product': '商品',
+                    'inventory': '库存',
+                    'translation': '翻译',
+                    'exchange': '汇率',
+                    'user': '用户',
+                    'login': '登录注册',
+                }
+                keyword = mod_keywords.get(mod_name, mod_name)
+                if mod_dir not in recent and keyword not in recent:
+                    continue
+
+                prd_ver = all_versions.get((mod_name, 'prd')) or all_versions.get((mod_name, 'prd_md'))
+                if prd_ver:
+                    new_line = re.sub(r'PRD [vV][\d.]+', f'PRD V{prd_ver}', new_line)
+                proto_ver = all_versions.get((mod_name, 'prototype'))
+                if proto_ver:
+                    new_line = re.sub(r'后台原型 [vV][\w.-]+', f'后台原型 v{proto_ver}', new_line)
+                    new_line = re.sub(r'原型 [vV][\w.-]+', f'原型 v{proto_ver}', new_line)
+                er_ver = all_versions.get((mod_name, 'er'))
+                if er_ver:
+                    new_line = re.sub(r'ER图 [vV][\d.]+', f'ER图 v{er_ver}', new_line)
+
+            if new_line != line:
+                changed = True
+
+        if '</li>' in new_line and current_item_start is not None:
+            current_item_start = None
 
         new_lines.append(new_line)
 
@@ -309,6 +394,17 @@ def main():
 
     latest_prototypes = {}  # config_key -> relative_path
     index_updates = []      # 用于更新 index.html
+    all_versions = {}       # (mod_name, art_type) -> ver_str
+
+    # art_type 到 doc-name 显示关键词的映射
+    ART_DISPLAY_MAP = {
+        'prototype': '后台原型',
+        'prd': 'PRD',
+        'prd_html': 'PRD',
+        'prd_md': 'PRD',
+        'er': '实体关系图',
+        'delivery': '交付开发',
+    }
 
     for mod_name, mod_config in MODULES.items():
         module_dir = mod_config['dir']
@@ -334,6 +430,9 @@ def main():
 
             print(f'  {mod_name}/{art_type}: {latest_file} (v{latest_ver})')
 
+            # 记录版本号
+            all_versions[(mod_name, art_type)] = latest_ver
+
             # 原型 → 更新 prototype-config.js
             if art_type == 'prototype' and config_key:
                 if subdir == '.':
@@ -352,6 +451,10 @@ def main():
                 'href_dir': href_dir,
                 'file_pattern': pattern,
                 'new_file': latest_file,
+                'new_ver': latest_ver,
+                'mod_name': mod_name,
+                'art_type': art_type,
+                'art_display': ART_DISPLAY_MAP.get(art_type, ''),
             })
 
     # 更新 prototype-config.js
@@ -359,9 +462,9 @@ def main():
         update_prototype_config(latest_prototypes)
         print('  [更新] prototype-config.js 已更新')
 
-    # 更新 index.html（只改最新条目）
+    # 更新 index.html（改链接 + 改版本号文字 + 改交付包描述）
     if index_updates:
-        update_index_html(index_updates)
+        update_index_html(index_updates, all_versions)
 
 
 if __name__ == '__main__':
