@@ -8,9 +8,13 @@
 
 import os
 import re
+import sys
 from datetime import datetime
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# 模块筛选：命令行参数作为关键词过滤
+MODULE_FILTER = sys.argv[1:] if len(sys.argv) > 1 else []
 
 # ─── 模块配置 ───────────────────────────────────────────────────────────────────
 
@@ -309,6 +313,12 @@ def main():
     for mod_name, mod_config in MODULES.items():
         module_dir = mod_config['dir']
         config_key = mod_config['config_key']
+
+        # 模块筛选
+        if MODULE_FILTER:
+            matched = any(kw in mod_name or kw in module_dir for kw in MODULE_FILTER)
+            if not matched:
+                continue
 
         for art_type, art_config in mod_config['artifacts'].items():
             if art_config.get('no_version'):

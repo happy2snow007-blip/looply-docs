@@ -1,7 +1,9 @@
 #!/bin/bash
 # Looply 文档自动同步脚本
-# 用法: ./sync.sh          (手动同步一次)
-#       ./sync.sh --watch   (持续监控，文件变化自动同步)
+# 用法: ./sync.sh              (同步全部模块)
+#       ./sync.sh market       (仅同步 market 模块)
+#       ./sync.sh 商品 库存    (同步多个模块，支持关键词匹配)
+#       ./sync.sh --watch      (持续监控，文件变化自动同步)
 
 REPO_DIR="$HOME/looply-docs"
 
@@ -43,6 +45,21 @@ sync_files() {
     for ENTRY in "${MODULE_LIST[@]}"; do
         SOURCE_DIR="${ENTRY%%|*}"
         TARGET="${ENTRY##*|}"
+
+        # 模块筛选：如果指定了模块关键词，跳过不匹配的
+        if [ ${#SYNC_FILTER[@]} -gt 0 ]; then
+            MATCHED=false
+            for KW in "${SYNC_FILTER[@]}"; do
+                if [[ "$SOURCE_DIR" == *"$KW"* ]] || [[ "$TARGET" == *"$KW"* ]]; then
+                    MATCHED=true
+                    break
+                fi
+            done
+            if [ "$MATCHED" = false ]; then
+                continue
+            fi
+            echo -e "  ${GREEN}匹配${NC}: $TARGET"
+        fi
 
         # 调研 - md
         if [ -d "$SOURCE_DIR/调研" ]; then
@@ -147,7 +164,7 @@ sync_files() {
     done
 
     # 自动更新 index.html 和 prototype-config.js（检测最新版本）
-    python3 "$REPO_DIR/update-index.py"
+    python3 "$REPO_DIR/update-index.py" "${SYNC_FILTER[@]}"
 
     # 检查 git 是否有变化
     cd "$REPO_DIR"
@@ -162,8 +179,17 @@ sync_files() {
     fi
 }
 
+# 模块筛选参数（非 --watch 的参数视为模块关键词）
+SYNC_FILTER=()
+
 # 手动同步模式
 if [ "$1" != "--watch" ]; then
+    for arg in "$@"; do
+        SYNC_FILTER+=("$arg")
+    done
+    if [ ${#SYNC_FILTER[@]} -gt 0 ]; then
+        echo -e "${GREEN}[指定模块]${NC} ${SYNC_FILTER[*]}"
+    fi
     sync_files
     exit 0
 fi
