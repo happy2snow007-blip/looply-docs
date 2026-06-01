@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Looply MARKET 主数据 后台原型 v21 (antd)</title>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/antd@6/dist/antd.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/@ant-design/icons@6.2.1/dist/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+<style>
+html,body,#root{height:100%;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937}
+#root::before{content:'正在加载 antd 原型……';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#9CA3AF;font-size:14px}
+#root:not(:empty)::before{display:none}
+
+/* KPI 卡片 */
+.lp-kpi{background:linear-gradient(180deg,#FEFCFF 0%,#F3EEFF 100%);border:1px solid #DDD6FE;border-radius:14px;padding:14px 16px}
+.lp-kpi .num{font-size:24px;font-weight:700;color:#7C3AED;line-height:1;margin-bottom:6px;font-variant-numeric:tabular-nums}
+.lp-kpi .label{font-size:12px;color:#6B7280}
+
+/* 紧凑分页器 */
+.lp-pagination{display:flex;align-items:center;justify-content:center;gap:24px;padding:12px 16px;font-size:13px;color:#6B7280}
+.lp-pagination .divider{width:1px;height:20px;background:#E5E7EB}
+
+/* 字段提示:虚线下划线 */
+.lp-tip-trigger{cursor:help;border-bottom:1px dashed #9CA3AF;padding-bottom:1px}
+
+/* 行内编辑 */
+.lp-editable{cursor:pointer;padding:2px 6px;border-radius:6px;border:1px solid transparent;transition:all .15s;display:inline-block;min-width:40px;text-align:right}
+.lp-editable:hover{border-color:#DDD6FE;background:#FAF5FF;color:#7C3AED}
+.lp-edit-just-saved{color:#16A34A!important;transition:color 1s}
+
+/* 编辑行高亮 */
+tr.lp-editing-row>td{background:#FAF5FF!important}
+tr.lp-editing-row>td:first-child{box-shadow:inset 3px 0 0 #7C3AED}
+
+/* 提示条 */
+.lp-note{padding:14px;border-radius:10px;background:#F3EEFF;border:1px solid #DDD6FE;color:#6D28D9;font-size:12px;line-height:1.8}
+.lp-note-sm{padding:10px 14px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:8px;font-size:12px;color:#6D28D9}
+
+/* 区块小节标题 */
+.lp-section-purple{font-size:14px;font-weight:700;color:#7C3AED;margin:0 0 12px}
+.lp-section{font-size:15px;font-weight:600;color:#1F2937;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #E5E7EB}
+
+/* 操作记录区块标题 */
+.lp-oplog-title{font-size:14px;font-weight:700;color:#7C3AED;margin:24px 0 12px}
+
+/* 空态 */
+.lp-empty{display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center}
+.lp-empty .icon{font-size:48px;margin-bottom:16px;color:#9CA3AF}
+.lp-empty .icon.err{color:#DC2626}
+.lp-empty .title{font-size:16px;font-weight:600;color:#1F2937;margin-bottom:8px}
+.lp-empty .desc{font-size:13px;color:#6B7280;margin-bottom:24px;max-width:360px}
+
+/* 表单只读字段网格 */
+.lp-form-row{display:flex;gap:16px;margin-bottom:12px;align-items:center}
+.lp-form-row:first-of-type{margin-top:8px}
+.lp-form-row .lp-form-label{width:96px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0}
+.lp-form-row .lp-form-label .req{color:#DC2626;margin-right:4px}
+.lp-form-row .lp-form-control{flex:1}
+.lp-helper{font-size:12px;color:#9CA3AF;margin:-4px 0 12px 112px}
+
+/* 详情 preview 区 */
+.lp-preview{border:1px solid #E5E7EB;border-radius:14px;padding:16px;background:#fff}
+.lp-preview-line{display:flex;justify-content:space-between;gap:20px;padding:10px 0;border-bottom:1px solid #E5E7EB;font-size:13px}
+.lp-preview-line:last-child{border-bottom:none}
+.lp-preview-line .muted{color:#6B7280}
+
+/* Code 样式 */
+.lp-code{font-family:Menlo,Monaco,Consolas,monospace;font-size:12px;color:#374151;background:#F3F4F6;padding:1px 6px;border-radius:4px}
+
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+
+const { useState, useMemo, useEffect } = React;
+const {
+  ConfigProvider, Layout, Menu, Card, Table, Button, Input, InputNumber, Select,
+  DatePicker, Checkbox, Radio, Tag, Tooltip, Tabs, Steps, Breadcrumb, Space,
+  Alert, Upload, Progress, Tree, Badge,
+} = antd;
+const {
+  AppstoreOutlined, ShopOutlined, GlobalOutlined, ClockCircleOutlined,
+  TranslationOutlined, DollarOutlined, SearchOutlined, ReloadOutlined,
+  PlusOutlined, InboxOutlined, ExclamationCircleOutlined, UnorderedListOutlined,
+} = icons;
+
+const LOGO_SRC = "data:image/png;base64,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";
+
+/* ============ 主题 ============ */
+const looplyTheme = {
+  token: {
+    colorPrimary: '#7C3AED', colorInfo: '#7C3AED', colorBgLayout: '#F9FAFB',
+    colorBgContainer: '#FFFFFF', colorText: '#1F2937', colorTextSecondary: '#374151',
+    colorTextTertiary: '#4B5563', colorTextDescription: '#6B7280', colorTextPlaceholder: '#9CA3AF',
+    colorBorder: '#E5E7EB', colorBorderSecondary: '#F3F4F6', colorSuccess: '#16A34A',
+    colorWarning: '#D97706', colorError: '#DC2626', borderRadius: 8, borderRadiusLG: 14,
+    borderRadiusSM: 6, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: 14, controlHeight: 34, controlHeightSM: 28,
+  },
+  components: {
+    Layout: { headerBg: '#FFFFFF', headerHeight: 60, headerPadding: '0 24px', siderBg: '#FFFFFF', bodyBg: '#F9FAFB' },
+    Menu: { itemBg: 'transparent', subMenuItemBg: 'transparent', itemHoverBg: 'rgba(0,0,0,.03)',
+      itemSelectedBg: '#F3EEFF', itemSelectedColor: '#7C3AED', itemBorderRadius: 0, itemMarginInline: 0,
+      itemMarginBlock: 0, itemHeight: 40, subMenuItemBorderRadius: 0 },
+    Card: { borderRadiusLG: 16, paddingLG: 28 },
+    Table: { headerBg: '#FFFFFF', headerColor: '#6B7280', rowHoverBg: '#FAF5FF', borderColor: '#E5E7EB',
+      headerSplitColor: 'transparent', cellFontSize: 13, cellFontSizeMD: 13, cellFontSizeSM: 13,
+      cellPaddingBlock: 11, cellPaddingInline: 12, cellPaddingBlockMD: 11, cellPaddingInlineMD: 12,
+      cellPaddingBlockSM: 9, cellPaddingInlineSM: 12, headerBorderRadius: 0 },
+    Tag: { defaultBg: '#F3F4F6', defaultColor: '#6B7280' },
+    Tabs: { itemSelectedColor: '#7C3AED', itemHoverColor: '#374151', inkBarColor: '#7C3AED' },
+    Steps: { colorPrimary: '#7C3AED' },
+    Button: { controlHeight: 34, paddingInline: 14, fontSize: 13 },
+    Input: { controlHeight: 34, paddingInline: 12 },
+    Select: { controlHeight: 34 },
+    DatePicker: { controlHeight: 34 },
+    Modal: { borderRadiusLG: 16, paddingContentHorizontalLG: 28 },
+  },
+};
+
+const CARD_STYLE = { boxShadow: '0 10px 24px rgba(16,24,40,.06)', marginBottom: 20 };
+const TABLE_STYLES = { root: { borderRadius: 14, border: '1px solid #E5E7EB', overflow: 'hidden' } };
+const SIDER_STYLE = { boxShadow: '3px 0 12px rgba(0,0,0,0.06)', padding: '8px 0', overflowY: 'auto', height: '100%' };
+
+const TAG_COLORS = {
+  on: {bg:'#F0FDF4',color:'#16A34A'}, sale: {bg:'#EFF6FF',color:'#2563EB'},
+  pending: {bg:'#FFFBEB',color:'#D97706'}, off: {bg:'#F3F4F6',color:'#6B7280'},
+  req: {bg:'#FEF2F2',color:'#DC2626'}, warn: {bg:'#FFF1F2',color:'#E11D48'},
+  desc: {bg:'#F0FDF4',color:'#16A34A'}, enum: {bg:'#FFFBEB',color:'#D97706'},
+  opt: {bg:'#F3F4F6',color:'#6B7280'},
+};
+
+/* ============ 业务组件 ============ */
+function Kpi({ num, label, numStyle, onClick }) {
+  return (
+    <div className="lp-kpi" style={onClick ? { cursor: 'pointer' } : null} onClick={onClick}>
+      <div className="label" style={{ marginBottom: 6 }}>{label}</div>
+      <div className="num" style={numStyle}>{num}</div>
+    </div>
+  );
+}
+
+function StatusTag({ variant, children, closable, onClose }) {
+  const c = TAG_COLORS[variant] || TAG_COLORS.off;
+  return (
+    <Tag bordered={false} closable={closable} onClose={onClose}
+      style={{ background:c.bg, color:c.color, borderRadius:999, padding:'2px 8px',
+               fontSize:12, lineHeight:'18px', marginInlineEnd:4 }}>
+      {children}
+    </Tag>
+  );
+}
+
+function TipText({ label, tip }) {
+  return (
+    <Tooltip title={<div style={{ whiteSpace:'pre-line', lineHeight:1.6 }}>{tip}</div>}
+      color="#fff" styles={{ body: { color:'#374151', fontSize:12, padding:'10px 14px' } }}>
+      <span className="lp-tip-trigger">{label}</span>
+    </Tooltip>
+  );
+}
+
+function CompactPagination({ total, current=1, pageSize=10, totalPages }) {
+  const pages = useMemo(() => {
+    const tp = totalPages || Math.ceil(total / pageSize) || 1;
+    const out = [{ k:'prev', label:'<', disabled:current===1, arrow:true }];
+    if (tp <= 6) for (let i=1; i<=tp; i++) out.push({ k:i, label:i });
+    else { out.push({k:1,label:1}); out.push({k:2,label:2}); out.push({k:3,label:3}); out.push({k:'gap',label:'…',disabled:true}); out.push({k:tp,label:tp}); }
+    out.push({ k:'next', label:'>', disabled:current===tp, arrow:true });
+    return out;
+  }, [current, totalPages, total, pageSize]);
+  const tp = totalPages || Math.ceil(total / pageSize) || 1;
+  return (
+    <div className="lp-pagination">
+      <span>共 {total.toLocaleString()} 条,每页{' '}
+        <Select size="small" value={pageSize} style={{ width:72, marginInline:4 }}
+          options={[{value:10,label:10},{value:20,label:20},{value:50,label:50}]} />{' '}条</span>
+      <div className="divider" />
+      <Space size={2}>
+        {pages.map(p => (
+          <span key={p.k} style={{
+            minWidth:32, height:32, display:'inline-flex', alignItems:'center', justifyContent:'center',
+            borderRadius:8, fontSize:13, cursor:p.disabled?'default':'pointer',
+            background:p.k===current?'#7C3AED':(p.arrow?'#fff':'transparent'),
+            color:p.k===current?'#fff':'#374151',
+            border:p.arrow?'1px solid #E5E7EB':'none',
+            fontWeight:p.k===current?600:400, opacity:p.disabled?0.35:1,
+          }}>{p.label}</span>
+        ))}
+      </Space>
+      <div className="divider" />
+      <span>第 {current}/{tp} 页</span>
+    </div>
+  );
+}
+
+function EmptyZero({ entity, cta, onCta }) {
+  return <div className="lp-empty"><InboxOutlined className="icon" />
+    <div className="title">暂无{entity}</div>
+    <div className="desc">点击下方按钮创建第一个{entity}</div>
+    {cta && <Button type="primary" onClick={onCta}>{cta}</Button>}
+  </div>;
+}
+function EmptyNoMatch({ onClear }) {
+  return <div className="lp-empty"><SearchOutlined className="icon" />
+    <div className="title">未找到匹配结果</div>
+    <div className="desc">请尝试调整搜索关键词或筛选条件</div>
+    <Button onClick={onClear}>清除筛选条件</Button>
+  </div>;
+}
+function EmptyError({ onRetry }) {
+  return <div className="lp-empty"><ExclamationCircleOutlined className="icon err" />
+    <div className="title">加载失败</div>
+    <div className="desc">网络异常,请检查网络连接后重试</div>
+    <Button type="primary" onClick={onRetry}>重试</Button>
+  </div>;
+}
+function EmptyStateSwitcher({ mode, setMode }) {
+  return (
+    <div style={{ marginTop:12, display:'flex', gap:8, justifyContent:'center' }}>
+      {[['data','正常数据'],['zero','零数据态'],['no-match','无匹配态'],['error','异常态']].map(([k, label]) =>
+        <Button key={k} type={mode===k?'primary':'default'} onClick={() => setMode(k)}>{label}</Button>
+      )}
+    </div>
+  );
+}
+
+function FormRow({ label, required, children, helper }) {
+  return (
+    <>
+      <div className="lp-form-row">
+        <div className="lp-form-label">{required && <span className="req">*</span>}{label}</div>
+        <div className="lp-form-control">{children}</div>
+      </div>
+      {helper && <div className="lp-helper">{helper}</div>}
+    </>
+  );
+}
+
+function OpLog({ data }) {
+  const rows = data || [
+    { i:1, at:'2026-04-13 15:20', who:'张运营', type:'编辑', detail:'修改字段:排序 10 → 20' },
+    { i:2, at:'2026-04-10 11:00', who:'王管理', type:'创建', detail:'创建记录' },
+  ];
+  return (
+    <>
+      <div className="lp-oplog-title">操作记录</div>
+      <Space size={8} wrap style={{ marginBottom:12 }}>
+        <Select size="small" defaultValue="" style={{ width:130 }} options={[
+          { value:'', label:'全部操作类型' },
+          { value:'创建', label:'创建' }, { value:'编辑', label:'编辑' },
+        ]} />
+        <Select size="small" defaultValue="" style={{ width:160 }} options={[
+          { value:'', label:'全部操作人' },
+          { value:'a', label:'pm@looply.com' }, { value:'b', label:'admin@looply.com' },
+        ]} />
+        <DatePicker.RangePicker size="small" placeholder={['开始日期','结束日期']} />
+        <Button size="small" icon={<SearchOutlined />}>查询</Button>
+      </Space>
+      <Table size="small" rowKey="i" pagination={false} styles={TABLE_STYLES}
+        columns={[
+          { title:'操作时间', dataIndex:'at' },
+          { title:'操作人', dataIndex:'who' },
+          { title:'操作类型', dataIndex:'type',
+            render:v => <StatusTag variant={v==='编辑'?'pending':'on'}>{v}</StatusTag> },
+          { title:'操作详情', dataIndex:'detail' },
+        ]} dataSource={rows} />
+      <CompactPagination total={rows.length} pageSize={10} />
+    </>
+  );
+}
+
+/* 行内编辑组件(编辑行内直接展示输入控件) */
+function InlineEdit({ value, type, options, style }) {
+  const [val, setVal] = useState(value);
+  if (type === 'number') return <InputNumber size="small" value={val} style={{ width:80, ...style }} onChange={v => setVal(v)} />;
+  if (type === 'select') return <Select size="small" value={val} style={{ minWidth:130, ...style }} options={options} onChange={v => setVal(v)} />;
+  if (type === 'date') return <DatePicker size="small" value={dayjs(val)} style={{ width:140, ...style }} onChange={(_, ds) => setVal(ds)} />;
+  return <Input size="small" value={val} style={{ width:100, ...style }} onChange={e => setVal(e.target.value)} />;
+}
+function InlineToggle({ value, onLabel='是', offLabel='否' }) {
+  const [val, setVal] = useState(value);
+  return <span style={{ cursor:'pointer' }} onClick={() => setVal(!val)}><StatusTag variant={val?'on':'off'}>{val ? onLabel : offLabel}</StatusTag></span>;
+}
+
+/* 列表页模板 */
+function ListPage({ title, desc, headActions, kpis, filters, columns, data, total,
+                    entity, createKey, go, scrollX }) {
+  const [mode, setMode] = useState('data');
+  return (
+    <Card style={CARD_STYLE}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:16, marginBottom:18 }}>
+        <div>
+          <div style={{ fontSize:20, fontWeight:700, marginBottom:6 }}>{title}</div>
+          {desc && <div style={{ color:'#6B7280', fontSize:13 }}>{desc}</div>}
+        </div>
+        <div>{headActions}</div>
+      </div>
+      {kpis && (
+        <div style={{ display:'grid', gridTemplateColumns:`repeat(${kpis.length},1fr)`, gap:12, marginBottom:18 }}>
+          {kpis.map(k => <Kpi key={k.label} num={k.num} label={k.label} />)}
+        </div>
+      )}
+      {filters && mode !== 'zero' && <Space size={12} wrap style={{ marginBottom:16 }}>{filters}</Space>}
+      {mode === 'data' && (
+        <>
+          <Table rowKey={r => r.id || r.code || r.key} columns={columns} dataSource={data}
+            pagination={false} styles={TABLE_STYLES}
+            scroll={scrollX ? { x: scrollX } : undefined} />
+          <CompactPagination total={total || data.length} pageSize={10} />
+        </>
+      )}
+      {mode==='zero'     && <EmptyZero entity={entity} cta={createKey?`新增${entity}`:null} onCta={createKey?(()=>go(createKey)):null} />}
+      {mode==='no-match' && <EmptyNoMatch onClear={() => setMode('data')} />}
+      {mode==='error'    && <EmptyError onRetry={() => setMode('data')} />}
+      <EmptyStateSwitcher mode={mode} setMode={setMode} />
+    </Card>
+  );
+}
+
+/* 表单页模板 */
+function FormPage({ title, desc, sections, isEdit, back, onSave, opLogData }) {
+  return (
+    <Card style={CARD_STYLE}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:16, marginBottom:18 }}>
+        <div>
+          <div style={{ fontSize:20, fontWeight:700, marginBottom:6 }}>{title}</div>
+          {desc && <div style={{ color:'#6B7280', fontSize:13 }}>{desc}</div>}
+        </div>
+        <Button onClick={back}>返回列表</Button>
+      </div>
+      {sections.map((s, i) => (
+        <div key={i} style={{ marginBottom:24 }}>
+          <h4 className="lp-section">{s.title}</h4>
+          {s.note && <div style={{ fontSize:12, color:'#6B7280', margin:'-4px 0 12px' }}>{s.note}</div>}
+          {s.children}
+        </div>
+      ))}
+      {isEdit && <OpLog data={opLogData} />}
+      <div style={{ display:'flex', justifyContent:'flex-end', gap:12, padding:'16px 0', borderTop:'1px solid #E5E7EB', marginTop:8 }}>
+        <Button onClick={back}>取消</Button>
+        <Button type="primary" onClick={onSave}>{isEdit ? '保存' : '保存并创建'}</Button>
+      </div>
+    </Card>
+  );
+}
+
+/* 占位模块(骨架阶段;各模块 Edit 时替换为真实页面) */
+function PlaceholderModule({ name }) {
+  return (
+    <Card style={CARD_STYLE}>
+      <div style={{ fontSize:20, fontWeight:700, marginBottom:6 }}>{name}</div>
+      <div style={{ color:'#6B7280', fontSize:13 }}>模块内容生成中……</div>
+    </Card>
+  );
+}
+
+/* ===== PAGE COMPONENTS (placeholder; replaced per-module via Edit) ===== */
+/* @@MARKET@@ */
+const MARKET_OPLOG = [
+  { i:1, at:'2026-04-20 14:22', who:'pm@looply.com',    type:'编辑', detail:'修改上线日期为 2026-09-01' },
+  { i:2, at:'2026-04-18 16:45', who:'pm@looply.com',    type:'编辑', detail:'添加货币配置:GBP' },
+  { i:3, at:'2026-04-15 10:30', who:'admin@looply.com', type:'编辑', detail:'添加语言配置:es' },
+  { i:4, at:'2026-04-12 14:20', who:'admin@looply.com', type:'编辑', detail:'添加国家配置:ES' },
+  { i:5, at:'2026-04-10 11:15', who:'admin@looply.com', type:'编辑', detail:'添加国家配置:IT' },
+  { i:6, at:'2026-04-08 09:30', who:'admin@looply.com', type:'编辑', detail:'添加国家配置:DE' },
+  { i:7, at:'2026-04-05 16:00', who:'admin@looply.com', type:'编辑', detail:'添加国家配置:FR,设为主要国家' },
+  { i:8, at:'2026-03-15 10:30', who:'admin@looply.com', type:'创建', detail:'创建 EU Market,代码 EU,基准时区 Europe/Paris' },
+];
+const MARKET_LIST_DATA = [
+  { code:'US',   name:'US Market',   tz:'America/New_York', cutoff:'00:00', online:'2026-06-01', status:'on' },
+  { code:'EU',   name:'EU Market',   tz:'Europe/Paris',     cutoff:'00:00', online:'2026-09-01', status:'pending' },
+  { code:'APAC', name:'APAC Market', tz:'Asia/Singapore',   cutoff:'01:00', online:'2027-01-01', status:'pending' },
+];
+const MKT_COUNTRY_CFG = [
+  { code:'FR', name:'France',  primary:true,  prio:1, localTz:'跟随 Market', localCut:'跟随 Market', online:'2026-09-01' },
+  { code:'DE', name:'Germany', primary:false, prio:2, localTz:'Europe/Berlin', localCut:'00:00',     online:'2026-09-01' },
+  { code:'IT', name:'Italy',   primary:false, prio:3, localTz:'跟随 Market', localCut:'跟随 Market', online:'2026-10-01' },
+  { code:'ES', name:'Spain',   primary:false, prio:4, localTz:'跟随 Market', localCut:'跟随 Market', online:'2026-10-01' },
+];
+const MKT_LANG_CFG = [
+  { code:'en', name:'English', def:true,  prio:1 },
+  { code:'fr', name:'French',  def:false, prio:2 },
+  { code:'de', name:'German',  def:false, prio:3 },
+  { code:'it', name:'Italian', def:false, prio:4 },
+  { code:'es', name:'Spanish', def:false, prio:5 },
+];
+const MKT_CURR_CFG = [
+  { code:'EUR', name:'Euro',          def:true,  pos:'前置 ($100)', prio:1 },
+  { code:'GBP', name:'British Pound', def:false, pos:'前置 ($100)', prio:2 },
+];
+const PRIMARY_TIP = '该 Market 的主要运营国家,影响默认语言和货币。';
+const TZ_CHECK_OK = '✓ 时区校验通过 — 基准时区 Europe/Paris 在已配置国家时区范围内';
+const BIZ_CUTOFF_TIP = '每日业务数据的分割时间点。例如设为 00:00,则当天 00:00 至次日 00:00 的订单归为同一业务日。影响报表统计、库存快照等。';
+const TIME_DISPLAY_NOTE = '时间显示说明:后台默认按 Market 基准时区展示;未来下游业务如无单独指定,优先继承该基准。';
+
+const TZ_OPTIONS = [
+  { value:'跟随 Market', label:'跟随 Market' },
+  { value:'Europe/Paris', label:'Europe/Paris' },
+  { value:'Europe/Berlin', label:'Europe/Berlin' },
+  { value:'America/New_York', label:'America/New_York' },
+  { value:'America/Chicago', label:'America/Chicago' },
+];
+const POS_OPTIONS = [
+  { value:'前置 ($100)', label:'前置 ($100)' },
+  { value:'后置 (100$)', label:'后置 (100$)' },
+];
+
+const mktCountryCols = (readOnly, editKey, setEditKey) => [
+  { title:'国家代码', dataIndex:'code', width:90 },
+  { title:'国家名称', dataIndex:'name', width:120 },
+  { title:<TipText label="主要国家" tip={PRIMARY_TIP} />, dataIndex:'primary', width:110,
+    render:(v, r) => r.code === editKey ? <InlineToggle value={v} /> : <StatusTag variant={v?'on':'off'}>{v?'是':'否'}</StatusTag> },
+  { title:'优先级', dataIndex:'prio', width:80, align:'right',
+    render:(v, r) => r.code === editKey ? <InlineEdit value={v} type="number" /> : v },
+  { title:'本地时区', dataIndex:'localTz', width:170,
+    render:(v, r) => r.code === editKey ? <InlineEdit value={v} type="select" options={TZ_OPTIONS} style={{ minWidth:160 }} /> : <span style={{color: v==='跟随 Market' ? '#6B7280' : undefined}}>{v}</span> },
+  { title:'本地日切', dataIndex:'localCut', width:130,
+    render:(v, r) => r.code === editKey ? <InlineEdit value={v} type="text" /> : <span style={{color: v==='跟随 Market' ? '#6B7280' : undefined}}>{v}</span> },
+  { title:'上线日期', dataIndex:'online', width:150,
+    render:(v, r) => r.code === editKey ? <InlineEdit value={v} type="date" /> : v },
+  { title:'状态', key:'st', width:90, render:() => <StatusTag variant="pending">筹备中</StatusTag> },
+  { title:'操作', key:'op', width:140, fixed:'right',
+    render:(_, r) => r.code === editKey
+      ? <Space size={6}><Button size="small" type="primary" onClick={() => setEditKey(null)}>保存</Button><Button size="small" onClick={() => setEditKey(null)}>取消</Button></Space>
+      : readOnly
+        ? <Button size="small" onClick={() => setEditKey(r.code)}>编辑</Button>
+        : <Space size={6}><Button size="small" onClick={() => setEditKey(r.code)}>编辑</Button><Button size="small" danger>移除</Button></Space> },
+];
+const mktLangCols = (readOnly, editKey, setEditKey) => [
+  { title:'语言代码', dataIndex:'code' },
+  { title:'语言名称', dataIndex:'name' },
+  { title:'是否默认', dataIndex:'def',
+    render:(v, r) => r.code === editKey ? <InlineToggle value={v} /> : <StatusTag variant={v?'on':'off'}>{v?'是':'否'}</StatusTag> },
+  { title:'优先级', dataIndex:'prio', align:'right',
+    render:(v, r) => r.code === editKey ? <InlineEdit value={v} type="number" /> : v },
+  { title:'状态', key:'st', render:() => <StatusTag variant="pending">筹备中</StatusTag> },
+  { title:'操作', key:'op', width:140,
+    render:(_, r) => r.code === editKey
+      ? <Space size={6}><Button size="small" type="primary" onClick={() => setEditKey(null)}>保存</Button><Button size="small" onClick={() => setEditKey(null)}>取消</Button></Space>
+      : readOnly
+        ? <Button size="small" onClick={() => setEditKey(r.code)}>编辑</Button>
+        : <Space size={6}><Button size="small" onClick={() => setEditKey(r.code)}>编辑</Button><Button size="small" danger>移除</Button></Space> },
+];
+const mktCurrCols = (readOnly, editKey, setEditKey) => [
+  { title:'货币代码', dataIndex:'code' },
+  { title:'货币名称', dataIndex:'name' },
+  { title:'是否默认', dataIndex:'def',
+    render:(v, r) => r.code === editKey ? <InlineToggle value={v} /> : <StatusTag variant={v?'on':'off'}>{v?'是':'否'}</StatusTag> },
+  { title:'符号位置', dataIndex:'pos',
+    render:(v, r) => r.code === editKey ? <InlineEdit value={v} type="select" options={POS_OPTIONS} style={{ minWidth:140 }} /> : v },
+  { title:'优先级', dataIndex:'prio', align:'right',
+    render:(v, r) => r.code === editKey ? <InlineEdit value={v} type="number" /> : v },
+  { title:'状态', key:'st', render:() => <StatusTag variant="pending">筹备中</StatusTag> },
+  { title:'操作', key:'op', width:140,
+    render:(_, r) => r.code === editKey
+      ? <Space size={6}><Button size="small" type="primary" onClick={() => setEditKey(null)}>保存</Button><Button size="small" onClick={() => setEditKey(null)}>取消</Button></Space>
+      : readOnly
+        ? <Button size="small" onClick={() => setEditKey(r.code)}>编辑</Button>
+        : <Space size={6}><Button size="small" onClick={() => setEditKey(r.code)}>编辑</Button><Button size="small" danger>移除</Button></Space> },
+];
+
+function MarketListPage({ go }) {
+  const columns = [
+    { title:'Market 代码', dataIndex:'code', width:120, fixed:'left', render:v => <b>{v}</b> },
+    { title:'Market 名称', dataIndex:'name', width:150 },
+    { title:'基准时区', dataIndex:'tz', width:180 },
+    { title:'业务日切时间', dataIndex:'cutoff', width:120 },
+    { title:'上线日期', dataIndex:'online', width:120 },
+    { title:'状态', dataIndex:'status', width:100, render:v => <StatusTag variant={v}>{v==='on'?'运营中':'筹备中'}</StatusTag> },
+    { title:'操作', key:'op', width:200, fixed:'right', render:() => (
+      <Space size={6}>
+        <Button size="small" onClick={() => go('market-list-detail')}>查看详情</Button>
+        <Button size="small" onClick={() => go('market-list-create')}>编辑</Button>
+        <Button size="small" danger>停用</Button>
+      </Space>
+    ) },
+  ];
+  return (
+    <ListPage title="市场管理" desc="管理 Looply 各销售市场的基础配置" go={go}
+      entity="市场" createKey="market-list-create" scrollX="max-content"
+      headActions={<Button type="primary" onClick={() => go('market-list-create')}>新建市场</Button>}
+      kpis={[{num:3,label:'市场总数'},{num:1,label:'运营中'},{num:2,label:'筹备中'},{num:0,label:'已暂停'}]}
+      filters={[
+        <Input key="s" placeholder="搜索 Market 代码 / 名称" prefix={<SearchOutlined style={{color:'#9CA3AF'}} />} allowClear style={{width:260}} />,
+        <Select key="st" defaultValue="" style={{width:140}} options={[{value:'',label:'全部状态'},{value:'on',label:'运营中'},{value:'pending',label:'筹备中'},{value:'off',label:'已暂停'}]} />,
+        <Button key="q" type="primary" icon={<SearchOutlined />}>查询</Button>,
+        <Button key="r" icon={<ReloadOutlined />}>重置</Button>,
+      ]}
+      columns={columns} data={MARKET_LIST_DATA} total={3} />
+  );
+}
+
+function MarketWizardPage({ go }) {
+  const [step, setStep] = useState(0);
+  const [editCountry, setEditCountry] = useState(null);
+  const [editLang, setEditLang] = useState(null);
+  const [editCurr, setEditCurr] = useState(null);
+  const countryOpts = COUNTRY_DATA.map(c => ({ value:c.code, label:`${c.name} (${c.code})` }));
+  const langOpts = LANGUAGE_DATA.map(l => ({ value:l.code, label:`${l.name} (${l.code})` }));
+  const currOpts = CURRENCY_DATA.map(c => ({ value:c.code, label:`${c.code} - ${c.name}` }));
+
+  const step1 = (
+    <div>
+      <FormRow label="Market 代码" required helper="2–4 位大写字母,如 US、EU、APAC,创建后不可修改">
+        <Input defaultValue="EU" style={{ width:240 }} />
+      </FormRow>
+      <FormRow label="Market 名称" required><Input defaultValue="EU Market" style={{ width:320 }} /></FormRow>
+      <FormRow label="上线日期" required><DatePicker defaultValue={dayjs('2026-09-01')} style={{ width:240 }} /></FormRow>
+      <FormRow label="状态" required>
+        <Select defaultValue="planning" style={{ width:240 }} options={[
+          { value:'planning', label:'planning - 筹备中' },
+          { value:'active', label:'active - 运营中' },
+          { value:'suspended', label:'suspended - 已暂停' },
+        ]} />
+      </FormRow>
+      <FormRow label="Market 基准时区" required>
+        <Select defaultValue="Europe/Paris" style={{ width:280 }} options={[
+          { value:'Europe/Paris', label:'Europe/Paris' },
+          { value:'America/New_York', label:'America/New_York' },
+          { value:'Asia/Singapore', label:'Asia/Singapore' },
+        ]} />
+      </FormRow>
+      <FormRow label={<TipText label="业务日切时间" tip={BIZ_CUTOFF_TIP} />} required>
+        <Input defaultValue="00:00" style={{ width:160 }} />
+      </FormRow>
+      <Alert type="info" showIcon={false} style={{ marginTop:8 }} message={TIME_DISPLAY_NOTE} />
+    </div>
+  );
+
+  const step2 = (
+    <div>
+      <div className="lp-section-purple">国家配置</div>
+      <div style={{ fontSize:12, color:'#6B7280', margin:'-4px 0 12px' }}>从国家主数据中选择 Market 覆盖国家,并补充该国家在当前 Market 下的配置。</div>
+      <Space.Compact style={{ width:'100%', marginBottom:8 }}>
+        <Select mode="multiple" allowClear placeholder="搜索或选择国家…" style={{ flex:1 }}
+          defaultValue={['IT','ES']} options={countryOpts} maxTagCount="responsive" />
+        <Button type="primary">添加已选国家</Button>
+      </Space.Compact>
+      <Alert type="success" showIcon={false} style={{ marginBottom:12 }} message={TZ_CHECK_OK} />
+      <Table size="small" rowKey="code" pagination={false} styles={TABLE_STYLES}
+        scroll={{ x:'max-content' }} columns={mktCountryCols(false, editCountry, setEditCountry)} dataSource={MKT_COUNTRY_CFG}
+        rowClassName={r => r.code === editCountry ? 'lp-editing-row' : ''} />
+    </div>
+  );
+
+  const step3 = (
+    <div>
+      <div className="lp-section-purple">语言配置</div>
+      <div style={{ fontSize:12, color:'#6B7280', margin:'-4px 0 12px' }}>从语言主数据中选择 Market 支持语言,并设置默认语言与排序。</div>
+      <Space.Compact style={{ width:'100%', marginBottom:12 }}>
+        <Select mode="multiple" allowClear placeholder="搜索或选择语言…" style={{ flex:1 }}
+          defaultValue={['de','it']} options={langOpts} maxTagCount="responsive" />
+        <Button type="primary">添加已选语言</Button>
+      </Space.Compact>
+      <Table size="small" rowKey="code" pagination={false} styles={TABLE_STYLES}
+        columns={mktLangCols(false, editLang, setEditLang)} dataSource={MKT_LANG_CFG}
+        rowClassName={r => r.code === editLang ? 'lp-editing-row' : ''} />
+    </div>
+  );
+
+  const step4 = (
+    <div>
+      <div className="lp-section-purple">货币配置</div>
+      <div style={{ fontSize:12, color:'#6B7280', margin:'-4px 0 12px' }}>从货币主数据中选择 Market 支持货币,并配置默认货币。</div>
+      <Space.Compact style={{ width:'100%', marginBottom:12 }}>
+        <Select mode="multiple" allowClear placeholder="搜索或选择货币…" style={{ flex:1 }}
+          defaultValue={['USD']} options={currOpts} maxTagCount="responsive" />
+        <Button type="primary">添加已选货币</Button>
+      </Space.Compact>
+      <Table size="small" rowKey="code" pagination={false} styles={TABLE_STYLES}
+        columns={mktCurrCols(false, editCurr, setEditCurr)} dataSource={MKT_CURR_CFG}
+        rowClassName={r => r.code === editCurr ? 'lp-editing-row' : ''} />
+    </div>
+  );
+
+  const panels = [step1, step2, step3, step4];
+  return (
+    <Card style={CARD_STYLE}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:16, marginBottom:18 }}>
+        <div>
+          <div style={{ fontSize:20, fontWeight:700, marginBottom:6 }}>新建市场</div>
+          <div style={{ color:'#6B7280', fontSize:13 }}>先创建 Market 基本信息,再逐步完成国家、语言和货币配置。</div>
+        </div>
+        <Button onClick={() => go('market-list-list')}>返回列表</Button>
+      </div>
+      <Steps current={step} style={{ marginBottom:24 }} items={[
+        { title:'基本信息' }, { title:'国家配置' }, { title:'语言配置' }, { title:'货币配置' },
+      ]} />
+      <div style={{ minHeight:240, marginBottom:24 }}>{panels[step]}</div>
+      <div style={{ display:'flex', justifyContent:'space-between', paddingTop:16, borderTop:'1px solid #E5E7EB' }}>
+        <Button onClick={() => go('market-list-list')}>取消</Button>
+        <Space>
+          {step > 0 && <Button onClick={() => setStep(step - 1)}>上一步</Button>}
+          {step < panels.length - 1 && <Button type="primary" onClick={() => setStep(step + 1)}>下一步</Button>}
+          {step === panels.length - 1 && <Button type="primary" onClick={() => go('market-list-list')}>保存并创建</Button>}
+        </Space>
+      </div>
+      <OpLog data={MARKET_OPLOG} />
+    </Card>
+  );
+}
+
+function MarketDetailPage({ go }) {
+  const [editCountry, setEditCountry] = useState(null);
+  const [editLang, setEditLang] = useState(null);
+  const [editCurr, setEditCurr] = useState(null);
+  const basicTab = (
+    <div className="lp-preview">
+      {[
+        ['Market 代码','EU'], ['Market 名称','EU Market'], ['上线日期','2026-09-01'],
+      ].map(([k,v]) => <div className="lp-preview-line" key={k}><span className="muted">{k}</span><span>{v}</span></div>)}
+      <div className="lp-preview-line"><span className="muted">状态</span><span><StatusTag variant="pending">筹备中</StatusTag></span></div>
+      {[
+        ['Market 基准时区','Europe/Paris'], ['业务日切时间','00:00'],
+        ['时间显示说明','后台默认按 Market 基准时区展示'],
+      ].map(([k,v]) => <div className="lp-preview-line" key={k}><span className="muted">{k}</span><span>{v}</span></div>)}
+    </div>
+  );
+  const countryTab = (
+    <div>
+      <div style={{ marginBottom:12 }}><Button type="primary" onClick={() => go('market-list-create')}>添加国家</Button></div>
+      <Alert type="success" showIcon={false} style={{ marginBottom:12 }} message={TZ_CHECK_OK} />
+      <Table size="small" rowKey="code" pagination={false} styles={TABLE_STYLES}
+        scroll={{ x:'max-content' }} columns={mktCountryCols(true, editCountry, setEditCountry)} dataSource={MKT_COUNTRY_CFG}
+        rowClassName={r => r.code === editCountry ? 'lp-editing-row' : ''} />
+    </div>
+  );
+  const langTab = (
+    <div>
+      <div style={{ marginBottom:12 }}><Button type="primary" onClick={() => go('market-list-create')}>添加语言</Button></div>
+      <Table size="small" rowKey="code" pagination={false} styles={TABLE_STYLES}
+        columns={mktLangCols(true, editLang, setEditLang)} dataSource={MKT_LANG_CFG}
+        rowClassName={r => r.code === editLang ? 'lp-editing-row' : ''} />
+    </div>
+  );
+  const currTab = (
+    <div>
+      <div style={{ marginBottom:12 }}><Button type="primary" onClick={() => go('market-list-create')}>添加货币</Button></div>
+      <Table size="small" rowKey="code" pagination={false} styles={TABLE_STYLES}
+        columns={mktCurrCols(true, editCurr, setEditCurr)} dataSource={MKT_CURR_CFG}
+        rowClassName={r => r.code === editCurr ? 'lp-editing-row' : ''} />
+    </div>
+  );
+  return (
+    <Card style={CARD_STYLE}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:16, marginBottom:18 }}>
+        <div><div style={{ fontSize:20, fontWeight:700, marginBottom:6 }}>EU Market 详情</div></div>
+        <Space>
+          <Button onClick={() => go('market-list-list')}>返回列表</Button>
+          <Button type="primary" onClick={() => go('market-list-create')}>编辑</Button>
+        </Space>
+      </div>
+      <Tabs defaultActiveKey="basic" items={[
+        { key:'basic', label:'基本信息', children: basicTab },
+        { key:'country', label:'国家配置', children: countryTab },
+        { key:'lang', label:'语言配置', children: langTab },
+        { key:'curr', label:'货币配置', children: currTab },
+      ]} />
+      <OpLog data={MARKET_OPLOG} />
+    </Card>
+  );
+}
+/* @@COUNTRY@@ */
+const COUNTRY_DATA = [
+  { code:'US', name:'United States', local:'United States', continent:'北美洲', multiTz:true,  tzCount:4, phone:'+1',  currency:'USD', lang:'en' },
+  { code:'FR', name:'France',        local:'France',        continent:'欧洲',   multiTz:false, tzCount:1, phone:'+33', currency:'EUR', lang:'fr' },
+  { code:'DE', name:'Germany',       local:'Deutschland',   continent:'欧洲',   multiTz:false, tzCount:1, phone:'+49', currency:'EUR', lang:'de' },
+  { code:'IT', name:'Italy',         local:'Italia',        continent:'欧洲',   multiTz:false, tzCount:1, phone:'+39', currency:'EUR', lang:'it' },
+  { code:'ES', name:'Spain',         local:'España',        continent:'欧洲',   multiTz:false, tzCount:1, phone:'+34', currency:'EUR', lang:'es' },
+  { code:'GB', name:'United Kingdom',local:'United Kingdom', continent:'欧洲',  multiTz:false, tzCount:1, phone:'+44', currency:'GBP', lang:'en' },
+  { code:'JP', name:'Japan',         local:'日本',           continent:'亚洲',   multiTz:false, tzCount:1, phone:'+81', currency:'JPY', lang:'ja' },
+  { code:'KR', name:'South Korea',   local:'대한민국',        continent:'亚洲',   multiTz:false, tzCount:1, phone:'+82', currency:'KRW', lang:'ko' },
+  { code:'AU', name:'Australia',     local:'Australia',     continent:'大洋洲', multiTz:true,  tzCount:3, phone:'+61', currency:'AUD', lang:'en' },
+];
+const CONTINENT_OPTS = ['北美洲','欧洲','亚洲','大洋洲'].map(v => ({ value:v, label:v }));
+const CURRENCY_OPTS = ['USD','EUR','GBP','JPY','KRW','AUD'].map(v => ({ value:v, label:v }));
+const LANG_OPTS = ['en','fr','de','it','es','ja','ko','ar'].map(v => ({ value:v, label:v }));
+const TZ_NOTE_SINGLE = '当前按单时区国家处理:支持时区列表仅保留 1 条记录,系统将其作为唯一有效时区。';
+const TZ_NOTE_MULTI  = '当前按多时区国家处理:该国家覆盖多个时区,支持时区列表由系统根据 IANA 数据自动关联,仅作客观记录。';
+const COUNTRY_TZ_COLS = [{ title:'IANA 时区标识', dataIndex:'id' }, { title:'时区名称', dataIndex:'name' }];
+
+function CountryListPage({ go }) {
+  const columns = [
+    { title:'国家代码', dataIndex:'code', width:100, fixed:'left', render:v => <b>{v}</b> },
+    { title:'国家名称', dataIndex:'name', width:150 },
+    { title:'本地名称', dataIndex:'local', width:130 },
+    { title:'所属大洲', dataIndex:'continent', width:100 },
+    { title:'是否多时区', dataIndex:'multiTz', width:110, render:v => <StatusTag variant={v?'pending':'off'}>{v?'是':'否'}</StatusTag> },
+    { title:'支持时区数', dataIndex:'tzCount', width:110, align:'right' },
+    { title:'电话区号', dataIndex:'phone', width:100 },
+    { title:'法定货币', dataIndex:'currency', width:100 },
+    { title:'主要语言', dataIndex:'lang', width:100 },
+    { title:'状态', dataIndex:'status', width:90, render:() => <StatusTag variant="on">启用</StatusTag> },
+    { title:'操作', key:'op', width:90, fixed:'right', render:() => <Button size="small" onClick={() => go('country-list-edit')}>编辑</Button> },
+  ];
+  return (
+    <ListPage title="国家管理" desc="管理 Looply 支持的国家基础数据" go={go}
+      entity="国家" createKey="country-list-create" scrollX="max-content"
+      headActions={<Button type="primary" onClick={() => go('country-list-create')}>新增国家</Button>}
+      kpis={[{num:9,label:'国家总数'},{num:1,label:'多时区国家'},{num:5,label:'欧洲'},{num:2,label:'亚洲'}]}
+      filters={[
+        <Input key="s" placeholder="搜索国家代码 / 名称" prefix={<SearchOutlined style={{color:'#9CA3AF'}} />} allowClear style={{width:240}} />,
+        <Select key="c" defaultValue="" style={{width:160}} options={[{value:'',label:'全部大洲'},...CONTINENT_OPTS]} />,
+        <Button key="q" type="primary" icon={<SearchOutlined />}>查询</Button>,
+        <Button key="r" icon={<ReloadOutlined />}>重置</Button>,
+      ]}
+      columns={columns} data={COUNTRY_DATA} total={9} />
+  );
+}
+
+function CountryBody({ isEdit }) {
+  const [multiTz, setMultiTz] = useState(isEdit ? 'yes' : 'no');
+  const tzRows = (multiTz === 'yes'
+    ? [{id:'America/New_York',name:'Eastern Time'},{id:'America/Chicago',name:'Central Time'},{id:'America/Denver',name:'Mountain Time'},{id:'America/Los_Angeles',name:'Pacific Time'}]
+    : [{id:'America/New_York',name:'Eastern Time'}]
+  );
+  return (
+    <>
+      <FormRow label="国家代码" required helper="如 US、FR;创建后不可修改">
+        {isEdit ? <Input value="US" disabled /> : <Input placeholder="如 US" style={{width:200}} />}
+      </FormRow>
+      <FormRow label="国家名称" required><Input defaultValue={isEdit ? 'United States' : ''} placeholder="如 United States" /></FormRow>
+      <FormRow label="本地名称"><Input defaultValue={isEdit ? 'United States' : ''} placeholder="本地语言名称" /></FormRow>
+      <FormRow label="所属大洲" required><Select defaultValue="北美洲" style={{width:200}} options={CONTINENT_OPTS} /></FormRow>
+      <FormRow label="是否多时区国家" required helper={multiTz === 'yes' ? TZ_NOTE_MULTI : TZ_NOTE_SINGLE}>
+        <Select value={multiTz} onChange={setMultiTz} style={{width:200}}
+          options={[{value:'no',label:'否'},{value:'yes',label:'是'}]} />
+      </FormRow>
+      <FormRow label="电话区号" required><Input defaultValue={isEdit ? '+1' : ''} placeholder="如 +1" style={{width:200}} /></FormRow>
+      <FormRow label="法定货币" required><Select defaultValue="USD" style={{width:200}} options={CURRENCY_OPTS} /></FormRow>
+      <FormRow label="主要语言" required><Select defaultValue="en" style={{width:200}} options={LANG_OPTS} /></FormRow>
+      <FormRow label="状态" required><Select defaultValue="on" style={{width:200}} options={[{value:'on',label:'启用'},{value:'off',label:'停用'}]} /></FormRow>
+      <h4 className="lp-section" style={{ marginTop:24 }}>支持时区列表</h4>
+      <Table size="small" rowKey="id" pagination={false} styles={TABLE_STYLES}
+        columns={COUNTRY_TZ_COLS} dataSource={tzRows} />
+    </>
+  );
+}
+function CountryCreatePage({ go }) {
+  return <FormPage title="新建国家" desc="创建 Looply 支持的国家基础数据。" back={() => go('country-list-list')}
+    onSave={() => go('country-list-list')}
+    sections={[{ title:'国家信息', children:<CountryBody isEdit={false} /> }]} />;
+}
+function CountryEditPage({ go }) {
+  return <FormPage title="编辑国家 — US" isEdit back={() => go('country-list-list')}
+    onSave={() => go('country-list-list')}
+    sections={[{ title:'国家信息', children:<CountryBody isEdit={true} /> }]}
+    opLogData={[
+      { i:1, at:'2026-04-22 11:30', who:'pm@looply.com', type:'编辑', detail:'修改电话区号为 +1' },
+      { i:2, at:'2026-04-10 14:20', who:'admin@looply.com', type:'编辑', detail:'添加时区:America/Chicago' },
+      { i:3, at:'2026-03-20 10:15', who:'admin@looply.com', type:'创建', detail:'创建国家 US,代码 US,所属大洲北美洲' },
+    ]} />;
+}
+/* @@TIMEZONE@@ */
+function LiveClock({ tz }) {
+  const fmt = () => {
+    try {
+      return new Intl.DateTimeFormat('zh-CN', { timeZone: tz, hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false }).format(new Date());
+    } catch (e) { return '—'; }
+  };
+  const [now, setNow] = useState(fmt());
+  useEffect(() => {
+    const t = setInterval(() => setNow(fmt()), 1000);
+    return () => clearInterval(t);
+  }, [tz]);
+  return <span style={{ fontVariantNumeric:'tabular-nums', color:'#374151' }}>{now}</span>;
+}
+const TIMEZONE_DATA = [
+  { id:'America/New_York',    name:'Eastern Time',          offset:'UTC-5 / UTC-4', dst:true,  countries:2, status:'on'  },
+  { id:'America/Los_Angeles', name:'Pacific Time',          offset:'UTC-8 / UTC-7', dst:true,  countries:1, status:'on'  },
+  { id:'Europe/Paris',        name:'Central European Time', offset:'UTC+1 / UTC+2', dst:true,  countries:3, status:'on'  },
+  { id:'Europe/Berlin',       name:'Central European Time', offset:'UTC+1 / UTC+2', dst:true,  countries:1, status:'on'  },
+  { id:'Asia/Singapore',      name:'Singapore Time',        offset:'UTC+8',         dst:false, countries:1, status:'off' },
+];
+function TimezoneListPage({ go }) {
+  const columns = [
+    { title:'IANA 时区标识', dataIndex:'id', width:200, fixed:'left', render:v => <b>{v}</b> },
+    { title:'时区名称', dataIndex:'name', width:180 },
+    { title:'UTC 偏移', dataIndex:'offset', width:140 },
+    { title:'DST', dataIndex:'dst', width:90, render:v => <StatusTag variant={v?'pending':'off'}>{v?'是':'否'}</StatusTag> },
+    { title:'适用国家数', dataIndex:'countries', width:110, align:'right' },
+    { title:'当前时间', key:'clock', width:120, render:(_, r) => <LiveClock tz={r.id} /> },
+    { title:'状态', dataIndex:'status', width:90, render:v => <StatusTag variant={v==='on'?'on':'off'}>{v==='on'?'启用':'停用'}</StatusTag> },
+    { title:'操作', key:'op', width:90, fixed:'right',
+      render:(_, r) => r.status==='on'
+        ? <Button size="small" danger>停用</Button>
+        : <Button size="small">启用</Button> },
+  ];
+  return (
+    <ListPage title="时区管理" go={go} entity="时区"
+      desc="数据由系统从 IANA 时区数据库自动同步维护,不支持手动新增或编辑,仅可按需启用或停用。"
+      scrollX="max-content"
+      filters={[
+        <Input key="s" placeholder="搜索时区 ID / 名称" prefix={<SearchOutlined style={{color:'#9CA3AF'}} />} allowClear style={{width:240}} />,
+        <Select key="d" defaultValue="" style={{width:150}} options={[{value:'',label:'全部 DST 类型'},{value:'dst',label:'含 DST'},{value:'no',label:'不含 DST'}]} />,
+        <Select key="st" defaultValue="" style={{width:130}} options={[{value:'',label:'全部状态'},{value:'on',label:'启用'},{value:'off',label:'停用'}]} />,
+        <Button key="q" type="primary" icon={<SearchOutlined />}>查询</Button>,
+        <Button key="r" icon={<ReloadOutlined />}>重置</Button>,
+      ]}
+      kpis={[{num:8,label:'时区总数'},{num:2,label:'DST 时区'},{num:6,label:'标准时区'},{num:8,label:'已启用'}]}
+      columns={columns} data={TIMEZONE_DATA} total={8} />
+  );
+}
+/* @@CURRENCY@@ */
+const CURRENCY_DATA = [
+  { code:'USD', name:'US Dollar', symbol:'$', decimals:2, status:'on' },
+  { code:'EUR', name:'Euro', symbol:'€', decimals:2, status:'on' },
+  { code:'GBP', name:'British Pound', symbol:'£', decimals:2, status:'on' },
+  { code:'JPY', name:'Japanese Yen', symbol:'¥', decimals:0, status:'on' },
+  { code:'KRW', name:'South Korean Won', symbol:'₩', decimals:0, status:'on' },
+  { code:'AUD', name:'Australian Dollar', symbol:'A$', decimals:2, status:'on' },
+];
+function CurrencyListPage({ go }) {
+  const columns = [
+    { title:'货币代码', dataIndex:'code', render:v => <b>{v}</b> },
+    { title:'货币名称', dataIndex:'name' },
+    { title:'符号', dataIndex:'symbol' },
+    { title:'小数位数', dataIndex:'decimals' },
+    { title:'状态', dataIndex:'status', render:() => <StatusTag variant="on">启用</StatusTag> },
+    { title:'操作', key:'op', render:() => <Button size="small" onClick={() => go('currency-list-edit')}>编辑</Button> },
+  ];
+  return (
+    <ListPage title="货币管理" desc="管理 Looply 支持的货币基础数据" go={go}
+      entity="货币" createKey="currency-list-create"
+      headActions={<Button type="primary" onClick={() => go('currency-list-create')}>新增货币</Button>}
+      kpis={[{num:6,label:'货币总数'},{num:4,label:'小数位 2 位'},{num:2,label:'小数位 0 位'},{num:6,label:'已启用'}]}
+      filters={[
+        <Input key="s" placeholder="搜索货币代码 / 名称" prefix={<SearchOutlined style={{color:'#9CA3AF'}} />} allowClear style={{width:240}} />,
+        <Select key="d" defaultValue="" style={{width:160}} options={[{value:'',label:'全部小数位数'},{value:'0',label:'0'},{value:'2',label:'2'},{value:'3',label:'3'}]} />,
+        <Button key="q" type="primary" icon={<SearchOutlined />}>查询</Button>,
+        <Button key="r" icon={<ReloadOutlined />}>重置</Button>,
+      ]}
+      columns={columns} data={CURRENCY_DATA} total={6} />
+  );
+}
+function CurrencyFields({ isEdit }) {
+  return (
+    <>
+      <FormRow label="货币代码" required helper="如 USD、EUR;创建后不可修改">
+        {isEdit ? <Input value="USD" disabled /> : <Input placeholder="如 USD" />}
+      </FormRow>
+      <FormRow label="货币名称" required><Input defaultValue={isEdit ? 'US Dollar' : ''} placeholder="如 US Dollar" /></FormRow>
+      <FormRow label="货币符号" required><Input defaultValue={isEdit ? '$' : ''} placeholder="如 $" style={{width:200}} /></FormRow>
+      <FormRow label="小数位数" required><InputNumber defaultValue={2} min={0} max={4} style={{width:200}} /></FormRow>
+      <FormRow label="状态" required>
+        <Select defaultValue="on" style={{width:200}} options={[{value:'on',label:'启用'},{value:'off',label:'停用'}]} />
+      </FormRow>
+    </>
+  );
+}
+function CurrencyCreatePage({ go }) {
+  return <FormPage title="新建货币" desc="创建 Looply 支持的货币基础数据。" back={() => go('currency-list-list')}
+    onSave={() => go('currency-list-list')}
+    sections={[{ title:'货币信息', children:<CurrencyFields isEdit={false} /> }]} />;
+}
+function CurrencyEditPage({ go }) {
+  return <FormPage title="编辑货币 — USD" isEdit back={() => go('currency-list-list')}
+    onSave={() => go('currency-list-list')}
+    sections={[{ title:'货币信息', children:<CurrencyFields isEdit={true} /> }]}
+    opLogData={[
+      { i:1, at:'2026-04-15 16:45', who:'pm@looply.com', type:'编辑', detail:'修改符号位置为前置' },
+      { i:2, at:'2026-03-18 11:20', who:'admin@looply.com', type:'创建', detail:'创建货币 USD,代码 USD,符号 $' },
+    ]} />;
+}
+/* @@LANGUAGE@@ */
+const LANGUAGE_DATA = [
+  { code:'en', name:'English', local:'English', dir:'ltr' },
+  { code:'fr', name:'French', local:'Français', dir:'ltr' },
+  { code:'de', name:'German', local:'Deutsch', dir:'ltr' },
+  { code:'it', name:'Italian', local:'Italiano', dir:'ltr' },
+  { code:'es', name:'Spanish', local:'Español', dir:'ltr' },
+  { code:'ja', name:'Japanese', local:'日本語', dir:'ltr' },
+  { code:'ko', name:'Korean', local:'한국어', dir:'ltr' },
+  { code:'ar', name:'Arabic', local:'العربية', dir:'rtl' },
+];
+const DIR_LABEL = { ltr:'从左到右', rtl:'从右到左' };
+const LANG_DIR_NOTE = '大多数语言使用从左到右;阿拉伯语等少数语言使用从右到左,页面布局会跟着一起调整。';
+function LanguageListPage({ go }) {
+  const columns = [
+    { title:'语言代码', dataIndex:'code', render:v => <b>{v}</b> },
+    { title:'语言名称', dataIndex:'name' },
+    { title:'本地名称', dataIndex:'local' },
+    { title:'书写方向', dataIndex:'dir', render:v => <StatusTag variant={v==='rtl'?'on':'off'}>{DIR_LABEL[v]}</StatusTag> },
+    { title:'状态', dataIndex:'status', render:() => <StatusTag variant="on">启用</StatusTag> },
+    { title:'操作', key:'op', render:() => <Button size="small" onClick={() => go('language-list-edit')}>编辑</Button> },
+  ];
+  return (
+    <ListPage title="语言管理" desc="管理 Looply 支持的语言基础数据" go={go}
+      entity="语言" createKey="language-list-create"
+      headActions={<Button type="primary" onClick={() => go('language-list-create')}>新增语言</Button>}
+      kpis={[{num:8,label:'语言总数'},{num:7,label:'从左到右'},{num:1,label:'从右到左'},{num:8,label:'已启用'}]}
+      filters={[
+        <Input key="s" placeholder="搜索语言代码 / 名称" prefix={<SearchOutlined style={{color:'#9CA3AF'}} />} allowClear style={{width:240}} />,
+        <Select key="d" defaultValue="" style={{width:180}} options={[{value:'',label:'全部书写方向'},{value:'ltr',label:'从左到右 (LTR)'},{value:'rtl',label:'从右到左 (RTL)'}]} />,
+        <Button key="q" type="primary" icon={<SearchOutlined />}>查询</Button>,
+        <Button key="r" icon={<ReloadOutlined />}>重置</Button>,
+      ]}
+      columns={columns} data={LANGUAGE_DATA} total={8} />
+  );
+}
+function LanguageFields({ isEdit }) {
+  return (
+    <>
+      <FormRow label="语言代码" required helper="如 en、fr、ja;创建后不可修改">
+        {isEdit ? <Input value="en" disabled /> : <Input placeholder="如 en" />}
+      </FormRow>
+      <FormRow label="语言名称" required><Input defaultValue={isEdit ? 'English' : ''} placeholder="如 English" /></FormRow>
+      <FormRow label="本地名称" required><Input defaultValue={isEdit ? 'English' : ''} placeholder="如 English" /></FormRow>
+      <FormRow label="书写方向" required helper={LANG_DIR_NOTE}>
+        <Select defaultValue="ltr" style={{width:220}} options={[{value:'ltr',label:'从左到右'},{value:'rtl',label:'从右到左'}]} />
+      </FormRow>
+      <FormRow label="状态" required>
+        <Select defaultValue="on" style={{width:200}} options={[{value:'on',label:'启用'},{value:'off',label:'停用'}]} />
+      </FormRow>
+    </>
+  );
+}
+function LanguageCreatePage({ go }) {
+  return <FormPage title="新建语言" desc="创建 Looply 支持的语言基础数据。" back={() => go('language-list-list')}
+    onSave={() => go('language-list-list')}
+    sections={[{ title:'语言信息', children:<LanguageFields isEdit={false} /> }]} />;
+}
+function LanguageEditPage({ go }) {
+  return <FormPage title="编辑语言 — en" isEdit back={() => go('language-list-list')}
+    onSave={() => go('language-list-list')}
+    sections={[{ title:'语言信息', children:<LanguageFields isEdit={true} /> }]}
+    opLogData={[
+      { i:1, at:'2026-04-12 14:30', who:'pm@looply.com', type:'编辑', detail:'修改语言名称为 English' },
+      { i:2, at:'2026-03-16 09:45', who:'admin@looply.com', type:'创建', detail:'创建语言 en,代码 en,名称 English' },
+    ]} />;
+}
+
+/* ============ 路由表 ============ */
+const PAGES = {
+  'market-list-list': MarketListPage,
+  'market-list-create': MarketWizardPage,
+  'market-list-detail': MarketDetailPage,
+  'country-list-list': CountryListPage,
+  'country-list-create': CountryCreatePage,
+  'country-list-edit': CountryEditPage,
+  'timezone-list-list': TimezoneListPage,
+  'currency-list-list': CurrencyListPage,
+  'currency-list-create': CurrencyCreatePage,
+  'currency-list-edit': CurrencyEditPage,
+  'language-list-list': LanguageListPage,
+  'language-list-create': LanguageCreatePage,
+  'language-list-edit': LanguageEditPage,
+};
+/* 子页面 → 所属一级列表 key(用于菜单高亮) */
+const MODULE_OF = {
+  'market-list-list':'market-list-list','market-list-create':'market-list-list','market-list-detail':'market-list-list',
+  'country-list-list':'country-list-list','country-list-create':'country-list-list','country-list-edit':'country-list-list',
+  'timezone-list-list':'timezone-list-list',
+  'currency-list-list':'currency-list-list','currency-list-create':'currency-list-list','currency-list-edit':'currency-list-list',
+  'language-list-list':'language-list-list','language-list-create':'language-list-list','language-list-edit':'language-list-list',
+};
+
+/* ============ App ============ */
+function App() {
+  const [currentPage, setCurrentPage] = useState('market-list-list');
+  const go = (key) => { setCurrentPage(key); document.querySelector('.lp-content')?.scrollTo(0, 0); };
+  const activeKey = MODULE_OF[currentPage] || 'market-list-list';
+
+  const subLabel = (text, key) => <span style={{ fontWeight: activeKey === key ? 600 : 400 }}>{text}</span>;
+  const menuItems = [
+    {
+      key: 'market', icon: <AppstoreOutlined />, label: 'Market',
+      children: [
+        { key: 'market-list-list',   icon: <ShopOutlined />,         label: subLabel('市场管理', 'market-list-list') },
+        { key: 'country-list-list',  icon: <GlobalOutlined />,       label: subLabel('国家管理', 'country-list-list') },
+        { key: 'timezone-list-list', icon: <ClockCircleOutlined />,  label: subLabel('时区管理', 'timezone-list-list') },
+        { key: 'language-list-list', icon: <TranslationOutlined />,  label: subLabel('语言管理', 'language-list-list') },
+        { key: 'currency-list-list', icon: <DollarOutlined />,       label: subLabel('货币管理', 'currency-list-list') },
+      ],
+    },
+  ];
+
+  const Cur = PAGES[currentPage] || MarketListPage;
+
+  return (
+    <ConfigProvider theme={looplyTheme}>
+      <Layout style={{ height: '100vh' }}>
+        <Layout.Header style={{ borderBottom: '1px solid #E5E7EB', display:'flex', alignItems:'center' }}>
+          <img src={LOGO_SRC} alt="Looply" style={{ height: 32, display: 'block' }} />
+          <div style={{ width:1, height:20, background:'#E5E7EB', margin:'0 16px' }} />
+          <span style={{ fontSize:14, fontWeight:500, color:'#6B7280' }}>MARKET 主数据</span>
+        </Layout.Header>
+        <Layout>
+          <Layout.Sider width={220} theme="light" style={SIDER_STYLE}>
+            <Menu mode="inline" items={menuItems} selectedKeys={[activeKey]}
+              defaultOpenKeys={['market']} style={{ borderInlineEnd: 'none' }}
+              onClick={({ key }) => go(key)} />
+          </Layout.Sider>
+          <Layout.Content className="lp-content" style={{ padding:28, overflow:'auto' }}>
+            <Cur go={go} />
+          </Layout.Content>
+        </Layout>
+      </Layout>
+    </ConfigProvider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+
+</script>
+</body>
+</html>

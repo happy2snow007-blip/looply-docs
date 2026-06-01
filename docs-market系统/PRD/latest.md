@@ -156,7 +156,7 @@ EU Market 运营成熟后，新增意大利和西班牙两个国家。运营管�
 | 权限不足 | 隐藏"新建市场"按钮和操作列中的"编辑""停用"按钮 |
 
 **UI 关联**
-PC 端设计稿：原型 v20 — 市场列表页（page-market-list-list）
+PC 端设计稿：原型 v21-antd — 市场列表页（page-market-list-list）
 
 ---
 
@@ -348,7 +348,7 @@ PC 端设计稿：原型 v20 — 市场列表页（page-market-list-list）
 | 国家已被其他 Market 占用 | 添加国家时即时提示，不允许添加 |
 
 **UI 关联**
-PC 端设计稿：原型 v20 — 新建市场页（page-market-list-create）
+PC 端设计稿：原型 v21-antd — 新建市场页（page-market-list-create）
 
 ---
 
@@ -419,7 +419,7 @@ Tab 栏：基本信息 / 国家配置 / 语言配置 / 货币配置
 - 编辑模式复用新建向导页面，回填已有数据
 
 **UI 关联**
-PC 端设计稿：原型 v20 — 市场详情页（page-market-list-detail）
+PC 端设计稿：原型 v21-antd — 市场详情页（page-market-list-detail）
 
 ---
 
@@ -444,7 +444,7 @@ PC 端设计稿：原型 v20 — 市场详情页（page-market-list-detail）
 - 修改完成后点击"保存"，成功后跳转到市场详情页
 
 **UI 关联**
-PC 端设计稿：原型 v20 — 复用新建市场页（page-market-list-create，标题动态切换）
+PC 端设计稿：原型 v21-antd — 复用新建市场页（page-market-list-create，标题动态切换）
 
 ### 2.2 国家管理
 
@@ -514,7 +514,7 @@ PC 端设计稿：原型 v20 — 复用新建市场页（page-market-list-create
 - 筛选无结果：显示"未找到匹配结果，请调整筛选条件" + "清除筛选"按钮
 
 **UI 关联**
-PC 端设计稿：原型 v20 — page-country-list-list
+PC 端设计稿：原型 v21-antd — page-country-list-list
 
 #### 2.2.3 新建国家
 
@@ -577,7 +577,7 @@ PC 端设计稿：原型 v20 — page-country-list-list
 - 必填项未填：字段下方显示红色错误提示
 
 **UI 关联**
-PC 端设计稿：原型 v20 — page-country-list-create
+PC 端设计稿：原型 v21-antd — page-country-list-create
 
 #### 2.2.4 编辑国家
 
@@ -607,7 +607,7 @@ PC 端设计稿：原型 v20 — page-country-list-create
 页面底部展示该记录的操作历史，表格列同市场详情页操作记录。
 
 **UI 关联**
-PC 端设计稿：原型 v20 — page-country-list-edit
+PC 端设计稿：原型 v21-antd — page-country-list-edit
 
 ### 2.3 时区管理
 
@@ -672,7 +672,7 @@ PC 端设计稿：原型 v20 — page-country-list-edit
 - 筛选无结果：显示"未找到匹配结果，请调整筛选条件" + "清除筛选"按钮
 
 **UI 关联**
-PC 端设计稿：原型 v20 — page-timezone-list-list
+PC 端设计稿：原型 v21-antd — page-timezone-list-list
 
 ### 2.4 语言管理
 
@@ -736,7 +736,7 @@ PC 端设计稿：原型 v20 — page-timezone-list-list
 - 筛选无结果：显示"未找到匹配结果，请调整筛选条件" + "清除筛选"按钮
 
 **UI 关联**
-PC 端设计稿：原型 v20 — page-language-list-list
+PC 端设计稿：原型 v21-antd — page-language-list-list
 
 #### 2.4.3 新建语言
 
@@ -785,7 +785,7 @@ PC 端设计稿：原型 v20 — page-language-list-list
 - 必填项未填：字段下方显示红色错误提示
 
 **UI 关联**
-PC 端设计稿：原型 v20 — page-language-list-create
+PC 端设计稿：原型 v21-antd — page-language-list-create
 
 #### 2.4.4 编辑语言
 
@@ -815,7 +815,7 @@ PC 端设计稿：原型 v20 — page-language-list-create
 页面底部展示该记录的操作历史，表格列同市场详情页操作记录。
 
 **UI 关联**
-PC 端设计稿：原型 v20 — page-language-list-edit
+PC 端设计稿：原型 v21-antd — page-language-list-edit
 
 ### 2.5 货币管理
 
@@ -878,7 +878,7 @@ PC 端设计稿：原型 v20 — page-language-list-edit
 - 筛选无结果：显示"未找到匹配结果，请调整筛选条件" + "清除筛选"按钮
 
 **UI 关联**
-PC 端设计稿：原型 v20 — page-currency-list-list
+PC 端设计稿：原型 v21-antd — page-currency-list-list
 
 #### 2.5.3 新建货币
 
@@ -928,7 +928,7 @@ PC 端设计稿：原型 v20 — page-currency-list-list
 - 必填项未填：字段下方显示红色错误提示
 
 **UI 关联**
-PC 端设计稿：原型 v20 — page-currency-list-create
+PC 端设计稿：原型 v21-antd — page-currency-list-create
 
 #### 2.5.4 编辑货币
 
@@ -958,7 +958,7 @@ PC 端设计稿：原型 v20 — page-currency-list-create
 页面底部展示该记录的操作历史，表格列同市场详情页操作记录。
 
 **UI 关联**
-PC 端设计稿：原型 v20 — page-currency-list-edit
+PC 端设计稿：原型 v21-antd — page-currency-list-edit
 
 ## 三、依赖与风险
 
@@ -1032,20 +1032,20 @@ PC 端设计稿：原型 v20 — page-currency-list-edit
 
 | 页面名称 | PC 端设计稿 | 说明 |
 |----------|-------------|------|
-| 市场列表页 | 原型 v20 — page-market-list-list | 展示所有 Market，支持搜索、筛选、新建、编辑、详情 |
-| 市场详情页 | 原型 v20 — page-market-list-detail | 展示 Market 基本信息、国家列表、语言列表、货币列表 |
-| 新建市场页 | 原型 v20 — page-market-list-create | 4 步向导：基本信息 → 国家配置 → 语言配置 → 货币配置 |
-| 编辑市场页 | 原型 v20 — 复用新建市场页 | 标题动态切换为"编辑市场"，代码字段只读 |
-| 国家列表页 | 原型 v20 — page-country-list-list | 展示所有国家，支持搜索、筛选、新建、编辑 |
-| 新建国家页 | 原型 v20 — page-country-list-create | 填写国家基础信息 + 配置支持时区列表 |
-| 编辑国家页 | 原型 v20 — page-country-list-edit | 修改国家信息，代码字段只读 |
-| 时区列表页 | 原型 v20 — page-timezone-list-list | 展示所有时区（只读数据），支持启用/停用 |
-| 语言列表页 | 原型 v20 — page-language-list-list | 展示所有语言，支持搜索、筛选、新建、编辑 |
-| 新建语言页 | 原型 v20 — page-language-list-create | 填写语言基础信息 + 配置书写方向 |
-| 编辑语言页 | 原型 v20 — page-language-list-edit | 修改语言信息，代码字段只读 |
-| 货币列表页 | 原型 v20 — page-currency-list-list | 展示所有货币，支持搜索、筛选、新建、编辑 |
-| 新建货币页 | 原型 v20 — page-currency-list-create | 填写货币基础信息 + 配置小数位数 |
-| 编辑货币页 | 原型 v20 — page-currency-list-edit | 修改货币信息，代码字段只读 |
+| 市场列表页 | 原型 v21-antd — page-market-list-list | 展示所有 Market，支持搜索、筛选、新建、编辑、详情 |
+| 市场详情页 | 原型 v21-antd — page-market-list-detail | 展示 Market 基本信息、国家列表、语言列表、货币列表 |
+| 新建市场页 | 原型 v21-antd — page-market-list-create | 4 步向导：基本信息 → 国家配置 → 语言配置 → 货币配置 |
+| 编辑市场页 | 原型 v21-antd — 复用新建市场页 | 标题动态切换为"编辑市场"，代码字段只读 |
+| 国家列表页 | 原型 v21-antd — page-country-list-list | 展示所有国家，支持搜索、筛选、新建、编辑 |
+| 新建国家页 | 原型 v21-antd — page-country-list-create | 填写国家基础信息 + 配置支持时区列表 |
+| 编辑国家页 | 原型 v21-antd — page-country-list-edit | 修改国家信息，代码字段只读 |
+| 时区列表页 | 原型 v21-antd — page-timezone-list-list | 展示所有时区（只读数据），支持启用/停用 |
+| 语言列表页 | 原型 v21-antd — page-language-list-list | 展示所有语言，支持搜索、筛选、新建、编辑 |
+| 新建语言页 | 原型 v21-antd — page-language-list-create | 填写语言基础信息 + 配置书写方向 |
+| 编辑语言页 | 原型 v21-antd — page-language-list-edit | 修改语言信息，代码字段只读 |
+| 货币列表页 | 原型 v21-antd — page-currency-list-list | 展示所有货币，支持搜索、筛选、新建、编辑 |
+| 新建货币页 | 原型 v21-antd — page-currency-list-create | 填写货币基础信息 + 配置小数位数 |
+| 编辑货币页 | 原型 v21-antd — page-currency-list-edit | 修改货币信息，代码字段只读 |
 
 ---
 
