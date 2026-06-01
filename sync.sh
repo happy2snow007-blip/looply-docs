@@ -153,6 +153,11 @@ sync_files() {
             [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/"
         done
 
+        # 交付包 - zip
+        for f in "$SOURCE_DIR"/*交付开发*.zip; do
+            [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/"
+        done
+
         # 核心差异汇总 - md（交付包内）
         for delivery_dir in "$SOURCE_DIR"/交付开发*; do
             if [ -d "$delivery_dir" ]; then
