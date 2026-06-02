@@ -82,6 +82,10 @@ MODULES = {
                 'subdir': '实体关系图',
                 'pattern': r'looply-库存系统实体关系图-v(.+?)\.svg',
             },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'库存-交付开发 V(.+?)\.zip',
+            },
         },
     },
     'translation': {
