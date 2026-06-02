@@ -3,7 +3,7 @@
 自动检测各模块最新版本文件，更新 prototype-config.js 和 index.html。
 在 sync.sh 中于文件复制完成后、git 操作之前调用。
 
-关键约束：只更新"最新"条目的链接，不修改历史版本列表。
+自动更新"最新"条目的链接、版本号、日期，并维护历史版本列表。
 """
 
 import os
@@ -35,6 +35,14 @@ MODULES = {
             'er': {
                 'subdir': '实体关系图',
                 'pattern': r'looply-商品主数据实体关系图-v(.+?)\.svg',
+            },
+            'architecture': {
+                'subdir': '产品架构图',
+                'pattern': r'looply-商品系统产品架构图-v(.+?)\.svg',
+            },
+            'flowchart': {
+                'subdir': '系统流程图',
+                'pattern': r'looply-商品系统流程图-v(.+?)\.svg',
             },
             'delivery': {
                 'subdir': '.',
@@ -128,6 +136,10 @@ MODULES = {
                 'subdir': '实体关系图',
                 'pattern': r'looply-汇率管理实体关系图-v(.+?)\.svg',
             },
+            'architecture': {
+                'subdir': '产品架构图',
+                'pattern': r'looply-汇率管理-产品架构图-v(.+?)\.svg',
+            },
         },
     },
     'user': {
@@ -160,6 +172,15 @@ MODULES = {
         'dir': 'docs',
         'config_key': None,
         'artifacts': {
+            'architecture': {
+                'subdir': '产品架构图',
+                'pattern': r'looply-登录注册模块产品架构图-v(.+?)\.svg',
+            },
+            'flowchart': {
+                'subdir': '系统流程图',
+                'pattern': r'looply-登录注册系统流程图-v(.+?)\.svg',
+                'exclude': r'(横向泳道)',
+            },
             'delivery': {
                 'subdir': '.',
                 'pattern': r'登录注册-交付开发 V(.+?)\.zip',
@@ -281,12 +302,12 @@ var PROTOTYPE_CONFIG = {
 
 # ─── index.html 更新（只改"最新"条目，不动历史版本） ─────────────────────────────
 
-def update_index_html(updates, all_versions, delivery_history=None):
+def update_index_html(updates, all_versions, all_history=None):
     """
-    两遍处理 index.html：
-    第一遍：替换 href，记录每个 doc-item 块对应的 update 条目
-    第二遍：根据记录更新 doc-name 版本号和交付包 doc-desc
-    第三遍：为交付包插入/更新历史版本列表
+    三遍处理 index.html：
+    第一遍：替换 href，记录每个 doc-item 块对应的 update 条目，跟踪变更
+    第二遍：更新 doc-name 版本号、doc-desc 日期、交付包 doc-desc 内容
+    第三遍：为所有制品类型插入/更新历史版本列表
     """
     index_path = os.path.join(REPO_DIR, 'index.html')
     lines = open(index_path, 'r', encoding='utf-8').readlines()
@@ -295,6 +316,7 @@ def update_index_html(updates, all_versions, delivery_history=None):
     # ── 第一遍：替换 href，记录 doc-item 块 → update 的映射 ──
     # item_map: line_index_of_doc_item_start → upd
     item_map = {}
+    changed_items = set()   # doc-item blocks whose href actually changed
     in_history = False
     current_item_start = None
 
@@ -324,12 +346,14 @@ def update_index_html(updates, all_versions, delivery_history=None):
                 old_filename = match.group(2)
                 if re.match(file_pattern, old_filename):
                     # 记录块
-                    if current_item_start is not None and upd.get('art_type') != 'delivery':
+                    if current_item_start is not None:
                         item_map[current_item_start] = upd
                     # 替换文件名
                     if old_filename != new_file:
                         lines[i] = lines[i][:match.start()] + match.group(1) + new_file + match.group(3) + lines[i][match.end():]
                         changed = True
+                        if current_item_start is not None:
+                            changed_items.add(current_item_start)
 
     # ── 第二遍：更新 doc-name 版本号 + 交付包 doc-desc ──
     in_history = False
@@ -357,20 +381,23 @@ def update_index_html(updates, all_versions, delivery_history=None):
             upd = item_map[current_item_start]
             new_ver = upd.get('new_ver', '')
             if new_ver:
-                # 提取纯数字版本号（去掉 -风格A-活力亲和 等后缀）
-                numeric_m = re.match(r'(\d+(?:\.\d+)?)', new_ver)
-                numeric_ver = numeric_m.group(1) if numeric_m else new_ver
-                # 匹配版本号，允许版本号和 <span> 之间有任意文字（如 " · 风格A 活力亲和 "）
-                ver_regex = re.compile(r'([vV])(\d+(?:\.\d+)?)(.*?)(<span)')
+                # 用源文件完整版本字符串替换 doc-name 中的版本号
+                # 匹配从 v/V 开始到 <span 之前的所有文字（含空格和中文描述）
+                ver_regex = re.compile(r'(?<=\s)[vV].+?(?=\s*<span)')
                 ver_match = ver_regex.search(new_line)
                 if ver_match:
-                    old_ver_text = ver_match.group(2)
-                    if old_ver_text != numeric_ver:
-                        new_line = (new_line[:ver_match.start(2)]
-                                    + numeric_ver
-                                    + ver_match.group(3)  # 保留中间描述文字
-                                    + new_line[ver_match.start(4):])
+                    old_ver_text = ver_match.group(0)
+                    new_ver_text = f'v{new_ver}'
+                    if old_ver_text != new_ver_text:
+                        new_line = new_line[:ver_match.start()] + new_ver_text + new_line[ver_match.end():]
                         changed = True
+
+        # 更新 doc-desc 日期（当 href 发生变化时）
+        if current_item_start in changed_items and 'doc-desc' in new_line and '更新于' in new_line:
+            today = datetime.now().strftime('%Y-%m-%d')
+            new_line = re.sub(r'更新于 \d{4}-\d{2}-\d{2}(\s+\d{2}:\d{2})?', f'更新于 {today}', new_line)
+            if new_line != line:
+                changed = True
 
         # 更新交付包 doc-desc
         if 'doc-desc' in new_line and '含 PRD' in new_line:
@@ -417,63 +444,102 @@ def update_index_html(updates, all_versions, delivery_history=None):
 
         new_lines.append(new_line)
 
-    # ── 第三遍：为交付包插入/更新历史版本列表 ──
-    if delivery_history:
+    # ── 第三遍：为所有制品类型插入/更新历史版本列表 ──
+    if all_history:
+        # 历史版本列表中每种制品的显示格式: (版本前缀, 链接属性, 链接文字)
+        HISTORY_ITEM_FMT = {
+            'prototype': ('v', 'target="_blank"', '查看'),
+            'er':        ('v', 'target="_blank"', '查看'),
+            'architecture': ('v', 'target="_blank"', '查看'),
+            'flowchart':    ('v', 'target="_blank"', '查看'),
+            'prd':       ('V', 'download', 'Markdown'),
+            'prd_html':  ('V', 'download', 'HTML'),
+            'prd_md':    ('V', 'download', 'Markdown'),
+            'delivery':  ('V', 'download', '下载'),
+        }
+
         final_lines = []
         i = 0
         while i < len(new_lines):
             line = new_lines[i]
 
-            # 检测交付包的 </ul>，在其后插入/更新历史版本
-            matched_mod = None
+            # 检测主 doc-list 的 </ul>，在其后插入/更新历史版本
+            matched_key = None
             if '</ul>' in line and i >= 2:
                 lookback = ''.join(new_lines[max(0, i-8):i+1])
-                for mod_name, hist_info in delivery_history.items():
-                    mod_dir = hist_info['dir']
-                    subdir = hist_info['subdir']
-                    if subdir == '.':
-                        href_prefix = f'{mod_dir}/'
-                    else:
-                        href_prefix = f'{mod_dir}/{subdir}/'
-                    if href_prefix in lookback and '交付开发' in lookback and 'history-list' not in lookback:
-                        matched_mod = mod_name
-                        break
+                if 'history-list' not in lookback:
+                    for (mod_name, art_type), hist_info in all_history.items():
+                        mod_dir = hist_info['dir']
+                        subdir = hist_info['subdir']
+                        file_pattern = hist_info.get('file_pattern', '')
+                        if subdir == '.':
+                            href_prefix = f'{mod_dir}/'
+                        else:
+                            href_prefix = f'{mod_dir}/{subdir}/'
+                        if href_prefix not in lookback:
+                            continue
+                        if subdir == '.':
+                            # 根目录制品（如交付包）：需验证 href 中的文件名匹配 pattern
+                            href_m = re.search(r'href="' + re.escape(href_prefix) + r'([^"]+)"', lookback)
+                            if href_m and re.match(file_pattern, href_m.group(1)):
+                                matched_key = (mod_name, art_type)
+                                break
+                        else:
+                            # 子目录制品：路径前缀已足够精确
+                            matched_key = (mod_name, art_type)
+                            break
 
-            if matched_mod:
-                hist_info = delivery_history[matched_mod]
+            if matched_key:
+                hist_info = all_history[matched_key]
                 mod_dir = hist_info['dir']
                 subdir = hist_info['subdir']
                 history = hist_info['history']
+                art_type = hist_info['art_type']
                 if subdir == '.':
                     href_prefix = f'{mod_dir}/'
                 else:
                     href_prefix = f'{mod_dir}/{subdir}/'
 
+                ver_prefix, link_attr, link_label = HISTORY_ITEM_FMT.get(art_type, ('v', 'download', '下载'))
+
                 # 先输出当前 </ul> 行
                 final_lines.append(line)
                 i += 1
 
-                # 如果下一行是旧的 history-toggle，跳过旧历史区域
+                # 如果下一行已有 history-toggle，收集已有条目
+                existing_lines = []   # 保留的已有 history-item 行
+                existing_hrefs = set()
                 if i < len(new_lines) and 'history-toggle' in new_lines[i]:
                     i += 1  # skip toggle
-                    # 跳过 history-list 的 <ul>...</ul>
+                    # 收集 history-list 中的现有条目
                     while i < len(new_lines):
-                        if '</ul>' in new_lines[i]:
-                            i += 1  # skip </ul>
+                        hist_line = new_lines[i]
+                        if 'history-item' in hist_line:
+                            existing_lines.append(hist_line)
+                            for href_m in re.finditer(r'href="([^"]+)"', hist_line):
+                                existing_hrefs.add(href_m.group(1))
+                        if '</ul>' in hist_line:
+                            i += 1
                             break
                         i += 1
-                    changed = True
 
-                # 插入新的历史版本（仅当有历史时）
-                if history:
+                # 找出磁盘上有但历史列表中缺失的文件
+                new_items = []
+                for hist_file, hist_ver in history:
+                    href = f'{href_prefix}{hist_file}'
+                    if href not in existing_hrefs:
+                        new_items.append(f'          <li class="history-item">{ver_prefix}{hist_ver} <a href="{href}" {link_attr}>{link_label}</a></li>\n')
+
+                if new_items or existing_lines:
                     indent = '        '
                     final_lines.append(f'{indent}<div class="history-toggle" onclick="this.nextElementSibling.classList.toggle(\'open\')">历史版本 ▾</div>\n')
                     final_lines.append(f'{indent}<ul class="doc-list history-list">\n')
-                    for hist_file, hist_ver in history:
-                        href = f'{href_prefix}{hist_file}'
-                        final_lines.append(f'{indent}  <li class="history-item">V{hist_ver} <a href="{href}" download>下载</a></li>\n')
+                    # 新增条目在前（按版本降序），已有条目在后
+                    final_lines.extend(new_items)
+                    final_lines.extend(existing_lines)
                     final_lines.append(f'{indent}</ul>\n')
-                    changed = True
+                    if new_items:
+                        changed = True
             else:
                 final_lines.append(line)
                 i += 1
@@ -496,7 +562,7 @@ def main():
     latest_prototypes = {}  # config_key -> relative_path
     index_updates = []      # 用于更新 index.html
     all_versions = {}       # (mod_name, art_type) -> ver_str
-    delivery_history = {}   # mod_name -> [(filename, ver_str), ...] 按版本降序，不含最新
+    all_history = {}        # (mod_name, art_type) -> {...} 所有制品的历史版本
 
     # art_type 到 doc-name 显示关键词的映射
     ART_DISPLAY_MAP = {
@@ -505,6 +571,8 @@ def main():
         'prd_html': 'PRD',
         'prd_md': 'PRD',
         'er': '实体关系图',
+        'architecture': '产品架构图',
+        'flowchart': '系统流程图',
         'delivery': '交付开发',
     }
 
@@ -535,14 +603,15 @@ def main():
             # 记录版本号
             all_versions[(mod_name, art_type)] = latest_ver
 
-            # delivery 类型：收集历史版本（除最新外的所有版本）
-            if art_type == 'delivery':
-                all_files = find_all_files(module_dir, subdir, pattern, exclude)
-                # all_files 已按版本降序，第一个是最新，其余是历史
-                delivery_history[mod_name] = {
+            # 收集历史版本（除最新外的所有版本），用于自动维护历史版本列表
+            all_files = find_all_files(module_dir, subdir, pattern, exclude)
+            if len(all_files) > 1:
+                all_history[(mod_name, art_type)] = {
                     'dir': module_dir,
                     'subdir': subdir,
-                    'history': all_files[1:] if len(all_files) > 1 else [],
+                    'history': all_files[1:],
+                    'art_type': art_type,
+                    'file_pattern': pattern,
                 }
 
             # 原型 → 更新 prototype-config.js
@@ -576,7 +645,7 @@ def main():
 
     # 更新 index.html（改链接 + 改版本号文字 + 改交付包描述 + 交付包历史版本）
     if index_updates:
-        update_index_html(index_updates, all_versions, delivery_history)
+        update_index_html(index_updates, all_versions, all_history)
 
 
 if __name__ == '__main__':
