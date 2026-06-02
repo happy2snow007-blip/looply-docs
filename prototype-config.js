@@ -1,11 +1,7 @@
 /**
  * Looply 后台原型路径配置（单一数据源）
  *
- * 此文件由 update-index.py 自动生成，请勿手动修改。
- *
- * 使用方式：
- *   index.html — 在原型链接上加 data-prototype="模块key"，JS 自动替换 href
- *   admin.html — MODULES 数组从 PROTOTYPE_CONFIG 读取 url
+ * 此文件由 sync.py 自动生成，请勿手动修改。
  */
 var PROTOTYPE_CONFIG = {
   'product':     'docs-商品系统/原型/looply-商品管理后台原型-v37-风格A-活力亲和.html',
