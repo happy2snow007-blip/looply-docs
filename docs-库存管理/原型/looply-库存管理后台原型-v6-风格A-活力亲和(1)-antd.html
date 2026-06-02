@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Looply 库存管理后台原型 v6（antd）</title>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/dayjs@1.11.21/dayjs.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/antd@6.4.3/dist/antd.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/@ant-design/icons@6.2.1/dist/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.28.4/babel.min.js"></script>
+<style>
+html,body,#root{height:100%;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937}
+#root::before{content:'正在加载 antd 原型……';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#9CA3AF;font-size:14px}
+#root:not(:empty)::before{display:none}
+
+/* KPI 卡片 */
+.lp-kpi{background:linear-gradient(180deg,#FEFCFF 0%,#F3EEFF 100%);border:1px solid #DDD6FE;border-radius:14px;padding:14px 16px}
+.lp-kpi .num{font-size:24px;font-weight:700;color:#7C3AED;line-height:1;margin-bottom:6px;font-variant-numeric:tabular-nums}
+.lp-kpi .label{font-size:12px;color:#6B7280}
+
+/* 紧凑分页器 */
+.lp-pagination{display:flex;align-items:center;justify-content:center;gap:24px;padding:12px 16px;font-size:13px;color:#6B7280}
+.lp-pagination .divider{width:1px;height:20px;background:#E5E7EB}
+
+/* 字段提示:虚线下划线 */
+.lp-tip-trigger{cursor:help;border-bottom:1px dashed #9CA3AF;padding-bottom:1px}
+
+/* 行内编辑 */
+.lp-editable{cursor:pointer;padding:2px 6px;border-radius:6px;border:1px solid transparent;transition:all .15s;display:inline-block;min-width:40px;text-align:center}
+.lp-editable:hover{border-color:#DDD6FE;background:#FAF5FF;color:#7C3AED}
+.lp-edit-just-saved{color:#16A34A!important;transition:color 1s}
+
+/* 区块小节标题 */
+.lp-section{font-size:15px;font-weight:600;color:#1F2937;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #E5E7EB}
+
+/* 空态 */
+.lp-empty{display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center}
+.lp-empty .icon{font-size:48px;margin-bottom:16px;color:#9CA3AF}
+.lp-empty .icon.err{color:#DC2626}
+.lp-empty .title{font-size:16px;font-weight:600;color:#1F2937;margin-bottom:8px}
+.lp-empty .desc{font-size:13px;color:#6B7280;margin-bottom:24px;max-width:360px}
+
+/* 涨跌色 */
+.rate-up{color:#16A34A;font-weight:600;font-variant-numeric:tabular-nums}
+.rate-down{color:#DC2626;font-weight:600;font-variant-numeric:tabular-nums}
+
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useMemo } = React;
+const {
+  ConfigProvider, Layout, Menu, Card, Table, Button, Input, Select, Tag,
+  Tooltip, Modal, Alert, Upload, Space, DatePicker,
+} = antd;
+const {
+  AppstoreOutlined, FileTextOutlined, ShopOutlined, SearchOutlined, ReloadOutlined,
+  ImportOutlined, DownloadOutlined, InboxOutlined, ExclamationCircleOutlined,
+} = icons;
+
+const LOGO_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPAAAABOCAYAAAAelZuXAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAeGVYSWZNTQAqAAAACAAEARoABQAAAAEAAAA+ARsABQAAAAEAAABGASgAAwAAAAEAAgAAh2kABAAAAAEAAABOAAAAAAAAAMAAAAABAAAAwAAAAAEAA6ABAAMAAAABAAEAAKACAAQAAAABAAAA8KADAAQAAAABAAAATgAAAACtWPvQAAAACXBIWXMAAB2HAAAdhwGP5fFlAAAxNklEQVR4Ae19CdQcxXXu7e5ZpF/6te/7iiTEIiGhjUUIJLEIMNvDYOwEG44dO4nDW0+S85z38nKcnJO8vCTYTuLAcRLb4LAaAcISYDYhISRACC1o3/Vr35f/n+ntfV/19Pw9M909M9Iv9IvTdaR/Zrqrbt26Vbfq1q17b2kuklyUqYC2q4n6xj+a+oc/hR/eG+/FRdnGBOmEAvEUSMW/bm9vHSDkim2JOJYm+RZXTp1wpeWUiGU5kklr0qFRk85ddUllXDHQOt0gMxvtrSEJPgkF2oQCFxUDW6bIyYO2fL7clQ0rRJo2a3LqqEg+p4tr62BWkWxHR7r0sWXQaFfGTtNk9FWGdOoCFk63Cb0SIAkF2hUFtPYtQivhWBwsvCeP2LLkRVOWv6rL4d2Yd1xDDDCsxsUVonMxIS/z27YLhral3whTZtyrydW3pqWhs468jmgaPksKFUsnXxIKXFQUaPcMbFuWbP7ElhcfF9mzNiNpA8xHuSHItGEkV7zviGNqYoOjR16dl7u/r8uQcWkwNgtXAxAGNHmWUKB9UaCdMjD3umA8y5UVC015/v9CTD6RFSNbJ/ECuiwr50pj37x87X+6cumMrOg660hW4jopmmRvZxRopwzsQgy2ZMVvHPnVDyEjmynR2mC37uRdyXbNyyN/5colU9IQpbkKk4mTlFDg4qRAOx29rmz+2Jbn/gZEbSPmZffoGU1ajmflV3+pyeE9Np4kYjTpkqSLlwLtkoGPNIF5/xrHRKeybbLyBrvHyIgc2pGRl/8Jx1HQaicpocDFTIF2xsA843Xkzacd2bMpjaMfTwtdjcA0RfH/V8vL9+kOmqz+rS5bPk04uBZ6JXnaLwXaGQM7snujKSte1iQLcbeaiOszLbeyeuG//yyW5Mibz6Vk2SsOGN+GaUhtE0UszORlQoELQIE2UA21HdY8v33/OZEzJ1IwyCBbkYnDExlVg8lkp66udOvrIL9I82mRo3uxzz1lqBVZ6ajCi0s6pcmmj3Q5hfPlxp7tbB6LwDl5nFCgnALtiIFdObTLltXv65LOwrKqHNPAb8W8riOjJuflpq9rMmicAbFYJAcG3vaZJW/+3Jada2l6pYHJAwUDX6nVPnFIlz1bHBnbM/Ai+ZpQ4CKiQDtaerAvXezIyUOGKEOpCCKSeXHCJKOuzsk3/tyAuaShbJ+zYPouPQy58oaMPPRnglXZVKtwBBj12MobcnAnv0ZweVzh5F1CgXZAgXbDwDTaWPM+97JVUMLpT+ceefnKH4Fhe9KOkv9Zxi/nSr9hhoy/1qlJy3zyMJk3br3H6yQlFGinFPBH/QVH78heW5o2GJJKRTMTPR9t25Ep81w4K6QLbBdcPfmd/3XsjamZjoblN9h2qufx8yafCQXaGwUuOAP77LNzvS1njgMdLqiRCdrpRlsm30a0sb8trrrBAoToyGEos6qKxsjSsZOPQRBG8j2hwMVBgQvOwB6ZHNmxBmwHD6M4pqPhxZCxtvQfHs+cZ+AjvHONJqk4F0LwLUMBdO1LDAgvSQkFLj4KXHAG9ljHlb1bcWhUBRsH4u6oyVikU2EZuZLi6AkfqxZbcmCHofyDo7qEuTMNjvQZRAz4K0kJBS4+CoRxwhfeilyzK0f3Yecagw0Z0zAcGTqeDBeWkUzoyCHYOL/17xCv3bA8rU3DKZR07eNI78HJ6ttKleTbxUaBdnAO7MrpYwKDCjjox/OcNHRzpO9Qf8UsZTyG2WnabMmLf8fVPCtphNeJTOB1iuNjpjjS0IVyNpk/Jn8koORFQoELS4F2wMBg3uMu4luBgWJ4CBaP0qmbSGOPIJeT8Ww5jfI7PhdZ9KQmW1emJa3MMKMJy9U808GSK29khUF40WWSNwkF2iMF2gUDn8EKbOU1FYQuikg87ekMBk7Bm4iiMtXVLaddOXbAkdXvOfL+85ocacrgfcwsUACuDEGmWDLyimT1LZAk+bhIKdAuGPgEGNix9FgG5qrZubuNRTqFQHaunDhsybZVjqx4XWTHSgMsnS4wd3xP0N463WDLtffpkunI1bc6w8dDTN4mFLhwFGgHDKzJycPwCKpyhMRtqoEodps+cRAjS+TzZZrshuGHg4iUBva79EaqljgJuFjKr7jBgqVWO2h6NYST9wkFqlCgHYxiFxEnC8HZY5BNQ3Te8ZkOZwVbjh/wTCgZKpYO+rUkxbyIVDlgdF7mftNzmEhW31ool+RpzxSoi4Fpr5w7A7UP+MdAZEeGdKW3D936il4/xS9sNpc8T8frOsiI7xRhHTCSA6UUNceWiX3sPqygcWdIBIXixw+jQsdbcfmo1uStvHBw6G/KvO+K9B/BZtewZNdaQZIvocAFokBdDHzsQF4+fsNV8ZWznbCHzGrQ+IKh0w4YmnGY6b6nOFo1xwW3UvlEZmV4VwZmt1rgt9vsQAFFv19dzhyzZdsa3KSgbKDjmUoZetQiKweISeZF1HfpDp/hW7/jyOXXUXHl18OX/vdAoeRrQoGLhAJ1MfDerSIv/b0u2SysnFCSV5cYYDw95YB58YlVVNO5GtNOGSssuNeFxYS32mK/CkUVV13bNOCUwAwQnWFwQcYnvLZOXO114NN7sC2zv2XLFAR3L2XYhHnbmuYJvC+WAnWwDe4hOgrGpYUTlkIexfA/IrVihSsFw0dMRfYofClK1/jNWxUETO+xuidmq0Jt8McXmTO4ZmXQWFPmPIxY0NO5WSYiCuHC9zaoLAGRUOACUqCU82IR0bAHtXBcU4iuXs6UgbKFV4EnUV+rK6+iSoY99xjXlRSuVOkMJ4Xx19pyw4Oa9BnCZiZHRmE0S55d3BSog4GxAh/GGlY7d34xlMGCqhgXnxTnG7rhYrMxtlw9TxCdA/7FGS71SUoo8OWkQF0MfOJo+1nFfKblfGJkbOmEa0X7jbTlsutduXKWIV17EVf+T1JCgS8vBWpmYDLMiYNQVl0gnvDEY+y7C4qpLBzxqVnuN9KVoZe6MnicLgNHG9IARlaJW932Ji18ecdR0rILRIGaGdjOC5wGqGW+AJiCe+lK2Km74O5fV3oNduHUj9hXIzTpO1yk14CgqEzORWp3sr6HVvI3oUBbUqBmBm6Bz+7p49hv4mjIgVFGcXErfOFHgXXi8UMmlc/nM0wI1XiNBiTjrrHksmt1RJvUpOdATbr1wXGWsmUmoOCsUsQsHo/kbUKBLwEFamZg03QQDdICq+DaT5tnuhRnaVGFs14wtOuScfC/wJg+bcicikFxHsuXNPgw4PjLa1N0/D99DGfDJqDG8B1LXjXXlUlzcUthSUa+iSnoI5F8JhT4klKgZgbu2GDInN91lCml1eKKift28zgEtsDYLgw0LFhakZEdxcjYqCKRtTTI3MroA0c7Biy2qBXOdIDvUJZGHrb85glDmsHAUYl73xTK9RpEJi9n1vLfUVCS5wkFvpwUqJmBO3TSZPLcDJjOE6GVeSREWwe2yQ4sqqhcYpgaMlxQpCXPUfGlw3JDwxcdV5rQjpqWW0f3OrLgn8HkcQsp3nXojMu5e3w5OyBpVUKBc6FAzQzsi6pcBWlFpSypanCej0PuyH7eYwSmjllIOSl06u7i9gVmiuP0uJq+qHc+fvxk8hvmP/eeen/9Z/j0vxbzB/O19Xe/Mv+zHD6f+8nH3/9dz2cU/CAM5AnN5tfrv+Qnk//c+1X1r188MmPVDIGS9eJQD2xW48Pn99rbWQcDE3DbpoM7sZ+G6K0XjLvCoHNl797PLTjf10uUMIjn+5nfEd42gwH78s30vPI6hduJTAdXsg0anEEK7YkVQdoSXw83OpnkgFPujCMmThcoQdGGnY4p2Y7Aq4ETNPE9W3rz1keeWtiAHb49oiSXwYV0HSHZ+Yk6FYZWsvIoh+0YF4kUHGZIL4ySuvDBBk2BbT7JNgaUrn5l6hNwAbYTFoeq3nCsHSBPHbMgaYa3yQdtwDegU1caENVOP+Z0oU9ieClR21AfWuknfQsyuB63Y2fPQOmCMvC+7eBOJx4FMnCvQXSQIDmiOqK0kRfuF+3FHTmwS+RwkyvH9+ty4ogjzZAybGU0DsaAPwXPsLv04K2KrvQYAFNPHIt16RlPh3Ntkw23zSP7bDmwEzc47ocL50EwGCKh5JuBGwYOAwpSL9HQ1YERDCZNaPt7DQbtB8LrrIM/YGsfkIS5+HkHkVO4farE3obuZMwUWsvpiCQqCAPM8EgaLpyDp9oZKkdBK5CkI871u/UGrfrZCGhoqNOHSl1IJXw1LWiOfPp2Xl10R7qXJ04iWdjLz304BYYof1v5m8zz2Xt52bUuo/qxMgfGKMZrpqMtNz3EbR8b3jpBheX3nnFkI67belOWv4oxHhXdEeR3LEum3qnJsPEXmIE5mx3cjubFyc+q+a70HUYiYA/ttbYd/UVvqaThJghbtq9BgPrViI65BfG59upYgTQxW6ixp5a+kBON0GHymYbU0dAFxij9HOkPY5Rhl5voFB2eUz6zMH/wu1e+9r9ehWaOdy5jcKxFsPt1Ivu3Y1I5pGFSofTDkwQgxKz44GpEc9QODZ7OofcQmKWOE4TyRTjfcZz1/R7wP6OwgU4EDLzyTU32bQ0PlcRV8fQJC5OILZtXanJgOyOzaJAKoBCFbkXhBHwYnL8DJrxuCAHcf6QjIya4MvJKTuqkDfGIwsV7t2GZyMeLGMChElcVKBHbs1kPYKKoysDeKs0lZNkrYDhGkAmrmqjjec8Bllx3b8jMVYEGie9Ja4tfcHE3dgqWhWGAybyYWPuLXHd/6/vzO+1XINv6gOLbwT0gSlwbMerpqth3iN9ZbGz7Ss2nbNn4kcja90W2fqqp+4lNhPkhNyirNdCajFEkOZpAkZVXoTafEjm0G1FGENtr3VJXhl/h4qzbkkuuZgC/c++afdssWbsU4Yc+wKSykRMKrm0Fw1Ka8XEqsawDbtzSnMLKfPKIyN4tumxYDmu3EbiC9WpbLsU5/NBLqYwstia+Myhq4j9XpfJkQGTfvsrAf8Q3w42UCi/AJV7FhHJ5TDKk1THEDd+5zlH4jJzoysTZFlZwMGaGdOK4CMOJ6xqew4MuDAc1qRLHsKJFJIJfNLliZkaWL7Bky8dgtJDQxQRF3/elLzroSweSTLBBQVj+d+LuqMl/7Tvw9mOHoI/4NJgUXIijk27VYMTUKk7UOUp8sAqcEnO4h+JMTmKwbkaNTGPfEkxhou+xg+i4g2UdFiyE79gSQYTiEZIPz/8sy/iF/vRpALFvlyMfLYSY9lsdKwhWWuz3VLSSVvpWYoYmqFbgj5q7MGgZD+zIboi2TQ6uhMGKuQHOGLdZiBwSBFRr23EBHFaw9R9aEMdc2bQiJSdx1q6jHjVZxo2nAm5kcG/x1yR/xsAEY8jezZAw1sKn+jYT9uZprIrMVAUn7u0JMySbhj32SURYof2AmkSIV0g+VZ5UJLHAiEeaNDCzq2KAH8WWYPItekAyYMbwFIaD6smwOsNBqKedu2kIiCiyC7SwbdolVGY2cNLStDGFld+Sm77hIA8zhWQsFM0hyMUSMPzpY1kvMCOylud20Kd9h5oydR4IFejDOhiYzXWwj3Jl1wZHmjYJxEQYYsDBId+MwYvZIQXEO3TGHgqufH2HQyy8lJ+cJUn9UpR2rXMRkQMXc9NNNyK5WKl6DHKwVwwO5IjMX+hjR9YusWTBT7lKZdSMy0HIPVvdqdBZvHCcA/TgLl3eeUrHim7J3EdNmTSbtAv0WJUKmk858vrPLPnw1RQui2NmRDsJWSmqgCm+5orIm2zMnIHVD3HJ1kDaWGrKHb+PvukX03lFCNFfuJKXjorovOoNMpM5uFg0bUzL/MexZfnclLu/nyoojaqUb5PXmky4ISUbl1tYZTm2QZzyRvA3BsRvf6HLqEk2tkZxA8OVT96wsQhgX03RuRwWcYYkoum23PyoQF/CsUBe9DLGQIYmUWXzCuzcYMrqt13ZvAozYFMKxz/oVIgKQossCv0F2YdnvSlApTN9516ODLwEotd0R8ZNNbCa+pULwugAOoMDxCTuUfoNpXY0rFUxBSteYf+3IQ/mEBl+WQoDjxlYd71wSRFGxLTk1/+gyaEdnFiqbANUiRr/AB2ukjxb378tLa/+GJZv6LiJNxJXRO4EztFDnhpcR157Ii/LXs5I/rR3UXrYClEjNiXZSCkNQdAYCumzt6lVt+Te/2JK194cQvXSsQR03T+4olFrTv3CyoWaNHYz5XbEOvPuzDr/uKTAtNf9J0PWvMtLBdj/lXVibsJtIyl579mcDP4BQk6lOBG3JmrJKSifwiS75AX0OYyhwhRtLMFQVKOm2IFwUK31RTKwVwECyR00ZenLLpiX4gv2I2q19QCovz4sb2wDE0850gLR6yRW5wM7RDavsGTlOFuuuhlIYB9FcYgzuRLp/PKtbSt+c7BxGTSGPwk8JmOxRPSXT15HDOkFKYghtgyf4MiEGw0ZPMYnavxEoqByEwWRcM8mW17+EZh3G0iHjmsrBglizrmQouXRPYa8+o9gkp6mjLiSSrxoOlBD+s4zliybD+YF7RVtg0DP9XuB/IRrISTS6nexvekCJn4MxxodfTqeayVeeU7cbGlsG0B4GgPxQoAPfq1DCYibNrAyqsHVNmhEQPEIMWBkCvvRnLz9S4aTCmk/slEiW/MeQiF/asvYyaV5NIoRGE8r37Rk1+cMURXdt6msLTc8oEO6rRynZQxMIPxPdnFl22pTFv2bLjs+TUnzaTzBysDBRXExNgF51UwMQjuHvd2+NPY7EL0/p8LHkhGXu1gN00A6FgrOAHGR9xhCUtDiM8e8pbnntpU6jnXS0oxztqaNjqyH0uiquZbMuNvfQ6HdSpKIqAuPm0+58tq/OGDirBpctTCvsliDRjaYVAww1Z98Hl4fYbs4TjiwIwNRPScP/xArTffSQeDBpIbIlc+x5333KaN25sUA4tk0j1K8PufaXrgdQ9mth+PFOtn/DuzhP3pN4MJpyfX3+XmrDQyWDkse7Xm0lMaNkZ0guREilW7504UopKoKvx4fhif9nD6ekrd+acqoq+AX3oU4lOfz87fdJ5nzmrs1iL62nDwIvlBdU1oveeXMiZQs/o8cxryNc/8AbuhgHjEueRFlQEsNW4PKRO00IstcZ8nYKaygcryUsRDZ1lva131gy4Kf6NK0Na2WdyKjwshW1hL9BDhxIBI1G/vZo/uxsV+gyfolthJ/wlD2gbkQzbv1d2TAKCIel9MvEf157ICL80+6HGLggUmbsULt2cQbETVchGbJvN+jbzEbSBhRdWny8eu2fP5+CpZj1VZez8mDm5CeA2wZOAptgV6AoI9Debd3E84+sdflbBi3ypB2BmSxLR9nZen8vNz8cDkDe8zHu6F++6+Mrx1+ZFNOGZ4Jp2GPPhhSUZ9hrtra8FTg0G5N9kBbzYvWq11RQya2cIb8zlOuXDLZkn7DOJQqB1h53ZW/MeIwNrS0JRNmOQiDhCOY/gCOSeTYPgfbFUdWvQXjjmYojMpGq4JFGmGPv2ONAU0+lH+3nA0OlVhVf+IiVJMuU++wZSEm9TQJEjJ0uJ1c/2FK1mPbdcVMb8vlw6YCdO8mtgsFQ8qSnDxTnvkADX/K+96DUkESwtmCJX/+45rsB/MSctwg85Gp9qkYGcDzLZhVwThKMxeGdAGQBTFq0Bjso7tWoFitqor3u7HicjZnO3w8KKKePo491BvEyZL7/ht8jWOMKY4fdmTxc9weQNypolPjytYJ+7JpX3ExIBEdpCcZxtu/mjkbxh6arP3AguiHOGOHcCWMamI4MThx8hx52a/hkTUb16Gq809/kLKMhj0pjjVWYWLBih06EAIUsUHYYRNsueYrmgqCQG0y917UoOdgQLFvu6hjknWLsSpUmbHJUAd3ZuSDl0y5648w8RPZOhMn1FTWlLmPWDJpThp9QMWQB8Qai3NfnPkOGW/Laz+xsH1L+6qWklrYpzy6W/kGYbTNeC2pIOIHRedpdziY2E05srND6LggSajkXfyMjYkOZ+w402YnHcWdXh/Mx1fogYh/WOIJz4Q5loyayAHn93lpzgruOIJZ75WfOLJ/C06+qSWMAF4KpvZfRZV6LFwi68qYqRgU1AZEIF9rrdtxm4NlpSUbaK1iZDA093Nr34V42iMvdz9GjW35TOfhsvY9U/ZtwgAKwKisHysv1P3d+lpy5x9yZTKU2Ft6bqrDn5mGCGCgSyyZ/6OcHISYrDTYEcTWsNc7uCcln2K/NOdhn3Aenrzg7YNXOLGklNFDJU6tT2iiOPFmS27+lq4srLIhe9deA6F4HKXBoMSUd3+FoRZlsACwGB3YBmnYx1GpYwNmOe1a6476RnpNv8+Ra+9OQ5NcSlxOej1guDAFZ5/NMPjg9sXgSheSeAKyYy0nRMYAL4UTkr0NHnn90LN/WmbclZOX/wF7YaUYrQTNvt2CLdxn71mF0MbUx1hYIDnpVuZXTzDsOjRaMhNGG54lnN/vpflLqEFb1Hf+A4HWV2EKPA/Mq6omHuG4tGKG1behOw7qJ/voVSvQWrT8m23hkHwt7h4O0RQyrxIFoQFcscAAgVFxRfLOVVe+hVWKOoAIJlPFUDyFa0vnfRf3L81MqdWklHk94ATRqbsml85Iy1e+r8F8kfa10W3kGw0r1WfvUIlIGD5dRJ0Z716P9nnCEl+GJorNoydTW4vQQ9iWhDEvC1LDSmuwGx8yZDLOfLkvjUxAjG05us+AmOhNdJF5Q15QWdW9H/bQ9+uxx0BU3ky7S8eRJKKihnURYUPkPoUtxL7txCMG5xA8zuUR+3fKrSnpj8mYMc/DEmlk5Q157zkXehQbR7GOLHsVYwmTY9RwMmF6e8UsSEs4NYljGDUSuO/lKrcTtpgrFvBR9LIehiDpxc5oK7qZIMTw8QidM4jItw7W0LojH7JN3HPC/nc795LqZ+gfzoItJ9PyztMQtU9AZ48jG2/VZ3Zo3/dZ4jEJesIDyxcViXgz8MCEWSnMmpxaoyvF2qWYZdy0NPZR0KZioolOFHMxODFjH9hZOoI3rsDxERQ9cZMiFejZzhBTv+WfI0bj5eGgwR7akNm/A2lhcAzTIDMHIPew62GyqPRh0Y2oeIOTKAxQz9e74mXgAaqAPbSmRFBH2ZRXdgKlAUpTR/aQPixRmScAsg2/wo4dtLruPlaJuiOIoGOfvnttBjeb2LL8NegbdkTs6RUYV23BZt5baRRVjnigJwH4FQehY7GsB56WF/B/c1BYcOrXgHS20US0DhOrD2bsvBM5E/llq31quiMT51INz444lwSN8WY6GKBBSrMaDYv72p1rMrLhQzIS6/XrhtJpKw3/ASP4uBwUxksWIs80GJpnG2ogYKE8bXSn3qFL554452XVYQn1smo6RezewIHpDU5qkLevxc/C+7CifEYt/KhJsCGe4IuW1Qc3YdOEdcJsSCBm6aRRXk8K0k3TZriGQpyvJ3Gs9xmGqUxtk+JKsvU68uKWD7VK8HdZKjxi2CefPmU5ztNPEt+WCTfBzPQyrMI41gqbO9REhza8+7Qhy+eDeWOOIE1M5hOwEAwcm/Z7OhJ31aOcvU4cwVHEMkjxZJoCMaJKURzr1M2ScdNcGXEVDc1pUaVBZQ5TwPWWrP/As70FC6q9nbfC1zio0ak8VjNhXuYt6UTG/x+FUdRzGJ5AIZeD1rmBpn9R+41CDSYig3z6FhQHN2G4FNGlBpuTUryGl6vJ4NHQ7I5lJVUIWIIuAvMN1ZTBy0asYt4F5iUZvB8ASQbfv6P1nQnDjSN7Sa9q9fFmCjpQsFHMWy0/cnDEQQNz6XQbkgk6JY430WSOn5NQ9HUMOatsxbjsG2DyYjyvn2M6p1BMdYnKzzLhbXCVTMr3zM3P858oTTXCxPL6r9ryFI5KC2dKFRUTtUO7PZE4as7iIt4Nx2jX3gvlHqQuL4W3le/8KVmdjR6BoqSaIpFyfv+RltzyqAPtIE3YODAoy0ORgspHwdD8qjkuTA2xor8K17rtZG4gEo1DAcnCB/Jp0My99QsdbmV5iCawu41QoZcWrPzFA7HRkyAC327JuiW0HorecxA/aoOpCDl1jO5+PjwqRjC4sAeNSyR8n6FQ+ysmictZ+Y6SRr/hOs6mK9+VPsFEC48dn5gtuCmy5QSmX7+fSzMXf/GYpf9IZqqSsViCX7y8vQbDgg6eOmfg4OCddZZkUj84MM0WmG6erI9hCI+GPn57KiH7TyiauLJ/J9uOTmI1/BqSGhr9l/XhEgKqjkcerS67LiUjJlmyCQsh/ZjLE+nE0w/1pvK1yk5PrEm34fh0uMfo5TDKfxcYGBZGWzDAsQKlO5Rnaf1Nh+NGiMp3PwZx7Kq0clogk/i4UK2expFJY09HevQ1ZPREW5a+YkF7moK9cPUZtlgTWnp0X0re/oUGgw9LZsMgvM8QammY/Nq8X9F/PbxGT8xIP7rFjTFl4RPs1EKTwwqiH44d4BmtDQb28XWwVWAH+QMjrKD3ttVUND5vJQQoshqrt4uMauaYjwPaCyzI83XMePgdUR6vODGFWfFU4lH5JIPxkIGYDwvKqBq8QkCJTi31JEpa21br8J22cV5O/CPagOenjsETaYUn0UXVQUf6XgP8gU9YpMsXlyh93PBVGEBB6hMHjSPHlqWQR8UcVNB1H2Aq46Jat4/e1AECHYYnTPwqwwB2UNLc4sglU3FkoWaYVuYtYqE6wYCIrcN3Mw1naZjcdYKWFcjVnNBuruh0dljxclqe/O8w+H4Th2Jq4HLw1pqwH0WEiZ44spn1NUOGX4njJFi2RCUS1wKDHFCKED8XzyWBfGVf+BnUJ8u2IPqDl6pkLi2JX9RO+mVLXpb84J4xneGg9LqN2x215akiHVBqajldHX5JZYUfDF6Yo64jrklAjJNLrYPOr4dljsKufsFPq+yzMXgW/cxuPXYJwYX+x43QIwwczZchGfxKz/Pn+BmGXHmjhYmW/VTfBGJB1zDzAbrPcvGorQ0FBubMTg6L7mQeYxAfAuf+UNlyxiLIUCaWLHoSpmYwVqhLeiORUR0HjQs568D2rDz7Vyl54f9ZEGeJo0+cWgjk5aFWmBEm6KIYn+hUXkq8Lr1RZ5Vy1GRzf8rD96qZyxAgY+7bAlcF9ltMoi6hC6QbP3VA6JsOnWOUX4WMxInwveR/+lCiPpkPPtu7EVHkBL6WkqS0ELKmspaK5lH6Iv4X+5fi/co30nAOYfQOLuGst/X/GTj9v/LPNoxFaN+NBSMCD14UT3/qxh7FIR1f+Xl5y9OClLpQr2MX9EuViTWIAifZATBLnXIbt3lsQ0RDg4XwvShPenu36Mb7JGWHKm5UYltUfsyomBEXPmnBSgXGDzjDiSJ8GT5lP70OY90t8K5Z8jxN5kyZ9XUYrsMsjcbsgSaUlfV/elICz7gP78KKVYUunJiyHVqZhFD6DEE5hMWNq0sx8PYUtMSODL+8Cif6qKlP7O22UfkXryRjVril4yy0tQEZShcDUH5rzPyI7DT9XL3YhWhG7yaWrwU/jwZrFnNyx7EYxOioxIHa2BOWbDhOqTsBHdrYL/11Snass2C5lpcBI73Je98OuC5Cd7F7bRrSX/wYYiSRybeiXLUOrhvBegtoMmRsBpJqXt5/FnG/EL+qlkR33OvvBw1D7d2jIRQZmG5hnrY4ukL6ldIu9dp7TZj0FezdSmCTobCCNdNqxpL3n4NSDIOFFta1zigl4AqoKOYHCBpS7FqXlWd+aCrzQWrqRiLEipd8vMPrYmyk7TgmMiiCcmb0s5dUiMEObXoX5SLX+mLgSGixuzuSP4VnEeX4mOex78EjiGebnsFHRGYF2sfbkfdesGFplAVurXVWfoMZHnyth4wpnTSHXgaPFzBnJGJ4Q7hbPoI/7woTbp3kxLj8Pl7UP5iychG2EOj3qHYTTypeBo2CNIAJpd6kSuAPTTl3I9ZUE8L/8GiNzyk5OFiU6doQB9nCicXoqTwVoZ4krm31Ynd2+TmZ3wALqlVvmZI7AeKXdlkFUOoOhowzofxFK+tc6YqgOetxFotL1BoebcrIs3/pYqWhuMNViWW8/wzUvvWznPz7D2z4QRqe1leRPo78cTUG3hXaxppaTqehGMvIv/2pJj//s5x8+m4Oxxj+HpllmIsriAXNKByv51vy0t/zBgg0gPhEoYNiHcEkfbFnDqZu/XTMqp5niAc7+LbwHUXokL3qbQM2rsQlfkvi47gSe/sVsMohk8X1nQWQ/UbY0hvSQDCNnUIlE+Sv2ITIGjn4F/+jDocSv8/8z2BBrx+JGyfhl38MhwJ4cFUbgC6Cx42djrKlqAUBV/3OCY8KUSpSWzARNuO/lUfMcVSuJsMo2GhGtosptzzCAHXAgU240Ak49IUWeertcNqB+WocUqpZOkwmH2R0TM7gUQ0Nb1RxBR6ImZ1KABos0Fm6AhDgKtDggc2fZOTJP2bsJgtKAxAQLmBnjhkQgaiB0+EVA7AAoVbeuFFJnJCP+xcVNaIG3BU4lOG+8eSRNPZP8EJ5H/avA3Hh2QhT3ZvUsRMjLUKjjMG6eyOiZmxOqeiLbEAcOmQSKrq69SuSRY0HnrNOvhnn5PB28Zzqw4lJ9B0rBUaBLIMIZNPvgphfnCLLyyCAGUKuzH/cEDPCSL9YAm2liHXlbIYUJW0xOakzHYpraRznWYjHRQVXsUTJF7aZq8Kez7Py9P/JyT3/1S4L18PsqKQweE4cgm3vT7Cyvwu3SVQXRzOgBXtlBG2YEdnQElzifqh6gmMg+D2sIFC2QOfbHrFlJE4bVIpDNgzGOT1rpVkJGGwvdfyfcTeMNhbYyrsrahxw9e07zFGmtyUwavyhRirR6NZLV7ayK2DmxaMDvzPL4ZA+jOF0fK8hH78Kh2Ss2mR4ikBUg3M/RObyaB/XA7CpwRFIl95ws4LN54evYCCfhhUYpaBC6fK6i78BVinV8MDFmXELIhnu3wwl0hY8xzhSExDwcKDKV/h427nYgcgBzAACV8zi3U2teHvCmybjr/fsXfdvhqircCxiU/oFRc/AP3X+j+EGCH/qaYhtNRCBAxoY0RH/qA1u2uTK8oWufAYngOZTNaxw0Cf0GmjJZHjrqP1rET3Py+maezTZuoozPZmo+LIEL9VveL0Jron/+ic5mXIn6H4dL4tD2FiIrDxhoH8qg9gthZcMxVmuiPH8AKkEpo2T4MLXrXfE7FGCRRv+QHNNaH5u+h36I6chPZ7NBOINVM8bjFxQb8LAwvirJBJxcdUd1Q2dsLjB+yxKimGtWRw/1WO9F8RSMbDqcmz+p90pyuPFdTOVOAVKeUwMIREG+Mp0LPgO3+M7vZBZNdyUW78Ns8kbUzAAgQvjjxH2ZnumMIEEgIZ9LYxTf7gq7TKpQWblHpepgEgt+DCSYM8h9EktiNkehOLfzl0Muenrtjz9vymuKrIV3xW/oFrWTF0Co2Iw3MuGDxhi1IH2GCMOL08eQcjZJvjcwrzTVntx7pfjB58FF8CZX6NPMXELJso4NhR6hiyDT+6mD3E2X3XyhQvgjqwsomb3BZzXw/uI24YcfHuP7UWcswOUCDwaxNMNEx6Yvg+8lq7FBKJBDBQXE0yB9EEs2/o7JaV0R1PmPWwjUgW8zKCNJ9Xrrhy4OpD+Nq0EDZQBSI2Yqqq8aDENkZZnnPqRsRZ6EN5ZpsBI1BDRICWXzzLlE6wO1HDGpfjOjSvpEZp7g9nfdCCaegx7OVaD3ghgt+CneVn7DmdU1B9YCeMg8l0JPvGoh4KyIT7c+CAC8vWJ2IcA5kTYu65BsLmVC3m1KbsnvCLFkGgmJRUGTz8Dv+MifnjuH2Wp0sUXlWixhjzOrcfOgI31HeiqkOqoJKRy6/bviPzLRhuxyqidr4TlP2F1lJBMeMccgRRFU0waglCiYc/wHVMMWuq9kmzAtLd8G0EL4FKnkAvBT2UO/UPJjUYyHOgw4S3wfrgiFUgBP0oJtDumzfGc3wVdpmXOeuUiStxbt2D78swPMevHz6GlLSCNEKvsuz9ypGE02x6eCqQMf9lGTwMMjHUFvrC3PIrwoavzcmI/9j/RuJ199aAVz4dn3GfKzd9MY7VV1FA2wDyE/9oPdFmCIOdv/xLWP0ezSiN59pXVVjLfQtetvEy7HVrzqJELNHkf8Z2/D9/cnaY0rc/g7DMGPgazGs8oR6bwGYMl1PMaBju1q72G5uWex/Qqllo6YkKl5bbvmvLi32Al5G0XMQNSNRH1F3EqMK/CrQa8mI8B42dBIpk0JwtGrLEQCxYSRe+r5sDw4hI6xCMa5w6cXiBIHSEF4Xk4OhAzYXcPx/6r5opcPlOHRENbYR/a2X0qOmA8njkZQ6wo0JCaaJl4oVMJA6NLodww5K7H8vLUX+TEbvFiP7UNkmgsmReeFtfcj7Ck3+N1FqXiKiNaNsJPdtZXYVOKIGWLftYim5bjHBkKm7igX+eCHy1mhoxrQUQJhsQtI0cQsOptA1KCIQ/+SV5+/r/yysCE15EUWDKYu/U7RmS9w5v56enVdUBeHvxTXfqN5EiNr4cSy/Q7MvC8ysuiJ7AuY/+vQT/hrWjhA1Q1qRXTKt8KgxXMngfzTrkT259HPXPaKgVDX1MP16W3ARE4BeMFKNg2Q+EId9ZDuxDNEdFTLDBHBkd+jbiCps8wBiCEPfeIFFZcXk8LXBQ69VI2BJWz6J8qXRFSyfl7VDZiuZfRlJFEy2kcvfwdzrFwZBOrtKkRN2rbjAxErm9CVH0ohRWlfPr0O4PueILz3bQ8/BearFiIYG3PWnJ4J/CAdFvd9axGhJCNK+/wy/PyAJikz2CQIp5HFGAO+iGXGvKNP7fk2b9uUS6ItR7W14oZw8P2HWXK/f8D25qJEDDDTgUqgDFyg+BOnpQy/Vz4BOOOIVxPG+qWoPDFqo0rQ+635fbfg7ls1/CJoQK1sAeYCDijkyHZ3wylMxpB6RiAgcpHry9onYaVFpMTY3S1bg3OhuvCkLj4n5UxMBuE2RuB2KfDR7V7H1ue/9scLH2wTwUB48SyKFLQBtqEP+rA0Tm54w90GTedF0Ox8+K5hWFIGnsaMvOrmFBudGXpSzloqlO4ugTB6WDZxeONupc2IolqOZloBi6JusMCTiloUAN7VOapkjiohl2Wlm//rS2v/lNOPloAv01E6a8WFSMWLPCiUsjVLIS9MRGSJy29+hMv0qn2xBhXZOL+I/Py0uPou81gYsyV6tSpdjCBnESMNwbiitc+ptz2HVum384bBM6BeQPQ/a+kHYMWeFpd/yltz7wIlf6T5LOUAhUMTJUCEzt87FRDvve4IMJ8Tlb8BkceCJGZgrpezYRetlJo/i+IR7zew8YhYVdMAlPvtKHqR3C3XlSwxBX0AfifmEwQELtnf0dufSQrU+ZBwfa6jUj2cDjYSkMRGECQmSmJx40njEGKbPRjpknkEChBbnjIkzToCll/8sz6uvdx5YE/zsj4a2xFo51rMOCw/1SB6OPwCVYIvHgODuyk/xhKJ9gbzoZugM4iilS1AvKBgiZghvEzsgidA1/eZ0zc0oDzfdijU8yuSisfDGmGyZeKowwCNkyeC6XjNwwYkxBOvTj5QKt9+m1uzUcFV5KiKVDBwK1Zvc6me9Y9/xnhM+fZ8tEiU9Ytg6sfjkEsHDVw2HGUcZx5ey38woqRgYH9AAzG8dfjjHB2Csco3p0vXn5VqK4/LEdDj76DM9A+wtn5Hle2IFDdelzxse0zuP9hVTZhucNz5fJEfFLYM3Xtixv2oASZcKOOS7HS6l7a+iaTcshei+kkP2GWLpdMwQVlSyz56Dc5mGwaMI30zqCpFOMhPkVv1X78oWKGBhAaLJiyMHofNgl3/MCM7nKcNfOuWrrFUctb2ZpyHKJ/0068B8Kz3vm9DCyCeIdTC4KMw6EcUSR5By+mPWyXPLyKFQEn4sWWEYducG0bB0uvybiPZ+g4iuNAvA6kGJ2TRvphQgQnBtoNnO/E+vkf83zbJXYkFqKiEjAGMsckgz1EGTnynX93dAyYyFcxDMwy6C384yo1FPeRDkSY17kPI/ToNmhht2JfugeH1CdTyuopk7Wlc3dRSh6aZdJ/Nw1Dbs7WHLwFaN6XOv+qWbgAg5ryRjjbXwHn6fHTGbITeOAo5MBuE5ZXOpQ4dOWy1F6+AUqprrjntvdA3HUL88jGbh3U6tS6l6oTkZLsZDBv9SY8nhNPnmOAmW3lwbNjLSLur/diLdOXlQ7v7HfSia6WvQYgZMoYF/dHGbDEofhNX9dCI8lc/teSOuv54Y1Y7oEHjNRl3rdTcKm0EffZhsWcjf5DoPt9XrB6G4HFdRzp0LupK2JP0TJoyHhd3VzR2J3RLtHWuhiAjO5C+daCscPtTmVjqMVWsbIVDSvf19PS8LykNiJlDsrL4Etxbxe3gG2ZNBM6B7IP6wmHTd1Fv5HN0KBzMQzPw8mlz0junToBTv3SIJxvaplH/JYTWc7SmKMxe/pWV34jOOhoBaVWHJyTeQjV1fMKfn1/vNWKIrJLvICisiAiEAwiroA+TvFydn21huf26EOScnWhjyotxRzoAEysRky0+uH+ngzBTiXze/tcvg/vZFXwnP8QN+CF/azCS/Ufj/SIK89kqSgCTvhk/3m4sczZ4OXdq5WHPXXkbfYATceSFPQt5yZrRBHGay815oyr3dbJxdjqgG0OY1tFjStKMvkzJmiAPJEzIGmPiR0hfs+GDnUycBwZ/M6Oy3O+37UHHIJtjMMn+C74PVi+rb8H66n3e724BOHXW7at8rcHHNqqLeFw2pCBwytIniYUSChw/ihwvuXb84d5AjmhQEIB+f+BPuHI66QPAgAAAABJRU5ErkJggg==";
+
+/* ============ 主题 ============ */
+const looplyTheme = {
+  token: {
+    colorPrimary: '#7C3AED', colorInfo: '#7C3AED', colorBgLayout: '#F9FAFB',
+    colorBgContainer: '#FFFFFF', colorText: '#1F2937', colorTextSecondary: '#374151',
+    colorTextTertiary: '#4B5563', colorTextDescription: '#6B7280', colorTextPlaceholder: '#9CA3AF',
+    colorBorder: '#E5E7EB', colorBorderSecondary: '#F3F4F6',
+    colorSuccess: '#16A34A', colorWarning: '#D97706', colorError: '#DC2626',
+    borderRadius: 8, borderRadiusLG: 14, borderRadiusSM: 6,
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: 14, controlHeight: 34, controlHeightSM: 28,
+  },
+  components: {
+    Layout: { headerBg: '#FFFFFF', headerHeight: 60, headerPadding: '0 24px', siderBg: '#FFFFFF', bodyBg: '#F9FAFB' },
+    Menu: {
+      itemBg: 'transparent', subMenuItemBg: 'transparent', itemHoverBg: 'rgba(0,0,0,.03)',
+      itemSelectedBg: '#F3EEFF', itemSelectedColor: '#7C3AED', itemBorderRadius: 0,
+      itemMarginInline: 0, itemMarginBlock: 0, itemHeight: 40, subMenuItemBorderRadius: 0,
+    },
+    Card: { borderRadiusLG: 16, paddingLG: 28 },
+    Table: {
+      headerBg: '#FFFFFF', headerColor: '#6B7280', rowHoverBg: '#FAF5FF', borderColor: '#E5E7EB',
+      headerSplitColor: 'transparent', cellFontSize: 13, cellFontSizeMD: 13, cellFontSizeSM: 13,
+      cellPaddingBlock: 11, cellPaddingInline: 12, cellPaddingBlockMD: 11, cellPaddingInlineMD: 12,
+      cellPaddingBlockSM: 9, cellPaddingInlineSM: 12, headerBorderRadius: 0,
+    },
+    Tag: { defaultBg: '#F3F4F6', defaultColor: '#6B7280' },
+    Tabs: { itemSelectedColor: '#7C3AED', itemHoverColor: '#374151', inkBarColor: '#7C3AED' },
+    Steps: { colorPrimary: '#7C3AED' },
+    Button: { controlHeight: 34, paddingInline: 14, fontSize: 13 },
+    Input: { controlHeight: 34, paddingInline: 12 },
+    Select: { controlHeight: 34 },
+    DatePicker: { controlHeight: 34 },
+    Modal: { borderRadiusLG: 16, paddingContentHorizontalLG: 28 },
+  },
+};
+const CARD_STYLE = { boxShadow: '0 10px 24px rgba(16,24,40,.06)', marginBottom: 20 };
+const TABLE_STYLES = { root: { borderRadius: 14, border: '1px solid #E5E7EB', overflow: 'hidden' } };
+const SIDER_STYLE = { boxShadow: '3px 0 12px rgba(0,0,0,0.06)', padding: '8px 0', overflowY: 'auto', height: '100%' };
+
+/* ============ 业务组件 ============ */
+const TAG_COLORS = {
+  on: {bg:'#F0FDF4',color:'#16A34A'}, sale: {bg:'#EFF6FF',color:'#2563EB'},
+  pending: {bg:'#FFFBEB',color:'#D97706'}, off: {bg:'#F3F4F6',color:'#6B7280'},
+  req: {bg:'#FEF2F2',color:'#DC2626'}, warn: {bg:'#FFF1F2',color:'#E11D48'},
+};
+function StatusTag({ variant, children }) {
+  const c = TAG_COLORS[variant] || TAG_COLORS.off;
+  return (
+    <Tag bordered={false} style={{ background:c.bg, color:c.color, borderRadius:999,
+      padding:'2px 8px', fontSize:12, lineHeight:'18px', marginInlineEnd:0 }}>{children}</Tag>
+  );
+}
+function TipText({ label, tip }) {
+  return (
+    <Tooltip title={<div style={{ whiteSpace:'pre-line', lineHeight:1.6 }}>{tip}</div>} color="#fff"
+      styles={{ body: { color:'#374151', fontSize:12, padding:'10px 14px' } }}>
+      <span className="lp-tip-trigger">{label}</span>
+    </Tooltip>
+  );
+}
+function Kpi({ num, label }) {
+  return <div className="lp-kpi"><div className="num">{num}</div><div className="label">{label}</div></div>;
+}
+function CompactPagination({ total, current=1, pageSize=20 }) {
+  const tp = Math.ceil(total / pageSize) || 1;
+  const pages = useMemo(() => {
+    const out = [{ k:'prev', label:'<', disabled:current===1, arrow:true }];
+    if (tp <= 6) for (let i=1;i<=tp;i++) out.push({ k:i, label:i });
+    else { out.push({k:1,label:1}); out.push({k:2,label:2}); out.push({k:3,label:3}); out.push({k:'gap',label:'…',disabled:true}); out.push({k:tp,label:tp}); }
+    out.push({ k:'next', label:'>', disabled:current===tp, arrow:true });
+    return out;
+  }, [current, tp]);
+  return (
+    <div className="lp-pagination">
+      <span>共 {total.toLocaleString()} 条,每页{' '}
+        <Select size="small" value={pageSize} style={{ width:72, marginInline:4 }}
+          options={[{value:20,label:20},{value:50,label:50},{value:100,label:100}]} />{' '}条</span>
+      <div className="divider" />
+      <Space size={2}>
+        {pages.map(p => (
+          <span key={p.k} style={{ minWidth:32, height:32, display:'inline-flex', alignItems:'center', justifyContent:'center',
+            borderRadius:8, fontSize:13, cursor:p.disabled?'default':'pointer',
+            background:p.k===current?'#7C3AED':(p.arrow?'#fff':'transparent'),
+            color:p.k===current?'#fff':'#374151', border:p.arrow?'1px solid #E5E7EB':'none',
+            fontWeight:p.k===current?600:400, opacity:p.disabled?0.35:1 }}>{p.label}</span>
+        ))}
+      </Space>
+      <div className="divider" />
+      <span>第 {current}/{tp} 页</span>
+    </div>
+  );
+}
+function EmptyZero({ entity, cta, onCta }) {
+  return <div className="lp-empty"><InboxOutlined className="icon" />
+    <div className="title">暂无{entity}</div>
+    <div className="desc">点击下方按钮创建第一条{entity}</div>
+    {cta && <Button type="primary" onClick={onCta}>{cta}</Button>}</div>;
+}
+function EmptyNoMatch({ onClear }) {
+  return <div className="lp-empty"><SearchOutlined className="icon" />
+    <div className="title">未找到匹配结果</div>
+    <div className="desc">请尝试调整搜索关键词或筛选条件</div>
+    <Button onClick={onClear}>清除筛选条件</Button></div>;
+}
+function EmptyError({ onRetry }) {
+  return <div className="lp-empty"><ExclamationCircleOutlined className="icon err" />
+    <div className="title">加载失败</div>
+    <div className="desc">网络异常,请检查网络连接后重试</div>
+    <Button type="primary" onClick={onRetry}>重试</Button></div>;
+}
+function EmptyStateSwitcher({ mode, setMode }) {
+  return (
+    <div style={{ marginTop:12, display:'flex', gap:8, justifyContent:'center' }}>
+      {[['data','正常数据'],['zero','零数据态'],['no-match','无匹配态'],['error','异常态']].map(([k,label]) =>
+        <Button key={k} type={mode===k?'primary':'default'} onClick={() => setMode(k)}>{label}</Button>)}
+    </div>
+  );
+}
+function EditableNumber({ value, onChange, width = 90 }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(value);
+  const [justSaved, setJustSaved] = useState(false);
+  const wrap = { display:'inline-block', width, textAlign:'center' };
+  if (editing) {
+    return (
+      <span style={wrap}>
+        <antd.InputNumber autoFocus size="small" value={val} min={0} style={{ width:'100%' }}
+          onChange={(v) => setVal(v)}
+          onBlur={() => { setEditing(false); onChange && onChange(val); setJustSaved(true); setTimeout(() => setJustSaved(false), 1000); }}
+          onPressEnter={(e) => e.target.blur()} />
+      </span>
+    );
+  }
+  return (
+    <span style={wrap}>
+      <span className={'lp-editable' + (justSaved ? ' lp-edit-just-saved' : '')}
+        onClick={() => setEditing(true)}>{(val ?? 0).toLocaleString()}</span>
+    </span>
+  );
+}
+
+/* ============ 字段提示文案 ============ */
+const TIP = {
+  sellable: '可售库存 = 在库 - 预占 - 锁定',
+  onhand: '点击数字可直接修改（入库/调整）',
+  reserved: '买家下单未付款时冻结的数量\n由订单系统自动管理',
+  locked: '点击数字可直接修改\n锁定后不参与可售计算',
+  event: '入库：商品入库，实物数量增加\n出库：订单发货，实物数量减少\n预占：买家下单冻结库存，可售减少\n释放：订单取消/超时，预占库存恢复可售\n调整：盘点差异/损坏报废，人工修正数量\n锁定：人工锁定库存，不参与可售计算\n解锁：解除锁定，恢复可售状态',
+  qty: '实物库存的增减数量\n正数(+)：库存增加（入库/释放/解锁）\n负数(-)：库存减少（出库/预占/锁定/调整减少）',
+  before: `变动发生前的库存状态\n"-" 表示新建库存（首次入库）`,
+  after: '变动完成后的库存状态\n在库 / 已损 等',
+  doc: `触发本次变动的业务单据\nORD- 开头为销售订单（出库/预占）\n"-" 表示无关联单据`,
+};
+
+/* ============ 库存总览 ============ */
+const OVERVIEW_ROWS = [
+  { id:'PRD-10234', name:'iPhone 14 Pro 128GB 深紫色', onhand:1, reserved:0, locked:0, inAt:'2026-04-15', lastAt:'2026-04-15' },
+  { id:'PRD-20056', name:'Apple 20W USB-C 充电器', onhand:350, reserved:20, locked:5, inAt:'2026-03-20', lastAt:'2026-04-28' },
+  { id:'PRD-20078', name:'AirPods Pro 2nd Gen', onhand:1, reserved:0, locked:0, inAt:'2026-04-10', lastAt:'2026-04-10' },
+  { id:'PRD-10301', name:'Samsung Galaxy S24 Ultra', onhand:1, reserved:0, locked:0, inAt:'2026-04-05', lastAt:'2026-04-05' },
+  { id:'PRD-20089', name:'Anker 65W GaN 充电器', onhand:520, reserved:30, locked:10, inAt:'2026-03-15', lastAt:'2026-04-27' },
+  { id:'PRD-10412', name:'MacBook Air M2 256GB', onhand:1, reserved:1, locked:0, inAt:'2026-04-20', lastAt:'2026-04-20' },
+  { id:'PRD-20102', name:'USB-C to Lightning 线缆 1m', onhand:1200, reserved:60, locked:40, inAt:'2026-02-28', lastAt:'2026-04-26' },
+];
+
+function OverviewPage({ onBatchImport, onViewLedger }) {
+  const [mode, setMode] = useState('data');
+  const [rows, setRows] = useState(OVERVIEW_ROWS);
+
+  const setField = (id, field, v) =>
+    setRows(rs => rs.map(r => r.id === id ? { ...r, [field]: (v ?? 0) } : r));
+
+  const columns = [
+    { title:'商品ID', dataIndex:'id', width:110, render:v => <span style={{ fontFamily:'Menlo,monospace', fontSize:12 }}>{v}</span> },
+    { title:'商品名称', dataIndex:'name', width:240 },
+    { title:<TipText label="可售库存" tip={TIP.sellable} />, key:'sellable', width:110, align:'right',
+      render:(_, r) => Math.max(0, r.onhand - r.reserved - r.locked).toLocaleString() },
+    { title:<TipText label="在库" tip={TIP.onhand} />, dataIndex:'onhand', width:110, align:'center',
+      render:(v, r) => <EditableNumber value={v} onChange={nv => setField(r.id, 'onhand', nv)} /> },
+    { title:<TipText label="预占" tip={TIP.reserved} />, dataIndex:'reserved', width:90, align:'right',
+      render:v => v.toLocaleString() },
+    { title:<TipText label="锁定" tip={TIP.locked} />, dataIndex:'locked', width:100, align:'center',
+      render:(v, r) => <EditableNumber value={v} onChange={nv => setField(r.id, 'locked', nv)} /> },
+    { title:'入库时间', dataIndex:'inAt', width:120 },
+    { title:'最近变动时间', dataIndex:'lastAt', width:130 },
+    { title:'操作', key:'op', width:150, fixed:'right',
+      render:(_, r) => <Button size="small" onClick={() => onViewLedger(r.id)}>查看库存流水</Button> },
+  ];
+
+  return (
+    <Card style={CARD_STYLE}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:16, marginBottom:18 }}>
+        <div>
+          <div style={{ fontSize:20, fontWeight:700, marginBottom:6 }}>库存总览</div>
+          <div style={{ color:'#6B7280', fontSize:13 }}>管理所有库存主体，直接在行内修改库存数量</div>
+        </div>
+        <Button type="primary" icon={<ImportOutlined />} onClick={onBatchImport}>批量导入</Button>
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12, marginBottom:18 }}>
+        <Kpi num="892" label="商品总库存" />
+        <Kpi num="156" label="预占中" />
+        <Kpi num="55" label="锁定中" />
+      </div>
+
+      <Space size={12} wrap style={{ marginBottom:16 }}>
+        <Input placeholder="搜索商品名称/SKU" prefix={<SearchOutlined style={{ color:'#9CA3AF' }} />} allowClear style={{ width:220 }} />
+        <Button type="primary" icon={<SearchOutlined />}>查询</Button>
+        <Button icon={<ReloadOutlined />}>重置</Button>
+      </Space>
+
+      {mode === 'data' && (
+        <>
+          <Table rowKey="id" columns={columns} dataSource={rows} pagination={false}
+            styles={TABLE_STYLES} scroll={{ x: 'max-content' }} />
+          <CompactPagination total={1286} pageSize={20} />
+        </>
+      )}
+      {mode === 'zero' && <EmptyZero entity="库存" />}
+      {mode === 'no-match' && <EmptyNoMatch onClear={() => setMode('data')} />}
+      {mode === 'error' && <EmptyError onRetry={() => setMode('data')} />}
+      <EmptyStateSwitcher mode={mode} setMode={setMode} />
+    </Card>
+  );
+}
+
+/* ============ 库存流水 ============ */
+const EVENT_VARIANT = { 入库:'on', 释放:'on', 解锁:'on', 出库:'req', 预占:'req', 锁定:'req', 调整:'sale' };
+const LEDGER_ROWS = [
+  { id:'LDG-8642', pid:'PRD-20056', name:'Apple 20W USB-C 充电器', event:'入库', delta:200, before:'—', after:'在库', doc:'—', by:'李四', at:'2026-04-28 14:20' },
+  { id:'LDG-8641', pid:'PRD-10234', name:'iPhone 14 Pro 128GB 深紫色', event:'预占', delta:-1, before:'在库', after:'预占', doc:'ORD-5525', by:'系统', at:'2026-04-28 10:15' },
+  { id:'LDG-8640', pid:'PRD-20089', name:'Anker 65W GaN 充电器', event:'调整', delta:-3, before:'在库', after:'在库', doc:'—', by:'张三', at:'2026-04-27 16:00' },
+  { id:'LDG-8639', pid:'PRD-20056', name:'Apple 20W USB-C 充电器', event:'出库', delta:-50, before:'预占', after:'已出库', doc:'ORD-4421', by:'系统', at:'2026-04-27 09:30' },
+  { id:'LDG-8638', pid:'PRD-20102', name:'USB-C to Lightning 线缆 1m', event:'入库', delta:500, before:'—', after:'在库', doc:'—', by:'李四', at:'2026-04-26 11:00' },
+  { id:'LDG-8637', pid:'PRD-20056', name:'Apple 20W USB-C 充电器', event:'锁定', delta:-5, before:'在库', after:'锁定', doc:'—', by:'张三', at:'2026-04-25 15:30' },
+  { id:'LDG-8636', pid:'PRD-20089', name:'Anker 65W GaN 充电器', event:'解锁', delta:3, before:'锁定', after:'在库', doc:'—', by:'张三', at:'2026-04-25 10:00' },
+  { id:'LDG-8635', pid:'PRD-20089', name:'Anker 65W GaN 充电器', event:'预占', delta:-10, before:'在库', after:'预占', doc:'ORD-5520', by:'系统', at:'2026-04-24 14:20' },
+  { id:'LDG-8634', pid:'PRD-10234', name:'iPhone 14 Pro 128GB 深紫色', event:'释放', delta:1, before:'预占', after:'在库', doc:'ORD-5525', by:'系统', at:'2026-04-24 09:00' },
+  { id:'LDG-8633', pid:'PRD-20102', name:'USB-C to Lightning 线缆 1m', event:'调整', delta:20, before:'在库', after:'在库', doc:'—', by:'张三', at:'2026-04-23 16:30' },
+];
+
+function LedgerPage({ initialSearch }) {
+  const [mode, setMode] = useState('data');
+  const [q, setQ] = useState(initialSearch || '');
+
+  const filtered = useMemo(() => {
+    const kw = (q || '').trim().toLowerCase();
+    if (!kw) return LEDGER_ROWS;
+    return LEDGER_ROWS.filter(r =>
+      r.pid.toLowerCase().includes(kw) || r.name.toLowerCase().includes(kw) || r.doc.toLowerCase().includes(kw));
+  }, [q]);
+
+  const columns = [
+    { title:'流水ID', dataIndex:'id', width:110, render:v => <span style={{ fontFamily:'Menlo,monospace', fontSize:12 }}>{v}</span> },
+    { title:'商品ID', dataIndex:'pid', width:110, render:v => <span style={{ fontFamily:'Menlo,monospace', fontSize:12 }}>{v}</span> },
+    { title:'商品名称', dataIndex:'name', width:200 },
+    { title:<TipText label="事件类型" tip={TIP.event} />, dataIndex:'event', width:100,
+      render:v => <StatusTag variant={EVENT_VARIANT[v]}>{v}</StatusTag> },
+    { title:<TipText label="数量变化" tip={TIP.qty} />, dataIndex:'delta', width:110, align:'right',
+      render:v => <span className={v >= 0 ? 'rate-up' : 'rate-down'}>{v >= 0 ? '+' : ''}{v}</span> },
+    { title:<TipText label="变动前状态" tip={TIP.before} />, dataIndex:'before', width:110 },
+    { title:<TipText label="变动后状态" tip={TIP.after} />, dataIndex:'after', width:110 },
+    { title:<TipText label="关联单据" tip={TIP.doc} />, dataIndex:'doc', width:120,
+      render:v => v === '—' ? '—' : <span style={{ fontFamily:'Menlo,monospace', fontSize:12 }}>{v}</span> },
+    { title:'操作人', dataIndex:'by', width:90 },
+    { title:'操作时间', dataIndex:'at', width:150 },
+  ];
+
+  return (
+    <Card style={CARD_STYLE}>
+      <div style={{ marginBottom:18 }}>
+        <div style={{ fontSize:20, fontWeight:700, marginBottom:6 }}>库存流水</div>
+        <div style={{ color:'#6B7280', fontSize:13 }}>记录所有实物库存的数量变动流水，支持追溯和对账</div>
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:18 }}>
+        <Kpi num="8,642" label="流水总数" />
+        <Kpi num="2,130" label="入库记录" />
+        <Kpi num="1,856" label="出库记录" />
+        <Kpi num="4,656" label="其他变动" />
+      </div>
+
+      <Space size={12} wrap style={{ marginBottom:16 }}>
+        <Input placeholder="搜索商品ID/商品名称/关联单号" prefix={<SearchOutlined style={{ color:'#9CA3AF' }} />}
+          allowClear value={q} onChange={e => setQ(e.target.value)} style={{ width:240 }} />
+        <Select defaultValue="" style={{ width:140 }} options={[
+          { value:'', label:'全部事件类型' }, { value:'入库', label:'入库' }, { value:'出库', label:'出库' },
+          { value:'调整', label:'调整' }, { value:'预占', label:'预占' }, { value:'释放', label:'释放' },
+          { value:'锁定', label:'锁定' }, { value:'解锁', label:'解锁' } ]} />
+        <Select defaultValue="" style={{ width:150 }} options={[
+          { value:'', label:'全部操作人类型' }, { value:'op', label:'运营人员' }, { value:'sys', label:'系统自动' } ]} />
+        <DatePicker.RangePicker placeholder={['开始日期','结束日期']} />
+        <Button type="primary" icon={<SearchOutlined />}>查询</Button>
+        <Button icon={<ReloadOutlined />} onClick={() => setQ('')}>重置</Button>
+      </Space>
+
+      {mode === 'data' && (filtered.length > 0 ? (
+        <>
+          <Table rowKey="id" columns={columns} dataSource={filtered} pagination={false}
+            styles={TABLE_STYLES} scroll={{ x: 'max-content' }} />
+          <CompactPagination total={q ? filtered.length : 8642} pageSize={20} />
+        </>
+      ) : <EmptyNoMatch onClear={() => setQ('')} />)}
+      {mode === 'zero' && <EmptyZero entity="流水记录" />}
+      {mode === 'no-match' && <EmptyNoMatch onClear={() => setMode('data')} />}
+      {mode === 'error' && <EmptyError onRetry={() => setMode('data')} />}
+      <EmptyStateSwitcher mode={mode} setMode={setMode} />
+    </Card>
+  );
+}
+
+/* ============ 批量导入弹窗 ============ */
+const IMPORT_PREVIEW = [
+  { row:1, name:'iPhone 15 Pro 256GB', qty:1, ok:true },
+  { row:2, name:'AirPods Max', qty:1, ok:true },
+  { row:3, name:'USB-C 数据线 2m', qty:500, ok:true },
+  { row:4, name:'（商品不存在）', qty:10, ok:false, msg:'失败：商品ID无效' },
+];
+
+function BatchImportModal({ open, onClose }) {
+  const cols = [
+    { title:'行号', dataIndex:'row', width:70 },
+    { title:'商品名称', dataIndex:'name' },
+    { title:'数量', dataIndex:'qty', width:90, align:'right' },
+    { title:'校验结果', dataIndex:'ok', width:160,
+      render:(ok, r) => ok ? <StatusTag variant="on">通过</StatusTag> : <StatusTag variant="req">{r.msg}</StatusTag> },
+  ];
+  return (
+    <Modal title="批量导入" open={open} onCancel={onClose} closable={false} maskClosable={false}
+      centered={true} width={620}
+      footer={[
+        <Button key="c" onClick={onClose}>取消</Button>,
+        <Button key="s" type="primary" onClick={onClose}>确认导入（3 条）</Button>,
+      ]}>
+      <Alert type="info" showIcon={false} style={{ marginBottom:18 }}
+        message={<div style={{ fontWeight:600 }}>操作步骤</div>}
+        description={<div style={{ fontSize:12, lineHeight:1.8 }}>
+          1. 下载导入模板，按格式填写商品入库信息<br />
+          2. 上传填写好的文件（支持 .xlsx / .csv）<br />
+          3. 系统校验数据，预览导入结果后确认执行
+        </div>} />
+
+      <div style={{ marginBottom:20 }}>
+        <h4 className="lp-section">第 1 步:下载模板</h4>
+        <Button icon={<DownloadOutlined />}>下载入库模板（.xlsx）</Button>
+      </div>
+
+      <div style={{ marginBottom:20 }}>
+        <h4 className="lp-section">第 2 步:上传文件</h4>
+        <Upload.Dragger name="file" multiple={false} accept=".xlsx,.csv" beforeUpload={() => false}>
+          <p className="ant-upload-drag-icon"><InboxOutlined style={{ color:'#7C3AED' }} /></p>
+          <p className="ant-upload-text">点击或拖拽文件到此处上传</p>
+          <p className="ant-upload-hint">支持 .xlsx / .csv，单次最多 500 条</p>
+        </Upload.Dragger>
+      </div>
+
+      <div>
+        <h4 className="lp-section">第 3 步:导入预览</h4>
+        <Table rowKey="row" size="small" columns={cols} dataSource={IMPORT_PREVIEW} pagination={false}
+          styles={TABLE_STYLES}
+          summary={() => (
+            <Table.Summary fixed>
+              <Table.Summary.Row>
+                <Table.Summary.Cell index={0} colSpan={4}>
+                  共 4 条，<span style={{ color:'#16A34A', fontWeight:600 }}>3 条通过</span>，
+                  <span style={{ color:'#DC2626', fontWeight:600 }}>1 条失败</span>（失败项将跳过）
+                </Table.Summary.Cell>
+              </Table.Summary.Row>
+            </Table.Summary>
+          )} />
+      </div>
+    </Modal>
+  );
+}
+
+/* ============ App ============ */
+const MENU_ITEMS = [
+  { key:'inventory', icon:<ShopOutlined />, label:'库存管理', children:[
+    { key:'inventory-overview', icon:<AppstoreOutlined />, label:'库存总览' },
+    { key:'inventory-ledger', icon:<FileTextOutlined />, label:'库存流水' },
+  ]},
+];
+const PAGE_LABEL = { 'inventory-overview':'库存总览', 'inventory-ledger':'库存流水' };
+
+function App() {
+  const [currentPage, setCurrentPage] = useState('inventory-overview');
+  const [ledgerSearch, setLedgerSearch] = useState('');
+  const [batchOpen, setBatchOpen] = useState(false);
+
+  const go = (key) => { setLedgerSearch(''); setCurrentPage(key); };
+  const viewLedger = (pid) => { setLedgerSearch(pid); setCurrentPage('inventory-ledger'); };
+
+  return (
+    <ConfigProvider theme={looplyTheme}>
+      <Layout style={{ height:'100vh' }}>
+        <Layout.Header style={{ borderBottom:'1px solid #E5E7EB', display:'flex', alignItems:'center' }}>
+          <img src={LOGO_SRC} alt="Looply" style={{ height:32, display:'block' }} />
+          <div style={{ width:1, height:20, background:'#E5E7EB', margin:'0 16px' }} />
+          <span style={{ fontSize:14, fontWeight:500, color:'#6B7280' }}>库存管理系统</span>
+          <span style={{ marginLeft:'auto', color:'#9CA3AF', fontSize:13 }}>{PAGE_LABEL[currentPage]}</span>
+        </Layout.Header>
+        <Layout>
+          <Layout.Sider width={220} theme="light" style={SIDER_STYLE}>
+            <Menu mode="inline" items={MENU_ITEMS} selectedKeys={[currentPage]}
+              defaultOpenKeys={['inventory']} style={{ borderInlineEnd:'none' }}
+              onClick={({ key }) => go(key)} />
+          </Layout.Sider>
+          <Layout.Content style={{ padding:28, overflow:'auto' }}>
+            {currentPage === 'inventory-overview' &&
+              <OverviewPage onBatchImport={() => setBatchOpen(true)} onViewLedger={viewLedger} />}
+            {currentPage === 'inventory-ledger' &&
+              <LedgerPage initialSearch={ledgerSearch} />}
+          </Layout.Content>
+        </Layout>
+      </Layout>
+      <BatchImportModal open={batchOpen} onClose={() => setBatchOpen(false)} />
+    </ConfigProvider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
