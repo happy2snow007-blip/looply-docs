@@ -771,34 +771,6 @@ Looply 平台需要为运营团队提供用户管理后台，支持查看用户�
 
 ---
 
-### 2.3 数据模型
-
-#### 用户标签表（user_tag）
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | BIGINT | 主键 |
-| name | VARCHAR(20) | 标签名称，唯一 |
-| description | VARCHAR(200) | 标签说明 |
-| status | TINYINT | 1=启用 2=停用 |
-| user_count | INT | 已打标用户数（冗余计数） |
-| created_at | DATETIME | 创建时间 |
-| updated_at | DATETIME | 最后更新时间 |
-
-#### 用户标签绑定表（user_tag_binding）
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | BIGINT | 主键 |
-| user_id | BIGINT | 用户ID，关联 user_account |
-| tag_id | BIGINT | 标签ID，关联 user_tag |
-| created_at | DATETIME | 打标时间 |
-| created_by | VARCHAR(50) | 打标操作人 |
-
-> 联合唯一约束：user_id + tag_id（同一用户同一标签只能绑定一次）
-
----
-
 ## 三、依赖与风险
 
 ### 上下游系统依赖
