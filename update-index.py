@@ -647,6 +647,60 @@ def main():
     if index_updates:
         update_index_html(index_updates, all_versions, all_history)
 
+    # 更新各模块 PRD index.html 的 topbar 版本号
+    update_prd_index_topbar()
+
+
+# ─── PRD index.html topbar 版本同步 ─────────────────────────────────────────────
+
+def update_prd_index_topbar():
+    """扫描各模块 PRD/latest.md 提取版本号，同步更新 PRD/index.html 的 topbar 标题。"""
+    import glob
+
+    # 收集所有 PRD index.html 路径
+    prd_dirs = glob.glob(os.path.join(REPO_DIR, 'docs*/PRD'))
+    prd_dirs += glob.glob(os.path.join(REPO_DIR, 'docs/PRD'))
+
+    changed_count = 0
+    for prd_dir in prd_dirs:
+        latest_md = os.path.join(prd_dir, 'latest.md')
+        index_html = os.path.join(prd_dir, 'index.html')
+        if not os.path.isfile(latest_md) or not os.path.isfile(index_html):
+            continue
+
+        # 从 latest.md 前 10 行提取版本号
+        version = None
+        with open(latest_md, 'r', encoding='utf-8') as f:
+            for line in f.readlines()[:10]:
+                # 匹配各种格式：**版本**: V1.1, 版本：V0.9, # 标题 V1.0, 文档版本：v4.2
+                m = re.search(r'[版本|版本]\s*[:：]\s*[vV]?([\d.]+)', line)
+                if not m:
+                    m = re.search(r'PRD\s+[vV]([\d.]+)', line)
+                if m:
+                    version = m.group(1)
+                    break
+
+        if not version:
+            continue
+
+        # 读取 index.html，替换 topbar 中的版本号
+        content = open(index_html, 'r', encoding='utf-8').read()
+        # 匹配 <span class="title">...PRD V1.0</span> 或类似
+        new_content = re.sub(
+            r'(<span class="title">[^<]*?PRD\s+)[vV][\d.]+',
+            lambda m: m.group(1) + 'V' + version,
+            content
+        )
+        if new_content != content:
+            with open(index_html, 'w', encoding='utf-8') as f:
+                f.write(new_content)
+            rel_path = os.path.relpath(index_html, REPO_DIR)
+            print(f'  [更新] {rel_path} topbar → V{version}')
+            changed_count += 1
+
+    if changed_count == 0:
+        print('  [无变化] PRD index.html topbar 均已是最新')
+
 
 if __name__ == '__main__':
     main()
