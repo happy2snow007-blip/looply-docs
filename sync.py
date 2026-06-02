@@ -233,6 +233,10 @@ MODULES = {
                 'subdir': 'PRD',
                 'pattern': r'looply-用户管理-PRD-v(.+?)\.md',
             },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'用户管理-交付开发 V(.+?)\.zip',
+            },
         },
     },
 }
