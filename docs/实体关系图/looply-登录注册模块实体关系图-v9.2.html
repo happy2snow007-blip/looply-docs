@@ -35,7 +35,7 @@ const ER_CONFIG = {
       {n:'注册时间', col:'created_at', t:'DATETIME', constraint:'NOT NULL', desc:''},
       {n:'更新时间', col:'updated_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true},
       {n:'状态（正常/冻结/注销）', col:'status', t:'TINYINT', constraint:'NOT NULL DEFAULT 1', desc:'1=正常 2=冻结 3=注销'},
-      {n:'注销申请时间', col:'deactivated_at', t:'DATETIME', constraint:'', desc:'为空=未注销，有值=注销申请时间'}
+      {n:'注销执行时间', col:'deactivated_at', t:'DATETIME', constraint:'', desc:'为空=未注销，有值=注销执行时间（立即匿名化）'}
     ], note:'核心实体，所有其他实体围绕用户展开', techNote:'索引: idx_country_code(country_code), idx_status(status)\n枚举: register_channel app=C端App h5=C端H5 web=C端Web merchant_admin=商家后台 ops_admin=运营后台 | status 1=正常 2=冻结 3=注销'},
 
     { id:'credential', name:'登录凭证 Credential', group:'auth', table:'user_credential', fields:[
@@ -83,7 +83,7 @@ const ER_CONFIG = {
     ], techNote:'索引: idx_user_id(user_id), idx_created_at(created_at)'},
 
     { id:'audit', name:'账号变更日志 AccountChangeLog', group:'security', table:'account_change_log', fields:[
-      {n:'操作类型（改密码/绑定凭证/解绑凭证/绑定三方/解绑三方/注销）', col:'action_type', t:'TINYINT', constraint:'NOT NULL', desc:'1=改密码 2=绑定凭证 3=解绑凭证 4=绑定三方 5=解绑三方 6=注销'},
+      {n:'操作类型（改密码/重置密码/绑定凭证/解绑凭证/绑定三方/解绑三方/注销）', col:'action_type', t:'TINYINT', constraint:'NOT NULL', desc:'1=改密码 2=重置密码 3=绑定凭证 4=解绑凭证 5=绑定三方 6=解绑三方 7=注销'},
       {n:'操作详情', col:'detail', t:'TEXT', constraint:'', desc:'JSON格式'},
       {n:'IP', col:'ip_address', t:'VARCHAR(45)', constraint:'', desc:'', tech:true},
       {n:'设备信息', col:'device_info', t:'VARCHAR(256)', constraint:'', desc:'User-Agent', tech:true},
@@ -96,7 +96,7 @@ const ER_CONFIG = {
       {n:'登录方式（密码/验证码/三方）', col:'login_method', t:'TINYINT', constraint:'NOT NULL', desc:'1=密码 2=验证码 3=三方'},
       {n:'登录时间', col:'created_at', t:'DATETIME', constraint:'NOT NULL', desc:'', tech:true},
       {n:'过期时间', col:'expired_at', t:'DATETIME', constraint:'NOT NULL', desc:''},
-      {n:'状态（活跃/过期/吊销）', col:'status', t:'TINYINT', constraint:'NOT NULL DEFAULT 1', desc:'1=活跃 2=过期 3=吊销'},
+      {n:'状态（活跃/过期/已终止）', col:'status', t:'TINYINT', constraint:'NOT NULL DEFAULT 1', desc:'1=活跃 2=过期 3=已终止'},
       {n:'用户ID', col:'user_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 user_account.id', tech:true},
       {n:'设备ID', col:'device_id', t:'BIGINT', constraint:'FK, INDEX', desc:'关联 user_device.id', tech:true}
     ], techNote:'索引: idx_user_id(user_id), idx_device_id(device_id)'},
@@ -134,8 +134,8 @@ const ER_CONFIG = {
     ], note:'与 User 一对一', techNote:'唯一约束: uk_user_id(user_id)'},
 
     { id:'consent', name:'合规同意 ConsentRecord', group:'security', table:'user_consent', fields:[
-      {n:'同意类型（隐私政策/用户协议）', col:'consent_type', t:'TINYINT', constraint:'NOT NULL', desc:'1=隐私政策 2=用户协议'},
-      {n:'协议版本', col:'policy_version', t:'VARCHAR(16)', constraint:'NOT NULL', desc:'如 v1.0'},
+      {n:'同意类型（隐私政策/服务条款）', col:'consent_type', t:'TINYINT', constraint:'NOT NULL', desc:'1=隐私政策 2=服务条款'},
+      {n:'协议版本', col:'policy_version', t:'VARCHAR(16)', constraint:'NOT NULL', desc:'递增整数，如 v1、v2'},
       {n:'适用国家', col:'country_code', t:'VARCHAR(10)', constraint:'', desc:'ISO 3166-1'},
       {n:'同意时间', col:'agreed_at', t:'DATETIME', constraint:'NOT NULL', desc:''},
       {n:'用户ID', col:'user_id', t:'BIGINT', constraint:'NOT NULL, FK, INDEX', desc:'关联 user_account.id', tech:true}
