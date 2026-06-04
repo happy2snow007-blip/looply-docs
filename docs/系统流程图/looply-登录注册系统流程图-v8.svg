@@ -1,0 +1,1047 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1472" height="7468" viewBox="0 0 1472 7468" font-family="'PingFang SC','Microsoft YaHei','Helvetica Neue',Arial,sans-serif">
+<metadata>
+<![CDATA[
+# Looply &#183; 登录注册模块系统流程图 V8.0 &#183; 2026.06
+# 研发编码参考数据，从 SVG <metadata> 提取
+
+swimlanes:
+  - key: "A"
+    name: "登录注册系统"
+  - key: "M"
+    name: "消息通知"
+  - key: "E"
+    name: "外部服务"
+
+sections:
+  - name: "① 邮箱注册"
+    steps:
+      - type: start_end
+        text: "开始注册"
+      - type: process
+        lane: "A"
+        text: "接收注册请求(邮箱+密码)"
+      - type: decision
+        lane: "A"
+        text: "邮箱格式正确?"
+        on_no: "返回邮箱格式错误"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "密码规则通过?"
+        on_no: "返回密码规则提示"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "已勾选协议?"
+        on_no: "返回未勾选"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "采集设备指纹+IP"
+      - type: decision
+        lane: "A"
+        text: "注册限频?"
+        on_no: "返回请求过多"
+        yes_label: "否"
+        no_label: "是"
+      - type: decision
+        lane: "A"
+        text: "邮箱未注册?"
+        on_no: "返回已注册"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "风控检测通过?"
+        on_no: "拦截/要求验证"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "请求发送验证码"
+      - type: cross_lane
+        from: "A"
+        to: "M"
+        text: "生成验证码并存储"
+      - type: cross_lane
+        from: "M"
+        to: "E"
+        text: "邮件服务商投递"
+      - type: cross_lane
+        from: "E"
+        to: "A"
+        text: "用户输入验证码"
+      - type: cross_lane
+        from: "A"
+        to: "M"
+        text: "校验验证码"
+      - type: decision
+        lane: "M"
+        text: "验证码有效?"
+        on_no: "返回错误/已过期"
+        yes_label: "是"
+        no_label: "否"
+      - type: cross_lane
+        from: "M"
+        to: "A"
+        text: "创建账号"
+      - type: process
+        lane: "A"
+        text: "签发Token"
+      - type: process
+        lane: "A"
+        text: "记录设备指纹+关联Session"
+      - type: start_end
+        text: "注册完成"
+  - name: "② 邮箱登录"
+    steps:
+      - type: start_end
+        text: "开始登录"
+      - type: process
+        lane: "A"
+        text: "接收登录请求(邮箱+密码)"
+      - type: decision
+        lane: "A"
+        text: "邮箱格式正确?"
+        on_no: "返回邮箱格式错误"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "采集设备指纹+IP"
+      - type: decision
+        lane: "A"
+        text: "风控检测通过?(规则同①)"
+        on_no: "拦截/要求验证"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "邮箱存在?"
+        on_no: "返回邮箱或密码错误"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "密码错误>=5次?"
+        on_no: "锁定账号30分钟"
+        yes_label: "否"
+        no_label: "是"
+      - type: decision
+        lane: "A"
+        text: "密码正确?"
+        on_no: "返回邮箱或密码错误"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "签发Token设Cookie"
+      - type: process
+        lane: "A"
+        text: "记录设备指纹+关联Session"
+      - type: start_end
+        text: "登录完成"
+      - type: note
+        title: "Identifier-First 统一入口(预留)"
+        lines:
+          - "当前：①② 分离式注册/登录入口"
+          - "预留：Identifier-First 统一入口模式"
+          - "迁移：前置 /api/auth/identify 端点"
+          - "返回 {action: register|login, methods: [...]}"
+          - "①② 后端流程段零改动，仅新增路由层"
+  - name: "③ OAuth认证"
+    steps:
+      - type: start_end
+        text: "开始"
+      - type: process
+        lane: "A"
+        text: "接收三方登录/注册请求"
+      - type: process
+        lane: "A"
+        text: "采集设备指纹+IP"
+      - type: decision
+        lane: "A"
+        text: "风控检测通过?(规则同①)"
+        on_no: "拦截/要求验证"
+        yes_label: "是"
+        no_label: "否"
+      - type: cross_lane
+        from: "A"
+        to: "E"
+        text: "跳转OAuth授权页"
+      - type: process
+        lane: "E"
+        text: "用户授权,返回授权码"
+      - type: cross_lane
+        from: "E"
+        to: "A"
+        text: "用code换取token"
+      - type: process
+        lane: "A"
+        text: "获取用户信息(uid/email/name)"
+      - type: decision
+        lane: "A"
+        text: "provider_uid已绑定?"
+        on_no: "直接签发Token完成"
+        yes_label: "否"
+        no_label: "是"
+      - type: condition_branch
+        lane: "A"
+        text: "获取到邮箱?"
+        yes_label: "是"
+        no_label: "否(Facebook)"
+        no_branch:
+          - text: "跳转邮箱补充页"
+          - text: "用户输入邮箱"
+          - text: "发送验证码+校验(流程同①)"
+      - type: condition_branch
+        lane: "A"
+        text: "邮箱已注册?"
+        yes_label: "是"
+        no_label: "否"
+        yes_branch:
+          - text: "关联已有账号"
+        no_branch:
+          - text: "创建新账号"
+      - type: process
+        lane: "A"
+        text: "写入OAuth绑定记录"
+      - type: multi_branch
+        lane: "A"
+        text: "Provider类型?"
+        branches:
+          - label: "Google"
+            nodes:
+              - type: process
+                text: "email写入凭证表"
+              - type: process
+                text: "预填昵称"
+          - label: "Apple"
+            nodes:
+              - type: condition_branch
+                text: "给了真实邮箱?"
+                yes_label: "是"
+                no_label: "否"
+                yes_branch:
+                  - text: "email写入凭证表"
+              - type: process
+                text: "预填昵称(仅首次)"
+          - label: "Facebook"
+            nodes:
+              - type: process
+                text: "email写入凭证表"
+              - type: process
+                text: "预填昵称"
+      - type: process
+        lane: "A"
+        text: "签发Token"
+      - type: process
+        lane: "A"
+        text: "记录设备指纹+关联Session"
+      - type: start_end
+        text: "认证完成"
+      - type: note
+        title: "已绑定用户(老用户)路径"
+        lines:
+          - "provider_uid已绑定 = 老用户重复OAuth登录"
+          - "直接: 签发Token → 记录设备指纹+关联Session → 完成"
+          - "跳过下方所有注册/绑定/Provider特殊处理步骤"
+      - type: note
+        title: "邮箱补充流程(Facebook无邮箱)"
+        lines:
+          - "触发: OAuth回调未返回邮箱(仅Facebook可能)"
+          - "1. 跳转邮箱补充页(OAuthEmailSupplement)"
+          - "2. 用户输入邮箱 → 发验证码 → 校验(流程同①)"
+          - "3. 验证通过后继续: 判断邮箱是否已注册"
+          - "4. 已注册→关联已有账号; 未注册→创建新账号"
+          - "5. 临时OAuth凭证有效期10分钟,过期需重新授权"
+  - name: "④ 忘记密码"
+    steps:
+      - type: start_end
+        text: "开始"
+      - type: process
+        lane: "A"
+        text: "接收重置密码请求(邮箱)"
+      - type: decision
+        lane: "A"
+        text: "邮箱格式正确?"
+        on_no: "返回邮箱格式错误"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "邮箱存在?"
+        on_no: "返回已发送(防枚举)"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "请求发送验证码"
+      - type: decision
+        lane: "M"
+        text: "发信限频?"
+        on_no: "返回请求过多"
+        yes_label: "否"
+        no_label: "是"
+      - type: process
+        lane: "M"
+        text: "生成验证码并存储"
+      - type: cross_lane
+        from: "M"
+        to: "E"
+        text: "邮件服务商投递"
+      - type: cross_lane
+        from: "E"
+        to: "A"
+        text: "用户输入验证码"
+      - type: cross_lane
+        from: "A"
+        to: "M"
+        text: "校验验证码"
+      - type: decision
+        lane: "M"
+        text: "验证码有效?"
+        on_no: "返回错误/已过期"
+        yes_label: "是"
+        no_label: "否"
+      - type: cross_lane
+        from: "M"
+        to: "A"
+        text: "用户输入新密码(两次)"
+      - type: decision
+        lane: "A"
+        text: "密码规则校验?"
+        on_no: "返回密码规则提示"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "与旧密码相同?"
+        on_no: "返回不能相同"
+        yes_label: "否"
+        no_label: "是"
+      - type: process
+        lane: "A"
+        text: "更新密码哈希"
+      - type: process
+        lane: "A"
+        text: "失效旧Token"
+      - type: process
+        lane: "A"
+        text: "写入审计日志(重置密码)"
+      - type: start_end
+        text: "流程结束"
+  - name: "⑤ 密码修改"
+    steps:
+      - type: start_end
+        text: "开始"
+      - type: process
+        lane: "A"
+        text: "接收修改密码请求"
+      - type: decision
+        lane: "A"
+        text: "旧密码正确?"
+        on_no: "返回密码错误"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "新旧密码相同?"
+        on_no: "返回不能相同"
+        yes_label: "否"
+        no_label: "是"
+      - type: decision
+        lane: "A"
+        text: "密码规则校验?"
+        on_no: "返回密码规则提示"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "更新密码哈希"
+      - type: process
+        lane: "A"
+        text: "终止所有其他Session"
+      - type: process
+        lane: "A"
+        text: "写入审计日志(改密码)"
+      - type: start_end
+        text: "流程结束"
+  - name: "⑥ 退出登录"
+    steps:
+      - type: start_end
+        text: "开始"
+      - type: process
+        lane: "A"
+        text: "接收退出请求"
+      - type: process
+        lane: "A"
+        text: "清除Session/Token"
+      - type: start_end
+        text: "退出完成"
+      - type: note
+        title: "会话失效（被动退出）"
+        lines:
+          - "1. 接口返回 401"
+          - "2. 检测到 Token 失效"
+          - "3. 清除本地 Token / Cookie"
+          - "4. 跳转首页 + 提示 Session expired"
+          - "触发：Token过期 / 密码修改 / 管理员强制下线"
+  - name: "⑦ 账号注销（运营操作）"
+    steps:
+      - type: start_end
+        text: "开始"
+      - type: process
+        lane: "A"
+        text: "接收运营端注销指令"
+      - type: decision
+        lane: "A"
+        text: "运营确认:无进行中订单?"
+        on_no: "拒绝注销(需先处理订单)"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "标记status=注销"
+      - type: process
+        lane: "A"
+        text: "记录deactivated_at"
+      - type: process
+        lane: "A"
+        text: "终止所有Session"
+      - type: process
+        lane: "A"
+        text: "解除所有OAuth绑定"
+      - type: process
+        lane: "A"
+        text: "立即匿名化PII"
+      - type: process
+        lane: "A"
+        text: "写入审计日志(注销)"
+      - type: start_end
+        text: "注销完成"
+      - type: note
+        title: "注销说明"
+        lines:
+          - "触发：用户发邮件申请，运营在后台用户管理执行"
+          - "1. 执行后立即匿名化PII(不可恢复)"
+          - "2. 邮箱立即释放，可重新注册(视为新账号)"
+          - "3. 交易记录等业务数据保留(关联匿名账号)"
+  - name: "⑧ Token刷新"
+    steps:
+      - type: start_end
+        text: "触发"
+      - type: process
+        lane: "A"
+        text: "检测access_token过期"
+      - type: process
+        lane: "A"
+        text: "携带refresh_token请求刷新"
+      - type: decision
+        lane: "A"
+        text: "refresh_token有效?"
+        on_no: "返回401"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "Session状态活跃?"
+        on_no: "返回401(已终止)"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "签发新access_token"
+      - type: process
+        lane: "A"
+        text: "滑动续期refresh_token"
+      - type: start_end
+        text: "刷新完成"
+  - name: "⑨ 协议版本检测"
+    steps:
+      - type: start_end
+        text: "触发"
+      - type: process
+        lane: "A"
+        text: "用户访问任意页面"
+      - type: decision
+        lane: "A"
+        text: "协议版本有更新?"
+        on_no: "正常访问"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "弹出协议更新弹窗"
+      - type: decision
+        lane: "A"
+        text: "用户同意?"
+        on_no: "强制退出登录"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "提交同意请求"
+      - type: process
+        lane: "A"
+        text: "写入ConsentRecord"
+      - type: process
+        lane: "A"
+        text: "记录协议版本+国家"
+      - type: start_end
+        text: "完成"
+]]>
+</metadata>
+<defs>
+<marker id="arr" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#475569"/></marker>
+<marker id="arr-r" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#DC2626"/></marker>
+</defs>
+<rect width="1472" height="7468" fill="#F8FAFC"/>
+<rect width="1472" height="46" fill="#1E1F2E"/>
+<text x="736" y="30" text-anchor="middle" fill="#fff" font-size="17" font-weight="600">Looply &#183; 登录注册模块系统流程图</text>
+<text x="1442" y="30" text-anchor="end" fill="rgba(255,255,255,0.5)" font-size="10">V8.0 &#183; 2026.06</text>
+<rect x="40" y="46" width="792" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="436" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">登录注册系统</text>
+<rect x="832" y="46" width="320" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="992" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">消息通知</text>
+<rect x="1152" y="46" width="320" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="1312" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">外部服务</text>
+<rect x="40" y="46" width="792" height="1112" fill="rgba(74,108,247,0.04)"/>
+<rect x="832" y="46" width="320" height="1112" fill="rgba(245,158,11,0.04)"/>
+<line x1="832" y1="46" x2="832" y2="1158" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1152" y="46" width="320" height="1112" fill="rgba(239,68,68,0.04)"/>
+<line x1="1152" y1="46" x2="1152" y2="1158" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="1158" x2="1472" y2="1158" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="46" width="40" height="1112" fill="#DBEAFE" rx="0"/>
+<text x="20" y="571" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">①</text>
+<text x="20" y="589" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">邮</text>
+<text x="20" y="607" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">箱</text>
+<text x="20" y="625" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">注</text>
+<text x="20" y="643" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">册</text>
+<rect x="40" y="1166" width="792" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="436" y="1183" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">登录注册系统</text>
+<rect x="832" y="1166" width="320" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="992" y="1183" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">消息通知</text>
+<rect x="1152" y="1166" width="320" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="1312" y="1183" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">外部服务</text>
+<rect x="40" y="1166" width="792" height="854" fill="rgba(74,108,247,0.04)"/>
+<rect x="832" y="1166" width="320" height="854" fill="rgba(245,158,11,0.04)"/>
+<line x1="832" y1="1166" x2="832" y2="2020" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1152" y="1166" width="320" height="854" fill="rgba(239,68,68,0.04)"/>
+<line x1="1152" y1="1166" x2="1152" y2="2020" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="2020" x2="1472" y2="2020" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="1166" width="40" height="854" fill="#DBEAFE" rx="0"/>
+<text x="20" y="1562" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">②</text>
+<text x="20" y="1580" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">邮</text>
+<text x="20" y="1598" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">箱</text>
+<text x="20" y="1616" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">登</text>
+<text x="20" y="1634" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">录</text>
+<rect x="40" y="2028" width="792" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="436" y="2045" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">登录注册系统</text>
+<rect x="832" y="2028" width="320" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="992" y="2045" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">消息通知</text>
+<rect x="1152" y="2028" width="320" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="1312" y="2045" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">外部服务</text>
+<rect x="40" y="2028" width="792" height="1690" fill="rgba(74,108,247,0.04)"/>
+<rect x="832" y="2028" width="320" height="1690" fill="rgba(245,158,11,0.04)"/>
+<line x1="832" y1="2028" x2="832" y2="3718" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1152" y="2028" width="320" height="1690" fill="rgba(239,68,68,0.04)"/>
+<line x1="1152" y1="2028" x2="1152" y2="3718" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="3718" x2="1472" y2="3718" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="2028" width="40" height="1690" fill="#DBEAFE" rx="0"/>
+<text x="20" y="2851" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">③</text>
+<text x="20" y="2869" text-anchor="middle" fill="#1E40AF" font-size="10" font-weight="700">OAuth</text>
+<text x="20" y="2887" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">认</text>
+<text x="20" y="2905" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">证</text>
+<rect x="40" y="3726" width="792" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="436" y="3743" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">登录注册系统</text>
+<rect x="832" y="3726" width="320" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="992" y="3743" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">消息通知</text>
+<rect x="1152" y="3726" width="320" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="1312" y="3743" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">外部服务</text>
+<rect x="40" y="3726" width="792" height="1034" fill="rgba(74,108,247,0.04)"/>
+<rect x="832" y="3726" width="320" height="1034" fill="rgba(245,158,11,0.04)"/>
+<line x1="832" y1="3726" x2="832" y2="4760" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1152" y="3726" width="320" height="1034" fill="rgba(239,68,68,0.04)"/>
+<line x1="1152" y1="3726" x2="1152" y2="4760" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="4760" x2="1472" y2="4760" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="3726" width="40" height="1034" fill="#DBEAFE" rx="0"/>
+<text x="20" y="4212" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">④</text>
+<text x="20" y="4230" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">忘</text>
+<text x="20" y="4248" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">记</text>
+<text x="20" y="4266" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">密</text>
+<text x="20" y="4284" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">码</text>
+<rect x="40" y="4768" width="792" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="436" y="4785" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">登录注册系统</text>
+<rect x="832" y="4768" width="320" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="992" y="4785" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">消息通知</text>
+<rect x="1152" y="4768" width="320" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="1312" y="4785" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">外部服务</text>
+<rect x="40" y="4768" width="792" height="524" fill="rgba(74,108,247,0.04)"/>
+<rect x="832" y="4768" width="320" height="524" fill="rgba(245,158,11,0.04)"/>
+<line x1="832" y1="4768" x2="832" y2="5292" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1152" y="4768" width="320" height="524" fill="rgba(239,68,68,0.04)"/>
+<line x1="1152" y1="4768" x2="1152" y2="5292" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="5292" x2="1472" y2="5292" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="4768" width="40" height="524" fill="#DBEAFE" rx="0"/>
+<text x="20" y="4999" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">⑤</text>
+<text x="20" y="5017" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">密</text>
+<text x="20" y="5035" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">码</text>
+<text x="20" y="5053" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">修</text>
+<text x="20" y="5071" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">改</text>
+<rect x="40" y="5300" width="792" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="436" y="5317" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">登录注册系统</text>
+<rect x="832" y="5300" width="320" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="992" y="5317" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">消息通知</text>
+<rect x="1152" y="5300" width="320" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="1312" y="5317" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">外部服务</text>
+<rect x="40" y="5300" width="792" height="408" fill="rgba(74,108,247,0.04)"/>
+<rect x="832" y="5300" width="320" height="408" fill="rgba(245,158,11,0.04)"/>
+<line x1="832" y1="5300" x2="832" y2="5708" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1152" y="5300" width="320" height="408" fill="rgba(239,68,68,0.04)"/>
+<line x1="1152" y1="5300" x2="1152" y2="5708" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="5708" x2="1472" y2="5708" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="5300" width="40" height="408" fill="#DBEAFE" rx="0"/>
+<text x="20" y="5473" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">⑥</text>
+<text x="20" y="5491" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">退</text>
+<text x="20" y="5509" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">出</text>
+<text x="20" y="5527" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">登</text>
+<text x="20" y="5545" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">录</text>
+<rect x="40" y="5716" width="792" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="436" y="5733" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">登录注册系统</text>
+<rect x="832" y="5716" width="320" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="992" y="5733" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">消息通知</text>
+<rect x="1152" y="5716" width="320" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="1312" y="5733" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">外部服务</text>
+<rect x="40" y="5716" width="792" height="702" fill="rgba(74,108,247,0.04)"/>
+<rect x="832" y="5716" width="320" height="702" fill="rgba(245,158,11,0.04)"/>
+<line x1="832" y1="5716" x2="832" y2="6418" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1152" y="5716" width="320" height="702" fill="rgba(239,68,68,0.04)"/>
+<line x1="1152" y1="5716" x2="1152" y2="6418" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="6418" x2="1472" y2="6418" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="5716" width="40" height="702" fill="#DBEAFE" rx="0"/>
+<text x="20" y="5982" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">⑦</text>
+<text x="20" y="6000" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">账</text>
+<text x="20" y="6018" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">号</text>
+<text x="20" y="6036" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">注</text>
+<text x="20" y="6054" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">销</text>
+<text x="20" y="6072" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">（</text>
+<text x="20" y="6090" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">运</text>
+<text x="20" y="6108" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">营</text>
+<text x="20" y="6126" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">操</text>
+<text x="20" y="6144" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">作</text>
+<text x="20" y="6162" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">）</text>
+<rect x="40" y="6426" width="792" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="436" y="6443" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">登录注册系统</text>
+<rect x="832" y="6426" width="320" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="992" y="6443" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">消息通知</text>
+<rect x="1152" y="6426" width="320" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="1312" y="6443" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">外部服务</text>
+<rect x="40" y="6426" width="792" height="454" fill="rgba(74,108,247,0.04)"/>
+<rect x="832" y="6426" width="320" height="454" fill="rgba(245,158,11,0.04)"/>
+<line x1="832" y1="6426" x2="832" y2="6880" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1152" y="6426" width="320" height="454" fill="rgba(239,68,68,0.04)"/>
+<line x1="1152" y1="6426" x2="1152" y2="6880" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="6880" x2="1472" y2="6880" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="6426" width="40" height="454" fill="#DBEAFE" rx="0"/>
+<text x="20" y="6631" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">⑧</text>
+<text x="20" y="6649" text-anchor="middle" fill="#1E40AF" font-size="10" font-weight="700">Token</text>
+<text x="20" y="6667" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">刷</text>
+<text x="20" y="6685" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">新</text>
+<rect x="40" y="6888" width="792" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="436" y="6905" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">登录注册系统</text>
+<rect x="832" y="6888" width="320" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="992" y="6905" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">消息通知</text>
+<rect x="1152" y="6888" width="320" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="1312" y="6905" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">外部服务</text>
+<rect x="40" y="6888" width="792" height="502" fill="rgba(74,108,247,0.04)"/>
+<rect x="832" y="6888" width="320" height="502" fill="rgba(245,158,11,0.04)"/>
+<line x1="832" y1="6888" x2="832" y2="7390" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1152" y="6888" width="320" height="502" fill="rgba(239,68,68,0.04)"/>
+<line x1="1152" y1="6888" x2="1152" y2="7390" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="7390" x2="1472" y2="7390" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="6888" width="40" height="502" fill="#DBEAFE" rx="0"/>
+<text x="20" y="7090" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">⑨</text>
+<text x="20" y="7108" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">协</text>
+<text x="20" y="7126" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">议</text>
+<text x="20" y="7144" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">版</text>
+<text x="20" y="7162" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">本</text>
+<text x="20" y="7180" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">检</text>
+<text x="20" y="7198" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">测</text>
+<line x1="436" y1="116" x2="436" y2="132" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="164" x2="436" y2="183" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="501" y1="208" x2="512" y2="208" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="507" y="201" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="436" y1="233" x2="436" y2="253" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="246" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="501" y1="278" x2="512" y2="278" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="507" y="271" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="436" y1="303" x2="436" y2="323" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="316" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="501" y1="348" x2="512" y2="348" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="507" y="341" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="436" y1="373" x2="436" y2="390" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="386" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="436" y1="422" x2="436" y2="441" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="501" y1="466" x2="512" y2="466" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="507" y="459" text-anchor="middle" fill="#DC2626" font-size="8">是</text>
+<line x1="436" y1="491" x2="436" y2="511" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="504" text-anchor="middle" fill="#64748B" font-size="8">否</text>
+<line x1="501" y1="536" x2="512" y2="536" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="507" y="529" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="436" y1="561" x2="436" y2="581" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="574" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="501" y1="606" x2="512" y2="606" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="507" y="599" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="436" y1="631" x2="436" y2="648" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="644" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="436,680 436,716 912,716" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="992,732 992,768 1232,768" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1312,784 1312,820 516,820" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="436,836 436,872 912,872" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="992" y1="888" x2="992" y2="907" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1057" y1="932" x2="1068" y2="932" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="1063" y="925" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<text x="1004" y="970" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="992,957 992,990 516,990" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="1006" x2="436" y2="1026" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="1058" x2="436" y2="1074" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="1106" x2="436" y2="1125" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="1236" x2="436" y2="1252" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="1284" x2="436" y2="1303" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="501" y1="1328" x2="512" y2="1328" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="507" y="1321" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="436" y1="1353" x2="436" y2="1370" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="1366" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="436" y1="1402" x2="436" y2="1421" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="516" y1="1446" x2="527" y2="1446" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="522" y="1439" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="436" y1="1471" x2="436" y2="1491" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="1484" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="501" y1="1516" x2="512" y2="1516" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="507" y="1509" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="436" y1="1541" x2="436" y2="1561" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="1554" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="501" y1="1586" x2="512" y2="1586" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="507" y="1579" text-anchor="middle" fill="#DC2626" font-size="8">是</text>
+<line x1="436" y1="1611" x2="436" y2="1631" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="1624" text-anchor="middle" fill="#64748B" font-size="8">否</text>
+<line x1="501" y1="1656" x2="512" y2="1656" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="507" y="1649" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="436" y1="1681" x2="436" y2="1698" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="1694" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="436" y1="1730" x2="436" y2="1746" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="1778" x2="436" y2="1797" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="2098" x2="436" y2="2114" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="2146" x2="436" y2="2162" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="2194" x2="436" y2="2213" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="516" y1="2238" x2="527" y2="2238" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="522" y="2231" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<text x="448" y="2276" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="436,2263 436,2296 1232,2296" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1312" y1="2312" x2="1312" y2="2332" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1312,2364 1312,2400 516,2400" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="2416" x2="436" y2="2436" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="2468" x2="436" y2="2487" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="516" y1="2512" x2="527" y2="2512" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="522" y="2505" text-anchor="middle" fill="#DC2626" font-size="8">是</text>
+<line x1="436" y1="2537" x2="436" y2="2557" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="2550" text-anchor="middle" fill="#64748B" font-size="8">否</text>
+<line x1="436" y1="2607" x2="436" y2="2624" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="2620" text-anchor="middle" fill="#64748B" font-size="8">否(Facebook)</text>
+<line x1="436" y1="2656" x2="436" y2="2672" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="2704" x2="436" y2="2720" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="508" y="2575" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="501,2582 586,2582 586,2787 436,2787" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="2752" x2="436" y2="2787" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="2837" x2="436" y2="2854" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="2850" text-anchor="middle" fill="#64748B" font-size="8">否</text>
+<polyline points="501,2812 616,2812 616,2854" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="508" y="2805" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="436" y1="2886" x2="436" y2="2918" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="616,2886 616,2934 516,2934" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="2950" x2="436" y2="2969" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="371,2994 136,2994 136,3036" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="254" y="2987" text-anchor="middle" fill="#64748B" font-size="8">Google</text>
+<line x1="136" y1="3068" x2="136" y2="3084" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="3019" x2="436" y2="3036" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="3032" text-anchor="middle" fill="#64748B" font-size="8">Apple</text>
+<polyline points="506,3052 556,3052 556,3094" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="513" y="3045" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<text x="448" y="3090" text-anchor="middle" fill="#64748B" font-size="8">否</text>
+<polyline points="436,3077 436,3126" fill="none" stroke="#475569" stroke-width="1.2"/>
+<line x1="436" y1="3126" x2="436" y2="3158" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="556,3126 556,3174 516,3174" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="501,2994 736,2994 736,3036" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="618" y="2987" text-anchor="middle" fill="#64748B" font-size="8">Facebook</text>
+<line x1="736" y1="3068" x2="736" y2="3084" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="3190" x2="436" y2="3222" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="136,3116 136,3238 356,3238" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="736,3116 736,3238 516,3238" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="3254" x2="436" y2="3270" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="3302" x2="436" y2="3321" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="3796" x2="436" y2="3812" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="3844" x2="436" y2="3863" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="501" y1="3888" x2="512" y2="3888" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="507" y="3881" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="436" y1="3913" x2="436" y2="3933" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="3926" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="501" y1="3958" x2="512" y2="3958" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="507" y="3951" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="436" y1="3983" x2="436" y2="4000" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="3996" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="436,4032 436,4076 927,4076" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1057" y1="4076" x2="1068" y2="4076" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="1063" y="4069" text-anchor="middle" fill="#DC2626" font-size="8">是</text>
+<line x1="992" y1="4101" x2="992" y2="4118" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1004" y="4114" text-anchor="middle" fill="#64748B" font-size="8">否</text>
+<polyline points="992,4150 992,4186 1232,4186" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1312,4202 1312,4238 516,4238" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="436,4254 436,4290 912,4290" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="992" y1="4306" x2="992" y2="4325" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1057" y1="4350" x2="1068" y2="4350" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="1063" y="4343" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<text x="1004" y="4388" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="992,4375 992,4408 516,4408" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="4424" x2="436" y2="4443" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="501" y1="4468" x2="512" y2="4468" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="507" y="4461" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="436" y1="4493" x2="436" y2="4513" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="4506" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="501" y1="4538" x2="512" y2="4538" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="507" y="4531" text-anchor="middle" fill="#DC2626" font-size="8">是</text>
+<line x1="436" y1="4563" x2="436" y2="4580" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="4576" text-anchor="middle" fill="#64748B" font-size="8">否</text>
+<line x1="436" y1="4612" x2="436" y2="4628" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="4660" x2="436" y2="4676" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="4708" x2="436" y2="4727" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="4838" x2="436" y2="4854" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="4886" x2="436" y2="4905" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="501" y1="4930" x2="512" y2="4930" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="507" y="4923" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="436" y1="4955" x2="436" y2="4975" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="4968" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="501" y1="5000" x2="512" y2="5000" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="507" y="4993" text-anchor="middle" fill="#DC2626" font-size="8">是</text>
+<line x1="436" y1="5025" x2="436" y2="5045" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="5038" text-anchor="middle" fill="#64748B" font-size="8">否</text>
+<line x1="501" y1="5070" x2="512" y2="5070" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="507" y="5063" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="436" y1="5095" x2="436" y2="5112" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="5108" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="436" y1="5144" x2="436" y2="5160" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="5192" x2="436" y2="5208" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="5240" x2="436" y2="5259" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="5370" x2="436" y2="5386" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="5418" x2="436" y2="5434" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="5466" x2="436" y2="5485" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="5786" x2="436" y2="5802" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="5834" x2="436" y2="5853" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="526" y1="5878" x2="537" y2="5878" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="532" y="5871" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="436" y1="5903" x2="436" y2="5920" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="5916" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="436" y1="5952" x2="436" y2="5968" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="6000" x2="436" y2="6016" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="6048" x2="436" y2="6064" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="6096" x2="436" y2="6112" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="6144" x2="436" y2="6160" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="6192" x2="436" y2="6211" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="6496" x2="436" y2="6512" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="6544" x2="436" y2="6560" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="6592" x2="436" y2="6611" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="511" y1="6636" x2="522" y2="6636" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="517" y="6629" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="436" y1="6661" x2="436" y2="6681" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="6674" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="501" y1="6706" x2="512" y2="6706" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="507" y="6699" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="436" y1="6731" x2="436" y2="6748" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="6744" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="436" y1="6780" x2="436" y2="6796" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="6828" x2="436" y2="6847" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="6958" x2="436" y2="6974" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="7006" x2="436" y2="7025" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="501" y1="7050" x2="512" y2="7050" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="507" y="7043" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="436" y1="7075" x2="436" y2="7092" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="7088" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="436" y1="7124" x2="436" y2="7143" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="501" y1="7168" x2="512" y2="7168" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="507" y="7161" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="436" y1="7193" x2="436" y2="7210" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="448" y="7206" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="436" y1="7242" x2="436" y2="7258" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="7290" x2="436" y2="7306" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="436" y1="7338" x2="436" y2="7357" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<rect x="391" y="87" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="436" y="104" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始注册</text>
+<rect x="356" y="132" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="152" text-anchor="middle" fill="#1E293B" font-size="9.5">接收注册请求(邮箱+密码)</text>
+<polygon points="436,183 501,208 436,233 371,208" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="212" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">邮箱格式正确?</text>
+<rect x="513" y="195" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="563" y="212" text-anchor="middle" fill="#1E293B" font-size="9.5">返回邮箱格式错误</text>
+<polygon points="436,253 501,278 436,303 371,278" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="282" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">密码规则通过?</text>
+<rect x="513" y="265" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="563" y="282" text-anchor="middle" fill="#1E293B" font-size="9.5">返回密码规则提示</text>
+<polygon points="436,323 501,348 436,373 371,348" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="352" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">已勾选协议?</text>
+<rect x="513" y="335" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="563" y="352" text-anchor="middle" fill="#1E293B" font-size="9.5">返回未勾选</text>
+<rect x="356" y="390" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="410" text-anchor="middle" fill="#1E293B" font-size="9.5">采集设备指纹+IP</text>
+<polygon points="436,441 501,466 436,491 371,466" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="470" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">注册限频?</text>
+<rect x="513" y="453" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="563" y="470" text-anchor="middle" fill="#1E293B" font-size="9.5">返回请求过多</text>
+<polygon points="436,511 501,536 436,561 371,536" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="540" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">邮箱未注册?</text>
+<rect x="513" y="523" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="563" y="540" text-anchor="middle" fill="#1E293B" font-size="9.5">返回已注册</text>
+<polygon points="436,581 501,606 436,631 371,606" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="610" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">风控检测通过?</text>
+<rect x="513" y="593" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="563" y="610" text-anchor="middle" fill="#1E293B" font-size="9.5">拦截/要求验证</text>
+<rect x="356" y="648" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="668" text-anchor="middle" fill="#1E293B" font-size="9.5">请求发送验证码</text>
+<rect x="912" y="700" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="992" y="720" text-anchor="middle" fill="#1E293B" font-size="9.5">生成验证码并存储</text>
+<rect x="1232" y="752" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1312" y="772" text-anchor="middle" fill="#1E293B" font-size="9.5">邮件服务商投递</text>
+<rect x="356" y="804" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="824" text-anchor="middle" fill="#1E293B" font-size="9.5">用户输入验证码</text>
+<rect x="912" y="856" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="992" y="876" text-anchor="middle" fill="#1E293B" font-size="9.5">校验验证码</text>
+<polygon points="992,907 1057,932 992,957 927,932" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="992" y="936" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">验证码有效?</text>
+<rect x="1069" y="919" width="79" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1108" y="936" text-anchor="middle" fill="#1E293B" font-size="9.5">返回错误/已过期</text>
+<rect x="356" y="974" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="994" text-anchor="middle" fill="#1E293B" font-size="9.5">创建账号</text>
+<rect x="356" y="1026" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="1046" text-anchor="middle" fill="#1E293B" font-size="9.5">签发Token</text>
+<rect x="336" y="1074" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="1094" text-anchor="middle" fill="#1E293B" font-size="9.5">记录设备指纹+关联Session</text>
+<rect x="391" y="1125" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="436" y="1142" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">注册完成</text>
+<rect x="616" y="556" width="260" height="130" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="746" y="578" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">风控检测规则</text><text x="746" y="596" text-anchor="middle" fill="#7F1D1D" font-size="9">1. 设备指纹是否已知(未知→创建记录)</text><text x="746" y="612" text-anchor="middle" fill="#7F1D1D" font-size="9">2. 是否信任设备(不信任→额外验证)</text><text x="746" y="628" text-anchor="middle" fill="#7F1D1D" font-size="9">3. IP地理位置异常?(异常→异地风险)</text><text x="746" y="644" text-anchor="middle" fill="#7F1D1D" font-size="9">4. 暴力破解检测(触发→拦截/封禁)</text><text x="746" y="660" text-anchor="middle" fill="#7F1D1D" font-size="9">5. 综合风险: 低→放行 中→验证码 高→拦截</text>
+<rect x="391" y="1207" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="436" y="1224" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始登录</text>
+<rect x="356" y="1252" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="1272" text-anchor="middle" fill="#1E293B" font-size="9.5">接收登录请求(邮箱+密码)</text>
+<polygon points="436,1303 501,1328 436,1353 371,1328" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="1332" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">邮箱格式正确?</text>
+<rect x="513" y="1315" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="563" y="1332" text-anchor="middle" fill="#1E293B" font-size="9.5">返回邮箱格式错误</text>
+<rect x="356" y="1370" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="1390" text-anchor="middle" fill="#1E293B" font-size="9.5">采集设备指纹+IP</text>
+<polygon points="436,1421 516,1446 436,1471 356,1446" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="1450" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">风控检测通过?(规则同①)</text>
+<rect x="528" y="1433" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="578" y="1450" text-anchor="middle" fill="#1E293B" font-size="9.5">拦截/要求验证</text>
+<polygon points="436,1491 501,1516 436,1541 371,1516" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="1520" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">邮箱存在?</text>
+<rect x="513" y="1503" width="101" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="563" y="1520" text-anchor="middle" fill="#1E293B" font-size="9.5">返回邮箱或密码错误</text>
+<polygon points="436,1561 501,1586 436,1611 371,1586" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="1590" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">密码错误>=5次?</text>
+<rect x="513" y="1573" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="563" y="1590" text-anchor="middle" fill="#1E293B" font-size="9.5">锁定账号30分钟</text>
+<polygon points="436,1631 501,1656 436,1681 371,1656" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="1660" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">密码正确?</text>
+<rect x="513" y="1643" width="101" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="563" y="1660" text-anchor="middle" fill="#1E293B" font-size="9.5">返回邮箱或密码错误</text>
+<rect x="356" y="1698" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="1718" text-anchor="middle" fill="#1E293B" font-size="9.5">签发Token设Cookie</text>
+<rect x="336" y="1746" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="1766" text-anchor="middle" fill="#1E293B" font-size="9.5">记录设备指纹+关联Session</text>
+<rect x="391" y="1797" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="436" y="1814" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">登录完成</text>
+<rect x="391" y="2069" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="436" y="2086" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始</text>
+<rect x="346" y="2114" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="2134" text-anchor="middle" fill="#1E293B" font-size="9.5">接收三方登录/注册请求</text>
+<rect x="356" y="2162" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="2182" text-anchor="middle" fill="#1E293B" font-size="9.5">采集设备指纹+IP</text>
+<polygon points="436,2213 516,2238 436,2263 356,2238" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="2242" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">风控检测通过?(规则同①)</text>
+<rect x="528" y="2225" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="578" y="2242" text-anchor="middle" fill="#1E293B" font-size="9.5">拦截/要求验证</text>
+<rect x="1232" y="2280" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1312" y="2300" text-anchor="middle" fill="#1E293B" font-size="9.5">跳转OAuth授权页</text>
+<rect x="1232" y="2332" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1312" y="2352" text-anchor="middle" fill="#1E293B" font-size="9.5">用户授权,返回授权码</text>
+<rect x="356" y="2384" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="2404" text-anchor="middle" fill="#1E293B" font-size="9.5">用code换取token</text>
+<rect x="336" y="2436" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="2456" text-anchor="middle" fill="#1E293B" font-size="9.5">获取用户信息(uid/email/name)</text>
+<polygon points="436,2487 516,2512 436,2537 356,2512" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="2516" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">provider_uid已绑定?</text>
+<rect x="528" y="2499" width="110" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="583" y="2516" text-anchor="middle" fill="#1E293B" font-size="9.5">直接签发Token完成</text>
+<polygon points="436,2557 501,2582 436,2607 371,2582" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="2586" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">获取到邮箱?</text>
+<rect x="356" y="2624" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="2644" text-anchor="middle" fill="#1E293B" font-size="9.5">跳转邮箱补充页</text>
+<rect x="356" y="2672" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="2692" text-anchor="middle" fill="#1E293B" font-size="9.5">用户输入邮箱</text>
+<rect x="341" y="2720" width="190" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="2740" text-anchor="middle" fill="#1E293B" font-size="9.5">发送验证码+校验(流程同①)</text>
+<polygon points="436,2787 501,2812 436,2837 371,2812" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="2816" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">邮箱已注册?</text>
+<rect x="356" y="2854" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="2874" text-anchor="middle" fill="#1E293B" font-size="9.5">创建新账号</text>
+<rect x="536" y="2854" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="616" y="2874" text-anchor="middle" fill="#1E293B" font-size="9.5">关联已有账号</text>
+<rect x="356" y="2918" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="2938" text-anchor="middle" fill="#1E293B" font-size="9.5">写入OAuth绑定记录</text>
+<polygon points="436,2969 501,2994 436,3019 371,2994" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="2998" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">Provider类型?</text>
+<rect x="56" y="3036" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="136" y="3056" text-anchor="middle" fill="#1E293B" font-size="9.5">email写入凭证表</text>
+<rect x="56" y="3084" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="136" y="3104" text-anchor="middle" fill="#1E293B" font-size="9.5">预填昵称</text>
+<polygon points="436,3027 506,3052 436,3077 366,3052" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="3056" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">给了真实邮箱?</text>
+<rect x="476" y="3094" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="556" y="3114" text-anchor="middle" fill="#1E293B" font-size="9.5">email写入凭证表</text>
+<rect x="356" y="3158" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="3178" text-anchor="middle" fill="#1E293B" font-size="9.5">预填昵称(仅首次)</text>
+<rect x="656" y="3036" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="736" y="3056" text-anchor="middle" fill="#1E293B" font-size="9.5">email写入凭证表</text>
+<rect x="656" y="3084" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="736" y="3104" text-anchor="middle" fill="#1E293B" font-size="9.5">预填昵称</text>
+<rect x="356" y="3222" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="3242" text-anchor="middle" fill="#1E293B" font-size="9.5">签发Token</text>
+<rect x="336" y="3270" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="3290" text-anchor="middle" fill="#1E293B" font-size="9.5">记录设备指纹+关联Session</text>
+<rect x="391" y="3321" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="436" y="3338" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">认证完成</text>
+<rect x="391" y="3767" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="436" y="3784" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始</text>
+<rect x="356" y="3812" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="3832" text-anchor="middle" fill="#1E293B" font-size="9.5">接收重置密码请求(邮箱)</text>
+<polygon points="436,3863 501,3888 436,3913 371,3888" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="3892" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">邮箱格式正确?</text>
+<rect x="513" y="3875" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="563" y="3892" text-anchor="middle" fill="#1E293B" font-size="9.5">返回邮箱格式错误</text>
+<polygon points="436,3933 501,3958 436,3983 371,3958" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="3962" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">邮箱存在?</text>
+<rect x="513" y="3945" width="103" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="564" y="3962" text-anchor="middle" fill="#1E293B" font-size="9.5">返回已发送(防枚举)</text>
+<rect x="356" y="4000" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="4020" text-anchor="middle" fill="#1E293B" font-size="9.5">请求发送验证码</text>
+<polygon points="992,4051 1057,4076 992,4101 927,4076" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="992" y="4080" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">发信限频?</text>
+<rect x="1069" y="4063" width="79" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1108" y="4080" text-anchor="middle" fill="#1E293B" font-size="9.5">返回请求过多</text>
+<rect x="912" y="4118" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="992" y="4138" text-anchor="middle" fill="#1E293B" font-size="9.5">生成验证码并存储</text>
+<rect x="1232" y="4170" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1312" y="4190" text-anchor="middle" fill="#1E293B" font-size="9.5">邮件服务商投递</text>
+<rect x="356" y="4222" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="4242" text-anchor="middle" fill="#1E293B" font-size="9.5">用户输入验证码</text>
+<rect x="912" y="4274" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="992" y="4294" text-anchor="middle" fill="#1E293B" font-size="9.5">校验验证码</text>
+<polygon points="992,4325 1057,4350 992,4375 927,4350" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="992" y="4354" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">验证码有效?</text>
+<rect x="1069" y="4337" width="79" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1108" y="4354" text-anchor="middle" fill="#1E293B" font-size="9.5">返回错误/已过期</text>
+<rect x="356" y="4392" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="4412" text-anchor="middle" fill="#1E293B" font-size="9.5">用户输入新密码(两次)</text>
+<polygon points="436,4443 501,4468 436,4493 371,4468" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="4472" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">密码规则校验?</text>
+<rect x="513" y="4455" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="563" y="4472" text-anchor="middle" fill="#1E293B" font-size="9.5">返回密码规则提示</text>
+<polygon points="436,4513 501,4538 436,4563 371,4538" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="4542" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">与旧密码相同?</text>
+<rect x="513" y="4525" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="563" y="4542" text-anchor="middle" fill="#1E293B" font-size="9.5">返回不能相同</text>
+<rect x="356" y="4580" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="4600" text-anchor="middle" fill="#1E293B" font-size="9.5">更新密码哈希</text>
+<rect x="356" y="4628" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="4648" text-anchor="middle" fill="#1E293B" font-size="9.5">失效旧Token</text>
+<rect x="346" y="4676" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="4696" text-anchor="middle" fill="#1E293B" font-size="9.5">写入审计日志(重置密码)</text>
+<rect x="391" y="4727" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="436" y="4744" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">流程结束</text>
+<rect x="391" y="4809" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="436" y="4826" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始</text>
+<rect x="356" y="4854" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="4874" text-anchor="middle" fill="#1E293B" font-size="9.5">接收修改密码请求</text>
+<polygon points="436,4905 501,4930 436,4955 371,4930" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="4934" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">旧密码正确?</text>
+<rect x="513" y="4917" width="80" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="553" y="4934" text-anchor="middle" fill="#1E293B" font-size="9.5">返回密码错误</text>
+<polygon points="436,4975 501,5000 436,5025 371,5000" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="5004" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">新旧密码相同?</text>
+<rect x="513" y="4987" width="80" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="553" y="5004" text-anchor="middle" fill="#1E293B" font-size="9.5">返回不能相同</text>
+<polygon points="436,5045 501,5070 436,5095 371,5070" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="5074" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">密码规则校验?</text>
+<rect x="513" y="5057" width="92" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="559" y="5074" text-anchor="middle" fill="#1E293B" font-size="9.5">返回密码规则提示</text>
+<rect x="356" y="5112" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="5132" text-anchor="middle" fill="#1E293B" font-size="9.5">更新密码哈希</text>
+<rect x="346" y="5160" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="5180" text-anchor="middle" fill="#1E293B" font-size="9.5">终止所有其他Session</text>
+<rect x="346" y="5208" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="5228" text-anchor="middle" fill="#1E293B" font-size="9.5">写入审计日志(改密码)</text>
+<rect x="391" y="5259" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="436" y="5276" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">流程结束</text>
+<rect x="391" y="5341" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="436" y="5358" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始</text>
+<rect x="356" y="5386" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="5406" text-anchor="middle" fill="#1E293B" font-size="9.5">接收退出请求</text>
+<rect x="356" y="5434" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="5454" text-anchor="middle" fill="#1E293B" font-size="9.5">清除Session/Token</text>
+<rect x="391" y="5485" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="436" y="5502" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">退出完成</text>
+<rect x="391" y="5757" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="436" y="5774" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始</text>
+<rect x="356" y="5802" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="5822" text-anchor="middle" fill="#1E293B" font-size="9.5">接收运营端注销指令</text>
+<polygon points="436,5853 526,5878 436,5903 346,5878" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="5882" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">运营确认:无进行中订单?</text>
+<rect x="538" y="5865" width="160" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="618" y="5882" text-anchor="middle" fill="#1E293B" font-size="9.5">拒绝注销(需先处理订单)</text>
+<rect x="356" y="5920" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="5940" text-anchor="middle" fill="#1E293B" font-size="9.5">标记status=注销</text>
+<rect x="356" y="5968" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="5988" text-anchor="middle" fill="#1E293B" font-size="9.5">记录deactivated_at</text>
+<rect x="356" y="6016" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="6036" text-anchor="middle" fill="#1E293B" font-size="9.5">终止所有Session</text>
+<rect x="356" y="6064" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="6084" text-anchor="middle" fill="#1E293B" font-size="9.5">解除所有OAuth绑定</text>
+<rect x="356" y="6112" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="6132" text-anchor="middle" fill="#1E293B" font-size="9.5">立即匿名化PII</text>
+<rect x="351" y="6160" width="170" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="6180" text-anchor="middle" fill="#1E293B" font-size="9.5">写入审计日志(注销)</text>
+<rect x="391" y="6211" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="436" y="6228" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">注销完成</text>
+<rect x="391" y="6467" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="436" y="6484" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">触发</text>
+<rect x="346" y="6512" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="6532" text-anchor="middle" fill="#1E293B" font-size="9.5">检测access_token过期</text>
+<rect x="336" y="6560" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="6580" text-anchor="middle" fill="#1E293B" font-size="9.5">携带refresh_token请求刷新</text>
+<polygon points="436,6611 511,6636 436,6661 361,6636" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="6640" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">refresh_token有效?</text>
+<rect x="523" y="6623" width="80" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="563" y="6640" text-anchor="middle" fill="#1E293B" font-size="9.5">返回401</text>
+<polygon points="436,6681 501,6706 436,6731 371,6706" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="6710" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">Session状态活跃?</text>
+<rect x="513" y="6693" width="91" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="558" y="6710" text-anchor="middle" fill="#1E293B" font-size="9.5">返回401(已终止)</text>
+<rect x="351" y="6748" width="170" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="6768" text-anchor="middle" fill="#1E293B" font-size="9.5">签发新access_token</text>
+<rect x="341" y="6796" width="190" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="6816" text-anchor="middle" fill="#1E293B" font-size="9.5">滑动续期refresh_token</text>
+<rect x="391" y="6847" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="436" y="6864" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">刷新完成</text>
+<rect x="391" y="6929" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="436" y="6946" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">触发</text>
+<rect x="356" y="6974" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="6994" text-anchor="middle" fill="#1E293B" font-size="9.5">用户访问任意页面</text>
+<polygon points="436,7025 501,7050 436,7075 371,7050" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="7054" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">协议版本有更新?</text>
+<rect x="513" y="7037" width="80" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="553" y="7054" text-anchor="middle" fill="#1E293B" font-size="9.5">正常访问</text>
+<rect x="356" y="7092" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="7112" text-anchor="middle" fill="#1E293B" font-size="9.5">弹出协议更新弹窗</text>
+<polygon points="436,7143 501,7168 436,7193 371,7168" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="436" y="7172" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">用户同意?</text>
+<rect x="513" y="7155" width="80" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="553" y="7172" text-anchor="middle" fill="#1E293B" font-size="9.5">强制退出登录</text>
+<rect x="356" y="7210" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="7230" text-anchor="middle" fill="#1E293B" font-size="9.5">提交同意请求</text>
+<rect x="356" y="7258" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="7278" text-anchor="middle" fill="#1E293B" font-size="9.5">写入ConsentRecord</text>
+<rect x="351" y="7306" width="170" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="436" y="7326" text-anchor="middle" fill="#1E293B" font-size="9.5">记录协议版本+国家</text>
+<rect x="391" y="7357" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="436" y="7374" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">完成</text>
+<rect x="336" y="1840" width="360" height="140" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="516" y="1862" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">Identifier-First 统一入口(预留)</text><text x="516" y="1880" text-anchor="middle" fill="#7F1D1D" font-size="9">当前：①② 分离式注册/登录入口</text><text x="516" y="1896" text-anchor="middle" fill="#7F1D1D" font-size="9">预留：Identifier-First 统一入口模式</text><text x="516" y="1912" text-anchor="middle" fill="#7F1D1D" font-size="9">迁移：前置 /api/auth/identify 端点</text><text x="516" y="1928" text-anchor="middle" fill="#7F1D1D" font-size="9">返回 {action: register|login, methods: [...]}</text><text x="516" y="1944" text-anchor="middle" fill="#7F1D1D" font-size="9">①② 后端流程段零改动，仅新增路由层</text>
+<rect x="336" y="3522" width="360" height="156" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="516" y="3544" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">邮箱补充流程(Facebook无邮箱)</text><text x="516" y="3562" text-anchor="middle" fill="#7F1D1D" font-size="9">触发: OAuth回调未返回邮箱(仅Facebook可能)</text><text x="516" y="3578" text-anchor="middle" fill="#7F1D1D" font-size="9">1. 跳转邮箱补充页(OAuthEmailSupplement)</text><text x="516" y="3594" text-anchor="middle" fill="#7F1D1D" font-size="9">2. 用户输入邮箱 → 发验证码 → 校验(流程同①)</text><text x="516" y="3610" text-anchor="middle" fill="#7F1D1D" font-size="9">3. 验证通过后继续: 判断邮箱是否已注册</text><text x="516" y="3626" text-anchor="middle" fill="#7F1D1D" font-size="9">4. 已注册→关联已有账号; 未注册→创建新账号</text><text x="516" y="3642" text-anchor="middle" fill="#7F1D1D" font-size="9">5. 临时OAuth凭证有效期10分钟,过期需重新授权</text>
+<rect x="336" y="5528" width="360" height="140" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="516" y="5550" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">会话失效（被动退出）</text><text x="516" y="5568" text-anchor="middle" fill="#7F1D1D" font-size="9">1. 接口返回 401</text><text x="516" y="5584" text-anchor="middle" fill="#7F1D1D" font-size="9">2. 检测到 Token 失效</text><text x="516" y="5600" text-anchor="middle" fill="#7F1D1D" font-size="9">3. 清除本地 Token / Cookie</text><text x="516" y="5616" text-anchor="middle" fill="#7F1D1D" font-size="9">4. 跳转首页 + 提示 Session expired</text><text x="516" y="5632" text-anchor="middle" fill="#7F1D1D" font-size="9">触发：Token过期 / 密码修改 / 管理员强制下线</text>
+<rect x="336" y="6254" width="360" height="124" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="516" y="6276" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">注销说明</text><text x="516" y="6294" text-anchor="middle" fill="#7F1D1D" font-size="9">触发：用户发邮件申请，运营在后台用户管理执行</text><text x="516" y="6310" text-anchor="middle" fill="#7F1D1D" font-size="9">1. 执行后立即匿名化PII(不可恢复)</text><text x="516" y="6326" text-anchor="middle" fill="#7F1D1D" font-size="9">2. 邮箱立即释放，可重新注册(视为新账号)</text><text x="516" y="6342" text-anchor="middle" fill="#7F1D1D" font-size="9">3. 交易记录等业务数据保留(关联匿名账号)</text>
+<rect x="0" y="7408" width="1472" height="60" fill="#fff" stroke="#E2E8F0" stroke-width="1"/>
+<text x="20" y="7433" fill="#1E293B" font-size="12" font-weight="600">图例：</text>
+<rect x="75" y="7421" width="50" height="20" rx="10" fill="#fff" stroke="#64748B" stroke-width="1.2"/>
+<text x="100" y="7435" text-anchor="middle" fill="#64748B" font-size="8">开始/结束</text>
+<rect x="140" y="7421" width="50" height="20" rx="3" fill="#fff" stroke="#475569" stroke-width="1.2"/>
+<text x="165" y="7435" text-anchor="middle" fill="#475569" font-size="8">操作步骤</text>
+<polygon points="225,7421 240,7431 225,7441 210,7431" fill="#FEF3C7" stroke="#D97706" stroke-width="1.2"/>
+<text x="225" y="7435" text-anchor="middle" fill="#92400E" font-size="7">判断</text>
+<line x1="260" y1="7431" x2="310" y2="7431" stroke="#475569" stroke-width="1.3" marker-end="url(#arr)"/>
+<text x="285" y="7426" text-anchor="middle" fill="#475569" font-size="8">正常流向</text>
+<line x1="330" y1="7431" x2="380" y2="7431" stroke="#DC2626" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="355" y="7426" text-anchor="middle" fill="#DC2626" font-size="8">异常/回退</text>
+<rect x="420" y="7423" width="12" height="12" rx="2" fill="#4A6CF7" opacity="0.3"/>
+<text x="438" y="7434" fill="#4A6CF7" font-size="9">登录注册系统</text>
+<rect x="520" y="7423" width="12" height="12" rx="2" fill="#F59E0B" opacity="0.3"/>
+<text x="538" y="7434" fill="#F59E0B" font-size="9">消息通知</text>
+<rect x="620" y="7423" width="12" height="12" rx="2" fill="#EF4444" opacity="0.3"/>
+<text x="638" y="7434" fill="#EF4444" font-size="9">外部服务</text>
+</svg>

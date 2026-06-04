@@ -1385,7 +1385,7 @@
 | 服务 | 用途 | Provider | 前置准备 |
 |------|------|----------|----------|
 | Google OAuth | 三方注册/登录 | Google Cloud Console | 创建项目、配置同意屏幕、获取 Client ID/Secret、配置回调 URI |
-| Apple OAuth | 三方注册/登录 | Apple Developer | 注册 App ID、配置 Sign in with Apple、获取密钥 |
+| Apple OAuth | 三方注册/登录 | Apple Developer | 注册 App ID、配置 Sign in with Apple、获取密钥、**注册发件域名和发件邮箱**（用于向 Private Relay 地址发送邮件，需完成 SPF + DKIM 验证，否则系统邮件将被 Apple relay 服务器拒收） |
 | Facebook OAuth | 三方注册/登录 | Meta for Developers | 创建应用、配置 Facebook Login、获取 App ID/Secret |
 | 邮件发送服务 | 验证码发送（注册、忘记密码、跨州验证） | 待技术选型（如 SendGrid、AWS SES） | 服务商账号注册、域名验证、发信额度申请 |
 
@@ -1401,6 +1401,7 @@
 | 风险 | 影响 | 应对措施 |
 |------|------|----------|
 | Apple/Facebook OAuth 审核周期长 | 可能延迟三方登录上线 | 提前提交审核，Google 优先接入，Apple/Facebook 可降级为二期 |
+| Apple Private Relay 发件域名未注册 | 选择"Hide My Email"的 Apple 用户无法收到系统邮件（验证码、订单通知等），relay 服务器返回 550 unauthorized sender | 在 Apple Developer 后台注册 looply 发件域名和邮箱，完成 SPF + DKIM 验证；**必须在 Apple 登录上线前完成** |
 | 邮件发送服务商未选型 | 阻塞验证码功能 | 尽早完成技术选型和域名验证 |
 | CAPTCHA 服务商未选型 | 阻塞暴力破解防护 | 暂可用简单限频兜底，CAPTCHA 作为增强项 |
 

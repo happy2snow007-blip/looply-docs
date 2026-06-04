@@ -42,6 +42,14 @@ MODULES = {
         'keywords': ['登录', '注册', 'login'],
         'config_key': None,
         'artifacts': {
+            'prd': {
+                'subdir': 'PRD',
+                'pattern': r'Looply用户系统-登录注册功能说明文档-V(.+?)\.md',
+            },
+            'er': {
+                'subdir': '实体关系图',
+                'pattern': r'looply-登录注册模块实体关系图-v(.+?)\.html',
+            },
             'architecture': {
                 'subdir': '产品架构图',
                 'pattern': r'looply-登录注册模块产品架构图-v(.+?)\.svg',
