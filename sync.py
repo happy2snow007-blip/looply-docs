@@ -688,9 +688,25 @@ def update_index_html(updates, all_versions, all_history=None):
                     while i < len(new_lines):
                         hist_line = new_lines[i]
                         if 'history-item' in hist_line:
-                            existing_lines.append(hist_line)
+                            # Filter out entries whose files no longer exist or match current latest
+                            keep = True
                             for href_m in re.finditer(r'href="([^"]+)"', hist_line):
-                                existing_hrefs.add(href_m.group(1))
+                                href_path = os.path.join(REPO_DIR, href_m.group(1))
+                                if not os.path.isfile(href_path):
+                                    keep = False
+                                    break
+                                # Also skip if same as current latest
+                                latest_ver = all_versions.get(matched_key)
+                                if latest_ver and href_prefix in href_m.group(1):
+                                    latest_file_candidates = [f for f, v in history] if history else []
+                                    current_latest = all_versions.get(matched_key)
+                                    if current_latest and f'{ver_prefix}{current_latest}' in hist_line.split('<')[0]:
+                                        keep = False
+                                        break
+                            if keep:
+                                existing_lines.append(hist_line)
+                                for href_m in re.finditer(r'href="([^"]+)"', hist_line):
+                                    existing_hrefs.add(href_m.group(1))
                         if '</ul>' in hist_line:
                             i += 1
                             break
