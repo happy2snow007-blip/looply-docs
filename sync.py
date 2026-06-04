@@ -618,6 +618,12 @@ def update_index_html(updates, all_versions, all_history=None):
                 er_ver = all_versions.get((mod_key, 'er'))
                 if er_ver:
                     new_line = re.sub(r'ER图 [vV][\d.]+', f'ER图 v{er_ver}', new_line)
+                arch_ver = all_versions.get((mod_key, 'architecture'))
+                if arch_ver:
+                    new_line = re.sub(r'架构图 [vV][\d.]+', f'架构图 v{arch_ver}', new_line)
+                flow_ver = all_versions.get((mod_key, 'flowchart'))
+                if flow_ver:
+                    new_line = re.sub(r'流程图 [vV][\d.]+', f'流程图 v{flow_ver}', new_line)
             if new_line != line:
                 changed = True
         if '</li>' in new_line and current_item_start is not None:
