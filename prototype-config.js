@@ -4,7 +4,7 @@
  * 此文件由 sync.py 自动生成，请勿手动修改。
  */
 var PROTOTYPE_CONFIG = {
-  'product':     'docs-商品系统/原型/looply-商品管理后台原型-v37-风格A-活力亲和.html',
+  'product':     'docs-商品系统/原型/looply-商品管理后台原型-v38-antd.html',
   'market':      'docs-market系统/原型/looply-market后台原型-v21-antd.html',
   'inventory':   'docs-库存管理/原型/looply-库存管理后台原型-v7-antd.html',
   'translation': 'docs-翻译管理/原型/looply-翻译管理后台原型-v7.html',
