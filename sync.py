@@ -29,6 +29,7 @@ from datetime import datetime
 from pathlib import Path
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
+_updated_files = set()
 
 # ─── 模块配置 ───────────────────────────────────────────────────────────────────
 # 每个模块：default_source（默认源目录）、target（looply-docs 中的目标目录）、
@@ -302,14 +303,17 @@ def smart_cp(src, dst_dir):
     dst = os.path.join(dst_dir, os.path.basename(src))
     if not os.path.isfile(dst):
         shutil.copy2(src, dst)
+        _updated_files.add(os.path.relpath(dst, REPO_DIR))
         return True
     # 内容不同 → 复制
     if not files_equal(src, dst):
         shutil.copy2(src, dst)
+        _updated_files.add(os.path.relpath(dst, REPO_DIR))
         return True
     # 内容相同但源更新 → 复制（mtime 兜底）
     if os.path.getmtime(src) > os.path.getmtime(dst):
         shutil.copy2(src, dst)
+        _updated_files.add(os.path.relpath(dst, REPO_DIR))
         return True
     return False
 
@@ -560,6 +564,10 @@ def update_index_html(updates, all_versions, all_history=None):
                         lines[i] = lines[i][:match.start()] + match.group(1) + new_file + match.group(3) + lines[i][match.end():]
                         changed = True
                         if current_item_start is not None:
+                            changed_items.add(current_item_start)
+                    elif current_item_start is not None:
+                        rel_path = os.path.join(href_dir, new_file)
+                        if rel_path in _updated_files:
                             changed_items.add(current_item_start)
 
     # 第二遍：更新版本号和日期
