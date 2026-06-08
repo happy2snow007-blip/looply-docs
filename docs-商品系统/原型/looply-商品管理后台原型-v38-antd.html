@@ -199,6 +199,13 @@ function EditableNumber({ value, onChange, width=100 }) {
   if (editing) return <span style={wrap}><InputNumber autoFocus size="small" value={val} style={{ width:'100%' }} onChange={(v) => setVal(v)} onBlur={() => { setEditing(false); if(onChange) onChange(val); setSaved(true); setTimeout(() => setSaved(false), 1000); }} onPressEnter={(e) => e.target.blur()} /></span>;
   return <span style={wrap}><span className={'lp-editable' + (saved?' lp-edit-just-saved':'')} onClick={() => setEditing(true)}>{(val ?? 0).toLocaleString()}</span></span>;
 }
+function EditableCell({ value, onChange }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(value);
+  const [saved, setSaved] = useState(false);
+  if (editing) return <Input autoFocus size="small" value={val} style={{ width:'100%', minWidth:60 }} onChange={(e) => setVal(e.target.value)} onBlur={() => { setEditing(false); if(onChange) onChange(val); setSaved(true); setTimeout(() => setSaved(false), 1000); }} onPressEnter={(e) => e.target.blur()} />;
+  return <span className={'lp-editable' + (saved?' lp-edit-just-saved':'')} onClick={() => setEditing(true)}>{val || '—'}</span>;
+}
 const DEFAULT_OPLOG = [
   { i:1, at:'2026-04-13 15:20', who:'张运营', type:'编辑', detail:'修改字段：排序 10 → 20' },
   { i:2, at:'2026-04-10 11:00', who:'王管理', type:'创建', detail:'创建记录' },
@@ -485,7 +492,7 @@ function AttrDefForm({ isEdit, onBack, onSave, openModal }) {
       <FormRow label="属性类型"><Select defaultValue="销售属性" style={{width:'100%'}} options={[{value:'销售属性',label:'销售属性'},{value:'描述属性',label:'描述属性'}]} /></FormRow>
       <FormRow label="值约束" required><Select value={constraint||undefined} placeholder="请选择值约束" style={{width:'100%'}} onChange={(v)=>{setConstraint(v);setControl('');}}
         options={[{value:'free',label:'free - 自由输入'},{value:'enum',label:'enum - 枚举值'},{value:'size',label:'size - 尺码体系'}]} /></FormRow>
-      <FormRow label="输入控件"><Select value={control||undefined} placeholder="请先选择值约束" disabled={!constraint} style={{width:'100%'}} onChange={setControl} options={controlOpts} /></FormRow>
+      <FormRow label="输入控件" required><Select value={control||undefined} placeholder="请先选择值约束" disabled={!constraint} style={{width:'100%'}} onChange={setControl} options={controlOpts} /></FormRow>
       <FormRow label="是否必填"><Select defaultValue={isEdit?'是':'是'} style={{width:'100%'}} options={[{value:'是',label:'是'},{value:'否',label:'否'}]} /></FormRow>
       {isEdit && <FormRow label="更新时间"><ReadField>2026-04-13 15:00</ReadField></FormRow>}
     </> },
@@ -696,7 +703,7 @@ function DimensionModule({ sub, go, openModal }) {
     ];
     if (isEdit) {
       sections.push(
-        { title:'基准存储单位', children:<><FormRow label="基准单位"><Select defaultValue="mm" style={{width:'100%'}} options={[{value:'mm',label:'mm（毫米）'},{value:'cm',label:'cm（厘米）'},{value:'m',label:'m（米）'},{value:'inch',label:'inch（英寸）'}]} /></FormRow><SectionNote>约束：修改基准单位将影响该维度下所有属性的存储值换算。</SectionNote></> },
+        { title:'基准存储单位', children:<><FormRow label="基准单位" required><Select defaultValue="mm" style={{width:'100%'}} options={[{value:'mm',label:'mm（毫米）'},{value:'cm',label:'cm（厘米）'},{value:'m',label:'m（米）'},{value:'inch',label:'inch（英寸）'}]} /></FormRow><SectionNote>约束：修改基准单位将影响该维度下所有属性的存储值换算。</SectionNote></> },
         { title:'下属单位', children:<Table rowKey="id" size="small" pagination={false} styles={TABLE_STYLES} dataSource={[{id:'MU001',name:'毫米',sym:'mm',f:1,st:'启用'},{id:'MU002',name:'厘米',sym:'cm',f:10,st:'启用'},{id:'MU003',name:'米',sym:'m',f:1000,st:'启用'},{id:'MU004',name:'英寸',sym:'inch',f:25.4,st:'启用'}]}
           columns={[{title:'单位 ID',dataIndex:'id'},{title:'单位名称',dataIndex:'name'},{title:'符号',dataIndex:'sym'},{title:'转换系数',dataIndex:'f',align:'right'},{title:'状态',dataIndex:'st',render:v=><StatusTag variant="on">{v}</StatusTag>}]} /> },
         { title:'关联属性', children:<div style={{color:'#6B7280',fontSize:13}}>共 3 个属性使用此维度：尺寸、宽度、高度</div> },
@@ -890,15 +897,14 @@ function SpuModule({ sub, go, openModal }) {
       { title:'基础信息', children:<>
         {isEdit && <FormRow label="SPU ID"><ReadField>SPU001</ReadField></FormRow>}
         <FormRow label="SPU 名称" required><Input defaultValue={isEdit?'Hermes Birkin 25':undefined} placeholder="请输入 SPU 名称" /></FormRow>
-        <FormRow label="SPU 编码" required><Input defaultValue={isEdit?'BK25':undefined} placeholder="请输入 SPU 编码" /></FormRow>
         <FormRow label="状态"><Select defaultValue="启用" style={{width:'100%'}} options={[{value:'启用',label:'启用'},{value:'停用',label:'停用'}]} /></FormRow>
         {isEdit && <FormRow label="更新时间"><ReadField>2026-04-13 15:40</ReadField></FormRow>}
         {isEdit && <FormRow label="已关联 SKU 数"><ReadField>3</ReadField></FormRow>}
       </> },
-      { title:'归属关系（三级联动）', note:'选择类目后自动筛选可选品牌，选择品牌后自动筛选可选系列。', children:<>
-        <FormRow label="所属类目"><Select defaultValue={isEdit?'箱包皮具/手提包':''} style={{width:'100%'}} options={[{value:'',label:'请选择类目'},{value:'箱包皮具/手提包',label:'箱包皮具/手提包'},{value:'箱包皮具/托特包',label:'箱包皮具/托特包'}]} /></FormRow>
-        <FormRow label="所属品牌"><Select defaultValue={isEdit?'爱马仕':''} style={{width:'100%'}} options={[{value:'',label:'请先选择类目'},{value:'爱马仕',label:'爱马仕'},{value:'香奈儿',label:'香奈儿'},{value:'路易威登',label:'路易威登'}]} /></FormRow>
-        <FormRow label="所属系列"><Select defaultValue={isEdit?'Birkin':''} style={{width:'100%'}} options={[{value:'',label:'请先选择品牌'},{value:'Birkin',label:'Birkin'},{value:'Kelly',label:'Kelly'},{value:'Neverfull',label:'Neverfull'}]} /></FormRow>
+      { title:'归属关系（三级联动）', note:isEdit?'归属关系创建后不可修改，如需修正请联系管理员。':'选择类目后自动筛选可选品牌，选择品牌后自动筛选可选系列。上级变更时自动清空下级已选值。', children:<>
+        <FormRow label="所属类目" required>{isEdit?<ReadField>箱包皮具/手提包</ReadField>:<Select defaultValue="" style={{width:'100%'}} options={[{value:'',label:'请选择类目'},{value:'箱包皮具/手提包',label:'箱包皮具/手提包'},{value:'箱包皮具/托特包',label:'箱包皮具/托特包'}]} />}</FormRow>
+        <FormRow label="所属品牌" required>{isEdit?<ReadField>爱马仕</ReadField>:<Select defaultValue="" style={{width:'100%'}} options={[{value:'',label:'请先选择类目'},{value:'爱马仕',label:'爱马仕'},{value:'香奈儿',label:'香奈儿'},{value:'路易威登',label:'路易威登'}]} />}</FormRow>
+        <FormRow label="所属系列">{isEdit?<ReadField>Birkin</ReadField>:<Select defaultValue="" style={{width:'100%'}} options={[{value:'',label:'请先选择品牌'},{value:'Birkin',label:'Birkin'},{value:'Kelly',label:'Kelly'},{value:'Neverfull',label:'Neverfull'}]} />}</FormRow>
       </> },
       { title:'图片管理', note:'SPU 级图片为标品通用图，所有 SKU 共享。', children:<>
         <FormRow label="SPU 主图"><UploadBox text={isEdit?'点击上传 SPU 主图（已有 1 张）':'点击上传 SPU 主图'} /></FormRow>
@@ -916,16 +922,15 @@ function SpuModule({ sub, go, openModal }) {
     ];
     if (isEdit) sections.push({ title:'已关联 SKU', note:'当前 SPU 下已生成的 SKU 列表。修改销售属性勾选后可重新生成。', children:<>
       <Table rowKey="i" size="small" pagination={false} styles={TABLE_STYLES} scroll={{x:'max-content'}} dataSource={[
-        {i:1,c:'黑色',m:'鳄鱼皮',w:680,code:'BK25-BLK-CROC',art:'H035025CK89',price:'¥85,000',st:'启用'},{i:2,c:'红色',m:'鳄鱼皮',w:685,code:'BK25-RED-CROC',art:'H035025CKQ5',price:'¥86,000',st:'启用'}]}
-        columns={[{title:'#',dataIndex:'i',width:50},{title:'颜色',dataIndex:'c'},{title:'材质',dataIndex:'m'},{title:'重量(g)',dataIndex:'w',align:'right'},{title:'SKU 编码',dataIndex:'code'},{title:'货号',dataIndex:'art'},{title:'参考价',dataIndex:'price',align:'right'},{title:'状态',dataIndex:'st',render:v=><StatusTag variant="on">{v}</StatusTag>},{title:'操作',key:'op',width:70,render:()=><Button size="small">编辑</Button>}]} />
+        {i:1,c:'黑色',m:'鳄鱼皮',w:680,art:'H035025CK89',price:'¥85,000',st:'启用'},{i:2,c:'红色',m:'鳄鱼皮',w:685,art:'H035025CKQ5',price:'¥86,000',st:'启用'}]}
+        columns={[{title:'#',dataIndex:'i',width:50},{title:'颜色',dataIndex:'c'},{title:'材质',dataIndex:'m'},{title:'重量(g)',dataIndex:'w',align:'right'},{title:'货号',dataIndex:'art'},{title:'参考价',dataIndex:'price',align:'right'},{title:'状态',dataIndex:'st',render:v=><StatusTag variant="on">{v}</StatusTag>},{title:'操作',key:'op',width:70,render:()=><Button size="small">编辑</Button>}]} />
       <div style={{marginTop:12}}><Space><Button icon={<ReloadOutlined />}>重新生成</Button><span style={{color:'#9CA3AF',fontSize:12}}>修改销售属性勾选后点击重新生成</span></Space></div>
     </> });
     else sections.push({ title:'SKU 批量生成', note:'根据已勾选的销售属性值自动生成 SKU 组合。可在此预览并调整每个 SKU 的货号和参考价。', children:<>
       <Note>当前组合：颜色(2) × 材质(1) × 尺码(2) = <b>4 个 SKU</b>。如有 SKU 级描述属性（如重量），可在此逐 SKU 填写。</Note>
-      <Table rowKey="i" size="small" pagination={false} styles={TABLE_STYLES} scroll={{x:'max-content'}} style={{marginTop:12}} dataSource={[{i:1,c:'黑色',m:'鳄鱼皮',sz:6,code:'BK25-BLK-CROC'},{i:2,c:'红色',m:'鳄鱼皮',sz:8,code:'BK25-RED-CROC'}]}
+      <Table rowKey="i" size="small" pagination={false} styles={TABLE_STYLES} scroll={{x:'max-content'}} style={{marginTop:12}} dataSource={[{i:1,c:'黑色',m:'鳄鱼皮',sz:6},{i:2,c:'红色',m:'鳄鱼皮',sz:8}]}
         columns={[{title:'#',dataIndex:'i',width:50},{title:'颜色',dataIndex:'c'},{title:'材质',dataIndex:'m'},{title:'尺码',dataIndex:'sz'},
           {title:'重量(g)',key:'w',render:()=><Input size="small" placeholder="重量" style={{width:80}} />},
-          {title:'SKU 编码',dataIndex:'code',render:v=><Input size="small" defaultValue={v} style={{width:140}} />},
           {title:'货号',key:'art',render:()=><Input size="small" placeholder="品牌货号" style={{width:130}} />},
           {title:'参考价',key:'p',render:()=><Input size="small" placeholder="参考价" style={{width:100}} />},
           {title:'状态',key:'st',render:()=><StatusTag variant="on">启用</StatusTag>},{title:'操作',key:'op',width:70,render:()=><Button size="small">移除</Button>}]} />
@@ -934,16 +939,16 @@ function SpuModule({ sub, go, openModal }) {
     return <FormPage title={isEdit?'SPU 编辑':'SPU 新建'} isEdit={isEdit} onBack={() => nav('list')} onSave={() => nav('list')} sections={sections} saveText="保存（含 SKU）"
       oplog={[{i:1,at:'2026-04-13 14:00',who:'张三',type:'编辑SPU',detail:'修改 SPU 描述、关联属性'},{i:2,at:'2026-04-12 16:00',who:'张三',type:'关联属性',detail:'关联属性「颜色」「材质」'},{i:3,at:'2026-04-12 10:00',who:'张三',type:'创建SPU',detail:'创建 SPU「Birkin 25」'}]} />;
   }
-  return <ListPage title="SPU 管理" desc="SPU 列表页聚焦标品检索与状态排查，支持按 SPU ID / 名称 / 编码搜索。" go={go} scrollX={1000}
+  return <ListPage title="SPU 管理" desc="SPU 列表页聚焦标品检索与状态排查，支持按 SPU ID / 名称搜索。" go={go} scrollX={1000}
     headActions={<Button type="primary" icon={<PlusOutlined />} onClick={() => nav('create')}>新增 SPU</Button>}
     kpis={[{num:126,label:'SPU 总数'},{num:18,label:'活跃系列'},{num:362,label:'关联 SKU'},{num:14,label:'待补图 SPU'}]}
-    filters={<><Input placeholder="搜索 SPU ID / SPU 名称 / 编码" prefix={<SearchOutlined style={{color:'#9CA3AF'}} />} allowClear style={{width:240}} />
+    filters={<><Input placeholder="搜索 SPU ID / SPU 名称" prefix={<SearchOutlined style={{color:'#9CA3AF'}} />} allowClear style={{width:240}} />
       <Select defaultValue="" style={{width:130}} options={[{value:'',label:'全部类目'},{value:'1',label:'手提包'},{value:'2',label:'托特包'}]} />
       <Select defaultValue="" style={{width:130}} options={[{value:'',label:'全部系列'},{value:'1',label:'Birkin'},{value:'2',label:'Kelly'}]} />
       <Button type="primary" icon={<SearchOutlined />}>查询</Button></>}
-    columns={[{title:'SPU ID',dataIndex:'id',width:90},{title:'SPU 名称',dataIndex:'name',width:160},{title:'SPU 编码',dataIndex:'code',width:90},{title:'所属类目',dataIndex:'cat',width:100},{title:'所属系列',dataIndex:'series',width:100},{title:'SKU 数',dataIndex:'n',width:80,align:'right'},
+    columns={[{title:'SPU ID',dataIndex:'id',width:90},{title:'SPU 名称',dataIndex:'name',width:160},{title:'所属类目',dataIndex:'cat',width:100},{title:'所属系列',dataIndex:'series',width:100},{title:'SKU 数',dataIndex:'n',width:80,align:'right'},
       {title:'状态',dataIndex:'st',width:90,render:v=><StatusTag variant="on">{v}</StatusTag>},{title:'操作',key:'op',width:80,fixed:'right',render:()=><Button size="small" onClick={()=>nav('edit')}>编辑</Button>}]}
-    data={[{id:'SPU001',name:'Hermes Birkin 25',code:'BK25',cat:'手提包',series:'Birkin',n:3,st:'启用'},{id:'SPU002',name:'Hermes Kelly 28',code:'KL28',cat:'手提包',series:'Kelly',n:2,st:'启用'},{id:'SPU003',name:'LV Neverfull MM',code:'NFMM',cat:'托特包',series:'Neverfull',n:4,st:'启用'}]} total={126} />;
+    data={[{id:'SPU001',name:'Hermes Birkin 25',cat:'手提包',series:'Birkin',n:3,st:'启用'},{id:'SPU002',name:'Hermes Kelly 28',cat:'手提包',series:'Kelly',n:2,st:'启用'},{id:'SPU003',name:'LV Neverfull MM',cat:'托特包',series:'Neverfull',n:4,st:'启用'}]} total={126} />;
 }
 function SkuModule({ sub, go, openModal }) {
   const nav = (s) => go('sku', s);
@@ -961,7 +966,6 @@ function SkuModule({ sub, go, openModal }) {
         <FormRow label="材质"><Select defaultValue={isEdit?'牛皮':''} style={{width:'100%'}} options={[{value:'',label:'请选择'},{value:'牛皮',label:'牛皮'},{value:'羊皮',label:'羊皮'}]} /></FormRow>
       </> },
       { title:'SKU 信息', children:<>
-        <FormRow label="SKU 编码"><Input defaultValue={isEdit?'BK25-BLK-GD':undefined} placeholder="自动生成或手动输入" /></FormRow>
         <FormRow label="货号"><Input defaultValue={isEdit?'H035025CK89':undefined} placeholder="请输入品牌货号" /></FormRow>
         <FormRow label="参考价"><Input defaultValue={isEdit?'¥85,000':undefined} placeholder="请输入参考价" /></FormRow>
         <FormRow label="状态"><Select defaultValue="启用" style={{width:'100%'}} options={[{value:'启用',label:'启用'},{value:'停用',label:'停用'}]} /></FormRow>
@@ -976,42 +980,42 @@ function SkuModule({ sub, go, openModal }) {
       </> },
     ];
     return <FormPage title={isEdit?'SKU 编辑':'SKU 新建'} isEdit={isEdit} onBack={() => nav('list')} onSave={() => nav('list')} sections={sections}
-      oplog={[{i:1,at:'2026-04-13 11:00',who:'张三',type:'编辑SKU',detail:'修改 SKU 属性值'},{i:2,at:'2026-04-12 15:00',who:'张三',type:'创建SKU',detail:'创建 SKU「BK25-BLK-GD」，关联 SPU「Birkin 25」'}]} />;
+      oplog={[{i:1,at:'2026-04-13 11:00',who:'张三',type:'编辑SKU',detail:'修改 SKU 属性值'},{i:2,at:'2026-04-12 15:00',who:'张三',type:'创建SKU',detail:'创建 SKU，关联 SPU「Birkin 25」'}]} />;
   }
   return <ListPage title="SKU 管理" desc="SKU 列表页聚焦 SKU 检索与库存/状态排查。" go={go} scrollX={1000}
     headActions={<Button type="primary" icon={<PlusOutlined />} onClick={() => nav('create')}>新增 SKU</Button>}
     kpis={[{num:362,label:'SKU 总数'},{num:28,label:'待补货号'},{num:14,label:'待补图片'},{num:6,label:'今日新增'}]}
-    filters={<><Input placeholder="搜索 SKU ID / SKU 编码 / 货号" prefix={<SearchOutlined style={{color:'#9CA3AF'}} />} allowClear style={{width:240}} />
+    filters={<><Input placeholder="搜索 SKU ID / 货号" prefix={<SearchOutlined style={{color:'#9CA3AF'}} />} allowClear style={{width:240}} />
       <Select defaultValue="" style={{width:160}} options={[{value:'',label:'全部 SPU'},{value:'1',label:'Hermes Birkin 25'},{value:'2',label:'Hermes Kelly 28'}]} />
       <Select defaultValue="" style={{width:120}} options={[{value:'',label:'全部状态'},{value:'on',label:'启用'},{value:'off',label:'停用'}]} />
       <Button type="primary" icon={<SearchOutlined />}>查询</Button></>}
-    columns={[{title:'SKU ID',dataIndex:'id',width:90},{title:'SKU 编码',dataIndex:'code',width:120},{title:'所属 SPU',dataIndex:'spu',width:150},{title:'规格组合',dataIndex:'spec',width:110},{title:'货号',dataIndex:'art',width:120},{title:'参考价',dataIndex:'price',width:100,align:'right'},
+    columns={[{title:'SKU ID',dataIndex:'id',width:90},{title:'所属 SPU',dataIndex:'spu',width:150},{title:'规格组合',dataIndex:'spec',width:110},{title:'货号',dataIndex:'art',width:120},{title:'参考价',dataIndex:'price',width:100,align:'right'},
       {title:'状态',dataIndex:'st',width:90,render:v=><StatusTag variant="on">{v}</StatusTag>},{title:'操作',key:'op',width:80,fixed:'right',render:()=><Button size="small" onClick={()=>nav('edit')}>编辑</Button>}]}
-    data={[{id:'SKU001',code:'BK25-BLK-GD',spu:'Hermes Birkin 25',spec:'黑色/金色',art:'H035025CK89',price:'¥85,000',st:'启用'},{id:'SKU002',code:'BK25-RD-GD',spu:'Hermes Birkin 25',spec:'红色/金色',art:'H035025CKQ5',price:'¥86,000',st:'启用'},{id:'SKU003',code:'KL28-BLK-SL',spu:'Hermes Kelly 28',spec:'黑色/银色',art:'H022005CK89',price:'¥91,000',st:'启用'},{id:'SKU004',code:'NFMM-BR',spu:'LV Neverfull MM',spec:'棕色',art:'M40995',price:'¥16,500',st:'启用'}]} total={362} />;
+    data={[{id:'SKU001',spu:'Hermes Birkin 25',spec:'黑色/金色',art:'H035025CK89',price:'¥85,000',st:'启用'},{id:'SKU002',spu:'Hermes Birkin 25',spec:'红色/金色',art:'H035025CKQ5',price:'¥86,000',st:'启用'},{id:'SKU003',spu:'Hermes Kelly 28',spec:'黑色/银色',art:'H022005CK89',price:'¥91,000',st:'启用'},{id:'SKU004',spu:'LV Neverfull MM',spec:'棕色',art:'M40995',price:'¥16,500',st:'启用'}]} total={362} />;
 }
 function ReadGrid({ rows }) { return <>{rows.map(([l,v]) => <FormRow key={l} label={l}><ReadField>{v}</ReadField></FormRow>)}</>; }
 function PreviewBox({ lines }) {
   return <div style={{border:'1px solid #E5E7EB',borderRadius:14,padding:'0 16px',background:'#fff'}}>{lines.map(([l,v]) => <div key={l} className="lp-preview-line"><div><b>{l}</b></div><div style={{textAlign:'right',color:'#374151'}}>{v}</div></div>)}</div>;
 }
-const STD_ROWS = [['SPU 名称','Hermes Birkin 25'],['SKU 编码','BK25-BLK-GD'],['规格组合','黑色 / 牛皮'],['品牌','爱马仕'],['系列','Birkin'],['类目','箱包皮具 / 手提包']];
+const STD_ROWS = [['SPU 名称','Hermes Birkin 25'],['SKU ID','SKU001'],['规格组合','黑色 / 牛皮'],['品牌','爱马仕'],['系列','Birkin'],['类目','箱包皮具 / 手提包']];
 function ProductWizard({ isEdit, onBack, onSave }) {
-  const cond = (lbl) => <Select defaultValue={lbl} style={{width:'100%'}} options={[{value:'A - Excellent',label:'A - Excellent（几乎全新）'},{value:'B - Good',label:'B - Good（轻微使用痕迹）'},{value:'C - Fair',label:'C - Fair（明显使用痕迹）'}]} />;
+  const cond = (lbl) => <Select defaultValue={lbl} style={{width:'100%'}} options={[{value:'NWT',label:'NWT（近全新带标签）'},{value:'Excellent',label:'Excellent（几乎全新）'},{value:'Good',label:'Good（轻微使用痕迹）'},{value:'Fair',label:'Fair（明显使用痕迹）'}]} />;
   const p1 = <div>
     <h4 className="lp-section">关联标品 SKU</h4>
-    <SectionNote>{isEdit?'标品关联建立后一般不可更改，如需修正请联系管理员。':'输入 SPU/SKU 名称、编码或货号进行模糊搜索，选中后自动带出品牌、系列、类目等标品信息。'}</SectionNote>
-    {isEdit ? <FormRow label="搜索标品"><ReadField>BK25-BLK-GD（已关联，不可修改）</ReadField></FormRow>
-      : <><FormRow label="搜索标品"><Input prefix={<SearchOutlined style={{color:'#9CA3AF'}} />} placeholder="输入 SPU/SKU 名称、编码或货号搜索..." /></FormRow>
-        <Note>搜索示例：输入「Birkin 25」或「BK25」或「H035025CK89」均可匹配到对应标品</Note>
+    <SectionNote>{isEdit?'标品关联建立后一般不可更改，如需修正请联系管理员。':'输入 SPU/SKU 名称、ID 或货号进行模糊搜索，选中后自动带出品牌、系列、类目等标品信息。'}</SectionNote>
+    {isEdit ? <FormRow label="搜索标品"><ReadField>SKU001（已关联，不可修改）</ReadField></FormRow>
+      : <><FormRow label="搜索标品"><Input prefix={<SearchOutlined style={{color:'#9CA3AF'}} />} placeholder="输入 SPU/SKU 名称、ID 或货号搜索..." /></FormRow>
+        <Note>搜索示例：输入「Birkin 25」或「SKU001」或「H035025CK89」均可匹配到对应标品</Note>
         <div style={{marginTop:16,fontSize:13,color:'#475467',marginBottom:8}}>搜索结果（示例）</div>
-        <Table rowKey="code" size="small" pagination={false} styles={TABLE_STYLES} dataSource={[{spu:'Hermes Birkin 25',code:'BK25-BLK-CROC',spec:'黑色 / 鳄鱼皮',art:'H035025CK89',sel:true},{spu:'Hermes Birkin 25',code:'BK25-RED-CROC',spec:'红色 / 鳄鱼皮',art:'H035025CKQ5',sel:false}]}
-          columns={[{title:'SPU',dataIndex:'spu'},{title:'SKU 编码',dataIndex:'code'},{title:'规格',dataIndex:'spec'},{title:'货号',dataIndex:'art'},{title:'操作',dataIndex:'sel',width:90,render:s=>s?<StatusTag variant="on">已选中</StatusTag>:<Button size="small">选择</Button>}]} /></>}
+        <Table rowKey="id" size="small" pagination={false} styles={TABLE_STYLES} dataSource={[{spu:'Hermes Birkin 25',id:'SKU001',spec:'黑色 / 鳄鱼皮',art:'H035025CK89',sel:true},{spu:'Hermes Birkin 25',id:'SKU002',spec:'红色 / 鳄鱼皮',art:'H035025CKQ5',sel:false}]}
+          columns={[{title:'SPU',dataIndex:'spu'},{title:'SKU ID',dataIndex:'id'},{title:'规格',dataIndex:'spec'},{title:'货号',dataIndex:'art'},{title:'操作',dataIndex:'sel',width:90,render:s=>s?<StatusTag variant="on">已选中</StatusTag>:<Button size="small">选择</Button>}]} /></>}
     <div style={{marginTop:16,fontSize:13,color:'#475467',marginBottom:8}}>{isEdit?'已关联标品信息':'已选标品信息（自动带出）'}</div>
     <ReadGrid rows={STD_ROWS} />
   </div>;
   const p2 = <div>
-    <h4 className="lp-section">实物信息</h4><SectionNote>录入实物商品的基础信息，商品编码系统自动生成。</SectionNote>
+    <h4 className="lp-section">实物信息</h4><SectionNote>录入实物商品的基础信息，商品 ID 系统自动生成。</SectionNote>
     <FormRow label="商品标题" required><Input defaultValue={isEdit?'Hermes Birkin 25 黑金':undefined} placeholder="请输入商品标题" /></FormRow>
-    <FormRow label="商品编码"><ReadField>{isEdit?'INT-BK25-001':'系统自动生成（如 INT-BK25-002）'}</ReadField></FormRow>
+    <FormRow label="商品 ID"><ReadField>{isEdit?'P001':'系统自动生成'}</ReadField></FormRow>
     <FormRow label="商品来源"><Select defaultValue="采购" style={{width:'100%'}} options={[{value:'采购',label:'采购'},{value:'回收',label:'回收'},{value:'寄卖',label:'寄卖'}]} /></FormRow>
     <FormRow label="序列号"><Input defaultValue={isEdit?'SN-HM-BK25-001':undefined} placeholder="请输入商品序列号" /></FormRow>
     <FormRow label="商品描述"><Input.TextArea rows={2} defaultValue={isEdit?'经典 Birkin 25 黑色金扣，成色优秀':undefined} placeholder="请输入商品描述（可选）" /></FormRow>
@@ -1020,7 +1024,7 @@ function ProductWizard({ isEdit, onBack, onSave }) {
   </div>;
   const p3 = <div>
     <h4 className="lp-section">成色与质检</h4><SectionNote>填写实物商品的成色和质检信息，这些内容将展示在商详页 Condition 区域。</SectionNote>
-    <FormRow label="成色等级" required>{cond('A - Excellent')}</FormRow>
+    <FormRow label="成色等级" required>{cond('Excellent')}</FormRow>
     <FormRow label="成色描述" required><Input.TextArea rows={2} defaultValue={isEdit?'整体品相极佳，皮面无划痕、无污渍，五金光泽完好，几乎未使用':undefined} placeholder="整体成色概述" /></FormRow>
     <FormRow label="外观描述"><Input.TextArea rows={3} defaultValue={isEdit?'表面皮革：无瑕疵\n底部：轻微摩擦痕迹\n把手/肩带：无瑕疵\n边角：无瑕疵':undefined} placeholder="描述各部位外观状况" /></FormRow>
     <FormRow label="补充描述"><Input.TextArea rows={2} defaultValue={isEdit?'锁扣、拉链功能正常，五金光泽良好；日常养护建议：避免暴晒，定期皮革保养':undefined} placeholder="奢侈品可填写养护信息，数码产品可填写功能使用情况等" /></FormRow>
@@ -1035,35 +1039,33 @@ function ProductWizard({ isEdit, onBack, onSave }) {
     <FormRow label="实物细节图"><UploadBox text={isEdit?'点击上传细节图（已有 3 张，最多 6 张）':'点击上传细节图（最多 6 张）'} /></FormRow>
   </div>;
   const p4 = <div>
-    <h4 className="lp-section">定价信息</h4>
-    <FormRow label="采购价"><Input addonBefore="USD $" defaultValue={isEdit?'68000':undefined} placeholder="请输入采购价，如 68000" /></FormRow>
-    {isEdit && <FormRow label="已上架渠道数"><ReadField>2</ReadField></FormRow>}
+    {isEdit && <><h4 className="lp-section">补充信息</h4><FormRow label="已上架渠道数"><ReadField>2</ReadField></FormRow></>}
     {isEdit && <><h4 className="lp-section" style={{marginTop:24}}>库存与标签</h4><SectionNote>为商品打标签，便于运营分类和筛选。仅显示适用对象为「实物商品」或「通用」的标签。</SectionNote>
       <div style={{marginBottom:12}}><Pill>热销</Pill><Pill>精品推荐</Pill></div>
       <Space><Select defaultValue="" style={{width:200}} options={[{value:'',label:'选择标签添加...'},{value:'新品',label:'新品'},{value:'季节性',label:'季节性（停用）'}]} /><Button type="primary">添加</Button><span style={{color:'#9CA3AF',fontSize:12}}>已绑定 2 个标签</span></Space></>}
     <h4 className="lp-section" style={{marginTop:24}}>信息确认</h4><SectionNote>请核对以下信息，确认无误后{isEdit?'保存':'提交'}。</SectionNote>
-    <PreviewBox lines={[['关联标品','Hermes Birkin 25 / BK25-BLK-GD / 黑色·牛皮'],['品牌 / 系列','爱马仕 / Birkin'],['商品标题','Hermes Birkin 25 黑金'],['商品编码','INT-BK25-001'],['来源','采购'],['成色等级','A - Excellent'],['鉴定状态','已鉴定 / Entrupy / ENT-2026-04-001'],['采购价（USD）','$68,000'],...(isEdit?[['实物状态','待销售'],['标签','热销 / 精品推荐']]:[])]} />
+    <PreviewBox lines={[['关联标品','Hermes Birkin 25 / SKU001 / 黑色·牛皮'],['品牌 / 系列','爱马仕 / Birkin'],['商品标题','Hermes Birkin 25 黑金'],['商品 ID','P001'],['来源','采购'],['成色等级','Excellent'],['鉴定状态','已鉴定 / Entrupy / ENT-2026-04-001'],...(isEdit?[['实物状态','待销售'],['标签','热销 / 精品推荐']]:[])]} />
     {!isEdit && <Note>提交后商品状态变为「待核验」，完成核验后可进入销售流程。</Note>}
   </div>;
-  return <WizardPage title={isEdit?'商品编辑':'创建实物商品'} desc="4 步完成商品录入：关联标品 → 实物录入 → 质检鉴定 → 定价确认。" onBack={onBack} onSave={onSave}
-    finishText={isEdit?'保存':'提交'} isEdit={isEdit} oplog={PRODUCT_OPLOG} steps={[{title:'关联标品'},{title:'实物录入'},{title:'质检鉴定'},{title:'定价确认'}]} panels={[p1,p2,p3,p4]} />;
+  return <WizardPage title={isEdit?'商品编辑':'创建实物商品'} desc="4 步完成商品录入：关联标品 → 实物录入 → 质检鉴定 → 信息确认。" onBack={onBack} onSave={onSave}
+    finishText={isEdit?'保存':'提交'} isEdit={isEdit} oplog={PRODUCT_OPLOG} steps={[{title:'关联标品'},{title:'实物录入'},{title:'质检鉴定'},{title:'信息确认'}]} panels={[p1,p2,p3,p4]} />;
 }
 const PRODUCT_OPLOG = [
   {i:1,at:'2026-04-15 09:00',who:'张运营',type:'推送至渠道',detail:'推送至「美国官网商城」，生成渠道商品 CI001'},
-  {i:2,at:'2026-04-14 16:30',who:'系统',type:'审核通过',detail:'商品审核通过，状态变更为「已发布」'},
-  {i:3,at:'2026-04-14 14:00',who:'张运营',type:'提交审核',detail:'提交商品审核，状态变更为「待审核」'},
-  {i:4,at:'2026-04-13 16:30',who:'张运营',type:'编辑信息',detail:'修改采购价：$70,000 → $72,000'},
-  {i:5,at:'2026-04-11 09:00',who:'张运营',type:'创建商品',detail:'创建实物商品，关联 SKU：BK25-BLK-GD'},
+  {i:2,at:'2026-04-14 16:30',who:'系统',type:'审核通过',detail:'商品审核通过，状态变更为「待销售」'},
+  {i:3,at:'2026-04-14 14:00',who:'张运营',type:'提交审核',detail:'提交商品审核，状态变更为「核验中」'},
+  {i:4,at:'2026-04-13 16:30',who:'张运营',type:'编辑信息',detail:'修改商品标题：Hermes Birkin 25 黑 → Hermes Birkin 25 黑金'},
+  {i:5,at:'2026-04-11 09:00',who:'张运营',type:'创建商品',detail:'创建实物商品，关联 SKU：SKU001'},
 ];
 function ProductDetail({ go }) {
   return <Card style={CARD_STYLE}>
     <PageHead title="商品详情" desc="查看实物商品的完整信息，如需修改请点击编辑。"
       actions={<><Button onClick={() => go('product','list')}>返回列表</Button><Button type="primary" onClick={() => go('product','edit')}>编辑</Button></>} />
     <div style={{marginBottom:24}}><h4 className="lp-section">关联标品</h4><ReadGrid rows={STD_ROWS} /></div>
-    <div style={{marginBottom:24}}><h4 className="lp-section">实物信息</h4><ReadGrid rows={[['商品标题','Hermes Birkin 25 黑金'],['商品编码','INT-BK25-001'],['商品来源','采购'],['序列号','SN-HM-BK25-001'],['商品描述','经典 Birkin 25 黑色金扣，成色优秀']]} /></div>
-    <div style={{marginBottom:24}}><h4 className="lp-section">成色与质检</h4><ReadGrid rows={[['成色等级','A - Excellent'],['成色描述','整体品相极佳，皮面无划痕、无污渍，五金光泽完好，几乎未使用'],['补充描述','锁扣、拉链功能正常，五金光泽良好；日常养护建议：避免暴晒，定期皮革保养'],['配件信息','包装盒：有；防尘袋：无；保卡：有；购买小票：有']]} /></div>
+    <div style={{marginBottom:24}}><h4 className="lp-section">实物信息</h4><ReadGrid rows={[['商品标题','Hermes Birkin 25 黑金'],['商品 ID','P001'],['商品来源','采购'],['序列号','SN-HM-BK25-001'],['商品描述','经典 Birkin 25 黑色金扣，成色优秀']]} /></div>
+    <div style={{marginBottom:24}}><h4 className="lp-section">成色与质检</h4><ReadGrid rows={[['成色等级','Excellent'],['成色描述','整体品相极佳，皮面无划痕、无污渍，五金光泽完好，几乎未使用'],['补充描述','锁扣、拉链功能正常，五金光泽良好；日常养护建议：避免暴晒，定期皮革保养'],['配件信息','包装盒：有；防尘袋：无；保卡：有；购买小票：有']]} /></div>
     <div style={{marginBottom:24}}><h4 className="lp-section">鉴定信息</h4><ReadGrid rows={[['鉴定状态',<StatusTag variant="on">已鉴定</StatusTag>],['鉴定机构','Entrupy'],['鉴定证书编号','ENT-2026-04-001'],['鉴定日期','2026-04-10']]} /></div>
-    <div style={{marginBottom:24}}><h4 className="lp-section">定价信息</h4><ReadGrid rows={[['采购价（USD）','$68,000'],['已上架渠道数','2']]} /></div>
+    <div style={{marginBottom:24}}><h4 className="lp-section">渠道信息</h4><ReadGrid rows={[['已上架渠道数','2']]} /></div>
     <div style={{marginBottom:24}}><h4 className="lp-section">库存与标签</h4><FormRow label="标签"><Pill>热销</Pill><Pill>精品推荐</Pill></FormRow></div>
     <OpLog data={PRODUCT_OPLOG} />
   </Card>;
@@ -1074,27 +1076,26 @@ function ProductModule({ sub, go, openModal }) {
   if (sub === 'create' || sub === 'edit') return <ProductWizard isEdit={sub==='edit'} onBack={() => nav('list')} onSave={() => nav('list')} />;
   const opCol = (r) => <Space size={6}><Button size="small" onClick={() => nav('edit')}>编辑</Button>{r.shelf && <Button size="small" type="primary" onClick={() => openModal('shelf')}>上架</Button>}</Space>;
   const data = [
-    { code:'INT-BK25-001', title:'Hermes Birkin 25 黑金', sku:'BK25-BLK-GD', cond:'A - Excellent', st:'待销售', stv:'on', price:'$68,000', sid:'S-10001', seller:'奢品回收商A', tags:['热销','精品推荐'], shelf:true },
-    { code:'INT-KL28-001', title:'Hermes Kelly 28 黑银', sku:'KL28-BLK-SL', cond:'A - Excellent', st:'核验中', stv:'warn', price:'$72,000', sid:'S-10002', seller:'个人卖家张三', tags:['新品'], shelf:false },
-    { code:'INT-NFMM-001', title:'LV Neverfull MM 棕色', sku:'NFMM-BR', cond:'B - Good', st:'销售中', stv:'on', price:'$8,500', sid:'S-10003', seller:'奢品回收商B', tags:[], shelf:true },
-    { code:'INT-CF-001', title:'Chanel CF 黑色', sku:'CF-BLK', cond:'A - Excellent', st:'待销售', stv:'on', price:'$52,000', sid:'S-10004', seller:'自营仓库', tags:['热销'], shelf:true },
+    { id:'P001', title:'Hermes Birkin 25 黑金', sku:'SKU001', cond:'Excellent', st:'待销售', stv:'on', price:'$68,000', sid:'S-10001', seller:'奢品回收商A', tags:['热销','精品推荐'], shelf:true },
+    { id:'P002', title:'Hermes Kelly 28 黑银', sku:'SKU003', cond:'Excellent', st:'核验中', stv:'warn', price:'$72,000', sid:'S-10002', seller:'个人卖家张三', tags:['新品'], shelf:false },
+    { id:'P003', title:'LV Neverfull MM 棕色', sku:'SKU004', cond:'Good', st:'销售中', stv:'on', price:'$8,500', sid:'S-10003', seller:'奢品回收商B', tags:[], shelf:true },
+    { id:'P004', title:'Chanel CF 黑色', sku:'SKU005', cond:'Excellent', st:'待销售', stv:'on', price:'$52,000', sid:'S-10004', seller:'自营仓库', tags:['热销'], shelf:true },
   ];
   const link = (txt, onClick) => <Button type="link" size="small" style={{padding:0,height:'auto',color:'#7C3AED',fontWeight:500,textDecoration:'underline'}} onClick={onClick}>{txt}</Button>;
-  return <ListPage title="商品管理" desc="商品列表页聚焦商品检索与库存/鉴定状态排查，支持按商品编码 / 标题 / 标品 SKU 搜索。" go={go} scrollX={1400} rowKey="code"
+  return <ListPage title="商品管理" desc="商品列表页聚焦商品检索与库存/鉴定状态排查，支持按商品 ID / 标题 / 标品 SKU 搜索。" go={go} scrollX={1400} rowKey="id"
     headActions={<><Button icon={<DownloadOutlined />} onClick={() => openModal('batchExport')}>批量导出</Button><Button icon={<ImportOutlined />} onClick={() => openModal('batchImport')}>批量上架导入</Button><Button type="primary" icon={<PlusOutlined />} onClick={() => nav('create')}>创建实物商品</Button></>}
     kpis={[{num:'1,286',label:'商品总数'},{num:42,label:'待核验'},{num:58,label:'待销售'},{num:418,label:'销售中'}]}
-    filters={<><Input placeholder="搜索商品编码 / 标题 / 标品 SKU 编码" prefix={<SearchOutlined style={{color:'#9CA3AF'}} />} allowClear style={{width:260}} />
-      <Select defaultValue="" style={{width:140}} options={[{value:'',label:'全部成色'},{value:'A',label:'A - Excellent'},{value:'B',label:'B - Good'},{value:'C',label:'C - Fair'}]} />
-      <Select defaultValue="" style={{width:130}} options={[{value:'',label:'全部状态'},{value:'1',label:'待核验'},{value:'2',label:'核验中'},{value:'3',label:'待销售'},{value:'4',label:'销售中'},{value:'5',label:'已售出'}]} />
+    filters={<><Input placeholder="搜索商品 ID / 标题 / 标品 SKU ID" prefix={<SearchOutlined style={{color:'#9CA3AF'}} />} allowClear style={{width:260}} />
+      <Select defaultValue="" style={{width:140}} options={[{value:'',label:'全部成色'},{value:'NWT',label:'NWT'},{value:'Excellent',label:'Excellent'},{value:'Good',label:'Good'},{value:'Fair',label:'Fair'}]} />
+      <Select defaultValue="" style={{width:130}} options={[{value:'',label:'全部状态'},{value:'1',label:'待核验'},{value:'2',label:'核验中'},{value:'3',label:'待销售'},{value:'4',label:'销售中'},{value:'5',label:'已售出'},{value:'6',label:'已停售'},{value:'7',label:'已失效'}]} />
       <Select defaultValue="" style={{width:120}} options={[{value:'',label:'全部标签'},{value:'热销',label:'热销'},{value:'新品',label:'新品'}]} />
       <Button type="primary" icon={<SearchOutlined />}>查询</Button></>}
     columns={[
-      { title:'商品编码', dataIndex:'code', width:130, fixed:'left', render:v => link(v, () => nav('detail')) },
+      { title:'商品 ID', dataIndex:'id', width:100, fixed:'left', render:v => link(v, () => nav('detail')) },
       { title:'商品标题', dataIndex:'title', width:180 },
-      { title:'关联标品 SKU', dataIndex:'sku', width:130, render:v => link(v, () => go('sku','edit')) },
+      { title:'关联标品 SKU', dataIndex:'sku', width:100, render:v => link(v, () => go('sku','edit')) },
       { title:'成色', dataIndex:'cond', width:70 },
       { title:'状态', dataIndex:'st', width:90, render:(v,r) => <StatusTag variant={r.stv}>{v}</StatusTag> },
-      { title:'采购价（USD）', dataIndex:'price', width:120, align:'right' },
       { title:'卖家ID', dataIndex:'sid', width:90 }, { title:'卖家信息', dataIndex:'seller', width:120 },
       { title:'标签', dataIndex:'tags', width:150, render:t => t.length?t.map(x => <Pill key={x}>{x}</Pill>):<span style={{color:'#9CA3AF'}}>—</span> },
       { title:'操作', key:'op', width:140, fixed:'right', render:(_,r) => opCol(r) },
@@ -1171,14 +1172,14 @@ function ChannelProductForm({ go }) {
   const [title, setTitle] = useState('Hermes Birkin 25 黑金');
   const sections = [
     { title:'商品信息（只读）', children:<>
-      <FormRow label="关联商品"><Button type="link" size="small" style={{ padding:0, textDecoration:'underline' }} onClick={() => go('product','edit')}>INT-BK25-001</Button></FormRow>
-      <FormRow label="关联 SKU"><ReadField>BK25-BLK-GD</ReadField></FormRow>
+      <FormRow label="关联商品"><Button type="link" size="small" style={{ padding:0, textDecoration:'underline' }} onClick={() => go('product','edit')}>P001</Button></FormRow>
+      <FormRow label="关联 SKU"><ReadField>SKU001</ReadField></FormRow>
     </> },
     { title:'渠道信息', children:<>
       <FormRow label="渠道商品 ID"><ReadField>CI001</ReadField></FormRow>
       <FormRow label="所属渠道"><ReadField>美国官网商城</ReadField></FormRow>
       <FormRow label="展示标题" helper="修改仅影响当前渠道展示，留空时使用商品原始名称"><Space.Compact style={{ width:'100%' }}><Input value={title} onChange={(e) => setTitle(e.target.value)} /><Button onClick={() => setTitle('Hermes Birkin 25 黑金')}>恢复默认</Button></Space.Compact></FormRow>
-      <FormRow label="挂牌价" helper="币种由渠道关联的 Market 默认货币决定，运营无需手动选择"><Input addonBefore="USD $" defaultValue="74000" /></FormRow>
+      <FormRow label="挂牌价" required helper="币种由渠道关联的 Market 默认货币决定，运营无需手动选择"><Input addonBefore="USD $" defaultValue="74000" /></FormRow>
       <FormRow label="优先级" helper="数值越小展示越靠前，相同优先级按上架时间排序"><InputNumber defaultValue={10} style={{ width:'100%' }} /></FormRow>
     </> },
     { title:'标签', note:'为渠道商品打标签，便于运营分类和筛选。仅显示适用对象为「渠道商品」或「通用」的标签。', children:<>
@@ -1188,7 +1189,7 @@ function ChannelProductForm({ go }) {
     { children:<SeoPanel /> },
   ];
   return <FormPage title="渠道商品编辑" desc="调整渠道商品的定价和上架配置。" isEdit onBack={() => go('channel-product','list')} onSave={() => go('channel-product','list')} sections={sections}
-    oplog={[{i:1,at:'2026-04-16 10:00',who:'李四',type:'修改SEO',detail:'修改 SEO Title、Meta Description'},{i:2,at:'2026-04-15 14:30',who:'张三',type:'修改挂牌价',detail:'挂牌价由 $72,000 调整为 $74,000'},{i:3,at:'2026-04-15 09:00',who:'张三',type:'创建渠道商品',detail:'从实物商品 INT-BK25-001 推送创建'}]} />;
+    oplog={[{i:1,at:'2026-04-16 10:00',who:'李四',type:'修改SEO',detail:'修改 SEO Title、Meta Description'},{i:2,at:'2026-04-15 14:30',who:'张三',type:'修改挂牌价',detail:'挂牌价由 $72,000 调整为 $74,000'},{i:3,at:'2026-04-15 09:00',who:'张三',type:'创建渠道商品',detail:'从实物商品 P001 推送创建'}]} />;
 }
 function ChannelProductModule({ sub, go, openModal }) {
   const nav = (s) => go('channel-product', s);
@@ -1196,9 +1197,9 @@ function ChannelProductModule({ sub, go, openModal }) {
   if (sub === 'edit') return <ChannelProductForm go={go} />;
   const link = (txt) => <Button type="link" size="small" style={{ padding:0, color:'#7C3AED', fontWeight:500, textDecoration:'underline' }} onClick={() => go('product','edit')}>{txt}</Button>;
   const data = [
-    { id:'CI001', name:'Hermes Birkin 25 黑金', rel:'INT-BK25-001', ch:'美国官网商城', price:'$74,000', pr:10, st:'在售', stv:'on', tags:['限时促销','精品推荐'], t:'2026-04-13 16:35', on:true },
-    { id:'CI002', name:'LV Neverfull MM 棕色', rel:'INT-NFMM-001', ch:'美国官网商城', price:'$10,584', pr:20, st:'在售', stv:'on', tags:['清仓'], t:'2026-04-13 16:20', on:true },
-    { id:'CI003', name:'Rolex Submariner 黑盘', rel:'INT-SUB-001', ch:'美国官网商城', price:'$12,800', pr:30, st:'已下架', stv:'off', tags:[], t:'2026-04-13 15:50', on:false },
+    { id:'CI001', name:'Hermes Birkin 25 黑金', rel:'P001', ch:'美国官网商城', sid:'S-10001', seller:'奢品回收商A', cur:'USD', price:'$74,000', pr:10, st:'在售', stv:'on', tags:['限时促销','精品推荐'], t:'2026-04-13 16:35', on:true },
+    { id:'CI002', name:'LV Neverfull MM 棕色', rel:'P003', ch:'美国官网商城', sid:'S-10003', seller:'奢品回收商B', cur:'USD', price:'$10,584', pr:20, st:'在售', stv:'on', tags:['清仓'], t:'2026-04-13 16:20', on:true },
+    { id:'CI003', name:'Rolex Submariner 黑盘', rel:'P005', ch:'美国官网商城', sid:'S-10005', seller:'自营仓库', cur:'USD', price:'$12,800', pr:30, st:'已下架', stv:'off', tags:[], t:'2026-04-13 15:50', on:false },
   ];
   return <ListPage title="渠道商品" desc="渠道商品列表页查看已进入渠道的商品清单、挂牌价与上架状态。" go={go} scrollX={1400} rowKey="id"
     headActions={<><Button disabled={!selectedKeys.length} onClick={() => openModal('batchUnshelf')}>批量下架{selectedKeys.length>0&&` (${selectedKeys.filter(k=>data.find(d=>d.id===k)?.on).length})`}</Button><Button type="primary" disabled={!selectedKeys.length} onClick={() => openModal('batchShelf')}>批量上架{selectedKeys.length>0&&` (${selectedKeys.filter(k=>!data.find(d=>d.id===k)?.on).length})`}</Button></>}
@@ -1212,7 +1213,8 @@ function ChannelProductModule({ sub, go, openModal }) {
     selectedInfo={selectedKeys.length>0 && <Alert type="info" showIcon={false} style={{ marginBottom:12 }} message={<Space><span style={{ fontSize:13 }}>已选择 <b>{selectedKeys.length}</b> 项</span><Button type="link" size="small" style={{ padding:0 }} onClick={() => setSelectedKeys([])}>取消选择</Button></Space>} />}
     columns={[
       { title:'渠道商品 ID', dataIndex:'id', width:110, fixed:'left' }, { title:'商品名称', dataIndex:'name', width:180 },
-      { title:'关联商品', dataIndex:'rel', width:130, render:v => link(v) }, { title:'所属渠道', dataIndex:'ch', width:120 },
+      { title:'关联商品', dataIndex:'rel', width:130, render:v => link(v) }, { title:'卖家ID', dataIndex:'sid', width:90 }, { title:'卖家昵称', dataIndex:'seller', width:120 },
+      { title:'所属渠道', dataIndex:'ch', width:120 },
       { title:'挂牌价', dataIndex:'price', width:100, align:'right' }, { title:'优先级', dataIndex:'pr', width:80, align:'right' },
       { title:'上架状态', dataIndex:'st', width:90, render:(v,r) => <StatusTag variant={r.stv}>{v}</StatusTag> },
       { title:'标签', dataIndex:'tags', width:150, render:t => t.length?t.map(x => <Pill key={x}>{x}</Pill>):<span style={{color:'#9CA3AF'}}>—</span> },
@@ -1327,13 +1329,15 @@ function SizeSystemModule({ sub, go, openModal }) {
     columns={[{title:'体系代码',dataIndex:'code'},{title:'体系名称',dataIndex:'name'},{title:'适用类目',dataIndex:'cat'},{title:'尺码值数量',dataIndex:'vn',align:'right'},{title:'换算规则数',dataIndex:'cn',align:'right'},
       {title:'状态',key:'st',render:()=><StatusTag variant="on">启用</StatusTag>},{title:'操作',key:'op',width:80,render:()=><Button size="small" onClick={()=>nav('edit')}>详情</Button>}]} data={data} total={12} />;
 }
-function MatrixTable({ headers, rows, addSel }) {
+function MatrixTable({ headers, rows: initRows, addSel }) {
+  const [rows, setRows] = useState(initRows);
+  const updateCell = (ri, ci, val) => { const next = rows.map((r,i) => i===ri ? r.map((c,j) => j===ci ? val : c) : r); setRows(next); };
   const cols = headers.map((h, i) => ({ title: i===0 ? `基准(${h})` : h, dataIndex: String(i),
-    render: i===0 ? (v => <b>{v}</b>) : (v => v==='-' ? <span style={{ color:'#D1D5DB' }}>—</span> : <span className="lp-editable" style={{ textAlign:'left' }}>{v}</span>) }));
+    render: i===0 ? (v => <b>{v}</b>) : ((v, _, ri) => v==='-' ? <span style={{ color:'#D1D5DB' }}>—</span> : <EditableCell value={v} onChange={(nv) => updateCell(ri, i, nv)} />) }));
   cols.push({ title:'操作', key:'op', width:70, render:() => <Button size="small" danger>删除</Button> });
   return <>
     <Table rowKey="0" size="small" pagination={false} styles={TABLE_STYLES} scroll={{ x:'max-content' }}
-      dataSource={rows.map(r => { const o = {}; r.forEach((c,i) => o[i]=c); return o; })} columns={cols} />
+      dataSource={rows.map(r => { const o = {}; r.forEach((c,j) => o[j]=c); return o; })} columns={cols} />
     <Space size={8} wrap style={{ marginTop:12, padding:12, background:'#F9FAFB', borderRadius:10 }}>
       <span style={{ fontSize:12, color:'#6B7280' }}>新增一行：</span>
       {addSel.map((opts, i) => <Select key={i} size="small" placeholder={headers[i]} style={{ width:110 }} options={opts.map(o => ({ value:o, label:o }))} />)}
@@ -1506,10 +1510,10 @@ function PriceRuleModule({ sub, go, openModal }) {
       oplog={[{i:1,at:'2026-04-16 14:00',who:'李四',type:'编辑规则',detail:'修改 USD 尾数规则为 .99'},{i:2,at:'2026-04-15 10:00',who:'张三',type:'启用规则',detail:'定价规则状态变更为「启用」'},{i:3,at:'2026-04-14 16:00',who:'张三',type:'创建规则',detail:'创建定价规则「USD 尾数定价」'}]} />;
   }
   const data = [
-    { id:1, name:'系统默认规则', lv:'系统', lvv:'on', scope:'全局', psy:'.99', del:false },
-    { id:2, name:'美国市场规则', lv:'Market', lvv:'sale', scope:'US Market', psy:'.99', del:true },
-    { id:3, name:'日元特殊规则', lv:'货币', lvv:'desc', scope:'JPY (日元)', psy:'整十', del:true },
-    { id:4, name:'科威特第纳尔规则', lv:'货币', lvv:'desc', scope:'KWD (科威特第纳尔)', psy:'.995', del:true },
+    { id:1, rid:'PR001', name:'系统默认规则', lv:'系统', lvv:'on', scope:'全局', psy:'.99', del:false },
+    { id:2, rid:'PR002', name:'美国市场规则', lv:'Market', lvv:'sale', scope:'US Market', psy:'.99', del:true },
+    { id:3, rid:'PR003', name:'日元特殊规则', lv:'货币', lvv:'desc', scope:'JPY (日元)', psy:'整十', del:true },
+    { id:4, rid:'PR004', name:'科威特第纳尔规则', lv:'货币', lvv:'desc', scope:'KWD (科威特第纳尔)', psy:'.995', del:true },
   ];
   return <ListPage title="尾差规则" desc="管理多币种心理定价尾数策略。规则按「货币级 > Market级 > 系统默认」优先级生效。小数精度由货币 ISO 4217 标准决定。" go={go} rowKey="id"
     headActions={<Button type="primary" icon={<PlusOutlined />} onClick={() => nav('create')}>新增规则</Button>}
@@ -1519,7 +1523,7 @@ function PriceRuleModule({ sub, go, openModal }) {
       <Select defaultValue="" style={{width:120}} options={[{value:'',label:'全部状态'},{value:'on',label:'启用'},{value:'off',label:'停用'}]} />
       <Button type="primary" icon={<SearchOutlined />}>查询</Button></>}
     columns={[
-      { title:'规则名称', dataIndex:'name' }, { title:'层级', dataIndex:'lv', render:(v,r) => <StatusTag variant={r.lvv}>{v}</StatusTag> },
+      { title:'规则 ID', dataIndex:'rid', width:100 }, { title:'规则名称', dataIndex:'name' }, { title:'层级', dataIndex:'lv', render:(v,r) => <StatusTag variant={r.lvv}>{v}</StatusTag> },
       { title:'适用范围', dataIndex:'scope' }, { title:'心理定价', dataIndex:'psy' }, { title:'状态', key:'st', render:() => <StatusTag variant="on">启用</StatusTag> },
       { title:'操作', key:'op', width:140, render:(_,r) => <Space size={6}><Button size="small" onClick={() => nav('edit')}>编辑</Button>{r.del && <Button size="small" danger>删除</Button>}</Space> },
     ]} data={data} total={20} />;
@@ -1604,7 +1608,7 @@ function modalConfig(modal, close) {
     content:<div style={{ display:'flex', flexDirection:'column', gap:14 }}>
       <Alert type="info" showIcon={false} message={<div style={{ fontSize:13, lineHeight:1.8 }}><b>导出说明</b><br/>• 按当前筛选条件导出匹配的商品数据<br/>• 导出文件格式为 Excel (.xlsx)<br/>• 导出结果请前往下载中心查看和下载</div>} />
       <FormRow label="导出范围"><Radio.Group defaultValue="filter"><Radio value="filter">当前筛选结果（1,286 条）</Radio><Radio value="selected">已勾选商品（0 条）</Radio></Radio.Group></FormRow>
-      <FormRow label="导出字段"><Checkbox.Group defaultValue={['base','sku','cond','price','seller','tag']} options={[{value:'base',label:'基础信息（编码/标题/状态）'},{value:'sku',label:'关联标品（SPU/SKU/品牌/系列）'},{value:'cond',label:'成色与质检'},{value:'price',label:'定价信息'},{value:'seller',label:'卖家信息'},{value:'tag',label:'标签'}]} /></FormRow>
+      <FormRow label="导出字段"><Checkbox.Group defaultValue={['base','sku','cond','price','seller','tag']} options={[{value:'base',label:'基础信息（ID/标题/状态）'},{value:'sku',label:'关联标品（SPU/SKU/品牌/系列）'},{value:'cond',label:'成色与质检'},{value:'price',label:'定价信息'},{value:'seller',label:'卖家信息'},{value:'tag',label:'标签'}]} /></FormRow>
       <Note>导出任务提交后将在后台异步处理，完成后可在下载中心获取文件</Note>
     </div> };
   if (t === 'batchImport') return { width:560, title:'批量上架导入',
@@ -1614,7 +1618,7 @@ function modalConfig(modal, close) {
       <div style={{ padding:14, border:'1px solid #E5E7EB', borderRadius:12 }}>
         <div style={{ fontSize:13, fontWeight:700, color:'#344054', marginBottom:8 }}>模板下载</div>
         <Space style={{ marginBottom:8 }}><Button type="link" size="small" style={{ padding:0 }} icon={<DownloadOutlined />}>下载最新模板</Button><Button type="link" size="small" style={{ padding:0 }}>下载填写说明</Button></Space>
-        <div style={{ fontSize:12, color:'#6B7280', lineHeight:1.7 }}><b style={{ color:'#344054' }}>模板包含字段：</b>商品编码、渠道编码、挂牌价<br/><b style={{ color:'#344054' }}>模板版本号：</b>v1</div>
+        <div style={{ fontSize:12, color:'#6B7280', lineHeight:1.7 }}><b style={{ color:'#344054' }}>模板包含字段：</b>商品 ID、渠道编码、挂牌价<br/><b style={{ color:'#344054' }}>模板版本号：</b>v1</div>
       </div>
       <Upload.Dragger accept=".xlsx,.csv" maxCount={1} beforeUpload={() => false}>
         <p className="ant-upload-drag-icon"><InboxOutlined style={{ color:'#7C3AED' }} /></p>
