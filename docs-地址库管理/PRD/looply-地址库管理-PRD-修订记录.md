@@ -1,0 +1,11 @@
+# Looply 地址库管理模块 PRD 修订记录
+
+| 版本 | 日期 | 修改人 | 修改内容 |
+|------|------|--------|----------|
+| v1.0 | 2026-05-09 | 产品团队 | 初版，包含 C 端地址表单/列表、后台国家配置/行政区划管理 |
+| v1.1 | 2026-05-11 | 产品团队 | 新增后端校验规则设计（address_field_validation_rules）；补充前后端双重校验机制说明 |
+| v1.1（结构重构） | 2026-05-11 | 产品团队 | 按 PRD 写作规范重构：删除接口清单章节、精简数据模型为设计说明、补充功能项子结构（状态变体/异常处理/前置条件/UI关联）、新增多语言多国家策略章节 |
+| v1.1（MVP精简） | 2026-05-11 | 产品团队 | 后台配置编辑页移除字段排序（↑↓）和姓名格式配置项，MVP仅美国市场无需展示；配置列表页同步移除姓名格式列和KPI；数据字段保留供后续扩展；补充地址显示拼接规则（display_format）和美国初始化数据要求 |
+| v1.2 | 2026-05-13 | 产品团队 | 校验架构重构：必填性（required/optional/hidden）归 country_address_config.field_config 统一管理，address_field_validation_rules 去掉 required 类型只保留 pattern/length/custom；新增多规则校验模型（priority 顺序执行）；ER 图升级至 v1.3 |
+| v1.3 | 2026-05-20 | 产品团队 | 前端展示字段表格新增"行政区划层级"列（state_province/city/district 支持 L1-L5 配置）；配送限制移除"适用品类"字段（全品类为默认行为无需存储）；ER 图调整：admin_division_level 从 address_field_meta 移出（落表见 v2.2 更正），delivery_restriction 移除 category 字段 |
+| v2.2 | 2026-06-08 | 产品团队 | **更正 v1.3 记录笔误**：admin_division_level（行政区划层级）的正确归属是 `country_address_config.field_config`，而非 v1.3 误记的 `address_field_validation_rules`。行政区划层级是"按国家+按字段"的配置（同一字段在不同国家可关联不同层级），应随国家地址配置存储。field_config 结构升级为 JSON 数组 `[{field_name, enabled, level, order}]`，level=NULL 表示不关联；合并原 field_order 字段（顺序改用显式 order 数值表达，规避 jsonb key 重排，删除独立 field_order）。address_field_meta 删除 admin_division_level，回归全局字段单一事实来源职责。**明确校验分工**：field_config 只管字段的启用(enabled)/层级(level)/顺序(order)；必填性与格式/长度校验同归 address_field_validation_rules（不放 field_config，对齐原型 v5-antd 无必填配置项的现状，修正 v1.2 措辞）。必填性字段收为两态并改名：删除无落地机制的 conditional（条件必填缺 condition 描述字段，MVP 美国单国用不到），字段 `required_level → requirement_type`（原 _level 后缀误导且与 field_config.level 行政区划层级撞词，改用 _type 对齐 restriction_type/rule_type 命名惯例）。数组结构与原型 v5-antd 的 ADDR_FIELDS 一致（city=L2 / state_province=L1 / district=L3）；ER 图升级至 v2.2。**PRD 正文同步**：后端校验流程、必填性与格式校验职责分离说明、字段总览、国家地址配置编辑页交互（启用开关替代必填规则下拉）均已对齐上述模型。字段 `field_labels → field_i18n_keys`（与 ER 实体字段名统一），存 i18n key，多语言文案由翻译中心维护 |
