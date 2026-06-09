@@ -250,6 +250,268 @@ MODULES = {
     },
 }
 
+# ─── 自动发现新模块 ────────────────────────────────────────────────────────────────
+
+def _infer_artifact(full_dir, subdir_name, expected_keyword=None):
+    """扫描子目录，从文件名推断版本正则。返回 (pattern, ext) 或 (None, None)。"""
+    d = os.path.join(full_dir, subdir_name)
+    if not os.path.isdir(d):
+        return None, None
+    for fname in sorted(os.listdir(d)):
+        if fname.startswith('.') or fname in ('latest.md', 'index.html'):
+            continue
+        if expected_keyword and expected_keyword not in fname:
+            continue
+        m = re.search(r'-[vV](.+?)\.(\w+)$', fname)
+        if m and fname.startswith('looply-'):
+            prefix = fname[:m.start()]
+            ext = m.group(2)
+            pattern = re.escape(prefix) + r'-v(.+?)\.' + re.escape(ext)
+            return pattern, ext
+    return None, None
+
+
+def auto_discover_modules():
+    """扫描 docs-*/ 目录，发现未注册模块并自动生成配置。"""
+    registered_targets = {m['target'] for m in MODULES.values()}
+    discovered = {}
+
+    for entry in sorted(os.listdir(REPO_DIR)):
+        full_path = os.path.join(REPO_DIR, entry)
+        if not os.path.isdir(full_path) or not entry.startswith('docs-'):
+            continue
+        if entry in registered_targets or entry == 'docs':
+            continue
+
+        mod_name = entry.replace('docs-', '')
+        artifacts = {}
+
+        proto_pat, _ = _infer_artifact(full_path, '原型', '后台原型')
+        if not proto_pat:
+            proto_pat, _ = _infer_artifact(full_path, '原型')
+        if proto_pat:
+            artifacts['prototype'] = {'subdir': '原型', 'pattern': proto_pat}
+
+        prd_pat, _ = _infer_artifact(full_path, 'PRD', 'PRD')
+        if prd_pat:
+            artifacts['prd'] = {'subdir': 'PRD', 'pattern': prd_pat}
+
+        er_pat, _ = _infer_artifact(full_path, '实体关系图', '实体关系图')
+        if er_pat:
+            artifacts['er'] = {'subdir': '实体关系图', 'pattern': er_pat}
+
+        arch_pat, _ = _infer_artifact(full_path, '产品架构图', '产品架构图')
+        if arch_pat:
+            artifacts['architecture'] = {'subdir': '产品架构图', 'pattern': arch_pat}
+
+        flow_pat, _ = _infer_artifact(full_path, '系统流程图', '流程图')
+        if flow_pat:
+            artifacts['flowchart'] = {'subdir': '系统流程图', 'pattern': flow_pat}
+
+        if not artifacts:
+            # 检查是否只有调研文档（需求分析）
+            for sub in ('调研', '需求分析'):
+                if os.path.isdir(os.path.join(full_path, sub)):
+                    artifacts['_has_content'] = True
+                    break
+            if not artifacts:
+                continue
+
+        config_key = mod_name if 'prototype' in artifacts else None
+
+        discovered[f'_auto_{mod_name}'] = {
+            'name': mod_name,
+            'default_source': '',
+            'target': entry,
+            'keywords': [mod_name],
+            'config_key': config_key,
+            'artifacts': {k: v for k, v in artifacts.items() if k != '_has_content'},
+            '_auto_discovered': True,
+        }
+
+    return discovered
+
+
+# ─── index.html 区块自动生成 ──────────────────────────────────────────────────────
+
+_CARD_META = {
+    'er':           ('实体关系图',  'icon-svg',  'S'),
+    'architecture': ('产品架构图',  'icon-svg',  'S'),
+    'flowchart':    ('系统流程图',  'icon-svg',  'S'),
+    'prototype':    ('后台原型',    'icon-html', 'H'),
+    'prd':          ('PRD 文档',    'icon-md',   'M'),
+    'prd_md':       ('PRD 文档',    'icon-md',   'M'),
+    'prd_html':     ('PRD 文档',    'icon-html', 'H'),
+}
+
+_STAGE2_TYPES = ('er', 'architecture', 'flowchart')
+_STAGE3_TYPES = ('prototype', 'prd', 'prd_md', 'prd_html')
+
+
+def _gen_card(mod_name, target_dir, art_type, file_name, ver, today):
+    """生成单个文档卡片 HTML。"""
+    card_title, icon_cls, icon_letter = _CARD_META.get(art_type, ('文档', 'icon-md', 'D'))
+    subdir = 'PRD' if art_type.startswith('prd') else {
+        'er': '实体关系图', 'architecture': '产品架构图',
+        'flowchart': '系统流程图', 'prototype': '原型',
+    }.get(art_type, '')
+    href = f'{target_dir}/{subdir}/{file_name}' if subdir else f'{target_dir}/{file_name}'
+
+    # 文档显示名
+    if art_type == 'prototype':
+        doc_label = f'{mod_name}后台原型 v{ver}'
+    elif art_type.startswith('prd'):
+        doc_label = f'{mod_name} PRD v{ver}'
+    elif art_type == 'er':
+        doc_label = f'{mod_name}实体关系图 v{ver}'
+    elif art_type == 'architecture':
+        doc_label = f'{mod_name}产品架构图 v{ver}'
+    elif art_type == 'flowchart':
+        doc_label = f'{mod_name}系统流程图 v{ver}'
+    else:
+        doc_label = f'{mod_name} v{ver}'
+
+    dl_label = 'Markdown' if art_type == 'prd' or art_type == 'prd_md' else '下载'
+
+    return f"""
+      <div class="card">
+        <div class="card-title">{card_title}</div>
+        <ul class="doc-list">
+          <li class="doc-item">
+            <div class="doc-icon {icon_cls}">{icon_letter}</div>
+            <div class="doc-info">
+              <div class="doc-name">{doc_label} <span class="badge">最新</span></div>
+              <div class="doc-desc">更新于 {today}</div>
+            </div>
+            <div class="doc-actions">
+              <a class="btn btn-view" href="{href}" target="_blank">查看</a>
+              <a class="btn btn-download" href="{href}" download>{dl_label}</a>
+            </div>
+          </li>
+        </ul>
+      </div>"""
+
+
+def generate_index_section(mod_name, target_dir, found_arts, today):
+    """为新模块生成完整的 index.html 区块 HTML。
+    found_arts: {art_type: (file_name, ver_str)}
+    """
+    stage2 = [(t, found_arts[t]) for t in _STAGE2_TYPES if t in found_arts]
+    stage3 = [(t, found_arts[t]) for t in _STAGE3_TYPES if t in found_arts]
+
+    parts = []
+    parts.append(f'\n  <!-- ==================== {mod_name}模块 ==================== -->')
+    parts.append(f'  <div class="module-section" data-module="{mod_name}">')
+
+    if stage2:
+        parts.append('')
+        parts.append('    <!-- 阶段2 产品架构 -->')
+        parts.append('    <div class="stage-group">')
+        parts.append('      <div class="stage-header">')
+        parts.append('        <div class="stage-dot" style="background:#8b5cf6"></div>')
+        parts.append('        <span class="stage-label">阶段2 产品架构</span>')
+        parts.append('        <div class="stage-line"></div>')
+        parts.append('      </div>')
+        for art_type, (fname, ver) in stage2:
+            parts.append(_gen_card(mod_name, target_dir, art_type, fname, ver, today))
+        parts.append('\n    </div>')
+
+    if stage3:
+        parts.append('')
+        parts.append('    <!-- 阶段3 需求设计 -->')
+        parts.append('    <div class="stage-group">')
+        parts.append('      <div class="stage-header">')
+        parts.append('        <div class="stage-dot" style="background:#3b82f6"></div>')
+        parts.append('        <span class="stage-label">阶段3 需求设计</span>')
+        parts.append('        <div class="stage-line"></div>')
+        parts.append('      </div>')
+        for art_type, (fname, ver) in stage3:
+            parts.append(_gen_card(mod_name, target_dir, art_type, fname, ver, today))
+        parts.append('    </div>')
+
+    parts.append('')
+    parts.append('  </div>')
+    parts.append(f'  <!-- ==================== {mod_name}模块 END ==================== -->\n')
+
+    return '\n'.join(parts)
+
+
+def ensure_index_sections(new_modules_arts):
+    """检查 index.html 中是否缺少模块区块，缺少则自动插入。
+    new_modules_arts: {mod_key: {art_type: (file_name, ver_str)}}
+    """
+    index_path = os.path.join(REPO_DIR, 'index.html')
+    content = open(index_path, 'r', encoding='utf-8').read()
+    today = datetime.now().strftime('%Y-%m-%d')
+    inserted = []
+
+    for mod_key, arts in new_modules_arts.items():
+        mod_config = MODULES[mod_key]
+        mod_name = mod_config['name']
+        target_dir = mod_config['target']
+        marker = f'<!-- ==================== {mod_name}模块 ==================== -->'
+        if marker in content:
+            continue
+        if not arts:
+            continue
+        section = generate_index_section(mod_name, target_dir, arts, today)
+        # 插入到 footer 之前
+        insert_before = '\n</div>\n\n<div class="footer">'
+        if insert_before in content:
+            content = content.replace(insert_before, section + insert_before)
+            inserted.append(mod_name)
+
+    if inserted:
+        with open(index_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        for name in inserted:
+            print(f'  [新增] index.html 添加 {name} 模块区块')
+    return inserted
+
+
+# ─── admin.html 自动更新 ─────────────────────────────────────────────────────────
+
+def update_admin_html(all_proto_keys):
+    """更新 admin.html 的 MODULES 数组，确保包含所有有原型的模块。
+    all_proto_keys: [(config_key, label)] 按显示顺序排列
+    """
+    admin_path = os.path.join(REPO_DIR, 'admin.html')
+    content = open(admin_path, 'r', encoding='utf-8').read()
+
+    # 提取现有 MODULES 块
+    m = re.search(r'(const MODULES = \[)(.*?)(\];)', content, re.DOTALL)
+    if not m:
+        return
+
+    existing_block = m.group(2)
+
+    # 解析已有条目的 key
+    existing_keys = set(re.findall(r"key:\s*'([^']+)'", existing_block))
+
+    # 检查是否有新条目需要添加
+    new_entries = []
+    for config_key, label in all_proto_keys:
+        if config_key not in existing_keys:
+            new_entries.append(f"  {{ key: '{config_key}', label: '{label}', url: P['{config_key}'] }},")
+
+    if not new_entries:
+        return
+
+    # 在 ]; 之前插入新条目
+    old_block = m.group(0)
+    # 找到最后一个 }, 或 } 的位置
+    last_entry_end = existing_block.rstrip()
+    new_block = m.group(1) + existing_block.rstrip('\n') + '\n' + '\n'.join(new_entries) + '\n' + m.group(3)
+    content = content.replace(old_block, new_block)
+
+    with open(admin_path, 'w', encoding='utf-8') as f:
+        f.write(content)
+    for entry in new_entries:
+        key_m = re.search(r"key: '([^']+)'", entry)
+        if key_m:
+            print(f'  [新增] admin.html 添加 {key_m.group(1)} 模块入口')
+
+
 # ─── 路径解析 ─────────────────────────────────────────────────────────────────────
 
 def expand_path(p):
@@ -504,16 +766,19 @@ def update_prototype_config(latest_prototypes):
     for key, path in latest_prototypes.items():
         if path:
             current[key] = path
-    key_order = ['product', 'market', 'inventory', 'translation', 'exchange', 'user', 'pdp']
-    lines = []
-    keys_present = [k for k in key_order if k in current]
-    if not keys_present:
+    # 已注册模块按固定顺序排前面，自动发现的追加在后面
+    _fixed_order = ['product', 'market', 'inventory', 'translation', 'exchange', 'user', 'pdp']
+    ordered_keys = [k for k in _fixed_order if k in current]
+    for k in sorted(current.keys()):
+        if k not in ordered_keys:
+            ordered_keys.append(k)
+    if not ordered_keys:
         return
-    max_key_len = max(len(k) for k in keys_present)
-    for key in key_order:
-        if key in current:
-            padding = ' ' * (max_key_len - len(key) + 1)
-            lines.append(f"  '{key}':{padding}'{current[key]}'")
+    lines = []
+    max_key_len = max(len(k) for k in ordered_keys)
+    for key in ordered_keys:
+        padding = ' ' * (max_key_len - len(key) + 1)
+        lines.append(f"  '{key}':{padding}'{current[key]}'")
     output = """/**
  * Looply 后台原型路径配置（单一数据源）
  *
@@ -791,6 +1056,13 @@ def main():
 
     print('=== sync.py: Looply 文档同步 ===')
 
+    # Phase 0: 自动发现新模块
+    discovered = auto_discover_modules()
+    if discovered:
+        MODULES.update(discovered)
+        for dk, dc in discovered.items():
+            print(f'  [自动发现] {dc["name"]} → {dc["target"]}')
+
     # Phase 1: 文件复制
     print('\n[Phase 1] 复制文件...')
     synced_modules = []
@@ -816,7 +1088,7 @@ def main():
         sync_module_files(source_dir, target_dir, mod_key)
         synced_modules.append(mod_key)
 
-    if not synced_modules:
+    if not synced_modules and not discovered:
         print('  没有找到可同步的模块（源目录不存在或未配置路径）')
 
     # Phase 2: 版本检测与 index.html 更新
@@ -889,10 +1161,45 @@ def main():
         update_prototype_config(latest_prototypes)
         print('  [更新] prototype-config.js')
 
+    # 为自动发现的新模块生成 index.html 区块
+    if discovered:
+        new_arts = {}
+        for mod_key in discovered:
+            arts = {}
+            mod_config = MODULES[mod_key]
+            for art_type, art_config in mod_config.get('artifacts', {}).items():
+                ver_key = (mod_key, art_type)
+                if ver_key in all_versions:
+                    fname, _ = find_latest_file(
+                        mod_config['target'], art_config['subdir'],
+                        art_config['pattern'], art_config.get('exclude'))
+                    if fname:
+                        arts[art_type] = (fname, all_versions[ver_key])
+            if arts:
+                new_arts[mod_key] = arts
+        if new_arts:
+            ensure_index_sections(new_arts)
+
     if index_updates:
         update_index_html(index_updates, all_versions, all_history)
 
     update_prd_index_topbar()
+
+    # 更新 admin.html 的模块列表
+    all_proto_keys = []
+    for mod_key, mod_config in MODULES.items():
+        ck = mod_config.get('config_key')
+        if ck and ck in (latest_prototypes or {}):
+            all_proto_keys.append((ck, mod_config['name']))
+        elif ck:
+            # 检查 prototype-config.js 中是否已存在
+            cfg_path = os.path.join(REPO_DIR, 'prototype-config.js')
+            if os.path.exists(cfg_path):
+                cfg_content = open(cfg_path, 'r', encoding='utf-8').read()
+                if f"'{ck}'" in cfg_content:
+                    all_proto_keys.append((ck, mod_config['name']))
+    if all_proto_keys:
+        update_admin_html(all_proto_keys)
 
     # Phase 3: Git
     print('\n[Phase 3] Git 提交...')
