@@ -10,6 +10,6 @@ var PROTOTYPE_CONFIG = {
   'translation': 'docs-翻译管理/原型/looply-翻译管理后台原型-v7.html',
   'exchange':    'docs-汇率管理/原型/looply-汇率管理后台原型-v8.0.html',
   'user':        'docs-用户管理/原型/looply-用户管理后台原型-v2-antd.html',
-  'pdp':         'docs-商详/原型/looply-商详页CMS配置后台原型.html',
+  'pdp':         'docs-商详/UI/looply-商详页CMS配置后台原型.html',
   '地址库管理':       'docs-地址库管理/原型/looply-地址库管理后台原型-v5-antd.html',
 };

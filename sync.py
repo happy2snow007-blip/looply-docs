@@ -1130,6 +1130,16 @@ def main():
 
         for art_type, art_config in mod_config.get('artifacts', {}).items():
             if art_config.get('no_version'):
+                if art_type == 'prototype' and config_key:
+                    subdir_nv = art_config['subdir']
+                    pat_nv = art_config['pattern']
+                    target_sub = os.path.join(REPO_DIR, module_dir, subdir_nv)
+                    if os.path.isdir(target_sub):
+                        for fname in os.listdir(target_sub):
+                            if re.fullmatch(pat_nv, fname):
+                                rel = f'{module_dir}/{subdir_nv}/{fname}' if subdir_nv != '.' else f'{module_dir}/{fname}'
+                                latest_prototypes[config_key] = rel
+                                break
                 continue
             subdir = art_config['subdir']
             pattern = art_config['pattern']
