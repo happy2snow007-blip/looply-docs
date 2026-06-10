@@ -117,8 +117,7 @@ MODULES = {
         'artifacts': {
             'prototype': {
                 'subdir': '原型',
-                'pattern': r'looply-商详页CMS配置后台原型\.html',
-                'no_version': True,
+                'pattern': r'looply-商详页CMS配置后台原型-v(.+?)\.html',
             },
             'prototype_pc': {
                 'subdir': 'UI',
