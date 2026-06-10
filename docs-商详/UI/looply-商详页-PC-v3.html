@@ -117,6 +117,26 @@ img{max-width:100%;display:block}
 .header__icon-btn:hover{color:#6B7280}
 .header__icon-btn svg{width:20px;height:20px}
 
+/* Cart Badge */
+.cart-badge{display:none;position:absolute;top:-4px;right:-6px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#6432FC;color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center}
+.cart-badge.visible{display:block}
+
+/* Mini Cart Popup */
+.mini-cart{position:fixed;width:320px;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.15);padding:20px;z-index:200;opacity:0;transform:translateY(-8px);pointer-events:none;transition:opacity .3s,transform .3s}
+.mini-cart.active{opacity:1;transform:translateY(0);pointer-events:auto}
+.mini-cart__header{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#16A34A;margin-bottom:16px}
+.mini-cart__product{display:flex;gap:12px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #F3F4F6}
+.mini-cart__img{width:48px;height:48px;border-radius:6px;object-fit:cover;background:#F3F4F6;flex-shrink:0}
+.mini-cart__info{min-width:0}
+.mini-cart__brand{font-size:11px;font-weight:700;color:#6B7280;letter-spacing:0.5px;text-transform:uppercase}
+.mini-cart__name{font-size:13px;color:#1A1A1A;line-height:1.4;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mini-cart__price{font-size:14px;font-weight:600;color:#1A1A1A}
+.mini-cart__actions{display:flex;flex-direction:column;gap:8px}
+.mini-cart__btn-view{display:block;text-align:center;padding:12px;background:#6432FC;color:#fff;font-size:14px;font-weight:600;border-radius:8px;transition:background .2s;text-decoration:none}
+.mini-cart__btn-view:hover{background:#5228D4;color:#fff}
+.mini-cart__btn-continue{padding:8px;font-size:13px;font-weight:500;color:#6B7280;background:none;border:none;cursor:pointer;transition:color .2s}
+.mini-cart__btn-continue:hover{color:#1A1A1A}
+
 /* Breadcrumb */
 .breadcrumb{max-width:1440px;margin:0 auto;padding:12px 80px;font-size:12px;color:#6B7280;border-bottom:1px solid #F3F4F6}
 .breadcrumb a{color:#6B7280;text-decoration:underline;transition:color .2s}
@@ -323,10 +343,26 @@ img{max-width:100%;display:block}
 <button class="header__icon-btn" aria-label="Account"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></button>
 <button class="header__icon-btn" aria-label="Search"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></button>
 <button class="header__icon-btn" aria-label="Wishlist"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-<button class="header__icon-btn" aria-label="Cart"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></button>
+<button class="header__icon-btn header__cart-btn" aria-label="Cart" style="position:relative"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span class="cart-badge" id="cartBadge"></span></button>
 </div>
 </div>
 </header>
+<!-- Mini Cart Popup (positioned via JS under Cart icon) -->
+<div class="mini-cart" id="miniCart">
+<div class="mini-cart__header"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="8" fill="#16A34A"/><path d="M5 8.5 7 10.5 11 6" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Added to Cart</span></div>
+<div class="mini-cart__product">
+<img class="mini-cart__img" src="https://placehold.co/96x96/F3F4F6/9CA3AF?text=LV" alt="">
+<div class="mini-cart__info">
+<div class="mini-cart__brand">LOUIS VUITTON</div>
+<div class="mini-cart__name">Silver Tone Metal Silver Necklace</div>
+<div class="mini-cart__price">$652</div>
+</div>
+</div>
+<div class="mini-cart__actions">
+<a class="mini-cart__btn-view" href="#">View Cart (<span id="miniCartCount">1</span>)</a>
+<button class="mini-cart__btn-continue" onclick="closeMiniCart()">Continue Shopping</button>
+</div>
+</div>
 
 <!-- Breadcrumb -->
 <nav class="breadcrumb">
@@ -638,11 +674,35 @@ function toggleAccordion(trigger){
   item.classList.toggle('open');
 }
 
-/* Add to Cart */
+/* Add to Cart + Mini Cart */
+let cartCount=0;
+let miniCartTimer=null;
+function closeMiniCart(){
+  document.getElementById('miniCart').classList.remove('active');
+  clearTimeout(miniCartTimer);
+}
 document.getElementById('addToCartBtn').addEventListener('click',function(){
   const orig=this.textContent;
   this.textContent='Added \u2713';
   setTimeout(()=>{this.textContent=orig},2000);
+  cartCount++;
+  const badge=document.getElementById('cartBadge');
+  badge.textContent=cartCount;
+  badge.classList.add('visible');
+  document.getElementById('miniCartCount').textContent=cartCount;
+  const mc=document.getElementById('miniCart');
+  const cartBtn=document.querySelector('.header__cart-btn');
+  const rect=cartBtn.getBoundingClientRect();
+  mc.style.top=(rect.bottom+8)+'px';
+  mc.style.right=(window.innerWidth-rect.right)+'px';
+  mc.classList.add('active');
+  clearTimeout(miniCartTimer);
+  miniCartTimer=setTimeout(closeMiniCart,5000);
+});
+document.addEventListener('click',function(e){
+  const mc=document.getElementById('miniCart');
+  if(!mc.classList.contains('active'))return;
+  if(!mc.contains(e.target)&&!e.target.closest('#addToCartBtn')){closeMiniCart()}
 });
 
 /* Gallery Wishlist */
