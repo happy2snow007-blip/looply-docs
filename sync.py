@@ -116,7 +116,7 @@ MODULES = {
         'config_key': 'pdp',
         'artifacts': {
             'prototype': {
-                'subdir': '原型',
+                'subdir': 'UI',
                 'pattern': r'looply-商详页CMS配置后台原型\.html',
                 'no_version': True,
             },
