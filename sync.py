@@ -120,6 +120,22 @@ MODULES = {
                 'pattern': r'looply-商详页CMS配置后台原型\.html',
                 'no_version': True,
             },
+            'prototype_pc': {
+                'subdir': 'UI',
+                'pattern': r'looply-商详页-PC-v(.+?)\.html',
+            },
+            'prototype_app': {
+                'subdir': 'UI',
+                'pattern': r'looply-商详页-APP-v(.+?)\.html',
+            },
+            'prd': {
+                'subdir': 'PRD',
+                'pattern': r'looply-商详页-PRD-v(.+?)\.md',
+            },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'商详-交付开发 V(.+?)\.zip',
+            },
         },
     },
     'market': {

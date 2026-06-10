@@ -1,10 +1,10 @@
-# looply 商详页 PRD V1.2
+# looply 商详页 PRD V1.1
 
-> **版本**：V1.2 | **日期**：2026-06-10
+> **版本**：V1.1 | **日期**：2026-06-10
 >
 > **定位**：本文档定义商详页所有模块的数据来源、取值规则、业务逻辑和边界处理。不含端交互行为（PC/APP 各自的交互说明文档维护）。
 >
-> **数据模型基于**：商品系统 PRD v1.7 · 商品系统 ER v2.6 · Market 主数据 PRD v1.2 · Market ER v5.0 · 翻译模块 PRD v1.1 · 翻译 ER v2.1 · 库存管理 PRD v1.1 · 库存 ER v4.0 · 汇率管理 PRD v4.2
+> **数据模型基于**：商品系统 PRD v1.7 · 商品系统 ER v2.6 · Market 主数据 PRD v1.0 · 翻译模块 PRD v1.1
 
 ---
 
@@ -99,7 +99,6 @@ Footer 页脚
 - 商详页几乎所有文本内容都经过翻译模块处理（详见 2.2 翻译规则）
 - 品牌名等特定内容通过术语表标记为禁译词
 - 翻译版本由用户当前语言决定，语言可通过 Header 切换
-- RTL 布局：当用户语言的 `language.rtl=true`（如阿拉伯语、希伯来语）时，页面整体镜像布局（文字右对齐、图片区和信息区左右互换等）。具体布局适配由前端 CSS `dir="rtl"` 处理
 
 **多币种**：
 - 所有价格展示均以用户当前选择的货币为准
@@ -129,19 +128,6 @@ Footer 页脚
 
 通过 URL 获取 `listing_id`（或 `product_id` + `channel_id` 组合），作为整个页面的数据查询起点。
 
-**SEO 与社媒分享**
-
-商详页 `<head>` 区域和社媒分享卡片依赖 listing 表的 SEO 字段：
-
-| 页面元素 | 数据源 | 取值逻辑 |
-|---------|-------|---------|
-| `<title>` | `listing.seo_title` | 页面标题。为空时兜底：`{listing_title} | looply` |
-| `<meta name="description">` | `listing.meta_description` | 页面摘要描述。为空时兜底取 `listing.listing_description` 前 160 字符 |
-| URL 路径 | `listing.url_slug` | 商详页 URL 格式：`/{url_slug}`。仅小写字母、数字、连字符 |
-| `<meta property="og:image">` | `listing.og_image_url` | 社媒分享时的预览图。为空时兜底取商品首张实拍图 |
-
-> SEO 字段走翻译模块（`resource_type='listing'`，`field_name` 分别为 `seo_title`、`meta_description`）。
-
 ---
 
 ### 2.2 翻译规则
@@ -155,8 +141,7 @@ Footer 页脚
 | resource_type | 翻译内容 | 页面元素 | resource_id | field_name |
 |---------------|---------|---------|-------------|------------|
 | `listing` | 渠道级内容 | 展示标题、描述 | listing_id | `listing_title`, `listing_description` |
-| `product` | 实物商品内容 | 通用标题 | product_id | `title` |
-| `product_inspection` | 质检/成色内容 | 成色描述、外观描述、配件信息、补充描述 | product_id | `condition_summary`, `appearance_desc`, `accessories_info`, `supplement_notes` |
+| `product` | 实物商品内容 | 通用标题、成色描述、外观描述、配件信息、补充描述 | product_id | `title`, `condition_summary`, `appearance_desc`, `accessories_info`, `additional_desc` |
 | `spu` | 标品内容 | 标品名、标品描述 | spu_id | `spu_name`, `description` |
 | `brand` | 品牌名 | 面包屑、信息区、卡片 | brand_id | `brand_name` |
 | `category` | 类目名 | 面包屑 | category_id | `category_name` |
@@ -165,19 +150,6 @@ Footer 页脚
 | `enum` | 枚举展示名 | 成色等级 | -- | 枚举值（如 `NWT`, `Excellent`） |
 | `ui` | 界面文案 | 按钮、徽章、Tax 提示 | -- | Key（如 `btn.add_to_cart`） |
 | `content` | CMS 内容 | Shipping & Returns | content_id | `body` |
-
-**翻译查询优先级（Fallback 策略）**
-
-商详页查询翻译时，按以下优先级取值：
-
-| 优先级 | 条件 | 展示内容 |
-|--------|------|---------|
-| 1 | 目标语言有 `status=approved` 的译文 | 展示该译文 |
-| 2 | 目标语言有 `status=pending_review` 的译文（AI/人工翻译完成，未审核） | 展示该译文（AI 翻译质量已足够可读） |
-| 3 | 目标语言有 `status=outdated` 的译文（源内容已变更，旧译文可能不准确） | 展示旧译文（有旧译文优于无译文） |
-| 4 | 目标语言无任何翻译记录 | 回退到 Market 默认语言的源值 |
-
-> 当用户当前语言 = Market 默认语言时，直接取源值，不查翻译表。
 
 **不翻译的内容**
 
@@ -231,8 +203,8 @@ Breadcrumb、Gallery、商品信息区、商品描述、Condition 成色、CTA &
 | 页面元素 | 数据源 | 取值逻辑 |
 |---------|-------|---------|
 | 导航链接 | 前台类目（待设计） | 本期跳转地址统一写死为 `www.looply.com`，后期接入前台类目模块 |
-| 语言列表 | `market_language` + `language` | 当前 `market_id` 关联的语言中，**仅展示 `status=active` 的记录**（`planning`/`suspended` 不对 C 端展示）。按 `priority` 升序排列，默认选中 `is_default=true` |
-| 货币列表 | `market_currency` + `currency` | 当前 `market_id` 关联的货币中，**仅展示 `status=active` 的记录**。按 `priority` 升序排列，默认选中 `is_default=true` |
+| 语言列表 | `market_language` + `language` | 当前 `market_id` 关联的所有语言，默认选中 `is_default=true` |
+| 货币列表 | `market_currency` + `currency` | 当前 `market_id` 关联的所有货币，默认选中 `is_default=true` |
 | Cart 角标数量 | 订单域 | 当前购物车商品数量，0 时不显示角标 |
 
 **展示规则**
@@ -294,10 +266,9 @@ Breadcrumb、Gallery、商品信息区、商品描述、Condition 成色、CTA &
 
 | 页面元素 | 数据源 | 取值逻辑 |
 |---------|-------|---------|
-| 商品图片 | `product_image` 表（实拍图） | `WHERE product_id=? ORDER BY sort_order ASC`。**仅当实拍图为空（0 张）时**兜底取 `spu_image`（标品图，`image_type=main`，按 `sort_order` 排序） |
-| 缩略图排序 | 同上 | 按 `sort_order` 排序 |
+| 商品图片 | `product.images`（实拍图 JSON 数组） | 按数组顺序展示。**仅当实拍图为空（0 张）时**兜底取 `spu_image`（标品图，`image_type=main`，按 `sort_order` 排序） |
+| 缩略图排序 | 同上 | 按图片数组顺序 |
 | 收藏按钮状态 | `user_wishlist` | 已登录：查 `user_wishlist WHERE user_id=? AND listing_id=?`，有记录显示已收藏状态；未登录：默认未收藏 |
-| 收藏人数 | `user_wishlist` | `COUNT(*) FROM user_wishlist WHERE listing_id=?`。有收藏时展示（如 "12 people wishlisted"），无收藏时不展示 |
 
 **展示规则**
 
@@ -352,7 +323,7 @@ Breadcrumb、Gallery、商品信息区、商品描述、Condition 成色、CTA &
 定价金额 → 汇率换算 → 尾差规则适配 → 最终展示价
 ```
 
-- 汇率换算：调用汇率管理模块统一查询接口（详见汇率管理 PRD v4.2），传入 `from`（定价货币）+ `to`（用户货币），返回已含点差的平台汇率 `rate`。目标金额 = 源金额 × rate。汇率每日定时发布一次，日内固定
+- 汇率换算：通过 `currency_exchange_rate` 表，`base_currency` → `target_currency` × `rate`
 - 尾差规则适配：通过尾差规则（详见商品系统 PRD 2.8.1），按三层优先级生效（货币级 > Market 级 > 系统默认），支持 .99 / .95 / .00 / 整十 / 整百等尾数策略，采用四舍五入取整
 - 用户当前货币 = 定价货币时直接展示，不做转换
 - 结算货币：用户下单时使用当前看到的展示货币，不回退到定价货币
@@ -372,7 +343,6 @@ Breadcrumb、Gallery、商品信息区、商品描述、Condition 成色、CTA &
 
 - 品牌名：大写字母展示，可点击跳转品牌聚合页
 - 货币符号：取 `currency.currency_symbol`（如 "$"）
-- 符号位置：取 `market_currency.symbol_position`（`before` = 前置如 `$12.99`，`after` = 后置如 `12.99€`），Market 级配置
 - 小数位数：取 `currency.decimal_places`（如 USD=2 位，JPY=0 位）
 
 **边界情况**
@@ -396,7 +366,7 @@ Breadcrumb、Gallery、商品信息区、商品描述、Condition 成色、CTA &
 
 | 页面元素 | 数据源 | 取值逻辑 |
 |---------|-------|---------|
-| 描述文案 | `listing.listing_description` > `product.description` | 渠道描述优先，为空时取实物商品描述。走翻译 |
+| 描述文案 | `listing.listing_description` > `spu.description` | 渠道描述优先，为空时取标品描述。走翻译 |
 
 **展示规则**
 
@@ -431,7 +401,7 @@ Breadcrumb、Gallery、商品信息区、商品描述、Condition 成色、CTA &
 | `active` | 已预留 / 已售出 | Sold Out 灰色不可点击 |
 | `off_shelf` | -- | 页面显示"商品已下架"提示 |
 
-> listing_status 为两状态（active/off_shelf）。off_shelf 通过 off_shelf_reason 区分下架原因（manual/out_of_stock/blocked/item_invalid），商详页不区分下架原因，统一展示"商品已下架"。库存可售状态由库存模块 `inventory_item` 表实时查询，可售库存计算公式：`available_qty = max(0, quantity_on_hand - quantity_reserved - quantity_locked)`，其中 `quantity_reserved` 为订单预占（系统自动），`quantity_locked` 为人工锁定（质量/合规）。`available_qty > 0` 即可售。
+> listing_status 为两状态（active/off_shelf）。off_shelf 通过 off_shelf_reason 区分下架原因（主动下架/缺货/违规拦截/实物状态联动），商详页不区分下架原因，统一展示"商品已下架"。库存状态由独立的库存模块管理，商详页通过接口查询。
 
 **数据来源与取值规则**
 
@@ -440,7 +410,7 @@ Breadcrumb、Gallery、商品信息区、商品描述、Condition 成色、CTA &
 | Add to Cart 按钮价格 | 同 2.7 现价 | 展示当前现价，做币种转换 |
 | 按钮文案 | 翻译模块 | `resource_type='ui'`，如 `btn.add_to_cart`、`btn.checkout` |
 | 支付方式图标 | CMS 配置 | **本期写死**（12 个固定图标），后期由支付模块按 `market_id` / `country` 动态配置 |
-| Verified 标记（APP 端） | `product_inspection.is_authenticated` | `is_authenticated=true` 时在 Sticky 底部栏显示绿色 "✓ Verified" 认证标记 |
+| Verified 标记（APP 端） | `product.鉴定状态` | 鉴定状态="已鉴定"时在 Sticky 底部栏显示绿色 "✓ Verified" 认证标记 |
 
 **支付方式图标列表（本期固定）**
 
@@ -481,12 +451,12 @@ AMEX / Apple Pay / Diners Club / Discover / Google Pay / JCB / Maestro / Masterc
 
 | 页面元素 | 数据源 | 取值逻辑 |
 |---------|-------|---------|
-| Certified Authentic 徽章 | `product_inspection.is_authenticated` + `product_inspection.authenticator` | `is_authenticated=true` 时展示绿色盾牌 + "Certified Authentic — by {authenticator}"。点击跳转鉴定说明页面（展示鉴定机构介绍、证书编号 `certificate_number`、鉴定日期 `auth_date` 等完整信息）。`is_authenticated=false` 时隐藏 |
-| 成色等级 | `product_inspection.grade` | ENUM(NWT/Excellent/Good/Fair)，映射为展示名，走翻译（`resource_type='enum'`） |
-| 成色描述 | `product_inspection.condition_summary` | 必填字段，整体成色概述，始终展示。走翻译（`resource_type='product'`, `field_name='condition_summary'`） |
-| 外观描述 | `product_inspection.appearance_desc` | 选填，描述各部位外观状况。有值时展示，为空时隐藏该段。走翻译（`resource_type='product'`, `field_name='appearance_desc'`） |
-| 配件信息 | `product_inspection.accessories_info` | 选填，描述配件齐全情况。有值时展示，为空时隐藏该段。走翻译（`resource_type='product'`, `field_name='accessories_info'`） |
-| 补充描述 | `product_inspection.supplement_notes` | 选填，养护信息或功能使用情况等。有值时展示，为空时隐藏该段。走翻译（`resource_type='product'`, `field_name='supplement_notes'`） |
+| Certified Authentic 徽章 | `product.鉴定状态` + `product.鉴定机构` | 鉴定状态="已鉴定"时展示绿色盾牌 + "Certified Authentic — by {鉴定机构}"。点击跳转鉴定说明页面（展示鉴定机构介绍、证书编号、鉴定日期等完整信息）。未鉴定时隐藏 |
+| 成色等级 | `product.grade` | ENUM(NWT/Excellent/Good/Fair)，映射为展示名，走翻译（`resource_type='enum'`） |
+| 成色描述 | `product.condition_summary` | 必填字段，整体成色概述，始终展示。走翻译（`resource_type='product'`, `field_name='condition_summary'`） |
+| 外观描述 | `product.appearance_desc` | 选填，描述各部位外观状况。有值时展示，为空时隐藏该段。走翻译（`resource_type='product'`, `field_name='appearance_desc'`） |
+| 配件信息 | `product.accessories_info` | 选填，描述配件齐全情况。有值时展示，为空时隐藏该段。走翻译（`resource_type='product'`, `field_name='accessories_info'`） |
+| 补充描述 | `product.additional_desc` | 选填，养护信息或功能使用情况等。有值时展示，为空时隐藏该段。走翻译（`resource_type='product'`, `field_name='additional_desc'`） |
 
 **成色等级枚举定义**
 
@@ -548,10 +518,8 @@ AMEX / Apple Pay / Diners Club / Discover / Google Pay / JCB / Maestro / Masterc
 
 点击打开尺寸标注弹窗（PC 端弹窗 / APP 端 Bottom Sheet），展示逻辑分两种模式：
 
-- **有 SVG 模板时（Template Mode）**：后台按末级类目配置 SVG 示意图模板（设计师出图，预留 `data-slot` 标记位置），前端根据当前商品所属类目查找模板 → 用 SKU 实测值替换 `data-slot` 占位符 → 拼接单位后渲染标注图
-- **无模板时（Fallback）**：退化为纯文字列表，展示尺寸类属性（如 Length: 12.2 in, Width: 5.5 in）
-
-> **度量单位（本期策略）**：本期属性值按录入值原样展示，不做运行时单位转换。商品录入时按目标市场习惯录入（如美国市场录 inches）。后续扩展欧洲等市场时再设计按 Market 偏好自动换算的方案。
+- **有 SVG 模板时（Template Mode）**：后台按末级类目配置 SVG 示意图模板（设计师出图，预留 `data-slot` 标记位置），前端根据当前商品所属类目查找模板 → 用 SKU 实测值替换 `data-slot` 占位符 → 拼接单位后渲染标注图。单位由前端根据类目适用单位 + 用户 Market 偏好自动处理（如美国市场显示 inch）
+- **无模板时（Fallback）**：退化为纯文字列表，仅展示 `display_group = dimension` 的属性（如 Length: 12.2 in, Width: 5.5 in）
 
 **CMS 配置**
 
@@ -621,7 +589,7 @@ AMEX / Apple Pay / Diners Club / Discover / Google Pay / JCB / Maestro / Masterc
 
 | 卡片元素 | 数据源 | 取值逻辑 |
 |---------|-------|---------|
-| 图片 | `product_image`（`sort_order` 最小） > `spu_image` | 取首张实拍图，无实拍图时取标品主图 |
+| 图片 | `product.images[0]` > `spu_image` | 取首张实拍图，无实拍图时取标品主图 |
 | 品牌名 | `brand.brand_name_en` | 通常禁译 |
 | 商品名 | `listing.listing_title` > `product.title` | 展示标题优先，走翻译 |
 | 现价 | `listing.listing_price` 或 `promotion_price` | 有促销价时展示促销价，做币种转换 + 尾数适配（见 2.7） |
@@ -744,8 +712,7 @@ Gallery 主图点击后的全屏图片查看器，支持左右切换浏览所有
 | 依赖模块 | 提供内容 | 当前状态 | 风险 |
 |---------|---------|---------|------|
 | 商品域 | 商品基础数据（listing、product、SPU、属性） | 已有 | -- |
-| Market 模块 | 语言/货币配置（含状态过滤、符号位置、RTL） | 已有 | -- |
-| 汇率管理模块 | 平台汇率（已含点差）查询接口 | 已有 | -- |
+| Market 模块 | 语言/货币配置、汇率 | 已有 | -- |
 | 商品定价（尾差规则） | 心理定价尾数策略（.99/.95/整十等） | 已设计（商品系统 PRD 2.8.1） | -- |
 | 翻译模块 | 多语言文本 | 已有 | -- |
 | 促销模块 | 促销价计算 | 待设计 | 促销价计算逻辑未定义，当前商详页按"无促销价"展示 |
@@ -848,4 +815,3 @@ Gallery 主图点击后的全屏图片查看器，支持左右切换浏览所有
 |------|------|---------|
 | V1.0 | 2026-05-26 | 初版，定义商详页 12 个模块的数据来源、取值规则和边界处理 |
 | V1.1 | 2026-06-10 | 对齐商品系统 PRD v1.7：Condition 折叠区全面重写（成色等级 4 级、4 个文本字段替代结构化质检项、删除 CMS 配置）；listing_status 简化为两状态；鉴定信息字段扩展；尾差规则从"待设计"更新为引用商品系统 PRD 2.8.1；新增展示标题术语 |
-| V1.2 | 2026-06-10 | 全量交叉对齐商品/Market/翻译/库存/汇率五模块最新方案。**修正**：成色字段从 product 表移至 product_inspection 表；supplement_notes 替代 additional_desc；商品描述兜底从 spu.description 改为 product.description；Gallery 图片从 JSON 数组改为 product_image 独立表；汇率从直查表改为调汇率模块统一接口；语言/货币列表增加 status=active 过滤和 priority 排序；新增货币符号位置 symbol_position；库存可售公式明确为 max(0, on_hand-reserved-locked)。**新增**：翻译 Fallback 四级优先策略；SEO 字段（seo_title/meta_description/url_slug/og_image_url）；RTL 布局支持；收藏人数展示；度量单位本期策略说明 |
