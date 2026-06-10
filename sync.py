@@ -666,7 +666,7 @@ def sync_module_files(source_dir, target_dir, mod_key):
     sync_subdir(source_dir, target_dir, '验收记录', ['.md'])
 
     # UI 设计稿
-    sync_subdir(source_dir, target_dir, 'UI', ['.pen'])
+    sync_subdir(source_dir, target_dir, 'UI', ['.pen', '.html'])
 
     # 原型（HTML + 图片）
     sync_subdir(source_dir, target_dir, '原型', ['.html', '.png', '.jpg', '.svg'])

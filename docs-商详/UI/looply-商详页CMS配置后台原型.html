@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Looply 商详页CMS配置后台原型</title>
+<style>
+
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937;font-size:14px}
+.header{height:60px;background:#FFFFFF;color:#1F2937;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid #E5E7EB}
+.logo{font-size:18px;font-weight:700;letter-spacing:1px;display:flex;align-items:center}
+.header-divider{width:1px;height:20px;background:#E5E7EB;margin:0 16px}
+.system-label{font-size:14px;font-weight:500;color:#6B7280;letter-spacing:0.3px}
+.breadcrumb{margin-left:auto;color:#9CA3AF;font-size:13px;font-weight:400}
+.container{display:flex;height:calc(100vh - 60px)}
+.sidebar{width:220px;background:#FFFFFF;overflow:auto;flex-shrink:0;border-right:none;box-shadow:3px 0 12px rgba(0,0,0,0.06);padding:8px 0}
+.main{flex:1;overflow:auto;padding:28px}
+.menu-solo{display:flex;align-items:center;padding:12px 16px;color:#374151;cursor:pointer;font-size:14px;font-weight:500;transition:background .15s;border-left:3px solid transparent;outline:none}
+.menu-solo:hover{background:rgba(0,0,0,.04)}
+.menu-solo.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.12),transparent);font-weight:600;border-left-color:#7C3AED}
+.menu-solo .mi{width:18px;height:18px;margin-right:10px;flex-shrink:0;opacity:.55}
+.menu-solo.active .mi{opacity:1}
+.menu-divider{height:1px;background:#F3F4F6;margin:8px 16px}
+.menu-group{margin-bottom:0}
+.menu-parent{display:flex;align-items:center;padding:12px 16px;color:#374151;cursor:pointer;font-size:14px;font-weight:500;transition:background .15s;user-select:none;border-left:3px solid transparent;outline:none}
+.menu-parent:hover{background:rgba(0,0,0,.04)}
+.menu-parent .mi{width:18px;height:18px;margin-right:10px;flex-shrink:0;opacity:.55}
+.menu-parent .arrow{margin-left:auto;width:16px;height:16px;transition:transform .2s;opacity:.4;flex-shrink:0}
+.menu-group.open>.menu-parent .arrow{transform:rotate(90deg)}
+.menu-parent.active-parent{color:#7C3AED;font-weight:600;border-left-color:#7C3AED}
+.menu-parent.active-parent .mi{opacity:1}
+.menu-children{max-height:0;overflow:hidden;transition:max-height .3s cubic-bezier(.4,0,.2,1)}
+.menu-group.open>.menu-children{max-height:none}
+.menu-child{display:flex;align-items:center;padding:10px 16px 10px 44px;color:#4B5563;cursor:pointer;font-size:13px;transition:all .15s;border-left:3px solid transparent;outline:none}
+.menu-child:hover{color:#374151;background:rgba(0,0,0,.03)}
+.menu-child.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.1),transparent);border-left-color:#7C3AED;font-weight:600}
+.menu-child .ci{width:15px;height:15px;margin-right:8px;flex-shrink:0;opacity:.45}
+.menu-child.active .ci{opacity:.8}
+.page{display:none}.page.active{display:block}
+.card{background:#fff;border-radius:16px;box-shadow:0 10px 24px rgba(16,24,40,.06);padding:28px}
+.page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}
+.page-title{font-size:20px;font-weight:700;margin-bottom:6px}
+.page-desc{color:#6B7280;font-size:13px;max-width:760px}
+.head-actions{display:flex;gap:10px;flex-wrap:wrap}
+.toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.toolbar .input,.toolbar select{height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff}
+.btn{height:34px;padding:0 14px;border:1px solid #D1D5DB;background:#fff;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:13px}
+.btn.primary{background:#7C3AED;border-color:#7C3AED;color:#fff}
+.btn.sm{height:28px;padding:0 10px;font-size:12px}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi .item{background:#FAF5FF;border:1px solid #DDD6FE;border-radius:14px;padding:14px}
+.kpi .num{font-size:24px;font-weight:700;color:#7C3AED;margin-bottom:4px}
+.muted{color:#6B7280;font-size:12px}
+.table-wrap{border:1px solid #E5E7EB;border-radius:14px;overflow-x:auto;background:#fff}
+table{width:100%;border-collapse:collapse}
+th{background:#FFFFFF;padding:10px 12px;text-align:left;font-size:12px;color:#6B7280;border-bottom:1px solid #E5E7EB;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap}
+td{padding:11px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;vertical-align:top}
+tr:hover{background:#FAF5FF}
+tr:last-child td{border-bottom:none}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;margin-right:4px}
+.tag.on{background:#F0FDF4;color:#16A34A}
+.tag.pending{background:#FFFBEB;color:#D97706}
+.tag.off{background:#F3F4F6;color:#6B7280}
+.section{margin-top:18px}
+.section-title{font-size:14px;font-weight:700;margin-bottom:10px;color:#7C3AED}
+.tabs{display:flex;border-bottom:1px solid #E5E7EB;margin-bottom:14px;gap:4px}
+.tab{padding:10px 18px;cursor:pointer;border-bottom:2px solid transparent;color:#6B7280;font-size:13px}
+.tab.active{color:#7C3AED;border-bottom-color:#7C3AED;font-weight:600}
+.tab-pane{display:none}.tab-pane.active{display:block}
+.split{display:flex;gap:18px}
+.panel{border:1px solid #E5E7EB;border-radius:14px;background:#FFFFFF;padding:16px;min-height:420px}
+.panel h3{font-size:13px;color:#6B7280;margin-bottom:12px}
+.form-grid{display:grid;grid-template-columns:150px 1fr;gap:12px 16px;align-items:center}
+.label{color:#6B7280;font-size:13px}
+.field{min-height:36px;border:1px solid #D1D5DB;border-radius:8px;background:#fff;padding:8px 12px;display:flex;align-items:center}
+.input{height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff;font-size:13px;outline:none;transition:border-color .15s}
+.input:focus{border-color:#7C3AED}
+.pagination{display:flex;align-items:center;justify-content:center;gap:24px;padding:12px 16px;font-size:13px;color:#6B7280;border-top:1px solid #F3F4F6}
+.pagination .pag-section{display:flex;align-items:center;gap:8px}
+.pagination .divider{width:1px;height:20px;background:#E5E7EB}
+.pagination .page-nums{display:flex;gap:2px;align-items:center}
+.pagination .page-num{min-width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;font-size:13px;background:transparent;color:#374151;transition:all .15s;border:none}
+.pagination .page-num.active{background:#7C3AED;color:#fff;font-weight:600}
+.pagination .page-num.arrow{width:32px;height:32px;border:1px solid #E5E7EB;border-radius:8px;background:#fff}
+
+/* === PDP CMS Specific === */
+.module-list{list-style:none;padding:0}
+.module-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #E5E7EB;border-radius:10px;margin-bottom:8px;background:#fff;cursor:pointer;transition:all .15s}
+.module-item:hover{border-color:#DDD6FE;background:#FAF5FF}
+.module-item.active{border-color:#7C3AED;background:#F3EEFF}
+.module-item .drag-handle{color:#9CA3AF;cursor:grab;font-size:16px;flex-shrink:0}
+.module-item .module-name{flex:1;font-size:13px;font-weight:500;color:#1F2937}
+.module-item .module-tag{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:600}
+.module-item .module-tag.core{background:#F0FDF4;color:#16A34A}
+.module-item .module-tag.info{background:#EFF6FF;color:#2563EB}
+.module-item .module-tag.trust{background:#FFFBEB;color:#D97706}
+.module-item .module-tag.nav{background:#F3F4F6;color:#6B7280}
+.toggle{position:relative;width:36px;height:20px;background:#D1D5DB;border-radius:10px;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle.on{background:#7C3AED}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s}
+.toggle.on::after{transform:translateX(16px)}
+.toggle.locked{background:#E5E7EB;cursor:not-allowed;opacity:.6}
+.config-panel{border:1px solid #E5E7EB;border-radius:14px;background:#fff;padding:20px;min-height:500px}
+.config-panel h3{font-size:15px;font-weight:700;color:#1F2937;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #E5E7EB}
+.config-section{margin-bottom:20px}
+.config-section-title{font-size:13px;font-weight:600;color:#374151;margin-bottom:10px}
+.config-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.config-row .label{width:120px;flex-shrink:0;font-size:13px;color:#6B7280}
+.config-row .value{flex:1}
+.attr-item{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid #E5E7EB;border-radius:8px;margin-bottom:6px;background:#fff}
+.attr-item .drag-handle{color:#9CA3AF;cursor:grab;font-size:14px}
+.attr-item .attr-name{flex:1;font-size:13px;color:#1F2937}
+.attr-item .attr-source{font-size:11px;color:#9CA3AF}
+.attr-item input[type=checkbox]{width:16px;height:16px;accent-color:#7C3AED}
+.tree-node{padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:#4B5563}
+.tree-node:hover{background:#F3EEFF}
+.tree-node.selected{background:#F3EEFF;color:#7C3AED;font-weight:600}
+.tree-child{margin-left:18px}
+.preview-card{border:1px solid #E5E7EB;border-radius:10px;padding:16px;background:#FAFAFA}
+.preview-card .preview-title{font-size:12px;font-weight:600;color:#6B7280;margin-bottom:12px;text-transform:uppercase;letter-spacing:.3px}
+.preview-attr{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #F3F4F6;font-size:13px}
+.preview-attr:last-child{border-bottom:none}
+.preview-attr .attr-label{color:#6B7280}
+.preview-attr .attr-val{color:#1F2937;font-weight:500}
+.rich-text-placeholder{border:1px dashed #D1D5DB;border-radius:8px;padding:12px;min-height:80px;background:#F9FAFB;color:#9CA3AF;font-size:12px}
+.checkbox-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.checkbox-item{display:flex;align-items:center;gap:6px;font-size:12px;color:#374151}
+.checkbox-item input{width:14px;height:14px;accent-color:#7C3AED}
+.market-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:8px;font-size:13px;font-weight:600;color:#7C3AED}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px}
+.modal-box{background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.2);width:100%;max-width:920px;max-height:90vh;display:flex;flex-direction:column}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;border-bottom:1px solid #E5E7EB}
+.modal-title{font-size:17px;font-weight:700;color:#1F2937}
+.modal-close{width:32px;height:32px;border:none;background:none;font-size:22px;color:#9CA3AF;cursor:pointer;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:#F3F4F6;color:#374151}
+.modal-body{padding:20px 24px;overflow-y:auto;flex:1}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;padding:16px 24px;border-top:1px solid #E5E7EB}
+.modal-box.sm{max-width:460px}
+.btn.danger{background:#EF4444;border-color:#EF4444;color:#fff}
+
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo"><img src="logo-new.png" height="28" alt="Looply"></div>
+  <div class="header-divider"></div>
+  <span class="system-label">CMS 管理系统</span>
+  <div class="breadcrumb"></div>
+</div>
+<div class="container">
+
+<div class="sidebar" role="navigation" aria-label="主导航">
+  <div class="menu-solo" data-page="home-config">
+    <svg class="mi" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5L7.5 2L13 7.5"/><path d="M4 6.5V12.5h7V6.5"/></svg>
+    <span>首页配置</span>
+  </div>
+  <div class="menu-solo" data-page="plp-config">
+    <svg class="mi" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="1" width="5.5" height="5.5" rx="1"/><rect x="8.5" y="1" width="5.5" height="5.5" rx="1"/><rect x="1" y="8.5" width="5.5" height="5.5" rx="1"/><rect x="8.5" y="8.5" width="5.5" height="5.5" rx="1"/></svg>
+    <span>列表页配置</span>
+  </div>
+  <div class="menu-solo active" data-page="pdp-config">
+    <svg class="mi" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="1.5" width="12" height="12" rx="2"/><path d="M4 5h7M4 7.5h5M4 10h6"/></svg>
+    <span>商详页配置</span>
+  </div>
+</div>
+<div class="main">
+
+<div class="page" id="page-pdp-config" style="display:none"></div>
+
+<div class="page active" id="page-pdp-config-edit">
+  <div class="card">
+    <div class="page-head">
+      <div>
+        <div class="page-title">商详页配置</div>
+        <div class="page-desc">管理商详页的模块显隐和内容配置。点击模块配置展示规则。</div>
+      </div>
+      <div class="head-actions">
+      </div>
+    </div>
+    <div class="split" style="gap:20px">
+      <!-- Left: Module List -->
+      <div style="width:320px;flex-shrink:0">
+        <div class="panel" style="padding:14px">
+          <h3 style="margin-bottom:14px;font-size:13px;font-weight:600;color:#374151">模块列表 <span style="font-weight:400;color:#9CA3AF"></span></h3>
+          <ul class="module-list">
+            <li class="module-item active" onclick="showModuleConfig('description')">
+                            <span class="module-name">1. Description 描述</span>
+              <span class="module-tag info">信息</span>
+              <span class="toggle on"></span>
+            </li>
+          </ul>
+          <div style="margin-top:12px;padding:10px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;font-size:11px;color:#92400E">
+            仅展示有配置项的模块。Breadcrumb、Gallery、商品信息区、Condition 成色等固定模块无需配置。
+          </div>
+        </div>
+      </div>
+      <!-- Right: Config Panel -->
+      <div style="flex:1">
+        <!-- Module 7: Description Config (default shown) -->
+        <div class="config-panel" id="config-description">
+          <h3 style="display:flex;justify-content:space-between;align-items:center">
+            Module 1 — Description 描述折叠区
+            <button class="btn primary btn-sm" style="font-size:12px;height:30px" onclick="showAttrPage('new')">新增规则</button>
+          </h3>
+          <div class="config-section">
+            <div class="config-section-title">属性展示配置</div>
+            <p style="font-size:12px;color:#6B7280;margin-bottom:12px">按「类目 > 品牌 > 系列」维度配置 Description 区域展示哪些属性及排序。子级未配置时自动继承父级规则。</p>
+            <!-- 继承说明 -->
+            <div style="padding:10px 14px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:8px;margin-bottom:14px;font-size:12px;color:#4B5563;line-height:1.7">
+              <strong style="color:#7C3AED">继承规则：</strong>前台按 <strong>系列 > 品牌 > 类目</strong> 逐级查找，命中即停。例：LV Monogram 项链 → 先找「Jewelry > LV > Monogram」，无 → 找「Jewelry > LV」，无 → 找「Jewelry」兜底。
+            </div>
+            <!-- 筛选 -->
+            <div style="display:flex;gap:8px;margin-bottom:12px">
+              <select style="height:30px;border:1px solid #D1D5DB;border-radius:6px;padding:0 10px;background:#fff;font-size:12px">
+                <option>全部类目</option><option>Jewelry & Accessories</option><option>Bags</option><option>Electronics</option>
+              </select>
+              <select style="height:30px;border:1px solid #D1D5DB;border-radius:6px;padding:0 10px;background:#fff;font-size:12px">
+                <option>全部品牌</option><option>LOUIS VUITTON</option><option>CHANEL</option><option>GUCCI</option>
+              </select>
+              <button class="btn sm">查询</button>
+            </div>
+            <!-- 规则列表 -->
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>作用域</th><th>层级</th><th>已启用属性</th><th>操作</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Jewelry & Accessories</strong></td>
+                    <td><span class="tag on">类目级</span></td>
+                    <td>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Material</span>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Color</span>
+                      <span style="font-size:11px;color:#9CA3AF">+3</span>
+                    </td>
+                    <td><button class="btn sm" onclick="showAttrPage('edit')">编辑</button> <button class="btn sm" onclick="showDeleteConfirm()">删除</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Jewelry > LOUIS VUITTON</strong></td>
+                    <td><span class="tag pending">品牌级</span></td>
+                    <td>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Material</span>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Color</span>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Length</span>
+                    </td>
+                    <td><button class="btn sm" onclick="showAttrPage('edit')">编辑</button> <button class="btn sm" onclick="showDeleteConfirm()">删除</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Jewelry > LV > Monogram</strong></td>
+                    <td><span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;background:#EFF6FF;color:#2563EB">系列级</span></td>
+                    <td>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Material</span>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Color</span>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Pattern</span>
+                      <span style="font-size:11px;color:#9CA3AF">+2</span>
+                    </td>
+                    <td><button class="btn sm" onclick="showAttrPage('edit')">编辑</button> <button class="btn sm" onclick="showDeleteConfirm()">删除</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Bags</strong></td>
+                    <td><span class="tag on">类目级</span></td>
+                    <td>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Material</span>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Color</span>
+                      <span style="font-size:11px;color:#9CA3AF">+5</span>
+                    </td>
+                    <td><button class="btn sm" onclick="showAttrPage('edit')">编辑</button> <button class="btn sm" onclick="showDeleteConfirm()">删除</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Electronics</strong></td>
+                    <td><span class="tag on">类目级</span></td>
+                    <td>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Storage</span>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Color</span>
+                      <span style="padding:2px 6px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:4px;font-size:11px;color:#7C3AED;margin-right:2px">Screen Size</span>
+                      <span style="font-size:11px;color:#9CA3AF">+4</span>
+                    </td>
+                    <td><button class="btn sm" onclick="showAttrPage('edit')">编辑</button> <button class="btn sm" onclick="showDeleteConfirm()">删除</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 属性展示配置：Modal 弹窗 -->
+<div class="modal-overlay" id="modal-attr-edit" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">编辑属性展示规则</div>
+      <span style="font-size:11px;color:#9CA3AF;margin-left:8px;font-weight:400">作用域不可修改，如需更换请删除后新建</span>
+      <button class="modal-close" onclick="closeAttrModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <!-- 作用域选择 -->
+      <div style="padding:14px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;margin-bottom:18px">
+        <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:10px">作用域</div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <div>
+            <div style="font-size:11px;color:#9CA3AF;margin-bottom:4px">类目（必选）</div>
+            <select disabled style="height:34px;border:1px solid #E5E7EB;border-radius:8px;padding:0 12px;font-size:13px;background:#F3F4F6;min-width:170px;color:#6B7280;cursor:not-allowed">
+              <option selected>Jewelry & Accessories</option>
+            </select>
+          </div>
+          <div style="color:#D1D5DB;font-size:18px;margin-top:16px">></div>
+          <div>
+            <div style="font-size:11px;color:#9CA3AF;margin-bottom:4px">品牌（可选）</div>
+            <select disabled style="height:34px;border:1px solid #E5E7EB;border-radius:8px;padding:0 12px;font-size:13px;background:#F3F4F6;min-width:150px;color:#6B7280;cursor:not-allowed">
+              <option selected>LOUIS VUITTON</option>
+            </select>
+          </div>
+          <div style="color:#D1D5DB;font-size:18px;margin-top:16px">></div>
+          <div>
+            <div style="font-size:11px;color:#9CA3AF;margin-bottom:4px">系列（可选）</div>
+            <select disabled style="height:34px;border:1px solid #E5E7EB;border-radius:8px;padding:0 12px;font-size:13px;background:#F3F4F6;min-width:150px;color:#6B7280;cursor:not-allowed">
+              <option selected>不限（品牌级规则）</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:8px;font-size:12px;color:#6B7280">当前作用域：<strong style="color:#7C3AED">Jewelry & Accessories > LOUIS VUITTON > 全系列</strong></div>
+      </div>
+      <div style="display:flex;gap:16px">
+        <!-- Left: Attribute List -->
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px">
+            属性配置
+          </div>
+          <div style="padding:8px 12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;margin-bottom:12px;font-size:11px;color:#1E40AF;line-height:1.6">
+            <strong>操作说明：</strong>先填写前台展示名（用户看到的属性名），再选择数据源（取哪个后台属性的值）。展示名进翻译模块输出多语言版本。
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <span style="font-size:12px;padding:3px 8px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:6px;color:#7C3AED;font-weight:500">已配置 3 个属性 + Size Guide</span>
+          </div>
+          <div style="margin-bottom:8px;font-size:11px;color:#9CA3AF;line-height:1.5">数据源可选范围：当前类目下的全部描述属性和销售属性</div>
+          <div style="margin-bottom:6px;font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:.3px">已配置（拖拽调整展示顺序）</div>
+          <div class="attr-item" data-idx="0" style="border-color:#DDD6FE;background:#FAF5FF">
+            <span class="drag-handle">⠿</span>
+            <input class="input attr-display-name" data-idx="0" data-sample="Silver-tone Metal" style="width:140px;height:28px;font-size:13px;font-weight:500;border-color:#DDD6FE" value="Material" placeholder="为空时不展示属性名">
+            <select style="flex:1;height:28px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px;background:#fff;color:#374151">
+              <option selected>主要材质类型（描述属性）</option>
+              <option>吊坠材质（描述属性）</option>
+              <option>镀层（描述属性）</option>
+            </select>
+            <button class="btn sm" style="color:#EF4444;border-color:#FECACA;flex-shrink:0">删除</button>
+          </div>
+          <div class="attr-item" data-idx="1" style="border-color:#DDD6FE;background:#FAF5FF">
+            <span class="drag-handle">⠿</span>
+            <input class="input attr-display-name" data-idx="1" data-sample="Silver" style="width:140px;height:28px;font-size:13px;font-weight:500;border-color:#DDD6FE" value="Color" placeholder="为空时不展示属性名">
+            <select style="flex:1;height:28px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px;background:#fff;color:#374151">
+              <option selected>颜色（销售属性）</option>
+            </select>
+            <button class="btn sm" style="color:#EF4444;border-color:#FECACA;flex-shrink:0">删除</button>
+          </div>
+          <div class="attr-item" id="sg-row" data-sizeguide="true" style="border-color:#DDD6FE;background:#FAF5FF">
+            <span class="drag-handle">⠿</span>
+            <input class="input attr-sg-name" style="width:140px;height:28px;font-size:13px;font-weight:500;border-color:#DDD6FE" value="Size" placeholder="为空时不展示属性名">
+            <select disabled style="flex:1;height:28px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px;background:#F3F4F6;color:#9CA3AF;cursor:not-allowed">
+              <option>尺码指南（固定模块）</option>
+            </select>
+            <span class="toggle on" id="sg-toggle" style="flex-shrink:0"></span>
+          </div>
+          <div class="attr-item" data-idx="2" style="border-color:#DDD6FE;background:#FAF5FF">
+            <span class="drag-handle">⠿</span>
+            <input class="input attr-display-name" data-idx="2" data-sample="22.8 in" style="width:140px;height:28px;font-size:13px;font-weight:500;border-color:#DDD6FE" value="Length" placeholder="为空时不展示属性名">
+            <select style="flex:1;height:28px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px;background:#fff;color:#374151">
+              <option selected>长度（描述属性）</option>
+              <option>宽度（描述属性）</option>
+            </select>
+            <button class="btn sm" style="color:#EF4444;border-color:#FECACA;flex-shrink:0">删除</button>
+          </div>
+          <button class="btn" style="width:100%;margin-top:12px;border-style:dashed;color:#7C3AED;border-color:#DDD6FE" onclick="addAttrRow(this)">+ 添加属性</button>
+        </div>
+        <!-- Right: Preview -->
+        <div style="width:280px;flex-shrink:0">
+          <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px">前台预览效果</div>
+          <div class="preview-card" id="preview-card">
+            <div class="preview-title">Description 区域预览</div>
+            <div style="padding:6px 0;font-size:12px;color:#9CA3AF;border-bottom:1px solid #F3F4F6;margin-bottom:8px">jewelry item #: 1010701657</div>
+            <div id="preview-attrs"></div>
+          </div>
+          <div style="margin-top:8px;padding:8px 10px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:8px;font-size:11px;color:#7C3AED;line-height:1.5">
+            预览实时联动：修改展示名或清空后，右侧预览自动更新
+          </div>
+          <div style="margin-top:14px;padding:10px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;font-size:11px;color:#92400E;line-height:1.6">
+            <strong>覆盖说明：</strong>此规则将完全替代父级「Jewelry」的配置，不会合并。删除后回退到继承父级。
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeAttrModal()">取消</button>
+      <button class="btn">保存</button>
+      <button class="btn primary">保存并发布</button>
+    </div>
+  </div>
+</div>
+
+<!-- 新增属性展示规则：Modal 弹窗 -->
+<div class="modal-overlay" id="modal-attr-new" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">新增属性展示规则</div>
+      <button class="modal-close" onclick="closeAttrNewModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="padding:14px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;margin-bottom:18px">
+        <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:10px">作用域</div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <div>
+            <div style="font-size:11px;color:#9CA3AF;margin-bottom:4px">类目（必选）</div>
+            <select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;font-size:13px;background:#fff;min-width:170px">
+              <option selected disabled>请选择类目</option><option>Jewelry & Accessories</option><option>Bags</option><option>Electronics</option>
+            </select>
+          </div>
+          <div style="color:#D1D5DB;font-size:18px;margin-top:16px">></div>
+          <div>
+            <div style="font-size:11px;color:#9CA3AF;margin-bottom:4px">品牌（可选）</div>
+            <select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;font-size:13px;background:#fff;min-width:150px">
+              <option selected>不限（类目级规则）</option><option>LOUIS VUITTON</option><option>CHANEL</option><option>GUCCI</option>
+            </select>
+          </div>
+          <div style="color:#D1D5DB;font-size:18px;margin-top:16px">></div>
+          <div>
+            <div style="font-size:11px;color:#9CA3AF;margin-bottom:4px">系列（可选）</div>
+            <select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;font-size:13px;background:#fff;min-width:150px">
+              <option selected>不限</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:8px;font-size:12px;color:#D97706" id="new-scope-hint">请先选择类目，选择后加载该类目下可用的后台属性</div>
+      </div>
+      <!-- State A: 未选类目 -->
+      <div id="new-empty-state" style="padding:40px;text-align:center;border:1px dashed #D1D5DB;border-radius:10px;color:#9CA3AF">
+        <div style="font-size:14px;margin-bottom:6px">请先选择作用域</div>
+        <div style="font-size:12px">选择类目后，可添加属性并配置展示名和数据源</div>
+      </div>
+      <!-- State B: 已选类目，Size Guide 自动带入 -->
+      <div id="new-attr-state" style="display:none">
+        <div style="display:flex;gap:16px">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+              <span style="font-size:12px;padding:3px 8px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:6px;color:#7C3AED;font-weight:500">Size Guide（自动带入）</span>
+            </div>
+            <div style="margin-bottom:8px;font-size:11px;color:#9CA3AF;line-height:1.5">数据源可选范围：当前类目下的全部描述属性和销售属性</div>
+            <div style="margin-bottom:6px;font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:.3px">已配置（拖拽调整展示顺序）</div>
+            <div class="attr-item" style="border-color:#DDD6FE;background:#FAF5FF">
+              <span style="color:#9CA3AF;cursor:grab;font-size:14px">⠿</span>
+              <input class="input" style="width:140px;height:28px;font-size:13px;font-weight:500;border-color:#DDD6FE" value="Size" placeholder="为空时不展示属性名">
+              <select disabled style="flex:1;height:28px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px;background:#F3F4F6;color:#9CA3AF;cursor:not-allowed">
+                <option>尺码指南（固定模块）</option>
+              </select>
+              <button class="btn sm" style="color:#EF4444;border-color:#FECACA;flex-shrink:0">删除</button>
+            </div>
+            <button class="btn" style="width:100%;margin-top:12px;border-style:dashed;color:#7C3AED;border-color:#DDD6FE" onclick="addAttrRow(this)">+ 添加属性</button>
+          </div>
+          <div style="width:280px;flex-shrink:0">
+            <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px">前台预览效果</div>
+            <div class="preview-card">
+              <div class="preview-title">Description 区域预览</div>
+              <div style="padding:6px 0;font-size:12px;color:#9CA3AF;border-bottom:1px solid #F3F4F6;margin-bottom:8px">jewelry item #: xxxxxxx</div>
+              <div class="preview-attr"><span class="attr-label">Size</span><span class="attr-val"><a href="#" style="color:#7C3AED;text-decoration:underline;font-weight:500" onclick="return false">Size Guide</a></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeAttrNewModal()">取消</button>
+      <button class="btn" id="new-btn-save" disabled style="opacity:.5;cursor:not-allowed">保存</button>
+      <button class="btn primary" id="new-btn-publish" disabled style="opacity:.5;cursor:not-allowed">保存并发布</button>
+    </div>
+  </div>
+</div>
+
+<!-- 删除规则确认弹窗 -->
+<div class="modal-overlay" id="modal-delete-confirm" style="display:none">
+  <div class="modal-box sm">
+    <div class="modal-header">
+      <div class="modal-title">确认删除规则</div>
+      <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="padding:20px 24px">
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="width:36px;height:36px;border-radius:50%;background:#FEF2F2;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <span style="color:#EF4444;font-size:18px;font-weight:700">!</span>
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:600;color:#1F2937;margin-bottom:6px">确定要删除「Bags」的属性展示规则吗？</div>
+          <div style="font-size:13px;color:#6B7280;line-height:1.7;margin-bottom:12px">删除后，该规则下的所有属性配置将被清除，且不可恢复。</div>
+          <div style="padding:10px 12px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;font-size:12px;color:#92400E;line-height:1.6">
+            <strong>影响范围：</strong>以下 1 个子级当前继承此规则，删除后将回退到上一级兜底规则：
+            <div style="margin-top:6px;padding-left:12px">
+              <div>· Bags > CHANEL（当前继承 Bags 类目级规则）</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeDeleteModal()">取消</button>
+      <button class="btn danger">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-plp-config">
+  <div class="card">
+    <div class="page-head"><div><div class="page-title">列表页配置</div><div class="page-desc">管理商品列表页的布局和筛选配置（待建设）。</div></div></div>
+    <div style="padding:60px;text-align:center;color:#9CA3AF"><div style="font-size:36px;margin-bottom:12px">🚧</div><div style="font-size:14px;color:#6B7280">功能建设中</div></div>
+  </div>
+</div>
+<div class="page" id="page-home-config">
+  <div class="card">
+    <div class="page-head"><div><div class="page-title">首页配置</div><div class="page-desc">管理首页模块和内容配置（待建设）。</div></div></div>
+    <div style="padding:60px;text-align:center;color:#9CA3AF"><div style="font-size:36px;margin-bottom:12px">🚧</div><div style="font-size:14px;color:#6B7280">功能建设中</div></div>
+  </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /container -->
+
+<script>
+/* Menu toggle */
+window.toggleGroup = function(parent) {
+  const group = parent.closest('.menu-group');
+  group.classList.toggle('open');
+};
+
+/* Clear active */
+function clearAllActive() {
+  document.querySelectorAll('.menu-solo').forEach(el => el.classList.remove('active'));
+}
+
+/* Navigate */
+function navigateTo(pageId, label) {
+  clearAllActive();
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  // 商详页配置直接跳编辑页（无 Market 列表）
+  const targetId = pageId === 'pdp-config' ? 'page-pdp-config-edit' : 'page-' + pageId;
+  const target = document.getElementById(targetId);
+  if (target) target.classList.add('active');
+  document.querySelector('.breadcrumb').textContent = label || '';
+  const menuItem = document.querySelector('[data-page="' + pageId + '"]');
+  if (menuItem) menuItem.classList.add('active');
+}
+
+/* Sub page (list/edit) */
+function showSubPage(module, action) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const target = document.getElementById('page-' + module + '-' + action);
+  if (target) target.classList.add('active');
+}
+
+/* Attribute display config modal */
+function showAttrPage(action) {
+  if (action === 'edit') {
+    document.getElementById('modal-attr-edit').style.display = 'flex';
+  } else if (action === 'new') {
+    document.getElementById('modal-attr-new').style.display = 'flex';
+  }
+}
+function closeAttrModal() {
+  document.getElementById('modal-attr-edit').style.display = 'none';
+}
+function closeAttrNewModal() {
+  document.getElementById('modal-attr-new').style.display = 'none';
+  document.getElementById('new-empty-state').style.display = 'block';
+  document.getElementById('new-attr-state').style.display = 'none';
+  document.getElementById('new-btn-save').disabled = true;
+  document.getElementById('new-btn-save').style.opacity = '.5';
+  document.getElementById('new-btn-save').style.cursor = 'not-allowed';
+  document.getElementById('new-btn-publish').disabled = true;
+  document.getElementById('new-btn-publish').style.opacity = '.5';
+  document.getElementById('new-btn-publish').style.cursor = 'not-allowed';
+  document.getElementById('new-scope-hint').style.display = 'block';
+}
+/* New modal: category select triggers state switch */
+document.querySelector('#modal-attr-new select')?.addEventListener('change', function() {
+  if (this.value && !this.options[this.selectedIndex].disabled) {
+    document.getElementById('new-empty-state').style.display = 'none';
+    document.getElementById('new-attr-state').style.display = 'block';
+    document.getElementById('new-btn-save').disabled = false;
+    document.getElementById('new-btn-save').style.opacity = '1';
+    document.getElementById('new-btn-save').style.cursor = 'pointer';
+    document.getElementById('new-btn-publish').disabled = false;
+    document.getElementById('new-btn-publish').style.opacity = '1';
+    document.getElementById('new-btn-publish').style.cursor = 'pointer';
+    document.getElementById('new-scope-hint').style.display = 'none';
+  }
+});
+/* Add attribute row */
+var attrIdx = 3;
+function addAttrRow(btn) {
+  attrIdx++;
+  var row = document.createElement('div');
+  row.className = 'attr-item';
+  row.setAttribute('data-idx', attrIdx);
+  row.style.cssText = 'border-color:#DDD6FE;background:#FAF5FF';
+  row.innerHTML = '<span style="color:#9CA3AF;cursor:grab;font-size:14px">⠿</span>'
+    + '<input class="input attr-display-name" data-idx="' + attrIdx + '" data-sample="" style="width:140px;height:28px;font-size:13px;font-weight:500;border-color:#DDD6FE" value="" placeholder="为空时不展示属性名">'
+    + '<select style="flex:1;height:28px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px;background:#fff;color:#374151">'
+    + '<option selected disabled>请选择数据源</option><option>吊坠材质（描述属性）</option><option>镀层（描述属性）</option><option>宽度（描述属性）</option><option>尺码（销售属性）</option></select>'
+    + '<button class="btn sm" style="color:#EF4444;border-color:#FECACA;flex-shrink:0" onclick="this.parentElement.remove();renderPreview()">删除</button>';
+  btn.parentElement.insertBefore(row, btn);
+  row.querySelector('.attr-display-name').addEventListener('input', renderPreview);
+  row.querySelector('.attr-display-name').focus();
+  renderPreview();
+}
+
+/* Size Guide toggle */
+var sgToggle = document.getElementById('sg-toggle');
+if (sgToggle) sgToggle.addEventListener('click', function(e) {
+  e.stopPropagation();
+  this.classList.toggle('on');
+  var row = document.getElementById('sg-row');
+  if (this.classList.contains('on')) {
+    row.style.opacity = '1';
+    row.querySelector('.attr-sg-name').disabled = false;
+  } else {
+    row.style.opacity = '.45';
+    row.querySelector('.attr-sg-name').disabled = true;
+  }
+  renderPreview();
+});
+
+function showDeleteConfirm() {
+  document.getElementById('modal-delete-confirm').style.display = 'flex';
+}
+function closeDeleteModal() {
+  document.getElementById('modal-delete-confirm').style.display = 'none';
+}
+
+/* Module config panel switch */
+function showModuleConfig(moduleKey) {
+  // Hide all config panels
+  document.querySelectorAll('.config-panel').forEach(p => p.style.display = 'none');
+  // Show target
+  const configMap = {
+    'description': 'config-description',
+  };
+  const panelId = configMap[moduleKey];
+  if (!panelId) return;
+  const panel = document.getElementById(panelId);
+  if (panel) panel.style.display = 'block';
+  // Highlight module item
+  document.querySelectorAll('.module-item').forEach(item => item.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+}
+
+/* Bind menu clicks */
+document.querySelectorAll('[data-page]').forEach(item => {
+  item.addEventListener('click', function() {
+    const pageId = this.dataset.page;
+    const label = this.querySelector('span:last-child')?.textContent || '';
+    navigateTo(pageId, label);
+  });
+});
+
+/* Toggle switch */
+document.querySelectorAll('.toggle:not(.locked)').forEach(t => {
+  t.addEventListener('click', function(e) {
+    e.stopPropagation();
+    this.classList.toggle('on');
+  });
+});
+
+/* Preview sync */
+function renderPreview() {
+  var container = document.getElementById('preview-attrs');
+  if (!container) return;
+  var items = document.querySelectorAll('.attr-item');
+  var html = '';
+  items.forEach(function(item) {
+    if (item.dataset.sizeguide) {
+      var sgToggleEl = document.getElementById('sg-toggle');
+      if (!sgToggleEl || !sgToggleEl.classList.contains('on')) return;
+      var sgName = item.querySelector('.attr-sg-name');
+      var sgLabel = sgName ? sgName.value.trim() : 'Size';
+      html += '<div class="preview-attr"><span class="attr-label" style="color:#7C3AED">' + sgLabel + '</span><span class="attr-val"><a href="#" style="color:#7C3AED;text-decoration:underline;font-weight:500" onclick="return false">Size Guide</a></span></div>';
+    } else {
+      var input = item.querySelector('.attr-display-name');
+      if (!input) return;
+      var name = input.value.trim();
+      var sample = input.dataset.sample || '';
+      if (name) {
+        html += '<div class="preview-attr"><span class="attr-label">' + name + '</span><span class="attr-val">' + sample + '</span></div>';
+      } else {
+        html += '<div class="preview-attr"><span class="attr-val" style="color:#9CA3AF;font-style:italic">' + sample + '（无属性名）</span></div>';
+      }
+    }
+  });
+  container.innerHTML = html;
+}
+document.querySelectorAll('.attr-display-name').forEach(function(input) {
+  input.addEventListener('input', renderPreview);
+});
+var sgNameInput = document.querySelector('.attr-sg-name');
+if (sgNameInput) sgNameInput.addEventListener('input', renderPreview);
+renderPreview();
+
+/* Default: show first page */
+const firstMenu = document.querySelector('[data-page]');
+if (firstMenu) firstMenu.click();
+</script>
+
+</body>
+</html>
+
