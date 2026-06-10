@@ -949,12 +949,8 @@ def update_index_html(updates, all_versions, all_history=None):
                             href_prefix = f'{mod_dir}/{subdir}/'
                         if href_prefix not in lookback:
                             continue
-                        if subdir == '.':
-                            href_m = re.search(r'href="' + re.escape(href_prefix) + r'([^"]+)"', lookback)
-                            if href_m and re.match(file_pattern, href_m.group(1)):
-                                matched_key = (mk, art_type)
-                                break
-                        else:
+                        href_m = re.search(r'href="' + re.escape(href_prefix) + r'([^"]+)"', lookback)
+                        if href_m and re.match(file_pattern, href_m.group(1)):
                             matched_key = (mk, art_type)
                             break
             if matched_key:
