@@ -870,7 +870,7 @@ def update_index_html(updates, all_versions, all_history=None):
             new_line = re.sub(r'更新于 \d{4}-\d{2}-\d{2}(\s+\d{2}:\d{2})?', f'更新于 {today}', new_line)
             if new_line != line:
                 changed = True
-        if current_item_start in changed_items and 'doc-desc' in new_line and '含 PRD' in new_line:
+        if current_item_start in changed_items and 'doc-desc' in new_line and ('含 PRD' in new_line or '含原型' in new_line):
             for mod_key, mod_config in MODULES.items():
                 mod_dir = mod_config['target']
                 mod_keywords_map = {
