@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang='zh-CN'>
+<head>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width,initial-scale=1.0'>
+<title>Looply 物流管理后台原型 v4</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937;font-size:14px}
+.header{height:60px;background:#FFFFFF;color:#1F2937;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid #E5E7EB}
+.logo{font-size:18px;font-weight:700;letter-spacing:1px;display:flex;align-items:center}
+.header-divider{width:1px;height:20px;background:#E5E7EB;margin:0 16px}
+.system-label{font-size:14px;font-weight:500;color:#6B7280;letter-spacing:0.3px}
+.breadcrumb{margin-left:auto;color:#9CA3AF;font-size:13px;font-weight:400}
+.breadcrumb:empty{display:none}
+.container{display:flex;height:calc(100vh - 60px)}
+.sidebar{width:220px;background:#FFFFFF;overflow:auto;flex-shrink:0;border-right:none;box-shadow:3px 0 12px rgba(0,0,0,0.06);padding:8px 0}
+.main{flex:1;overflow:auto;padding:28px}
+.menu-solo{display:flex;align-items:center;padding:12px 16px;color:#374151;cursor:pointer;font-size:14px;font-weight:500;transition:background .15s;border-left:3px solid transparent;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-solo:hover{background:rgba(0,0,0,.04)}
+.menu-solo:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-solo.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.12),transparent);font-weight:600;border-left-color:#7C3AED}
+.menu-solo .mi{width:18px;height:18px;margin-right:10px;flex-shrink:0;opacity:.55}
+.menu-solo.active .mi{opacity:1}
+.menu-divider{height:1px;background:#F3F4F6;margin:8px 16px}
+.menu-group{margin-bottom:0}
+.menu-parent{display:flex;align-items:center;padding:12px 16px;color:#374151;cursor:pointer;font-size:14px;font-weight:500;transition:background .15s;user-select:none;border-left:3px solid transparent;outline:none;overflow:hidden}
+.menu-parent:hover{background:rgba(0,0,0,.04)}
+.menu-parent:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-parent .mi{width:18px;height:18px;margin-right:10px;flex-shrink:0;opacity:.55}
+.menu-parent .arrow{margin-left:auto;width:16px;height:16px;transition:transform .2s;opacity:.4;flex-shrink:0}
+.menu-group.open>.menu-parent .arrow{transform:rotate(90deg)}
+.menu-parent.active-parent{color:#7C3AED;font-weight:600;border-left-color:#7C3AED}
+.menu-parent.active-parent .mi{opacity:1}
+.menu-children{max-height:0;overflow:hidden;transition:max-height .3s cubic-bezier(.4,0,.2,1)}
+.menu-group.open>.menu-children{max-height:none}
+.menu-child{display:flex;align-items:center;padding:10px 16px 10px 44px;color:#4B5563;cursor:pointer;font-size:13px;transition:all .15s;border-left:3px solid transparent;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-child:hover{color:#374151;background:rgba(0,0,0,.03)}
+.menu-child:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-child.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.1),transparent);border-left-color:#7C3AED;font-weight:600}
+.menu-child .ci{width:15px;height:15px;margin-right:8px;flex-shrink:0;opacity:.45}
+.menu-child.active .ci{opacity:.8}
+@media(prefers-reduced-motion:reduce){.menu-children,.menu-parent .arrow,.menu-solo,.menu-child{transition:none !important}}
+.page{display:none}.page.active{display:block}
+.card{background:#fff;border-radius:16px;box-shadow:0 10px 24px rgba(16,24,40,.06);padding:28px}
+.card+.card{margin-top:18px}
+.page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}
+.page-title{font-size:20px;font-weight:700;margin-bottom:6px}
+.page-desc{color:#6B7280;font-size:13px;max-width:760px}
+.head-actions{display:flex;gap:10px;flex-wrap:wrap}
+.toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.toolbar .input,.toolbar select{height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff}
+.btn{height:34px;padding:0 14px;border:1px solid #D1D5DB;background:#fff;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:13px}
+.btn.primary{background:#7C3AED;border-color:#7C3AED;color:#fff}
+.btn.danger{background:#fff;border-color:#DC2626;color:#DC2626}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi .item{background:#FAF5FF;border:1px solid #DDD6FE;border-radius:14px;padding:14px}
+.kpi .num{font-size:24px;font-weight:700;color:#7C3AED;margin-bottom:4px}
+.muted{color:#6B7280;font-size:12px}
+.table-wrap{border:1px solid #E5E7EB;border-radius:14px;overflow:hidden;background:#fff}
+table{width:100%;border-collapse:collapse}
+th{background:#FFFFFF;padding:10px 12px;text-align:left;font-size:12px;color:#6B7280;border-bottom:1px solid #E5E7EB;text-transform:uppercase;letter-spacing:.02em}
+td{padding:11px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;vertical-align:top}
+tr:hover{background:#FAF5FF}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;margin-right:4px}
+.tag.on{background:#F0FDF4;color:#16A34A;border:none}
+.tag.off{background:#F3F4F6;color:#6B7280;border:none}
+.tag.sale{background:#EFF6FF;color:#2563EB;border:none}
+.tag.pending{background:#FFFBEB;color:#D97706;border:none}
+.tag.req{background:#FEF2F2;color:#DC2626;border:none}
+.tag.warn{background:#FFF1F2;color:#E11D48;border:none}
+.tag.intl{background:#EFF6FF;color:#1D4ED8;border:none}
+.tag.dom{background:#F5F3FF;color:#7C3AED;border:none}
+.form-section{margin-bottom:24px}
+.form-section .section-title{font-size:15px;font-weight:600;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #E5E7EB}
+.form-grid{display:grid;grid-template-columns:150px 1fr;gap:12px 16px;align-items:center}
+.label{color:#6B7280;font-size:13px}
+.field{min-height:36px;border:1px solid #D1D5DB;border-radius:8px;background:#fff;padding:8px 12px;display:flex;align-items:center}
+.field.readonly{background:#F9FAFB;color:#6B7280}
+.form-actions{display:flex;gap:12px;justify-content:flex-end;padding-top:16px;border-top:1px solid #E5E7EB;margin-top:24px}
+.section-title{font-size:14px;font-weight:700;margin-bottom:10px;color:#7C3AED}
+.rail-note{padding:12px 14px;border-radius:10px;background:#F3EEFF;border:1px solid #DDD6FE;color:#6D28D9;font-size:12px;line-height:1.6;margin-bottom:16px}
+.empty-state{display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center}
+.empty-state .empty-icon{width:48px;height:48px;color:#9CA3AF;margin-bottom:16px}
+.empty-state .empty-title{font-size:16px;font-weight:600;color:#1F2937;margin-bottom:8px}
+.empty-state .empty-desc{font-size:13px;color:#6B7280;margin-bottom:24px;max-width:360px}
+.timeline{border-left:2px solid #E5E7EB;margin-left:8px;padding-left:20px}
+.timeline-item{position:relative;padding-bottom:20px}
+.timeline-item:last-child{padding-bottom:0}
+.timeline-item::before{content:'';position:absolute;left:-25px;top:4px;width:10px;height:10px;border-radius:50%;background:#E5E7EB;border:2px solid #fff}
+.timeline-item.active::before{background:#7C3AED}
+.timeline-item .time{font-size:12px;color:#9CA3AF;margin-bottom:2px}
+.timeline-item .event{font-size:13px;color:#1F2937}
+.timeline-item .location{font-size:12px;color:#6B7280;margin-top:2px}
+.toggle{position:relative;width:40px;height:22px;background:#D1D5DB;border-radius:11px;cursor:pointer;display:inline-block}
+.toggle.on{background:#7C3AED}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform .2s}
+.toggle.on::after{transform:translateX(18px)}
+.op-log{margin-top:24px;padding-top:24px;border-top:1px solid #E5E7EB}
+.op-log-title{font-size:15px;font-weight:600;margin-bottom:12px}
+.tooltip-trigger{border-bottom:1px dotted #9CA3AF;cursor:help;display:inline-block}
+th .tooltip-trigger{color:#6B7280}
+.expand-cell{text-align:center;width:32px;padding:0 4px!important}
+.expand-btn{cursor:pointer;display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;border-radius:4px;font-size:10px;color:#6B7280;transition:background .15s,color .15s;user-select:none}
+.expand-btn:hover{background:#EEF2FF;color:#6366F1}
+.expand-btn.expanded{color:#6366F1}
+.subtag-row{background:#FAFAFE}
+.subtag-row td{border-top:1px dashed #E5E7EB!important}
+.subtag-parent{cursor:default}
+.subtag-parent:hover{background:#F9FAFB}
+.rail-note{font-size:12px;color:#9CA3AF;margin-bottom:12px;line-height:1.6}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:10000;display:none;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.15);width:480px;max-height:80vh;overflow:auto;padding:28px}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:20px;color:#1F2937}
+.modal .form-grid{display:grid;grid-template-columns:120px 1fr;gap:14px 16px;align-items:center}
+.modal .label{font-size:13px;color:#6B7280;font-weight:500}
+.modal .field{font-size:13px;color:#1F2937;padding:8px 12px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:6px}
+.modal .field select,.modal .field input{border:none;outline:none;font-size:13px;color:#1F2937;background:transparent;width:100%}
+.modal .field input::placeholder{color:#9CA3AF}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:24px;padding-top:16px;border-top:1px solid #F3F4F6}
+.tooltip-popup{position:fixed;z-index:9999;padding:10px 14px;background:#FFFFFF;color:#1F2937;font-size:12px;line-height:1.5;border-radius:8px;max-width:280px;box-shadow:0 4px 16px rgba(0,0,0,0.12),0 0 0 1px rgba(0,0,0,0.05);pointer-events:none;opacity:0;transition:opacity .15s;white-space:normal}
+.tooltip-popup.show{opacity:1}
+.tooltip-arrow{position:absolute;width:0;height:0;border:5px solid transparent;border-bottom-color:#FFFFFF;top:-10px;left:50%;transform:translateX(-50%);filter:drop-shadow(0 -1px 1px rgba(0,0,0,0.05))}
+
+</style>
+</head>
+<body>
+<div class='header'>
+  <div class='logo'><img src="logo-new.png" height="28" alt="Looply"></div>
+  <div class='header-divider'></div>
+  <span class='system-label'>物流管理系统</span>
+  <div class='breadcrumb'></div>
+</div>
+<div class='container'>
+  <div class='sidebar' role="navigation" aria-label="主导航">
+<div class="menu-group open">
+<div class="menu-parent active-parent" tabindex="0" role="button" aria-expanded="true" aria-controls="children-1" onclick="toggleGroup(this)"><svg class="mi" aria-hidden="true" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="6.5"/><circle cx="9" cy="9" r="3.5"/><circle cx="9" cy="9" r="1" fill="currentColor"/></svg><span>物流追踪</span><svg class="arrow" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4L10 8L6 12"/></svg></div>
+<div class="menu-children" id="children-1" role="group">
+<div class="menu-child" tabindex="0" role="menuitem" data-page="tracking-list"><svg class="ci" aria-hidden="true" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="6.5" r="4"/><path d="M10 10l3.5 3.5"/></svg><span>国际段追踪</span></div>
+<div class="menu-child" tabindex="0" role="menuitem" data-page="domestic-tracking"><svg class="ci" aria-hidden="true" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 11h11M4 8h7M6 5h3"/><path d="M7.5 2v11"/></svg><span>国内段追踪</span></div>
+<div class="menu-child" tabindex="0" role="menuitem" data-page="tracking-platform"><svg class="ci" aria-hidden="true" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="7.5" r="2"/><path d="M7.5 2v1.5M7.5 11.5V13M2 7.5h1.5M11.5 7.5H13M3.8 3.8l1 1M10.2 10.2l1 1M3.8 11.2l1-1M10.2 4.8l1-1"/></svg><span>追踪平台管理</span></div>
+<div class="menu-child" tabindex="0" role="menuitem" data-page="carrier-list"><svg class="ci" aria-hidden="true" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="8" height="7" rx="1"/><path d="M9 5.5h2.5l1.5 2.5v3H9V5.5z"/><circle cx="4" cy="11.5" r="1.2"/><circle cx="11.5" cy="11.5" r="1.2"/></svg><span>承运商管理</span></div>
+</div></div>
+  </div>
+  <div class='main'>
+
+    <div class="page" id="page-carrier-list-list">
+    <div class="card">
+      <div class="page-head"><div><div class="page-title">承运商管理</div><div class="page-desc">统一管理国际段与国内段承运商，国际承运商需对接追踪平台获取轨迹</div></div><div class="head-actions"><button class="btn primary" onclick="showSubPage('carrier','create')">新增承运商</button></div></div>
+      <div class="kpi"><div class="item"><div class="num">7</div><div class="muted">承运商总数</div></div><div class="item"><div class="num">3</div><div class="muted">国际承运商</div></div><div class="item"><div class="num">4</div><div class="muted">国内承运商</div></div><div class="item"><div class="num">6</div><div class="muted">已启用</div></div></div>
+      <div class="toolbar"><input class="input" placeholder="搜索承运商名称/编码"><select><option>全部业务范围</option><option>国际</option><option>国内</option></select><select><option>全部状态</option><option>启用</option><option>停用</option></select><button class="btn">查询</button></div>
+      <div class="table-wrap"><table><thead><tr><th>ID</th><th>承运商</th><th>编码</th><th><span class="tooltip-trigger" data-tooltip="国际：海外段对接追踪平台（如 AfterShip）获取轨迹；国内：商家发货至上海仓的国内段，仅供内部监控。">业务范围</span></th><th><span class="tooltip-trigger" data-tooltip="承运商可被多个追踪平台覆盖（如 UPS 在 AfterShip 和 17TRACK 都有），每个平台有自己的承运商代码。映射关系在「追踪平台管理」中配置。">已配置追踪平台</span></th><th>状态</th><th>更新时间</th><th>操作</th></tr></thead><tbody><tr><td><b>CR001</b></td><td>UPS</td><td><span class="muted">ups</span></td><td><span class="tag intl">国际</span></td><td><span class="tag intl" style="margin-right:4px">AfterShip</span><span class="tag intl">17TRACK</span></td><td><span class="tag on">启用</span></td><td>2026-05-01 10:00</td><td><button class="btn" onclick="showSubPage('carrier','edit')">编辑</button></td></tr><tr><td><b>CR002</b></td><td>FedEx</td><td><span class="muted">fedex</span></td><td><span class="tag intl">国际</span></td><td><span class="tag intl">AfterShip</span></td><td><span class="tag on">启用</span></td><td>2026-05-01 10:00</td><td><button class="btn" onclick="showSubPage('carrier','edit')">编辑</button></td></tr><tr><td><b>CR003</b></td><td>USPS</td><td><span class="muted">usps</span></td><td><span class="tag intl">国际</span></td><td><span class="tag intl">AfterShip</span></td><td><span class="tag off">停用</span></td><td>2026-04-20 14:30</td><td><button class="btn" onclick="showSubPage('carrier','edit')">编辑</button></td></tr><tr><td><b>CR101</b></td><td>顺丰速运</td><td><span class="muted">sf-express</span></td><td><span class="tag dom">国内</span></td><td><span class="tag dom" style="margin-right:4px">顺丰开放平台</span><span class="tag dom">快递100</span></td><td><span class="tag on">启用</span></td><td>2026-05-01 10:00</td><td><button class="btn" onclick="showSubPage('carrier','edit')">编辑</button></td></tr><tr><td><b>CR102</b></td><td>京东物流</td><td><span class="muted">jd-logistics</span></td><td><span class="tag dom">国内</span></td><td><span class="tag dom">快递100</span></td><td><span class="tag on">启用</span></td><td>2026-05-01 10:00</td><td><button class="btn" onclick="showSubPage('carrier','edit')">编辑</button></td></tr><tr><td><b>CR103</b></td><td>圆通速递</td><td><span class="muted">yto</span></td><td><span class="tag dom">国内</span></td><td><span class="tag dom">快递100</span></td><td><span class="tag on">启用</span></td><td>2026-04-25 09:00</td><td><button class="btn" onclick="showSubPage('carrier','edit')">编辑</button></td></tr><tr><td><b>CR104</b></td><td>中通快递</td><td><span class="muted">zto</span></td><td><span class="tag dom">国内</span></td><td><span class="tag dom">快递100</span></td><td><span class="tag on">启用</span></td><td>2026-04-25 09:00</td><td><button class="btn" onclick="showSubPage('carrier','edit')">编辑</button></td></tr></tbody></table></div>
+    </div>
+    </div>
+
+    <div class="page" id="page-carrier-edit">
+    <div class="card">
+      <div class="page-head"><div><div class="page-title">编辑承运商 — UPS</div><div class="page-desc">修改承运商基本信息</div></div><div class="head-actions"><button class="btn" onclick="navigateTo('carrier-list','承运商管理')">返回列表</button></div></div>
+      <div class="form-section">
+        <div class="section-title">基本信息</div>
+        <div class="form-grid">
+          <div class="label">承运商名称</div><div class="field">UPS</div>
+          <div class="label">承运商编码</div><div class="field">ups</div>
+          <div class="label">业务范围</div><div class="field"><span class="tag intl">国际</span></div>
+          <div class="label">状态</div><div class="field"><span class="toggle on"></span></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="section-title">已配置追踪平台</div>
+        <div class="rail-note">承运商↔追踪平台的对应关系（包括平台特定的承运商代码，如 AfterShip slug、17TRACK carrier_code）在「追踪平台管理 → 承运商映射管理」中维护，此处仅展示。</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>追踪平台</th><th>平台承运商代码</th><th>平台承运商名</th><th>是否默认</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td>AfterShip</td><td><code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:12px">ups</code></td><td>UPS</td><td><span class="tag on">默认</span></td><td><span class="tag on">启用</span></td></tr>
+            <tr><td>17TRACK</td><td><code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:12px">100002</code></td><td>UPS</td><td class="muted">—</td><td><span class="tag on">启用</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn" onclick="navigateTo('carrier-list','承运商管理')">取消</button>
+        <button class="btn primary" onclick="alert('保存成功');navigateTo('carrier-list','承运商管理')">保存</button>
+      </div>
+      <div class="op-log">
+        <div class="op-log-title">操作记录</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>操作时间</th><th>操作人</th><th>操作类型</th><th>操作内容</th></tr></thead>
+          <tbody>
+            <tr><td class="muted">2026-05-01 10:00</td><td>admin</td><td><b>创建</b></td><td class="muted">创建承运商 UPS</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+    </div>
+
+    <div class="page" id="page-carrier-create">
+    <div class="card">
+      <div class="page-head"><div><div class="page-title">新增承运商</div><div class="page-desc">添加新的物流承运商</div></div><div class="head-actions"><button class="btn" onclick="navigateTo('carrier-list','承运商管理')">返回列表</button></div></div>
+      <div class="form-section">
+        <div class="section-title">基本信息</div>
+        <div class="form-grid">
+          <div class="label">承运商名称</div><div class="field" style="color:#9CA3AF">请输入承运商名称</div>
+          <div class="label">承运商编码</div><div class="field" style="color:#9CA3AF">请输入唯一编码（如 ups、sf-express）</div>
+          <div class="label">业务范围</div><div class="field"><select style="padding:6px 10px;border:1px solid #D1D5DB;border-radius:6px;font-size:13px"><option>国际（接入追踪平台）</option><option>国内（仅运营监控）</option></select></div>
+          <div class="label">状态</div><div class="field"><span class="toggle on"></span></div>
+        </div>
+        <div class="rail-note" style="margin-top:12px">保存后请到「追踪平台管理 → 承运商映射管理」配置该承运商在各追踪平台的代码（如 AfterShip slug）。</div>
+      </div>
+      <div class="form-actions">
+        <button class="btn" onclick="navigateTo('carrier-list','承运商管理')">取消</button>
+        <button class="btn primary" onclick="alert('保存成功');navigateTo('carrier-list','承运商管理')">保存</button>
+      </div>
+    </div>
+    </div>
+
+    <div class="page" id="page-tracking-list-list">
+    <div class="card">
+      <div class="page-head"><div><div class="page-title">国际段追踪</div><div class="page-desc">录入运单号并追踪物流轨迹，系统通过追踪平台自动获取状态更新</div></div><div class="head-actions"><button class="btn primary" onclick="showSubPage('tracking','create')">录入运单号</button></div></div>
+      <div class="kpi"><div class="item"><div class="num">5</div><div class="muted">运单总数</div></div><div class="item"><div class="num">2</div><div class="muted">运输中</div></div><div class="item"><div class="num">1</div><div class="muted">已签收</div></div><div class="item"><div class="num">1</div><div class="muted">异常</div></div></div>
+      <div class="toolbar"><input class="input" placeholder="搜索订单号/运单号"><select><option>全部状态</option><option>待揽收</option><option>已发货</option><option>运输中</option><option>派送中</option><option>已签收</option><option>异常</option></select><select><option>全部承运商</option><option>UPS</option><option>FedEx</option></select><button class="btn">查询</button></div>
+      <div class="table-wrap"><table><thead><tr><th>订单号</th><th>运单号</th><th><span class="tooltip-trigger" data-tooltip="目前发货类型有「发货、退货」两种。">发货类型</span></th><th>承运商</th><th><span class="tooltip-trigger" data-tooltip="物流状态由承运商 API 返回英文原文（如 InTransit、Delivered），经状态映射转为 Looply 内部状态，再通过 i18n 翻译为对应语言展示给买家。">状态</span></th><th>目的地</th><th>备注</th><th>最后更新</th><th>操作</th></tr></thead><tbody><tr><td><a href="#" style="color:#7C3AED;text-decoration:none" onclick="showSubPage('tracking','detail')">ORD-20260508-001</a></td><td><b>1Z999AA10123456784</b></td><td><span class="tag sale">发货</span></td><td>UPS</td><td><span class="tag sale">运输中</span></td><td>New York, NY</td><td>—</td><td>2026-05-08 16:30</td><td><button class="btn" onclick="showSubPage('tracking','detail')">详情</button></td></tr><tr><td><a href="#" style="color:#7C3AED;text-decoration:none" onclick="showSubPage('tracking','detail')">ORD-20260507-003</a></td><td><b>1Z999AA10123456785</b></td><td><span class="tag sale">发货</span></td><td>UPS</td><td><span class="tag on">已签收</span></td><td>Los Angeles, CA</td><td>—</td><td>2026-05-08 09:15</td><td><button class="btn" onclick="showSubPage('tracking','detail')">详情</button></td></tr><tr><td><a href="#" style="color:#7C3AED;text-decoration:none" onclick="showSubPage('tracking','detail')">ORD-20260506-007</a></td><td><b>9400111899223100012</b></td><td><span class="tag sale">发货</span></td><td>FedEx</td><td><span class="tag pending">已发货</span></td><td>Chicago, IL</td><td>—</td><td>2026-05-07 14:00</td><td><button class="btn" onclick="showSubPage('tracking','detail')">详情</button></td></tr><tr><td><a href="#" style="color:#7C3AED;text-decoration:none" onclick="showSubPage('tracking','detail')">ORD-20260505-012</a></td><td><b>1Z999AA10123456786</b></td><td><span class="tag sale">发货</span></td><td>UPS</td><td><span class="tag warn">异常</span></td><td>Houston, TX</td><td>—</td><td>2026-05-06 11:20</td><td><button class="btn" onclick="showSubPage('tracking','detail')">详情</button></td></tr><tr><td><a href="#" style="color:#7C3AED;text-decoration:none" onclick="showSubPage('tracking','detail')">ORD-20260504-008</a></td><td><b>1Z999AA10123456799</b></td><td><span class="tag warn">退货</span></td><td>UPS</td><td><span class="tag sale">运输中</span></td><td>上海仓</td><td>买家退货</td><td>2026-05-05 10:00</td><td><button class="btn" onclick="showSubPage('tracking','detail')">详情</button></td></tr></tbody></table></div>
+    </div>
+    </div>
+
+    <div class="page" id="page-tracking-create">
+    <div class="card">
+      <div class="page-head"><div><div class="page-title">录入运单号</div><div class="page-desc">将线下获取的运单号关联到订单，系统将自动开始追踪</div></div><div class="head-actions"><button class="btn" onclick="navigateTo('tracking-list','国际段追踪')">返回列表</button></div></div>
+      <div class="form-section">
+        <div class="section-title">运单信息</div>
+        <div class="form-grid">
+          <div class="label">关联订单号</div><div class="field" style="color:#1F2937">ORD-20260508-001</div>
+          <div class="label">运单号</div><div class="field" id="tracking-input" style="color:#1F2937;cursor:text" onclick="simulateDetection()">1Z999AA10123456784</div>
+          <div class="label"><span class="tooltip-trigger" data-tooltip="选择承运商。列表来源于承运商管理中已启用的国际承运商。保存时系统将运单号注册到追踪平台，如运单号格式与所选承运商不匹配，系统会提示错误。">承运商</span></div>
+          <div class="field">
+            <select style="border:none;outline:none;font-size:13px;color:#9CA3AF;background:transparent;width:100%">
+              <option value="" selected style="color:#9CA3AF">请选择承运商</option>
+              <option value="ups" style="color:#1F2937">UPS</option>
+              <option value="fedex" style="color:#1F2937">FedEx</option>
+              <option value="usps" style="color:#1F2937">USPS</option>
+              <option value="dhl" style="color:#1F2937">DHL eCommerce</option>
+            </select>
+          </div>
+          <div class="label"><span class="tooltip-trigger" data-tooltip="默认为发货。退货场景下同一订单可录入退货运单。">发货类型</span></div><div class="field"><select style="border:none;outline:none;font-size:13px;color:#1F2937;background:transparent"><option selected>发货</option><option>退货</option></select></div>
+          <div class="label"><span class="tooltip-trigger" data-tooltip="包裹目的地。发货场景下为买家收货城市+州（如 New York, NY），退货场景下手动填写退回地址（如 上海仓）。">目的地</span></div><div class="field" style="color:#9CA3AF">请输入目的地（如 New York, NY）</div>
+          <div class="label">备注</div><div class="field" style="color:#9CA3AF">选填，如：配件（防尘袋+证书卡）</div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="section-title"><span class="tooltip-trigger" data-tooltip="选择本包裹包含的商品。有独立 SKU 的商品从订单商品行中勾选；无 SKU 的配件通过备注字段说明。默认全选，拆包发货时取消不在本包裹中的商品。">包裹商品明细</span></div>
+        <div class="rail-note">选择本包裹包含的商品。拆包发货时取消不在本包裹中的商品。</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th style="width:40px"><input type="checkbox" checked></th><th>商品名称</th><th>SKU</th><th>订单数量</th><th>本包裹数量</th></tr></thead>
+          <tbody>
+            <tr><td><input type="checkbox" checked></td><td>Chanel Classic Flap Medium</td><td>CHN-CF-M-BLK-001</td><td>1</td><td><input type="number" value="1" min="0" max="1" style="width:50px;border:1px solid #D1D5DB;border-radius:4px;padding:2px 6px;text-align:center"></td></tr>
+            <tr><td><input type="checkbox" checked></td><td>品牌防尘袋</td><td>CHN-ACC-DB-001</td><td>1</td><td><input type="number" value="1" min="0" max="1" style="width:50px;border:1px solid #D1D5DB;border-radius:4px;padding:2px 6px;text-align:center"></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn" onclick="navigateTo('tracking-list','国际段追踪')">取消</button>
+        <button class="btn primary">确认录入</button>
+      </div>
+    </div>
+    </div>
+
+    <div class="page" id="page-tracking-detail">
+    <div class="card">
+      <div class="page-head"><div><div class="page-title">运单详情 — 1Z999AA10123456784</div><div class="page-desc">订单 ORD-20260508-001 的物流追踪信息</div></div><div class="head-actions"><button class="btn" onclick="navigateTo('tracking-list','国际段追踪')">返回列表</button></div></div>
+      <div class="form-section">
+        <div class="section-title">基本信息</div>
+        <div class="form-grid">
+          <div class="label">订单号</div><div class="field">ORD-20260508-001</div>
+          <div class="label">运单号</div><div class="field"><b>1Z999AA10123456784</b></div>
+          <div class="label">承运商</div><div class="field">UPS</div>
+          <div class="label">发货类型</div><div class="field"><span class="tag sale">发货</span></div>
+          <div class="label">当前状态</div><div class="field"><span class="tag sale">运输中</span></div>
+          <div class="label">目的地</div><div class="field">New York, NY 10001</div>
+          <div class="label">预计送达</div><div class="field">2026-05-10</div>
+          <div class="label">备注</div><div class="field">—</div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="section-title">包裹商品</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>商品名称</th><th>SKU</th><th>数量</th></tr></thead>
+          <tbody>
+            <tr><td>Chanel Classic Flap Medium</td><td><span class="muted">CHN-CF-M-BLK-001</span></td><td>1</td></tr>
+            <tr><td>品牌防尘袋</td><td><span class="muted">CHN-ACC-DB-001</span></td><td>1</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="form-section">
+        <div class="section-title">物流轨迹</div>
+        <div class="timeline">
+          <div class="timeline-item active">
+            <div class="time">2026-05-08 16:30</div>
+            <div class="event">Arrived at transit hub</div>
+            <div class="location">Newark, NJ</div>
+          </div>
+          <div class="timeline-item active">
+            <div class="time">2026-05-08 08:15</div>
+            <div class="event">Departed from origin facility</div>
+            <div class="location">Edison, NJ</div>
+          </div>
+          <div class="timeline-item active">
+            <div class="time">2026-05-07 18:00</div>
+            <div class="event">Picked up by carrier</div>
+            <div class="location">Edison, NJ</div>
+          </div>
+          <div class="timeline-item">
+            <div class="time">2026-05-07 15:30</div>
+            <div class="event">Shipping label created</div>
+            <div class="location">Looply Warehouse</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <div class="page" id="page-domestic-tracking-list">
+    <div class="card">
+      <div class="page-head"><div><div class="page-title">国内段追踪</div><div class="page-desc">仅展示国内段转仓的物流信息，仅内部运营可见，不对买家展示</div></div><div class="head-actions"><button class="btn primary" onclick="showSubPage('domestic-tracking','create')">录入国内运单</button></div></div>
+      <div class="kpi"><div class="item"><div class="num">6</div><div class="muted">运单总数</div></div><div class="item"><div class="num">3</div><div class="muted">运输中</div></div><div class="item"><div class="num">2</div><div class="muted">已入库</div></div><div class="item"><div class="num">1</div><div class="muted">异常</div></div></div>
+      <div class="toolbar"><input class="input" placeholder="搜索订单号/国内运单号"><select><option>全部状态</option><option>待揽收</option><option>运输中</option><option>已入库</option><option>异常</option></select><select><option>全部承运商</option><option>顺丰速运</option><option>京东物流</option><option>德邦快递</option></select><button class="btn">查询</button></div>
+      <div class="table-wrap"><table><thead><tr><th>订单号</th><th>国内运单号</th><th>承运商</th><th>发货地</th><th>目的地</th><th>状态</th><th>备注</th><th>最后更新</th><th>操作</th></tr></thead><tbody><tr><td><a href="#" style="color:#7C3AED;text-decoration:none" onclick="showSubPage('domestic-tracking','detail')">ORD-20260508-001</a></td><td><b>SF1234567890123</b></td><td>顺丰速运</td><td>深圳</td><td>上海仓</td><td><span class="tag sale">运输中</span></td><td>主品</td><td>2026-05-09 14:20</td><td><button class="btn" onclick="showSubPage('domestic-tracking','detail')">详情</button></td></tr><tr><td><a href="#" style="color:#7C3AED;text-decoration:none" onclick="showSubPage('domestic-tracking','detail')">ORD-20260508-001</a></td><td><b>SF1234567890456</b></td><td>顺丰速运</td><td>深圳</td><td>上海仓</td><td><span class="tag pending">待揽收</span></td><td>配件</td><td>2026-05-09 16:00</td><td><button class="btn" onclick="showSubPage('domestic-tracking','detail')">详情</button></td></tr><tr><td><a href="#" style="color:#7C3AED;text-decoration:none" onclick="showSubPage('domestic-tracking','detail')">ORD-20260507-003</a></td><td><b>JD0012345678901</b></td><td>京东物流</td><td>广州</td><td>上海仓</td><td><span class="tag on">已入库</span></td><td>—</td><td>2026-05-08 16:00</td><td><button class="btn" onclick="showSubPage('domestic-tracking','detail')">详情</button></td></tr><tr><td><a href="#" style="color:#7C3AED;text-decoration:none" onclick="showSubPage('domestic-tracking','detail')">ORD-20260506-007</a></td><td><b>SF9876543210987</b></td><td>顺丰速运</td><td>杭州</td><td>上海仓</td><td><span class="tag on">已入库</span></td><td>—</td><td>2026-05-07 11:30</td><td><button class="btn" onclick="showSubPage('domestic-tracking','detail')">详情</button></td></tr><tr><td><a href="#" style="color:#7C3AED;text-decoration:none" onclick="showSubPage('domestic-tracking','detail')">ORD-20260505-012</a></td><td><b>SF1111222233334</b></td><td>顺丰速运</td><td>北京</td><td>上海仓</td><td><span class="tag warn">异常</span></td><td>—</td><td>2026-05-08 08:45</td><td><button class="btn" onclick="showSubPage('domestic-tracking','detail')">详情</button></td></tr></tbody></table></div>
+    </div>
+    </div>
+
+    <div class="page" id="page-domestic-tracking-create">
+    <div class="card">
+      <div class="page-head"><div><div class="page-title">录入国内运单</div><div class="page-desc">录入国内段转仓的快递单号（仅内部运营使用）</div></div><div class="head-actions"><button class="btn" onclick="navigateTo('domestic-tracking','国内段追踪')">返回列表</button></div></div>
+      <div class="form-section">
+        <div class="section-title">运单信息</div>
+        <div class="form-grid">
+          <div class="label">关联订单号</div><div class="field" style="color:#1F2937">ORD-20260508-001</div>
+          <div class="label">国内运单号</div><div class="field" style="color:#9CA3AF">请输入国内快递单号</div>
+          <div class="label">承运商</div><div class="field"><select style="border:none;outline:none;font-size:13px;color:#1F2937;background:transparent"><option value="" style="color:#9CA3AF">请选择承运商</option><option>顺丰速运</option><option>京东物流</option><option>德邦快递</option><option>中通快递</option><option>圆通速递</option></select></div>
+          <div class="label">发货地</div><div class="field" style="color:#9CA3AF">请输入发货城市（如 深圳）</div>
+          <div class="label">目的地</div><div class="field" style="color:#9CA3AF">请输入目的地（如 上海仓）</div>
+          <div class="label">备注</div><div class="field" style="color:#9CA3AF">选填，如：主品 / 配件</div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn" onclick="navigateTo('domestic-tracking','国内段追踪')">取消</button>
+        <button class="btn primary">确认录入</button>
+      </div>
+    </div>
+    </div>
+
+    <div class="page" id="page-domestic-tracking-detail">
+    <div class="card">
+      <div class="page-head"><div><div class="page-title">国内段详情 — SF1234567890123</div><div class="page-desc">国内段转仓的物流追踪详情（仅内部运营可见）</div></div><div class="head-actions"><button class="btn" onclick="navigateTo('domestic-tracking','国内段追踪')">返回列表</button></div></div>
+      <div class="form-section">
+        <div class="section-title">基本信息</div>
+        <div class="form-grid">
+          <div class="label">订单号</div><div class="field">ORD-20260508-001</div>
+          <div class="label">国内运单号</div><div class="field"><b>SF1234567890123</b></div>
+          <div class="label">承运商</div><div class="field">顺丰速运</div>
+          <div class="label">当前状态</div><div class="field"><span class="tag sale">运输中</span></div>
+          <div class="label">发货地</div><div class="field">深圳</div>
+          <div class="label">目的地</div><div class="field">上海仓</div>
+          <div class="label">预计到达</div><div class="field">2026-05-10</div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="section-title">物流轨迹</div>
+        <div class="timeline">
+          <div class="timeline-item active">
+            <div class="time">2026-05-09 14:20</div>
+            <div class="event">快件已到达上海转运中心</div>
+            <div class="location">上海市青浦区</div>
+          </div>
+          <div class="timeline-item active">
+            <div class="time">2026-05-09 06:30</div>
+            <div class="event">快件已从深圳集散中心发出</div>
+            <div class="location">深圳市宝安区</div>
+          </div>
+          <div class="timeline-item active">
+            <div class="time">2026-05-08 20:15</div>
+            <div class="event">快件已到达深圳集散中心</div>
+            <div class="location">深圳市宝安区</div>
+          </div>
+          <div class="timeline-item">
+            <div class="time">2026-05-08 16:00</div>
+            <div class="event">快件已揽收</div>
+            <div class="location">深圳市南山区</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <div class="page" id="page-tracking-platform-list">
+    <div class="card">
+      <div class="page-head"><div><div class="page-title">追踪平台管理</div><div class="page-desc">配置物流追踪平台的 API 连接和 Webhook 设置，国际段对接聚合平台获取轨迹与状态映射，国内段仅获取轨迹</div></div></div></div>
+      <div class="toolbar"><input class="input" placeholder="搜索平台名称"><select><option>全部业务范围</option><option>国际</option><option>国内</option></select><select><option>全部状态</option><option>启用</option><option>停用</option></select><button class="btn">查询</button></div>
+      <div class="table-wrap"><table><thead><tr><th>ID</th><th>平台名称</th><th><span class="tooltip-trigger" data-tooltip="国际：AfterShip/17TRACK 等聚合平台，对接后获取多承运商轨迹并需配置状态映射；国内：顺丰开放平台/快递100 等，仅获取轨迹，无需状态映射。">业务范围</span></th><th>状态</th><th>API Key</th><th><span class="tooltip-trigger" data-tooltip="仅国际段平台需要配置状态映射，将平台返回的物流状态(tag/subtag)转为 Looply 内部状态。国内段不展示。">状态映射</span></th><th>操作</th></tr></thead><tbody><tr><td><b>TP001</b></td><td>AfterShip</td><td><span class="tag intl">国际</span></td><td><span class="tag on">启用</span></td><td>asat_••••••••••••••••</td><td><span class="muted">9 个一级 / 11 个二级</span></td><td><button class="btn" onclick="showSubPage('tracking-platform','edit')">编辑</button></td></tr><tr><td><b>TP002</b></td><td>17TRACK</td><td><span class="tag intl">国际</span></td><td><span class="tag off">停用</span></td><td>tk17_••••••••••••••••</td><td><span class="muted">未配置</span></td><td><button class="btn" onclick="showSubPage('tracking-platform','edit')">编辑</button></td></tr><tr><td><b>TP101</b></td><td>快递100</td><td><span class="tag dom">国内</span></td><td><span class="tag on">启用</span></td><td>kd100_••••••••••••</td><td><span class="muted">—</span></td><td><button class="btn" onclick="showSubPage('tracking-platform','edit-domestic')">编辑</button></td></tr><tr><td><b>TP102</b></td><td>顺丰开放平台</td><td><span class="tag dom">国内</span></td><td><span class="tag off">停用</span></td><td>sf_••••••••••••••••</td><td><span class="muted">—</span></td><td><button class="btn" onclick="showSubPage('tracking-platform','edit-domestic')">编辑</button></td></tr></tbody></table></div>
+    </div>
+    </div>
+
+    <div class="page" id="page-tracking-platform-edit">
+    <div class="card">
+      <div class="page-head"><div><div class="page-title">编辑追踪平台 — AfterShip</div><div class="page-desc">修改追踪平台的 API 配置和 Webhook 设置</div></div><div class="head-actions"><button class="btn" onclick="navigateTo('tracking-platform','追踪平台管理')">返回列表</button></div></div>
+      <div class="form-section">
+        <div class="section-title">基本信息</div>
+        <div class="form-grid">
+          <div class="label">平台名称</div><div class="field">AfterShip</div>
+          <div class="label">业务范围</div><div class="field"><span class="tag intl">国际</span></div>
+          <div class="label">平台类型</div><div class="field">追踪聚合</div>
+          <div class="label">状态</div><div class="field"><span class="toggle on"></span></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="section-title">API 配置</div>
+        <div class="form-grid">
+          <div class="label">API Key</div><div class="field">asat_••••••••••••••••</div>
+          <div class="label">API 版本</div><div class="field">2024-10</div>
+          <div class="label">连接状态</div><div class="field"><span class="tag on">启用</span> <span class="muted" style="margin-left:8px">最后验证: 2026-05-08 10:00</span></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="section-title">Webhook 配置</div>
+        <div class="form-grid">
+          <div class="label">Webhook URL</div><div class="field">https://api.looply.com/webhooks/aftership</div>
+          <div class="label">签名密钥</div><div class="field">whsec_••••••••••••</div>
+          <div class="label">状态</div><div class="field"><span class="tag on">启用</span></div>
+          <div class="label">最后接收</div><div class="field">2026-05-08 16:30 <span class="muted">（3 分钟前）</span></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="section-title">承运商映射管理</div>
+        <div class="rail-note">配置该平台返回的承运商代码（slug）与 Looply 内部承运商的映射关系。录入运单号时，系统通过此映射表将平台识别结果转换为内部承运商。</div>
+        <div style="margin-bottom:12px;display:flex;justify-content:flex-end"><button class="btn primary" style="height:30px;font-size:12px" onclick="openCarrierMappingEdit()">新增映射</button></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>平台承运商代码</th><th>平台承运商名称</th><th>Looply 承运商</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td><code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:12px">ups</code></td><td>UPS</td><td><b>UPS</b></td><td><span class="tag on">启用</span></td><td><button class="btn" style="height:28px;font-size:12px" onclick="openCarrierMappingEdit('ups','UPS','UPS','启用')">编辑</button> <button class="btn danger" style="height:28px;font-size:12px" onclick="if(confirm('确认删除该映射？'))alert('已删除')">删除</button></td></tr>
+            <tr><td><code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:12px">fedex</code></td><td>FedEx</td><td><b>FedEx</b></td><td><span class="tag on">启用</span></td><td><button class="btn" style="height:28px;font-size:12px" onclick="openCarrierMappingEdit('fedex','FedEx','FedEx','启用')">编辑</button> <button class="btn danger" style="height:28px;font-size:12px" onclick="if(confirm('确认删除该映射？'))alert('已删除')">删除</button></td></tr>
+            <tr><td><code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:12px">usps</code></td><td>USPS</td><td><b>USPS</b></td><td><span class="tag off">停用</span></td><td><button class="btn" style="height:28px;font-size:12px" onclick="openCarrierMappingEdit('usps','USPS','USPS','停用')">编辑</button> <button class="btn danger" style="height:28px;font-size:12px" onclick="if(confirm('确认删除该映射？'))alert('已删除')">删除</button></td></tr>
+            <tr><td><code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:12px">dhl-usa</code></td><td>DHL eCommerce US</td><td><span class="muted">未映射</span></td><td><span class="tag off">停用</span></td><td><button class="btn" style="height:28px;font-size:12px" onclick="openCarrierMappingEdit('dhl-usa','DHL eCommerce US','','停用')">编辑</button> <button class="btn danger" style="height:28px;font-size:12px" onclick="if(confirm('确认删除该映射？'))alert('已删除')">删除</button></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="form-section">
+        <div class="section-title"><span class="tooltip-trigger" data-tooltip="配置该平台返回的物流状态与 Looply 内部发货单状态的映射关系。支持一级状态（tag）和二级状态（subtag）两层映射。平台推送状态更新时，系统先精确匹配 tag+subtag，匹配不到则 fallback 到 tag 一级映射。">状态映射管理</span><span class="tag intl" style="margin-left:8px;font-size:11px">仅国际平台</span></div>
+        <div class="rail-note">一级状态（tag）为基础映射，点击 <b>▶</b> 展开查看/管理二级状态（subtag）细粒度映射。买家端优先使用二级 i18n key，无配置时 fallback 到一级。国内段平台直接获取顺丰/京东等承运商原始轨迹，无需此配置。</div>
+        <div class="table-wrap"><table id="status-mapping-table">
+          <thead><tr><th style="width:32px"></th><th><span class="tooltip-trigger" data-tooltip="AfterShip 标准化后的一级物流状态（tag），由承运商原始状态归一化而来。共 9 个标准 tag。">平台状态（tag）</span></th><th>状态含义</th><th><span class="tooltip-trigger" data-tooltip="Looply 内部的发货单履约状态，面向买家端和运营后台展示。一个 Looply 状态可对应多个平台状态。">Looply 状态</span></th><th style="text-align:center"><span class="tooltip-trigger" data-tooltip="该状态对应的前台轨迹文案，由统一多语言模块管理。点击查看当前各语种翻译。">前台轨迹文案</span></th><th style="text-align:center"><span class="tooltip-trigger" data-tooltip="已配置的二级状态（subtag）映射数量。">二级</span></th><th style="text-align:center">操作</th></tr></thead>
+          <tbody>
+            <tr class="subtag-parent" data-tag="Pending"><td class="expand-cell"><span class="expand-btn" onclick="toggleSubtag('Pending')">▶</span></td><td><code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:12px">Pending</code></td><td class="muted">暂无轨迹</td><td><span class="tag pending">待揽收</span></td><td style="text-align:center"><button class="btn" style="height:24px;font-size:11px" onclick="openI18nModal('shipping.status.awaiting_pickup','待揽收')">查看</button></td><td style="text-align:center"><span class="muted">0</span></td><td style="text-align:center;font-size:12px" class="muted">—</td></tr>
+            <tr class="subtag-parent" data-tag="InfoReceived"><td class="expand-cell"><span class="expand-btn" onclick="toggleSubtag('InfoReceived')">▶</span></td><td><code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:12px">InfoReceived</code></td><td class="muted">承运商已接单</td><td><span class="tag pending">待揽收</span></td><td style="text-align:center"><button class="btn" style="height:24px;font-size:11px" onclick="openI18nModal('shipping.status.awaiting_pickup','待揽收')">查看</button></td><td style="text-align:center"><span class="muted">0</span></td><td style="text-align:center;font-size:12px" class="muted">—</td></tr>
+            <tr class="subtag-parent" data-tag="InTransit"><td class="expand-cell"><span class="expand-btn expanded" onclick="toggleSubtag('InTransit')">▼</span></td><td><code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:12px">InTransit</code></td><td class="muted">运输中（含揽收）</td><td><span class="tag sale">运输中</span></td><td style="text-align:center"><button class="btn" style="height:24px;font-size:11px" onclick="openI18nModal('shipping.status.in_transit','运输中')">查看</button></td><td style="text-align:center"><span style="background:#EEF2FF;color:#6366F1;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:500">4</span></td><td style="text-align:center;font-size:12px" class="muted">—</td></tr>
+            <tr class="subtag-row subtag-InTransit"><td></td><td style="padding-left:28px"><code style="background:#EEF2FF;padding:2px 6px;border-radius:4px;font-size:11px;color:#6366F1">InTransit_001</code></td><td class="muted" style="font-size:12px">到达转运中心</td><td><span class="tag sale" style="font-size:11px">运输中</span></td><td style="text-align:center"><button class="btn" style="height:22px;font-size:10px" onclick="openI18nModal('shipping.status.in_transit.hub_arrival','到达转运中心')">查看</button></td><td></td><td style="text-align:center"><button class="btn" style="height:24px;font-size:11px" onclick="openSubtagMappingEdit('InTransit','InTransit_001','到达转运中心','运输中','shipping.status.in_transit.hub_arrival')">编辑</button> <button class="btn danger" style="height:24px;font-size:11px" onclick="if(confirm('确认删除该二级映射？'))alert('已删除')">删除</button></td></tr>
+            <tr class="subtag-row subtag-InTransit"><td></td><td style="padding-left:28px"><code style="background:#EEF2FF;padding:2px 6px;border-radius:4px;font-size:11px;color:#6366F1">InTransit_002</code></td><td class="muted" style="font-size:12px">离开发货设施</td><td><span class="tag sale" style="font-size:11px">运输中</span></td><td style="text-align:center"><button class="btn" style="height:22px;font-size:10px" onclick="openI18nModal('shipping.status.in_transit.departed','离开发货设施')">查看</button></td><td></td><td style="text-align:center"><button class="btn" style="height:24px;font-size:11px" onclick="openSubtagMappingEdit('InTransit','InTransit_002','离开发货设施','运输中','shipping.status.in_transit.departed')">编辑</button> <button class="btn danger" style="height:24px;font-size:11px" onclick="if(confirm('确认删除该二级映射？'))alert('已删除')">删除</button></td></tr>
+            <tr class="subtag-row subtag-InTransit"><td></td><td style="padding-left:28px"><code style="background:#EEF2FF;padding:2px 6px;border-radius:4px;font-size:11px;color:#6366F1">InTransit_003</code></td><td class="muted" style="font-size:12px">清关完成</td><td><span class="tag sale" style="font-size:11px">运输中</span></td><td style="text-align:center"><button class="btn" style="height:22px;font-size:10px" onclick="openI18nModal('shipping.status.in_transit.customs_cleared','清关完成')">查看</button></td><td></td><td style="text-align:center"><button class="btn" style="height:24px;font-size:11px" onclick="openSubtagMappingEdit('InTransit','InTransit_003','清关完成','运输中','shipping.status.in_transit.customs_cleared')">编辑</button> <button class="btn danger" style="height:24px;font-size:11px" onclick="if(confirm('确认删除该二级映射？'))alert('已删除')">删除</button></td></tr>
+            <tr class="subtag-row subtag-InTransit"><td></td><td style="padding-left:28px"><code style="background:#EEF2FF;padding:2px 6px;border-radius:4px;font-size:11px;color:#6366F1">InTransit_007</code></td><td class="muted" style="font-size:12px">到达目的地城市</td><td><span class="tag sale" style="font-size:11px">运输中</span></td><td style="text-align:center"><button class="btn" style="height:22px;font-size:10px" onclick="openI18nModal('shipping.status.in_transit.arrived_city','到达目的地城市')">查看</button></td><td></td><td style="text-align:center"><button class="btn" style="height:24px;font-size:11px" onclick="openSubtagMappingEdit('InTransit','InTransit_007','到达目的地城市','运输中','shipping.status.in_transit.arrived_city')">编辑</button> <button class="btn danger" style="height:24px;font-size:11px" onclick="if(confirm('确认删除该二级映射？'))alert('已删除')">删除</button></td></tr>
+            <tr class="subtag-parent" data-tag="OutForDelivery"><td class="expand-cell"><span class="expand-btn" onclick="toggleSubtag('OutForDelivery')">▶</span></td><td><code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:12px">OutForDelivery</code></td><td class="muted">最后一公里派送</td><td><span class="tag sale">派送中/待收货</span></td><td style="text-align:center"><button class="btn" style="height:24px;font-size:11px" onclick="openI18nModal('shipping.status.out_for_delivery','派送中/待收货')">查看</button></td><td style="text-align:center"><span class="muted">0</span></td><td style="text-align:center;font-size:12px" class="muted">—</td></tr>
+            <tr class="subtag-parent" data-tag="AvailableForPickup"><td class="expand-cell"><span class="expand-btn" onclick="toggleSubtag('AvailableForPickup')">▶</span></td><td><code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:12px">AvailableForPickup</code></td><td class="muted">到达自提点</td><td><span class="tag sale">派送中/待收货</span></td><td style="text-align:center"><button class="btn" style="height:24px;font-size:11px" onclick="openI18nModal('shipping.status.pending_pickup','到达自提点')">查看</button></td><td style="text-align:center"><span class="muted">0</span></td><td style="text-align:center;font-size:12px" class="muted">—</td></tr>
+            <tr class="subtag-parent" data-tag="Delivered"><td class="expand-cell"><span class="expand-btn expanded" onclick="toggleSubtag('Delivered')">▼</span></td><td><code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:12px">Delivered</code></td><td class="muted">已签收</td><td><span class="tag on">已签收</span></td><td style="text-align:center"><button class="btn" style="height:24px;font-size:11px" onclick="openI18nModal('shipping.status.delivered','已签收')">查看</button></td><td style="text-align:center"><span style="background:#EEF2FF;color:#6366F1;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:500">2</span></td><td style="text-align:center;font-size:12px" class="muted">—</td></tr>
+            <tr class="subtag-row subtag-Delivered"><td></td><td style="padding-left:28px"><code style="background:#EEF2FF;padding:2px 6px;border-radius:4px;font-size:11px;color:#6366F1">Delivered_001</code></td><td class="muted" style="font-size:12px">本人签收</td><td><span class="tag on" style="font-size:11px">已签收</span></td><td style="text-align:center"><button class="btn" style="height:22px;font-size:10px" onclick="openI18nModal('shipping.status.delivered.signed_self','本人签收')">查看</button></td><td></td><td style="text-align:center"><button class="btn" style="height:24px;font-size:11px" onclick="openSubtagMappingEdit('Delivered','Delivered_001','本人签收','已签收','shipping.status.delivered.signed_self')">编辑</button> <button class="btn danger" style="height:24px;font-size:11px" onclick="if(confirm('确认删除该二级映射？'))alert('已删除')">删除</button></td></tr>
+            <tr class="subtag-row subtag-Delivered"><td></td><td style="padding-left:28px"><code style="background:#EEF2FF;padding:2px 6px;border-radius:4px;font-size:11px;color:#6366F1">Delivered_003</code></td><td class="muted" style="font-size:12px">他人代收</td><td><span class="tag on" style="font-size:11px">已签收</span></td><td style="text-align:center"><button class="btn" style="height:22px;font-size:10px" onclick="openI18nModal('shipping.status.delivered.signed_other','他人代收')">查看</button></td><td></td><td style="text-align:center"><button class="btn" style="height:24px;font-size:11px" onclick="openSubtagMappingEdit('Delivered','Delivered_003','他人代收','已签收','shipping.status.delivered.signed_other')">编辑</button> <button class="btn danger" style="height:24px;font-size:11px" onclick="if(confirm('确认删除该二级映射？'))alert('已删除')">删除</button></td></tr>
+            <tr class="subtag-parent" data-tag="AttemptFail"><td class="expand-cell"><span class="expand-btn expanded" onclick="toggleSubtag('AttemptFail')">▼</span></td><td><code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:12px">AttemptFail</code></td><td class="muted">投递失败</td><td><span class="tag warn">物流异常</span></td><td style="text-align:center"><button class="btn" style="height:24px;font-size:11px" onclick="openI18nModal('shipping.status.exception','物流异常')">查看</button></td><td style="text-align:center"><span style="background:#EEF2FF;color:#6366F1;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:500">2</span></td><td style="text-align:center;font-size:12px" class="muted">—</td></tr>
+            <tr class="subtag-row subtag-AttemptFail"><td></td><td style="padding-left:28px"><code style="background:#EEF2FF;padding:2px 6px;border-radius:4px;font-size:11px;color:#6366F1">AttemptFail_001</code></td><td class="muted" style="font-size:12px">无人签收</td><td><span class="tag warn" style="font-size:11px">物流异常</span></td><td style="text-align:center"><button class="btn" style="height:22px;font-size:10px" onclick="openI18nModal('shipping.status.exception.no_one_available','无人签收')">查看</button></td><td></td><td style="text-align:center"><button class="btn" style="height:24px;font-size:11px" onclick="openSubtagMappingEdit('AttemptFail','AttemptFail_001','无人签收','物流异常','shipping.status.exception.no_one_available')">编辑</button> <button class="btn danger" style="height:24px;font-size:11px" onclick="if(confirm('确认删除该二级映射？'))alert('已删除')">删除</button></td></tr>
+            <tr class="subtag-row subtag-AttemptFail"><td></td><td style="padding-left:28px"><code style="background:#EEF2FF;padding:2px 6px;border-radius:4px;font-size:11px;color:#6366F1">AttemptFail_003</code></td><td class="muted" style="font-size:12px">地址错误</td><td><span class="tag warn" style="font-size:11px">物流异常</span></td><td style="text-align:center"><button class="btn" style="height:22px;font-size:10px" onclick="openI18nModal('shipping.status.exception.wrong_address','地址错误')">查看</button></td><td></td><td style="text-align:center"><button class="btn" style="height:24px;font-size:11px" onclick="openSubtagMappingEdit('AttemptFail','AttemptFail_003','地址错误','物流异常','shipping.status.exception.wrong_address')">编辑</button> <button class="btn danger" style="height:24px;font-size:11px" onclick="if(confirm('确认删除该二级映射？'))alert('已删除')">删除</button></td></tr>
+            <tr class="subtag-parent" data-tag="Exception"><td class="expand-cell"><span class="expand-btn expanded" onclick="toggleSubtag('Exception')">▼</span></td><td><code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:12px">Exception</code></td><td class="muted">异常（丢件/损坏/海关）</td><td><span class="tag warn">物流异常</span></td><td style="text-align:center"><button class="btn" style="height:24px;font-size:11px" onclick="openI18nModal('shipping.status.exception','物流异常')">查看</button></td><td style="text-align:center"><span style="background:#EEF2FF;color:#6366F1;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:500">3</span></td><td style="text-align:center;font-size:12px" class="muted">—</td></tr>
+            <tr class="subtag-row subtag-Exception"><td></td><td style="padding-left:28px"><code style="background:#EEF2FF;padding:2px 6px;border-radius:4px;font-size:11px;color:#6366F1">Exception_004</code></td><td class="muted" style="font-size:12px">退回发件人</td><td><span class="tag warn" style="font-size:11px">物流异常</span></td><td style="text-align:center"><button class="btn" style="height:22px;font-size:10px" onclick="openI18nModal('shipping.status.exception.returning','退回发件人')">查看</button></td><td></td><td style="text-align:center"><button class="btn" style="height:24px;font-size:11px" onclick="openSubtagMappingEdit('Exception','Exception_004','退回发件人','物流异常','shipping.status.exception.returning')">编辑</button> <button class="btn danger" style="height:24px;font-size:11px" onclick="if(confirm('确认删除该二级映射？'))alert('已删除')">删除</button></td></tr>
+            <tr class="subtag-row subtag-Exception"><td></td><td style="padding-left:28px"><code style="background:#EEF2FF;padding:2px 6px;border-radius:4px;font-size:11px;color:#6366F1">Exception_007</code></td><td class="muted" style="font-size:12px">包裹丢失</td><td><span class="tag warn" style="font-size:11px">物流异常</span></td><td style="text-align:center"><button class="btn" style="height:22px;font-size:10px" onclick="openI18nModal('shipping.status.exception.lost','包裹丢失')">查看</button></td><td></td><td style="text-align:center"><button class="btn" style="height:24px;font-size:11px" onclick="openSubtagMappingEdit('Exception','Exception_007','包裹丢失','物流异常','shipping.status.exception.lost')">编辑</button> <button class="btn danger" style="height:24px;font-size:11px" onclick="if(confirm('确认删除该二级映射？'))alert('已删除')">删除</button></td></tr>
+            <tr class="subtag-row subtag-Exception"><td></td><td style="padding-left:28px"><code style="background:#EEF2FF;padding:2px 6px;border-radius:4px;font-size:11px;color:#6366F1">Exception_011</code></td><td class="muted" style="font-size:12px">海关扣留</td><td><span class="tag warn" style="font-size:11px">物流异常</span></td><td style="text-align:center"><button class="btn" style="height:22px;font-size:10px" onclick="openI18nModal('shipping.status.exception.customs_hold','海关扣留')">查看</button></td><td></td><td style="text-align:center"><button class="btn" style="height:24px;font-size:11px" onclick="openSubtagMappingEdit('Exception','Exception_011','海关扣留','物流异常','shipping.status.exception.customs_hold')">编辑</button> <button class="btn danger" style="height:24px;font-size:11px" onclick="if(confirm('确认删除该二级映射？'))alert('已删除')">删除</button></td></tr>
+            <tr class="subtag-parent" data-tag="Expired"><td class="expand-cell"><span class="expand-btn" onclick="toggleSubtag('Expired')">▶</span></td><td><code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:12px">Expired</code></td><td class="muted">长期无更新</td><td><span class="tag warn">物流异常</span></td><td style="text-align:center"><button class="btn" style="height:24px;font-size:11px" onclick="openI18nModal('shipping.status.exception','物流异常')">查看</button></td><td style="text-align:center"><span class="muted">0</span></td><td style="text-align:center;font-size:12px" class="muted">—</td></tr>
+          </tbody>
+        </table></div>
+        <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end"><button class="btn primary" style="height:30px;font-size:12px" onclick="openSubtagMappingEdit()">新增二级映射</button></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn" onclick="alert('测试连接成功')">测试连接</button>
+        <button class="btn" onclick="navigateTo('tracking-platform-list','追踪平台管理')">取消</button>
+        <button class="btn primary" onclick="alert('保存成功');navigateTo('tracking-platform-list','追踪平台管理')">保存配置</button>
+      </div>
+      <div class="op-log">
+        <div class="op-log-title">操作记录</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>操作时间</th><th>操作人</th><th>操作类型</th><th>操作内容</th></tr></thead>
+          <tbody>
+            <tr><td class="muted">2026-05-01 10:00</td><td>admin</td><td><b>创建</b></td><td class="muted">创建追踪平台 AfterShip</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+    </div>
+
+    <div class="page" id="page-tracking-platform-edit-domestic">
+    <div class="card">
+      <div class="page-head"><div><div class="page-title">编辑追踪平台 — 快递100</div><div class="page-desc">修改追踪平台的 API 配置和承运商映射</div></div><div class="head-actions"><button class="btn" onclick="navigateTo('tracking-platform','追踪平台管理')">返回列表</button></div></div>
+      <div class="form-section">
+        <div class="section-title">基本信息</div>
+        <div class="form-grid">
+          <div class="label">平台名称</div><div class="field">快递100</div>
+          <div class="label">业务范围</div><div class="field"><span class="tag dom">国内</span></div>
+          <div class="label">平台类型</div><div class="field">国内多承运商聚合</div>
+          <div class="label">状态</div><div class="field"><span class="toggle on"></span></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="section-title">API 配置</div>
+        <div class="form-grid">
+          <div class="label">API Key (customer)</div><div class="field">kd100_••••••••••••</div>
+          <div class="label">授权 Key</div><div class="field">auth_••••••••••••</div>
+          <div class="label">连接状态</div><div class="field"><span class="tag on">启用</span> <span class="muted" style="margin-left:8px">最后验证: 2026-05-08 10:00</span></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="section-title">回调配置</div>
+        <div class="form-grid">
+          <div class="label">回调 URL</div><div class="field">https://api.looply.com/webhooks/kd100</div>
+          <div class="label">签名密钥</div><div class="field">whsec_••••••••••••</div>
+          <div class="label">最后接收</div><div class="field">2026-05-08 16:30 <span class="muted">（3 分钟前）</span></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="section-title">承运商映射管理</div>
+        <div class="rail-note">配置该平台返回的承运商代码与 Looply 内部承运商的映射关系。国内段轨迹直接展示给运营，无需状态映射，原始状态文案保留。</div>
+        <div style="margin-bottom:12px;display:flex;justify-content:flex-end"><button class="btn primary" style="height:30px;font-size:12px" onclick="openCarrierMappingEdit()">新增映射</button></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>平台承运商代码</th><th>平台承运商名称</th><th>Looply 承运商</th><th>是否默认</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td><code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:12px">shunfeng</code></td><td>顺丰速运</td><td><b>顺丰速运</b></td><td><span class="tag on">默认</span></td><td><span class="tag on">启用</span></td><td><button class="btn" style="height:28px;font-size:12px" onclick="openCarrierMappingEdit('shunfeng','顺丰速运','顺丰速运','启用')">编辑</button> <button class="btn danger" style="height:28px;font-size:12px" onclick="if(confirm('确认删除该映射？'))alert('已删除')">删除</button></td></tr>
+            <tr><td><code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:12px">jd</code></td><td>京东物流</td><td><b>京东物流</b></td><td><span class="tag on">默认</span></td><td><span class="tag on">启用</span></td><td><button class="btn" style="height:28px;font-size:12px" onclick="openCarrierMappingEdit('jd','京东物流','京东物流','启用')">编辑</button> <button class="btn danger" style="height:28px;font-size:12px" onclick="if(confirm('确认删除该映射？'))alert('已删除')">删除</button></td></tr>
+            <tr><td><code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:12px">yuantong</code></td><td>圆通速递</td><td><b>圆通速递</b></td><td><span class="tag on">默认</span></td><td><span class="tag on">启用</span></td><td><button class="btn" style="height:28px;font-size:12px" onclick="openCarrierMappingEdit('yuantong','圆通速递','圆通速递','启用')">编辑</button> <button class="btn danger" style="height:28px;font-size:12px" onclick="if(confirm('确认删除该映射？'))alert('已删除')">删除</button></td></tr>
+            <tr><td><code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:12px">zhongtong</code></td><td>中通快递</td><td><b>中通快递</b></td><td><span class="tag on">默认</span></td><td><span class="tag on">启用</span></td><td><button class="btn" style="height:28px;font-size:12px" onclick="openCarrierMappingEdit('zhongtong','中通快递','中通快递','启用')">编辑</button> <button class="btn danger" style="height:28px;font-size:12px" onclick="if(confirm('确认删除该映射？'))alert('已删除')">删除</button></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn" onclick="alert('测试连接成功')">测试连接</button>
+        <button class="btn" onclick="navigateTo('tracking-platform-list','追踪平台管理')">取消</button>
+        <button class="btn primary" onclick="alert('保存成功');navigateTo('tracking-platform-list','追踪平台管理')">保存配置</button>
+      </div>
+      <div class="op-log">
+        <div class="op-log-title">操作记录</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>操作时间</th><th>操作人</th><th>操作类型</th><th>操作内容</th></tr></thead>
+          <tbody>
+            <tr><td class="muted">2026-05-01 10:00</td><td>admin</td><td><b>创建</b></td><td class="muted">创建追踪平台 快递100</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+    </div>
+
+
+  </div>
+</div>
+<script>
+window.toggleGroup = function(parent) {
+  var group = parent.closest('.menu-group');
+  group.classList.toggle('open');
+  parent.setAttribute('aria-expanded', group.classList.contains('open'));
+};
+function clearAllActive() {
+  document.querySelectorAll('.menu-solo,.menu-child').forEach(function(el){el.classList.remove('active')});
+  document.querySelectorAll('.menu-parent').forEach(function(el){el.classList.remove('active-parent')});
+}
+function navigateTo(pageId, label) {
+  clearAllActive();
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
+  var target = document.getElementById('page-' + pageId + '-list') || document.getElementById('page-' + pageId);
+  if (target) target.classList.add('active');
+  document.querySelector('.breadcrumb').textContent = label || '';
+}
+function showSubPage(module, action) {
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
+  var target = document.getElementById('page-' + module + '-' + action);
+  if (target) target.classList.add('active');
+}
+
+/* ── 视角切换已移除，仅保留平台视角 ── */
+document.querySelectorAll('[data-page]').forEach(function(item) {
+  item.addEventListener('click', function() {
+    var pageId = this.dataset.page;
+    var label = this.querySelector('span') ? this.querySelector('span').textContent : '';
+    navigateTo(pageId, label);
+    this.classList.add('active');
+    var group = this.closest('.menu-group');
+    if (group) { group.classList.add('open'); var p = group.querySelector('.menu-parent'); if(p) p.classList.add('active-parent'); }
+  });
+});
+var firstMenu = document.querySelector('[data-page]');
+if (firstMenu) firstMenu.click();
+
+function switchCarrierState(state) {
+  var states = ['success','loading','multi','fail'];
+  states.forEach(function(s) {
+    var el = document.getElementById('carrier-state-' + s);
+    if (el) el.style.display = 'none';
+  });
+  document.getElementById('carrier-detect-hint-multi').style.display = 'none';
+  document.getElementById('carrier-detect-hint-fail').style.display = 'none';
+  var target = document.getElementById('carrier-state-' + state);
+  if (target) target.style.display = 'flex';
+  if (state === 'multi') document.getElementById('carrier-detect-hint-multi').style.display = 'block';
+  if (state === 'fail') document.getElementById('carrier-detect-hint-fail').style.display = 'block';
+}
+function simulateDetection() {
+  switchCarrierState('loading');
+  setTimeout(function(){ switchCarrierState('success'); }, 1200);
+}
+function showCarrierManualSelect() {
+  switchCarrierState('fail');
+  document.getElementById('carrier-detect-hint-fail').style.display = 'none';
+}
+
+/* ── 弹窗控制 ── */
+function openModal(id, title) {
+  var modal = document.getElementById(id);
+  if (title) {
+    var titleEl = document.getElementById(id + '-title');
+    if (titleEl) titleEl.textContent = title;
+  }
+  modal.classList.add('show');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('show');
+}
+function openCarrierMappingEdit(code, name, looply, status) {
+  document.getElementById('carrier-map-code').value = code || '';
+  document.getElementById('carrier-map-name').value = name || '';
+  var sel = document.getElementById('carrier-map-looply');
+  for (var i = 0; i < sel.options.length; i++) { sel.options[i].selected = sel.options[i].text === looply; }
+  var ssel = document.getElementById('carrier-map-status');
+  for (var i = 0; i < ssel.options.length; i++) { ssel.options[i].selected = ssel.options[i].text === status; }
+  openModal('modal-carrier-mapping', code ? '编辑承运商映射 — ' + code : '新增承运商映射');
+}
+function openSubtagMappingEdit(tag, subtag, meaning, status, i18n) {
+  var tagSel = document.getElementById('subtag-map-tag');
+  for (var i = 0; i < tagSel.options.length; i++) { tagSel.options[i].selected = tagSel.options[i].text === tag; }
+  document.getElementById('subtag-map-subtag').value = subtag || '';
+  document.getElementById('subtag-map-meaning').value = meaning || '';
+  var sSel = document.getElementById('subtag-map-status');
+  for (var i = 0; i < sSel.options.length; i++) { sSel.options[i].selected = sSel.options[i].text === status; }
+  document.getElementById('subtag-map-i18n').value = i18n || '';
+  openModal('modal-subtag-mapping', subtag ? '编辑二级状态映射 — ' + subtag : '新增二级状态映射');
+}
+
+/* ── 多语言弹窗 ── */
+var i18nMockData = {
+  'shipping.status.awaiting_pickup': {en:'Awaiting Pickup',es:'Esperando recogida',fr:'En attente de ramassage',zh:'待揽收',ja:'集荷待ち'},
+  'shipping.status.in_transit': {en:'In Transit',es:'En tránsito',fr:'En transit',zh:'运输中',ja:'輸送中'},
+  'shipping.status.in_transit.hub_arrival': {en:'Arrived at Transit Hub',es:'Llegó al centro de tránsito',fr:'Arrivé au hub de transit',zh:'到达转运中心',ja:'中継拠点に到着'},
+  'shipping.status.in_transit.departed': {en:'Departed from Facility',es:'Salió de la instalación',fr:'Parti de l\'installation',zh:'离开发货设施',ja:'施設を出発'},
+  'shipping.status.in_transit.customs_cleared': {en:'Customs Cleared',es:'Aduana despachada',fr:'Dédouané',zh:'清关完成',ja:'通関完了'},
+  'shipping.status.in_transit.arrived_city': {en:'Arrived at Destination City',es:'Llegó a la ciudad de destino',fr:'Arrivé à la ville de destination',zh:'到达目的地城市',ja:'目的地都市に到着'},
+  'shipping.status.out_for_delivery': {en:'Out for Delivery',es:'En reparto',fr:'En cours de livraison',zh:'派送中/待收货',ja:'配達中'},
+  'shipping.status.pending_pickup': {en:'Available for Pickup',es:'Disponible para recogida',fr:'Disponible pour retrait',zh:'到达自提点',ja:'受取可能'},
+  'shipping.status.delivered': {en:'Delivered',es:'Entregado',fr:'Livré',zh:'已签收',ja:'配達完了'},
+  'shipping.status.delivered.signed_self': {en:'Signed by Recipient',es:'Firmado por el destinatario',fr:'Signé par le destinataire',zh:'本人签收',ja:'本人受取'},
+  'shipping.status.delivered.signed_other': {en:'Signed by Other',es:'Firmado por otro',fr:'Signé par un tiers',zh:'他人代收',ja:'代理受取'},
+  'shipping.status.exception': {en:'Exception',es:'Excepción',fr:'Exception',zh:'物流异常',ja:'配送異常'},
+  'shipping.status.exception.no_one_available': {en:'No One Available',es:'Nadie disponible',fr:'Personne disponible',zh:'无人签收',ja:'不在'},
+  'shipping.status.exception.wrong_address': {en:'Wrong Address',es:'Dirección incorrecta',fr:'Mauvaise adresse',zh:'地址错误',ja:'住所不明'},
+  'shipping.status.exception.returning': {en:'Returning to Sender',es:'Devuelto al remitente',fr:'Retour à l\'expéditeur',zh:'退回发件人',ja:'差出人に返送'},
+  'shipping.status.exception.lost': {en:'Package Lost',es:'Paquete perdido',fr:'Colis perdu',zh:'包裹丢失',ja:'紛失'},
+  'shipping.status.exception.customs_hold': {en:'Customs Hold',es:'Retención aduanera',fr:'Retenu en douane',zh:'海关扣留',ja:'税関保留'},
+};
+function openI18nModal(key, label) {
+  document.getElementById('modal-i18n-title').textContent = '多语言翻译 — ' + label;
+  document.getElementById('i18n-key-display').textContent = key;
+  var data = i18nMockData[key] || {};
+  document.getElementById('i18n-lang-en').value = data.en || '';
+  document.getElementById('i18n-lang-es').value = data.es || '';
+  document.getElementById('i18n-lang-fr').value = data.fr || '';
+  document.getElementById('i18n-lang-zh').value = data.zh || '';
+  document.getElementById('i18n-lang-ja').value = data.ja || '';
+  openModal('modal-i18n');
+}
+
+/* ── 二级状态展开/折叠 ── */
+function toggleSubtag(tag) {
+  var rows = document.querySelectorAll('.subtag-' + tag);
+  var btn = document.querySelector('.subtag-parent[data-tag="' + tag + '"] .expand-btn');
+  if (!rows.length) return;
+  var isVisible = rows[0].style.display !== 'none';
+  rows.forEach(function(r) { r.style.display = isVisible ? 'none' : 'table-row'; });
+  if (btn) { btn.textContent = isVisible ? '▶' : '▼'; btn.classList.toggle('expanded', !isVisible); }
+}
+(function(){
+  document.querySelectorAll('.subtag-parent').forEach(function(row) {
+    var tag = row.dataset.tag;
+    var btn = row.querySelector('.expand-btn');
+    if (btn && !btn.classList.contains('expanded')) {
+      document.querySelectorAll('.subtag-' + tag).forEach(function(r){ r.style.display = 'none'; });
+    }
+  });
+})();
+
+/* ── 浮层 Tooltip ── */
+(function(){
+  var tip = document.createElement('div');
+  tip.className = 'tooltip-popup';
+  var arrow = document.createElement('div');
+  arrow.className = 'tooltip-arrow';
+  tip.appendChild(arrow);
+  var body = document.createElement('span');
+  tip.appendChild(body);
+  document.body.appendChild(tip);
+  function show(e){
+    var text = this.getAttribute('data-tooltip');
+    if(!text) return;
+    body.textContent = text;
+    tip.classList.add('show');
+    var rect = this.getBoundingClientRect();
+    tip.style.left = '0'; tip.style.top = '0';
+    var tw = tip.offsetWidth, th2 = tip.offsetHeight;
+    var left = rect.left + rect.width/2 - tw/2;
+    var top = rect.bottom + 8;
+    if(left < 8) left = 8;
+    if(left + tw > window.innerWidth - 8) left = window.innerWidth - 8 - tw;
+    if(top + th2 > window.innerHeight - 8){ top = rect.top - th2 - 8; arrow.style.top = ''; arrow.style.bottom = '-10px'; arrow.style.borderBottomColor = 'transparent'; arrow.style.borderTopColor = '#FFFFFF'; }
+    else { arrow.style.top = '-10px'; arrow.style.bottom = ''; arrow.style.borderTopColor = 'transparent'; arrow.style.borderBottomColor = '#FFFFFF'; }
+    var arrowLeft = rect.left + rect.width/2 - left;
+    arrowLeft = Math.max(10, Math.min(arrowLeft, tw - 10));
+    arrow.style.left = arrowLeft + 'px'; arrow.style.transform = 'translateX(-50%)';
+    tip.style.left = left + 'px'; tip.style.top = top + 'px';
+  }
+  function hide(){ tip.classList.remove('show'); }
+  document.querySelectorAll('.tooltip-trigger').forEach(function(el){
+    el.addEventListener('mouseenter', show);
+    el.addEventListener('mouseleave', hide);
+    el.addEventListener('focus', show);
+    el.addEventListener('blur', hide);
+  });
+})();
+
+</script>
+<!-- ── 承运商映射弹窗 ── -->
+<div class="modal-overlay" id="modal-carrier-mapping" onclick="if(event.target===this)closeModal(this.id)">
+<div class="modal">
+  <div class="modal-title" id="modal-carrier-mapping-title">新增承运商映射</div>
+  <div class="form-grid">
+    <div class="label">平台承运商代码</div><div class="field"><input placeholder="如 ups、fedex、dhl-usa" id="carrier-map-code"></div>
+    <div class="label">平台承运商名称</div><div class="field"><input placeholder="如 UPS、FedEx" id="carrier-map-name"></div>
+    <div class="label">Looply 承运商</div><div class="field"><select id="carrier-map-looply"><option value="">请选择</option><option>UPS</option><option>FedEx</option><option>USPS</option><option>DHL</option></select></div>
+    <div class="label">状态</div><div class="field"><select id="carrier-map-status"><option>启用</option><option>停用</option></select></div>
+  </div>
+  <div class="modal-actions">
+    <button class="btn" onclick="closeModal('modal-carrier-mapping')">取消</button>
+    <button class="btn primary" onclick="alert('保存成功');closeModal('modal-carrier-mapping')">保存</button>
+  </div>
+</div>
+</div>
+
+<!-- ── 二级状态映射弹窗 ── -->
+<div class="modal-overlay" id="modal-subtag-mapping" onclick="if(event.target===this)closeModal(this.id)">
+<div class="modal">
+  <div class="modal-title" id="modal-subtag-mapping-title">新增二级状态映射</div>
+  <div class="form-grid">
+    <div class="label">一级状态（tag）</div><div class="field"><select id="subtag-map-tag"><option value="">请选择</option><option>Pending</option><option>InfoReceived</option><option>InTransit</option><option>OutForDelivery</option><option>AvailableForPickup</option><option>Delivered</option><option>AttemptFail</option><option>Exception</option><option>Expired</option></select></div>
+    <div class="label">二级状态（subtag）</div><div class="field"><input placeholder="如 InTransit_001" id="subtag-map-subtag"></div>
+    <div class="label">二级状态含义</div><div class="field"><input placeholder="如 到达转运中心" id="subtag-map-meaning"></div>
+    <div class="label">Looply 状态</div><div class="field"><select id="subtag-map-status"><option value="">请选择</option><option>待揽收</option><option>已发货</option><option>运输中</option><option>派送中</option><option>已签收</option><option>异常</option></select></div>
+    <div class="label">i18n Key</div><div class="field"><input placeholder="如 shipping.status.in_transit.hub_arrival" id="subtag-map-i18n"></div>
+  </div>
+  <div class="modal-actions">
+    <button class="btn" onclick="closeModal('modal-subtag-mapping')">取消</button>
+    <button class="btn primary" onclick="alert('保存成功');closeModal('modal-subtag-mapping')">保存</button>
+  </div>
+</div>
+</div>
+
+<!-- ── 多语言编辑弹窗 ── -->
+<div class="modal-overlay" id="modal-i18n" onclick="if(event.target===this)closeModal(this.id)">
+<div class="modal" style="width:560px">
+  <div class="modal-title" id="modal-i18n-title">多语言翻译</div>
+  <div style="margin-bottom:16px">
+    <div style="font-size:12px;color:#6B7280;margin-bottom:4px">i18n Key</div>
+    <div style="font-size:13px;color:#1F2937;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:6px;padding:8px 12px;font-family:monospace" id="i18n-key-display">—</div>
+  </div>
+  <div style="font-size:12px;color:#9CA3AF;margin-bottom:12px">以下语种数据由统一多语言模块提供，编辑后将回传保存。</div>
+  <div class="table-wrap"><table>
+    <thead><tr><th style="width:100px">语种</th><th>翻译文案</th></tr></thead>
+    <tbody id="i18n-lang-rows">
+      <tr><td><b>English</b> <span class="muted">en</span></td><td><input type="text" style="width:100%;border:1px solid #D1D5DB;border-radius:4px;padding:4px 8px;font-size:13px" id="i18n-lang-en" value=""></td></tr>
+      <tr><td><b>Español</b> <span class="muted">es</span></td><td><input type="text" style="width:100%;border:1px solid #D1D5DB;border-radius:4px;padding:4px 8px;font-size:13px" id="i18n-lang-es" value=""></td></tr>
+      <tr><td><b>Français</b> <span class="muted">fr</span></td><td><input type="text" style="width:100%;border:1px solid #D1D5DB;border-radius:4px;padding:4px 8px;font-size:13px" id="i18n-lang-fr" value=""></td></tr>
+      <tr><td><b>中文</b> <span class="muted">zh</span></td><td><input type="text" style="width:100%;border:1px solid #D1D5DB;border-radius:4px;padding:4px 8px;font-size:13px" id="i18n-lang-zh" value=""></td></tr>
+      <tr><td><b>日本語</b> <span class="muted">ja</span></td><td><input type="text" style="width:100%;border:1px solid #D1D5DB;border-radius:4px;padding:4px 8px;font-size:13px" id="i18n-lang-ja" value=""></td></tr>
+    </tbody>
+  </table></div>
+  <div class="modal-actions">
+    <button class="btn" onclick="closeModal('modal-i18n')">取消</button>
+    <button class="btn primary" onclick="alert('即将跳转到翻译管理模块');closeModal('modal-i18n')">前往翻译管理</button>
+  </div>
+</div>
+</div>
+
+<style>@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}</style>
+</body>
+</html>

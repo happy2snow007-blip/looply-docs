@@ -263,6 +263,34 @@ MODULES = {
             },
         },
     },
+    'logistics': {
+        'name': '物流管理',
+        'default_source': '$HOME/Desktop/海外业务物流管理',
+        'target': 'docs-物流管理',
+        'keywords': ['物流', 'logistics'],
+        'config_key': 'logistics',
+        'artifacts': {
+            # 主原型锁定 antd 版本：源目录同时存在 v5.10.html 与 v5.10-antd.html，
+            # 二者版本号都解析为 5.10，必须用 -antd 后缀消歧，确保 antd 版作主原型。
+            'prototype': {
+                'subdir': '原型',
+                'pattern': r'looply-物流管理后台原型-v(.+?)-antd\.html',
+                'exclude': r'(backup|对比)',
+            },
+            'prd': {
+                'subdir': 'PRD',
+                'pattern': r'looply-物流信息服务-PRD-v(.+?)\.md',
+            },
+            'er': {
+                'subdir': '实体关系图',
+                'pattern': r'looply-物流管理实体关系图-v(.+?)\.svg',
+            },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'物流管理-交付开发 V(.+?)\.zip',
+            },
+        },
+    },
 }
 
 # ─── 自动发现新模块 ────────────────────────────────────────────────────────────────
