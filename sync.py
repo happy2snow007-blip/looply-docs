@@ -218,7 +218,7 @@ MODULES = {
     },
     'exchange': {
         'name': '汇率管理',
-        'default_source': '$HOME/Desktop/海外业务/汇率管理',
+        'default_source': '$HOME/Desktop/汇率管理',
         'target': 'docs-汇率管理',
         'keywords': ['汇率', 'exchange'],
         'config_key': 'exchange',
@@ -270,7 +270,7 @@ MODULES = {
     },
     'logistics': {
         'name': '物流管理',
-        'default_source': '$HOME/Desktop/海外业务物流管理',
+        'default_source': '$HOME/Desktop/物流管理',
         'target': 'docs-物流管理',
         'keywords': ['物流', 'logistics'],
         'config_key': 'logistics',

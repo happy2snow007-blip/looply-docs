@@ -8,7 +8,7 @@ var PROTOTYPE_CONFIG = {
   'market':      'docs-market系统/原型/looply-market后台原型-v21-antd.html',
   'inventory':   'docs-库存管理/原型/looply-库存管理后台原型-v8-antd.html',
   'translation': 'docs-翻译管理/原型/looply-翻译管理后台原型-v7.html',
-  'exchange':    'docs-汇率管理/原型/looply-汇率管理后台原型-v8.0.html',
+  'exchange':    'docs-汇率管理/原型/looply-汇率管理后台原型-v8.3-antd.html',
   'user':        'docs-用户管理/原型/looply-用户管理后台原型-v2-antd.html',
   'pdp':         'docs-商详/原型/looply-商详页CMS配置后台原型-v1-antd.html',
   'logistics':   'docs-物流管理/原型/looply-物流管理后台原型-v5.10-antd.html',

@@ -545,7 +545,7 @@ const FETCH = [
   { k:3, at:'2026-04-28 09:00', pair:'USD → GBP', src:'直接采集', ds:'Open Exchange Rates', mid:'0.7921', diff:'-0.99%', dc:'#6B7280' },
   { k:4, at:'2026-04-28 09:00', pair:'GBP → USD', src:'派生', ds:'-', mid:'1.2625', diff:'-1.18%', dc:'#6B7280' },
   { k:5, at:'2026-04-28 09:00', pair:'EUR → GBP', src:'派生', ds:'-', mid:'0.8040', diff:'-6.73%', dc:'#D97706' },
-  { k:6, at:'2026-04-28 09:00', pair:'GBP → EUR', src:'派生', ds:'-', mid:'1.2438', diff:'+5.85%', dc:'#6B7280' },
+  { k:6, at:'2026-04-28 09:00', pair:'GBP → EUR', src:'派生', ds:'-', mid:'1.2438', diff:'+5.85%', dc:'#DC2626' },
   { k:7, at:'2026-04-28 08:00', pair:'USD → EUR', src:'直接采集', ds:'Open Exchange Rates', mid:'0.9241', diff:'-0.73%', dc:'#6B7280' },
   { k:8, at:'2026-04-28 08:00', pair:'USD → GBP', src:'直接采集', ds:'Open Exchange Rates', mid:'0.7918', diff:'-1.03%', dc:'#6B7280' },
 ];
@@ -557,7 +557,7 @@ function FetchRecordsListPage() {
     { title:'数据源', dataIndex:'ds', width:180 },
     { title:'原始汇率', dataIndex:'mid', width:90, align:'right' },
     { title:'采集状态', key:'st', width:90, render:() => <StatusTag variant="on">成功</StatusTag> },
-    { title:'与当前平台汇率差异', dataIndex:'diff', width:150, align:'right', render:(v, r) => <span style={{ color:r.dc, fontWeight: r.dc==='#6B7280'?400:600 }}>{v}</span> },
+    { title:<TipText label="与当前平台汇率差异" tip="参考差异(含点差成分):(当前生效平台汇率 − 原始汇率)/当前生效平台汇率 × 100%,仅供参考、不触发告警;正式告警以每日 UTC 0:00 发布判定为准,二者口径不同" />, dataIndex:'diff', width:170, align:'right', render:(v, r) => <span style={{ color:r.dc, fontWeight: r.dc==='#6B7280'?400:600 }}>{v}</span> },
   ];
   return (
     <ListPage title="原始汇率" desc={'展示最近 24 小时内每小时从数据源采集的原始汇率及派生原始汇率数据,用于监控市场波动、排查异常告警来源、验证数据源稳定性。"直接采集"为三方数据源返回的原始值;"派生"为系统通过倒数/交叉计算得出的原始汇率。均未应用点差规则。'}
@@ -570,14 +570,14 @@ function FetchRecordsListPage() {
         <Button key="q" type="primary" icon={<SearchOutlined />}>查询</Button>,
       ]}
       columns={columns} data={FETCH} total={8} totalPages={1} entity="采集记录" rowKey="k" scrollX={870}
-      note={<span>提示:红色标注表示触发异常告警阈值(当前阈值:<b>±5%</b>),黄色标注表示固定模式币种对的市场偏离提示。"派生"来源的原始汇率由系统通过倒数/交叉计算自动生成。</span>} />
+      note={<span>提示:"派生"来源的原始汇率由系统通过倒数/交叉计算自动生成;"与当前平台汇率差异"列仅供参考,正式告警以每日 UTC 0:00 发布判定为准。</span>} />
   );
 }
 
 /* ───────────── 异常告警 ───────────── */
 const ALERTS = [
-  { k:1, at:'2026-04-28 09:02', pair:'USD → EUR', type:'待处理', tv:'warn', cur:'0.9309', latest:'0.9852', diff:'+5.83%', dc:'#DC2626', note:'自动模式,超过阈值后暂停自动发布', sub:'alert-center-handle' },
-  { k:2, at:'2026-04-28 09:05', pair:'EUR → GBP', type:'固定模式提示', tv:'pending', cur:'0.8620', latest:'0.8152', diff:'-5.43%', dc:'#D97706', note:'固定模式下市场偏离,需判断是否恢复自动', sub:'alert-center-handle-fixed' },
+  { k:1, at:'2026-04-28 00:00 UTC', pair:'USD → EUR', type:'待处理', tv:'warn', cur:'0.9309', latest:'0.9852', diff:'+5.83%', dc:'#DC2626', note:'自动模式,发布判定时超阈值,暂停本次自动发布', sub:'alert-center-handle' },
+  { k:2, at:'2026-04-28 00:00 UTC', pair:'EUR → GBP', type:'固定模式提示', tv:'pending', cur:'0.8620', latest:'0.8040', diff:'-6.73%', dc:'#D97706', note:'固定模式下市场偏离,需判断是否恢复自动', sub:'alert-center-handle-fixed' },
 ];
 function AlertCenterListPage({ go }) {
   const banner = (
@@ -638,14 +638,14 @@ const HANDLE_COLS = [
 function AlertHandlePage({ go, onConfirm, fixed }) {
   const [handleMode, setHandleMode] = useState(fixed ? 'resume' : 'publish');
   const info = fixed ? [
-    ['币种对','EUR → GBP'], ['告警类型','固定模式市场偏离'], ['触发时间','2026-04-28 09:05'],
+    ['币种对','EUR → GBP'], ['告警类型','固定模式市场偏离'], ['触发时间','2026-04-28 00:00 UTC'],
     ['当前固定汇率','0.8620'],
-    [<TipText label="触发时市场汇率" tip="发布判定时的采集值,告警记录快照" />, '0.8152'],
-    ['触发时偏离幅度', <span style={{ color:'#D97706', fontWeight:600 }}>-5.43%</span>],
-    [<TipText label="当前最新市场汇率" tip="页面加载时实时获取,决策参考" />, '0.8380'],
-    [<TipText label="当前偏离幅度" tip="当前最新市场汇率 vs 当前固定汇率的偏离幅度" />, <span style={{ color:'#D97706', fontWeight:600 }}>-2.78%</span>],
+    [<TipText label="触发时原始汇率" tip="UTC 0:00 发布判定时的采集值,告警记录快照" />, '0.8040'],
+    ['触发时偏离幅度', <span style={{ color:'#D97706', fontWeight:600 }}>-6.73%</span>],
+    [<TipText label="当前最新原始汇率" tip="页面加载时实时获取,决策参考" />, '0.8380'],
+    [<TipText label="当前偏离幅度" tip="当前最新原始汇率 vs 当前固定汇率的偏离幅度" />, <span style={{ color:'#D97706', fontWeight:600 }}>-2.78%</span>],
   ] : [
-    ['币种对','USD → EUR'], ['告警类型','超阈值波动(自动模式)'], ['触发时间','2026-04-28 09:02'],
+    ['币种对','USD → EUR'], ['告警类型','超阈值波动(自动模式)'], ['触发时间','2026-04-28 00:00 UTC'],
     ['当前平台汇率','0.9309'],
     [<TipText label="触发时原始汇率" tip="发布判定时的采集值,告警记录快照" />, '0.9852'],
     ['触发时偏离幅度', <span style={{ color:'#DC2626', fontWeight:600 }}>+5.83%</span>],
@@ -656,7 +656,7 @@ function AlertHandlePage({ go, onConfirm, fixed }) {
     <Card style={CARD_STYLE}>
       <PageHead title={fixed ? '处理告警 — EUR → GBP' : '处理告警 — USD → EUR'} onBack={() => go('alert-center')} />
       {fixed
-        ? <Alert type="warning" showIcon style={{ marginBottom:16 }} message="偏离提示:该币种对为固定模式,市场汇率已明显偏离当前固定值,请评估是否需要调整。" />
+        ? <Alert type="warning" showIcon style={{ marginBottom:16 }} message="偏离提示:该币种对为固定模式,原始汇率已明显偏离当前固定值,请评估是否需要调整。" />
         : <Alert type="error" showIcon style={{ marginBottom:16 }} message="风险提示:该汇率波动超过自动发布阈值(±5%),系统已暂停自动发布。" />}
       <h4 className="lp-section">告警信息</h4>
       <div className="lp-detail">
