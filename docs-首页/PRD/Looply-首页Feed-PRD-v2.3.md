@@ -1061,7 +1061,7 @@ New Arrivals 用于展示当前 Market + Channel 下最新上架的可售商品�
 + listed_at 不为空
 + listed_at 在近 b_freshness_days 天内（默认 30 天）
 按 listed_at 倒序
-同 listed_at 时按 listing_price 倒序
+同 listed_at 时按成色从高到低（grade 降序：NWT > Excellent > Good > Fair）
 再同时按 listing_id 正序
 ```
 
@@ -1072,7 +1072,7 @@ new_arrivals =
 base_pool
 where listed_at is not null
   and listed_at >= now() - interval b_freshness_days day
-order by listed_at desc, listing_price desc, listing_id asc
+order by listed_at desc, grade desc, listing_id asc
 ```
 
 ### 13.3 字段来源
@@ -1129,6 +1129,26 @@ CTR
 ```
 
 计算 10 分制 hot_score。
+
+### 14.2.1 排序规则
+
+Best Sellers Tab 展示顺序与 C 通路召回后排序一致：
+
+中文规则：
+
+```text
+Best Sellers 商品池
+按 hot_score 倒序
+再同时按 listing_id 正序（分页稳定性兜底）
+```
+
+英文字段规则：
+
+```text
+best_sellers =
+c_pool
+order by hot_score desc, listing_id asc
+```
 
 ### 14.3 与 For You 的关系
 
