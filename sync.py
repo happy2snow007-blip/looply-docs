@@ -68,11 +68,16 @@ MODULES = {
     },
     'home': {
         'name': '首页',
-        'default_source': '$HOME/Desktop/海外业务首页',
+        'default_source': '$HOME/looply/home/feed-prd',
         'target': 'docs-首页',
         'keywords': ['首页', 'home'],
         'config_key': None,
-        'artifacts': {},
+        'artifacts': {
+            'prd': {
+                'subdir': '.',
+                'pattern': r'Looply-首页Feed-PRD-v(.+?)\.md',
+            },
+        },
     },
     'product': {
         'name': '商品系统',
