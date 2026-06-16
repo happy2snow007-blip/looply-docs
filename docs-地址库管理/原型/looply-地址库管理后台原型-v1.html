@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang='zh-CN'>
+<head>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width,initial-scale=1.0'>
+<title>Looply 地址库管理后台原型 v1</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937;font-size:14px}
+.header{height:60px;background:#FFFFFF;color:#1F2937;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid #E5E7EB}
+.logo{font-size:18px;font-weight:700;letter-spacing:1px;display:flex;align-items:center}
+.header-divider{width:1px;height:20px;background:#E5E7EB;margin:0 16px}
+.system-label{font-size:14px;font-weight:500;color:#6B7280;letter-spacing:0.3px}
+.breadcrumb{margin-left:auto;color:#9CA3AF;font-size:13px;font-weight:400}
+.breadcrumb:empty{display:none}
+.container{display:flex;height:calc(100vh - 60px)}
+.sidebar{width:220px;background:#FFFFFF;overflow:auto;flex-shrink:0;border-right:none;box-shadow:3px 0 12px rgba(0,0,0,0.06);padding:8px 0}
+.main{flex:1;overflow:auto;padding:28px}
+.menu-solo{display:flex;align-items:center;padding:12px 16px;color:#374151;cursor:pointer;font-size:14px;font-weight:500;transition:background .15s;border-left:3px solid transparent;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-solo:hover{background:rgba(0,0,0,.04)}
+.menu-solo:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-solo.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.12),transparent);font-weight:600;border-left-color:#7C3AED}
+.menu-solo .mi{width:18px;height:18px;margin-right:10px;flex-shrink:0;opacity:.55}
+.menu-solo.active .mi{opacity:1}
+.menu-divider{height:1px;background:#F3F4F6;margin:8px 16px}
+.menu-group{margin-bottom:0}
+.menu-parent{display:flex;align-items:center;padding:12px 16px;color:#374151;cursor:pointer;font-size:14px;font-weight:500;transition:background .15s;user-select:none;border-left:3px solid transparent;outline:none;overflow:hidden}
+.menu-parent:hover{background:rgba(0,0,0,.04)}
+.menu-parent:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-parent .mi{width:18px;height:18px;margin-right:10px;flex-shrink:0;opacity:.55}
+.menu-parent .arrow{margin-left:auto;width:16px;height:16px;transition:transform .2s;opacity:.4;flex-shrink:0}
+.menu-group.open>.menu-parent .arrow{transform:rotate(90deg)}
+.menu-parent.active-parent{color:#7C3AED;font-weight:600;border-left-color:#7C3AED}
+.menu-parent.active-parent .mi{opacity:1}
+.menu-children{max-height:0;overflow:hidden;transition:max-height .3s cubic-bezier(.4,0,.2,1)}
+.menu-group.open>.menu-children{max-height:none}
+.menu-child{display:flex;align-items:center;padding:10px 16px 10px 44px;color:#4B5563;cursor:pointer;font-size:13px;transition:all .15s;border-left:3px solid transparent;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-child:hover{color:#374151;background:rgba(0,0,0,.03)}
+.menu-child:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-child.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.1),transparent);border-left-color:#7C3AED;font-weight:600}
+.menu-child .ci{width:15px;height:15px;margin-right:8px;flex-shrink:0;opacity:.45}
+.menu-child.active .ci{opacity:.8}
+.menu-subgroup{margin:0}
+.menu-subparent{display:flex;align-items:center;padding:10px 16px 10px 44px;color:#4B5563;cursor:pointer;font-size:13px;font-weight:500;transition:background .15s;user-select:none;outline:none;overflow:hidden}
+.menu-subparent:hover{color:#374151;background:rgba(0,0,0,.03)}
+.menu-subparent:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-subparent .ci{width:15px;height:15px;margin-right:8px;flex-shrink:0;opacity:.45}
+.menu-subparent .arrow-sm{margin-left:auto;width:14px;height:14px;transition:transform .2s;opacity:.35;flex-shrink:0}
+.menu-subgroup.open>.menu-subparent .arrow-sm{transform:rotate(90deg)}
+.menu-subparent.active-parent{color:#7C3AED;font-weight:600}
+.menu-subparent.active-parent .ci{opacity:.8}
+.menu-subchildren{max-height:0;overflow:hidden;transition:max-height .25s cubic-bezier(.4,0,.2,1)}
+.menu-subgroup.open>.menu-subchildren{max-height:none}
+.menu-sublabel{padding:8px 16px 4px 64px;color:#6B7280;font-size:11px;font-weight:600;letter-spacing:.3px;user-select:none}
+.menu-grandchild{display:flex;align-items:center;padding:8px 16px 8px 64px;color:#6B7280;cursor:pointer;font-size:12px;transition:all .15s;border-left:3px solid transparent;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-grandchild:hover{color:#374151;background:rgba(0,0,0,.02)}
+.menu-grandchild:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-grandchild.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.08),transparent);border-left-color:#7C3AED;font-weight:600}
+.menu-grandchild .gi{width:13px;height:13px;margin-right:8px;flex-shrink:0;opacity:.45}
+.menu-grandchild.active .gi{opacity:.75}
+@media(prefers-reduced-motion:reduce){.menu-children,.menu-subchildren,.menu-parent .arrow,.menu-subparent .arrow-sm,.menu-solo,.menu-child,.menu-grandchild,.menu-subparent,.menu-parent{transition:none !important}}
+.page{display:none}.page.active{display:block}
+.card{background:#fff;border-radius:16px;box-shadow:0 10px 24px rgba(16,24,40,.06);padding:28px}
+.page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}
+.page-title{font-size:20px;font-weight:700;margin-bottom:6px}
+.page-desc{color:#6B7280;font-size:13px;max-width:760px}
+.head-actions{display:flex;gap:10px;flex-wrap:wrap}
+.toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.toolbar .input,.toolbar select{height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff}
+.btn{height:34px;padding:0 14px;border:1px solid #D1D5DB;background:#fff;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.btn.primary{background:#7C3AED;border-color:#7C3AED;color:#fff}
+.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.summary .item{background:linear-gradient(180deg,#FEFCFF 0%,#F3EEFF 100%);border:1px solid #DDD6FE;border-radius:14px;padding:14px 16px}
+.summary .num{font-size:24px;font-weight:700;color:#7C3AED;margin-bottom:4px}
+.summary .label-sm{font-size:12px;color:#6B7280}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi .item{background:#FAF5FF;border:1px solid #DDD6FE;border-radius:14px;padding:14px}
+.kpi .num{font-size:24px;font-weight:700;margin-bottom:4px}
+.muted{color:#6B7280;font-size:12px}
+.table-wrap{border:1px solid #E5E7EB;border-radius:14px;overflow:hidden;background:#fff}
+table{width:100%;border-collapse:collapse}
+th{background:#FFFFFF;padding:10px 12px;text-align:left;font-size:12px;color:#6B7280;border-bottom:1px solid #E5E7EB;text-transform:uppercase;letter-spacing:.02em}
+td{padding:11px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;vertical-align:top}
+tr:hover{background:#FAF5FF}
+.split{display:flex;gap:18px}.left{width:280px;flex-shrink:0}.mid{width:300px;flex-shrink:0}.right{flex:1}
+.panel{border:1px solid #E5E7EB;border-radius:14px;background:#FFFFFF;padding:16px;min-height:420px}
+.panel h3{font-size:13px;color:#6B7280;margin-bottom:12px}
+.stack{display:flex;flex-direction:column;gap:16px}
+.tree-node{padding:8px 10px;border-radius:8px;cursor:pointer}
+.tree-node:hover{background:#F3EEFF}
+.tree-selected{background:#F3EEFF;color:#7C3AED;font-weight:600}
+.tree-child{margin-left:18px}
+.form-grid{display:grid;grid-template-columns:150px 1fr;gap:12px 16px;align-items:center}
+.label{color:#6B7280;font-size:13px}
+.field{min-height:36px;border:1px solid #D1D5DB;border-radius:8px;background:#fff;padding:8px 12px;display:flex;align-items:center}
+.form-row{display:flex;gap:16px;margin-bottom:12px}
+.form-row .label{width:120px;text-align:right;line-height:34px;color:#6B7280;flex-shrink:0}
+.form-row .field{flex:1}
+.form-row .input-display{height:34px;line-height:34px;padding:0 12px;border:1px solid #D1D5DB;border-radius:8px;background:#f9fafb}
+.form-row textarea.input-display{height:80px;line-height:1.5;padding:8px 12px}
+.form-section{margin-bottom:24px}
+.form-section .section-title{font-size:15px;font-weight:600;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #E5E7EB}
+.form-actions{display:flex;gap:12px;justify-content:flex-end;padding-top:16px;border-top:1px solid #E5E7EB;margin-top:24px}
+.section{margin-top:18px}
+.section-title{font-size:14px;font-weight:700;margin-bottom:10px;color:#7C3AED}
+.section-note{font-size:12px;color:#6B7280;margin:-4px 0 10px}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;margin-right:4px}
+.tag.sale{background:#EFF6FF;color:#2563EB;border:none}
+.tag.desc{background:#F0FDF4;color:#16A34A;border:none}
+.tag.enum{background:#FFFBEB;color:#D97706;border:none}
+.tag.req{background:#FEF2F2;color:#DC2626;border:none}
+.tag.opt{background:#F3F4F6;color:#6B7280;border:none}
+.tag.on{background:#F0FDF4;color:#16A34A;border:none}
+.tag.pending{background:#FFFBEB;color:#D97706;border:none}
+.tag.off{background:#F3F4F6;color:#6B7280;border:none}
+.tag.warn{background:#FFF1F2;color:#E11D48;border:none}
+.tabs{display:flex;border-bottom:1px solid #E5E7EB;margin-bottom:14px;gap:4px}
+.tab{padding:10px 18px;cursor:pointer;border-bottom:2px solid transparent;color:#6B7280}
+.tab.active{color:#7C3AED;border-bottom-color:#7C3AED;font-weight:600}
+.tab-pane{display:none}.tab-pane.active{display:block}
+.steps{display:flex;gap:8px;margin-bottom:16px}
+.step{flex:1;padding:10px;background:#fafafa;border:1px solid #E5E7EB;border-radius:10px;text-align:center;cursor:pointer;transition:all .2s}
+.step b{display:block;margin-bottom:4px}
+.step.current{background:#F3EEFF;border-color:#DDD6FE;color:#7C3AED;font-weight:600}
+.step.done{background:#ecfdf3;border-color:#abefc6;color:#027a48}
+.step.done b{color:#027a48}
+.wizard-body .wizard-step{display:none}
+.wizard-body .wizard-step.active{display:block}
+.wizard-nav{display:flex;gap:12px;justify-content:flex-end;padding-top:16px;border-top:1px solid #E5E7EB;margin-top:24px}
+.inline-meta{display:flex;gap:8px;flex-wrap:wrap}
+.pill{padding:4px 10px;border-radius:999px;background:#F3F4F6;color:#6B7280;font-size:12px}
+.rail-note{padding:12px 14px;border-radius:10px;background:#F3EEFF;border:1px solid #DDD6FE;color:#6D28D9;font-size:12px;line-height:1.6}
+.placeholder{padding:28px;border:1px dashed #D1D5DB;border-radius:14px;background:#FFFFFF;color:#6B7280}
+.preview{margin-top:18px;padding:16px;border:1px solid #E5E7EB;background:#FFFFFF;border-radius:14px}
+.preview-line{display:flex;justify-content:space-between;gap:20px;padding:10px 0;border-bottom:1px solid #E5E7EB}
+.preview-line:last-child{border-bottom:none}
+.sub-table{margin-top:8px}
+.empty-state{display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center}
+.empty-state .empty-icon{width:48px;height:48px;color:#9CA3AF;margin-bottom:16px}
+.empty-state .empty-icon.error{color:#DC2626}
+.empty-state .empty-title{font-size:16px;font-weight:600;color:#1F2937;margin-bottom:8px}
+.empty-state .empty-desc{font-size:13px;color:#6B7280;margin-bottom:24px;max-width:360px}
+.empty-state .btn{margin-top:0}
+
+
+/* 操作记录 */
+.op-log{margin-top:32px;padding-top:24px;border-top:1px solid #E5E7EB}
+.op-log-title{font-size:15px;font-weight:600;margin-bottom:16px}
+.op-log table{font-size:12px}
+.op-log th{font-size:11px;padding:8px 12px}
+.op-log td{padding:9px 12px}
+.op-log .op-time{color:#6B7280}
+.op-log .op-user{color:#374151}
+.op-log .op-type{font-weight:500}
+.op-log .op-detail{color:#6B7280}
+.form-row{display:flex;gap:16px;margin-bottom:12px}
+.form-row .label{width:120px;text-align:right;line-height:34px;color:#6B7280;flex-shrink:0}
+.form-row .input-display,.form-row input.input-display,.form-row select.input-display{flex:1;height:34px;padding:0 12px;border:1px solid #D1D5DB;border-radius:8px;font-size:13px}
+.form-row select.input-display{background:#fff}
+.tag.req{background:#FEF2F2;color:#DC2626}
+.tag.opt{background:#F0FDF4;color:#16A34A}
+
+</style>
+</head>
+<body>
+<div class='header'>
+  <div class='logo'><img src="logo.png" height="28" alt="Looply"></div>
+  <div class='header-divider'></div>
+  <span class='system-label'>地址库管理</span>
+  <div class='breadcrumb'></div>
+</div>
+<div class='container'>
+  <div class='sidebar' role="navigation" aria-label="主导航">
+<div class="menu-solo" tabindex="0" role="menuitem" data-page="address-list"><svg class="mi" aria-hidden="true" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="3" y1="4.5" x2="15" y2="4.5"/><line x1="3" y1="9" x2="15" y2="9"/><line x1="3" y1="13.5" x2="15" y2="13.5"/></svg><span>用户地址列表</span></div>
+<div class="menu-divider" role="separator"></div>
+<div class="menu-group">
+<div class="menu-parent" tabindex="0" role="button" aria-expanded="false" onclick="toggleGroup(this)"><svg class="mi" aria-hidden="true" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="2.5"/><path d="M9 2v2M9 14v2M2 9h2M14 9h2M4.2 4.2l1.4 1.4M12.4 12.4l1.4 1.4M4.2 13.8l1.4-1.4M12.4 5.6l1.4-1.4"/></svg><span>地址配置</span><svg class="arrow" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4L10 8L6 12"/></svg></div>
+<div class="menu-children" role="group">
+<div class="menu-child" tabindex="0" role="menuitem" data-page="country-config"><svg class="ci" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="7.5" r="5.5"/><path d="M2 7.5h11"/><ellipse cx="7.5" cy="7.5" rx="2.5" ry="5.5"/></svg><span>国家地址配置</span></div>
+<div class="menu-child" tabindex="0" role="menuitem" data-page="admin-division"><svg class="ci" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h11v9H2z"/><path d="M6 3v9"/><path d="M2 7.5h11"/></svg><span>行政区划管理</span></div>
+<div class="menu-child" tabindex="0" role="menuitem" data-page="postal-mapping"><svg class="ci" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="11" height="7" rx="1"/><path d="M2 6l5.5 3L13 6"/></svg><span>邮编映射</span></div>
+</div></div>
+  </div>
+  <div class='main'>
+<div class="page" id="page-address-list"><div class="card">
+      <div class="page-head"><div><div class="page-title">用户地址列表</div><div class="page-desc">管理所有用户的收货地址和账单地址，支持按用户、类型、国家筛选。</div></div><div class="head-actions"></div></div>
+      <div class="kpi"><div class="item"><div class="num">6</div><div class="muted">地址总数</div></div><div class="item"><div class="num">4</div><div class="muted">用户数</div></div><div class="item"><div class="num">5</div><div class="muted">Shipping</div></div><div class="item"><div class="num">1</div><div class="muted">Billing</div></div></div>
+      <div class="toolbar"><input class="input" placeholder="用户ID搜索" style="width:140px"><select><option>全部类型</option><option>shipping</option><option>billing</option></select><select><option>全部国家</option><option>US</option><option>GB</option><option>JP</option></select><button class="btn">查询</button></div>
+      <div class="table-wrap"><table><thead><tr><th>用户ID</th><th>收件人</th><th>电话</th><th>地址</th><th>国家</th><th>类型</th><th>默认</th><th>Place ID</th><th>创建时间</th><th>操作</th></tr></thead><tbody><tr><td><b>U10001</b></td><td>John Smith</td><td>+1 212-555-0147</td><td><span style="max-width:220px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="350 Fifth Avenue, New York, NY 10118">350 Fifth Avenue, New York, NY 10118</span></td><td>US</td><td><span class="tag sale">shipping</span></td><td><span class="tag on">默认</span></td><td><span class="muted" title="ChIJtcaxrqlZwokR...">ChIJtcaxrqlZwokR...</span></td><td>2026-04-15 10:30</td><td><button class="btn" onclick="showSubPage('address-list','detail')">详情</button></td></tr><tr><td><b>U10001</b></td><td>John Smith</td><td>+1 212-555-0147</td><td><span style="max-width:220px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="350 Fifth Avenue, Suite 200, New York, NY 10118">350 Fifth Avenue, Suite 200, New York, NY 10118</span></td><td>US</td><td><span class="tag enum">billing</span></td><td><span class="tag off">否</span></td><td><span class="muted" title="ChIJtcaxrqlZwokR...">ChIJtcaxrqlZwokR...</span></td><td>2026-04-15 10:32</td><td><button class="btn" onclick="showSubPage('address-list','detail')">详情</button></td></tr><tr><td><b>U10023</b></td><td>Emily Johnson</td><td>+1 310-555-0198</td><td><span style="max-width:220px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="8500 Beverly Blvd, Los Angeles, CA 90048">8500 Beverly Blvd, Los Angeles, CA 90048</span></td><td>US</td><td><span class="tag sale">shipping</span></td><td><span class="tag on">默认</span></td><td><span class="muted" title="ChIJWdeZQOm_woAR...">ChIJWdeZQOm_woAR...</span></td><td>2026-04-16 14:20</td><td><button class="btn" onclick="showSubPage('address-list','detail')">详情</button></td></tr><tr><td><b>U10045</b></td><td>Yuki Tanaka</td><td>+81 3-1234-5678</td><td><span style="max-width:220px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="1-1-2 Omotesando, Shibuya-ku, Tokyo 150-0001">1-1-2 Omotesando, Shibuya-ku, Tokyo 150-0001</span></td><td>JP</td><td><span class="tag sale">shipping</span></td><td><span class="tag on">默认</span></td><td><span class="muted" title="ChIJ5TQfWmeMGGAR...">ChIJ5TQfWmeMGGAR...</span></td><td>2026-04-18 09:15</td><td><button class="btn" onclick="showSubPage('address-list','detail')">详情</button></td></tr><tr><td><b>U10067</b></td><td>James Wilson</td><td>+44 20-7946-0958</td><td><span style="max-width:220px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="221B Baker Street, London, England NW1 6XE">221B Baker Street, London, England NW1 6XE</span></td><td>GB</td><td><span class="tag sale">shipping</span></td><td><span class="tag on">默认</span></td><td><span class="muted" title="ChIJa2rGRGkbdkgR...">ChIJa2rGRGkbdkgR...</span></td><td>2026-04-20 16:45</td><td><button class="btn" onclick="showSubPage('address-list','detail')">详情</button></td></tr><tr><td><b>U10089</b></td><td>Maria Garcia</td><td>+1 305-555-0176</td><td><span style="max-width:220px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="1000 Brickell Ave, Miami, FL 33131">1000 Brickell Ave, Miami, FL 33131</span></td><td>US</td><td><span class="tag sale">shipping</span></td><td><span class="tag off">否</span></td><td><span class="muted" title="ChIJEcLKyZK32YgR...">ChIJEcLKyZK32YgR...</span></td><td>2026-04-22 11:00</td><td><button class="btn" onclick="showSubPage('address-list','detail')">详情</button></td></tr></tbody></table></div>
+    </div></div>
+<div class="page" id="page-country-config"><div class="card">
+      <div class="page-head"><div><div class="page-title">国家地址配置</div><div class="page-desc">配置各国家的地址格式规则，包括姓名拼接顺序、邮编校验正则、电话格式等。</div></div><div class="head-actions"></div></div>
+      <div class="kpi"><div class="item"><div class="num">5</div><div class="muted">配置国家数</div></div><div class="item"><div class="num">1</div><div class="muted">已启用</div></div><div class="item"><div class="num">4</div><div class="muted">未启用</div></div><div class="item"><div class="num">2</div><div class="muted">姓名格式</div></div></div>
+      <div class="toolbar"><select><option>全部状态</option><option>已启用</option><option>未启用</option></select><button class="btn">查询</button><button class="btn primary">新增国家配置</button></div>
+      <div class="table-wrap"><table><thead><tr><th>国家代码</th><th>国家名称</th><th>启用状态</th><th>姓名格式</th><th>邮编正则</th><th>电话格式</th><th>操作</th></tr></thead><tbody><tr><td><b>US</b></td><td>美国</td><td><span class="tag on">启用</span></td><td><span class="tag sale">first_last</span></td><td><code style="font-size:11px;background:#f1f5f9;padding:2px 6px;border-radius:4px">^\d{5}(-\d{4})?$</code></td><td>+1 XXX-XXX-XXXX</td><td><button class="btn" onclick="showSubPage('country-config','edit')">编辑</button></td></tr><tr><td><b>GB</b></td><td>英国</td><td><span class="tag off">未启用</span></td><td><span class="tag sale">first_last</span></td><td><code style="font-size:11px;background:#f1f5f9;padding:2px 6px;border-radius:4px">^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$</code></td><td>+44 XX-XXXX-XXXX</td><td><button class="btn" onclick="showSubPage('country-config','edit')">编辑</button></td></tr><tr><td><b>JP</b></td><td>日本</td><td><span class="tag off">未启用</span></td><td><span class="tag sale">last_first</span></td><td><code style="font-size:11px;background:#f1f5f9;padding:2px 6px;border-radius:4px">^\d{3}-\d{4}$</code></td><td>+81 X-XXXX-XXXX</td><td><button class="btn" onclick="showSubPage('country-config','edit')">编辑</button></td></tr><tr><td><b>AU</b></td><td>澳大利亚</td><td><span class="tag off">未启用</span></td><td><span class="tag sale">first_last</span></td><td><code style="font-size:11px;background:#f1f5f9;padding:2px 6px;border-radius:4px">^\d{4}$</code></td><td>+61 X-XXXX-XXXX</td><td><button class="btn" onclick="showSubPage('country-config','edit')">编辑</button></td></tr><tr><td><b>CA</b></td><td>加拿大</td><td><span class="tag off">未启用</span></td><td><span class="tag sale">first_last</span></td><td><code style="font-size:11px;background:#f1f5f9;padding:2px 6px;border-radius:4px">^[A-Z]\d[A-Z] ?\d[A-Z]\d$</code></td><td>+1 XXX-XXX-XXXX</td><td><button class="btn" onclick="showSubPage('country-config','edit')">编辑</button></td></tr></tbody></table></div>
+    </div></div>
+<div class="page" id="page-admin-division"><div class="card">
+      <div class="page-head"><div><div class="page-title">行政区划管理</div><div class="page-desc">管理各国家的行政区划层级数据（州/省 → 城市 → 区/县），用于地址表单的级联选择。</div></div><div class="head-actions"></div></div>
+      <div class="kpi"><div class="item"><div class="num">7</div><div class="muted">区划总数</div></div><div class="item"><div class="num">5</div><div class="muted">一级(州/省)</div></div><div class="item"><div class="num">2</div><div class="muted">二级(城市)</div></div><div class="item"><div class="num">1</div><div class="muted">覆盖国家</div></div></div>
+      <div class="toolbar"><select><option>全部国家</option><option>US</option><option>GB</option><option>JP</option></select><select><option>全部层级</option><option>L1 州/省</option><option>L2 城市</option><option>L3 区/县</option></select><input class="input" placeholder="搜索代码/名称" style="width:160px"><button class="btn">查询</button><button class="btn primary">新增区划</button></div>
+      <div class="table-wrap"><table><thead><tr><th>国家</th><th>层级</th><th>代码</th><th>名称</th><th>本地名称</th><th>父级</th><th>状态</th><th>排序</th><th>操作</th></tr></thead><tbody><tr><td>US</td><td><span class="tag sale">L1</span></td><td><b>NY</b></td><td>New York</td><td>纽约州</td><td>-</td><td><span class="tag on">启用</span></td><td>1</td><td><button class="btn">编辑</button></td></tr><tr><td>US</td><td><span class="tag sale">L1</span></td><td><b>CA</b></td><td>California</td><td>加利福尼亚州</td><td>-</td><td><span class="tag on">启用</span></td><td>2</td><td><button class="btn">编辑</button></td></tr><tr><td>US</td><td><span class="tag sale">L1</span></td><td><b>TX</b></td><td>Texas</td><td>德克萨斯州</td><td>-</td><td><span class="tag on">启用</span></td><td>3</td><td><button class="btn">编辑</button></td></tr><tr><td>US</td><td><span class="tag sale">L1</span></td><td><b>FL</b></td><td>Florida</td><td>佛罗里达州</td><td>-</td><td><span class="tag on">启用</span></td><td>4</td><td><button class="btn">编辑</button></td></tr><tr><td>US</td><td><span class="tag sale">L1</span></td><td><b>IL</b></td><td>Illinois</td><td>伊利诺伊州</td><td>-</td><td><span class="tag on">启用</span></td><td>5</td><td><button class="btn">编辑</button></td></tr><tr><td>US</td><td><span class="tag enum">L2</span></td><td><b>NYC</b></td><td>New York City</td><td>纽约市</td><td>NY</td><td><span class="tag on">启用</span></td><td>1</td><td><button class="btn">编辑</button></td></tr><tr><td>US</td><td><span class="tag enum">L2</span></td><td><b>LA</b></td><td>Los Angeles</td><td>洛杉矶</td><td>CA</td><td><span class="tag on">启用</span></td><td>1</td><td><button class="btn">编辑</button></td></tr></tbody></table></div>
+    </div></div>
+<div class="page" id="page-postal-mapping"><div class="card">
+      <div class="page-head"><div><div class="page-title">邮编映射</div><div class="page-desc">管理邮编与行政区划的映射关系，用于地址自动补全和校验。</div></div></div>
+      <div class="rail-note" style="margin-bottom:20px">
+        <strong>🚧 V1.1 预留功能</strong><br>
+        此功能将在 V1.1 版本中启用。邮编映射表用于：<br>
+        • 根据邮编自动填充城市和州/省信息<br>
+        • 校验邮编与地址的一致性<br>
+        • 支持物流模块的 Zone 映射计算
+      </div>
+      <div class="table-wrap" style="opacity:0.5">
+        <table>
+          <thead><tr><th>国家</th><th>邮编</th><th>城市</th><th>州/省</th><th>经度</th><th>纬度</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td colspan="7" style="text-align:center;padding:40px;color:#6B7280">暂无数据 — 功能开发中</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div></div>
+<div class="page" id="page-address-list-detail">
+<div class="card">
+  <div class="page-head">
+    <div><div class="page-title">地址详情</div><div class="page-desc">用户 U10001 的收货地址详细信息</div></div>
+    <div class="head-actions"><button class="btn" onclick="navigateTo('address-list','用户地址列表')">返回列表</button></div>
+  </div>
+  <div class="form-section">
+    <div class="section-title">收件人信息</div>
+    <div class="form-grid">
+      <div class="label">First Name</div><div class="field">John</div>
+      <div class="label">Last Name</div><div class="field">Smith</div>
+      <div class="label">电话</div><div class="field">+1 212-555-0147</div>
+    </div>
+  </div>
+  <div class="form-section">
+    <div class="section-title">地址信息</div>
+    <div class="form-grid">
+      <div class="label">Address Line 1</div><div class="field">350 Fifth Avenue</div>
+      <div class="label">City</div><div class="field">New York</div>
+      <div class="label">State</div><div class="field">NY</div>
+      <div class="label">ZIP Code</div><div class="field">10118</div>
+      <div class="label">Country</div><div class="field">US</div>
+    </div>
+  </div>
+  <div class="form-section">
+    <div class="section-title">元数据</div>
+    <div class="form-grid">
+      <div class="label">类型</div><div class="field"><span class="tag sale">shipping</span></div>
+      <div class="label">默认地址</div><div class="field"><span class="tag on">是</span></div>
+      <div class="label">Place ID</div><div class="field" style="font-size:11px;word-break:break-all">ChIJtcaxrqlZwokR...</div>
+      <div class="label">创建时间</div><div class="field">2026-04-15 10:30</div>
+    </div>
+  </div>
+</div>
+</div>
+<div class="page" id="page-country-config-edit">
+<div class="card">
+  <div class="page-head">
+    <div><div class="page-title">编辑国家地址配置 — US 美国</div><div class="page-desc">配置美国地区的地址表单字段规则、显示顺序和校验逻辑。</div></div>
+    <div class="head-actions"><button class="btn" onclick="navigateTo('country-config','国家地址配置')">返回列表</button></div>
+  </div>
+  <div class="form-section">
+    <div class="section-title">基本配置</div>
+    <div class="form-row"><div class="label">国家代码</div><div class="input-display" style="background:#f9fafb">US</div></div>
+    <div class="form-row"><div class="label">国家名称</div><div class="input-display" style="background:#f9fafb">美国</div></div>
+    <div class="form-row"><div class="label">启用状态</div><select class="input-display"><option selected>启用</option><option>停用</option></select></div>
+    <div class="form-row"><div class="label">姓名格式</div><select class="input-display"><option selected>first_last</option><option>last_first</option></select></div>
+  </div>
+  <div class="form-section">
+    <div class="section-title">校验规则</div>
+    <div class="form-row"><div class="label">邮编正则</div><input class="input-display" value="^\d{5}(-\d{4})?$"></div>
+    <div class="form-row"><div class="label">电话格式</div><input class="input-display" value="+1 XXX-XXX-XXXX"></div>
+  </div>
+  <div class="form-section">
+    <div class="section-title">字段配置 (field_config)</div>
+    <div class="page-desc" style="margin-bottom:12px">控制每个字段的必填/选填/隐藏规则</div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>字段名</th><th>字段标签 (i18n key)</th><th>必填规则</th><th>状态</th></tr></thead>
+      <tbody>
+        <tr><td><b>first_name</b></td><td>address.field.firstName</td><td><select style="height:28px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px"><option selected>必填</option><option>选填</option><option>隐藏</option></select></td><td><span class="tag on">显示</span></td></tr>
+        <tr><td><b>last_name</b></td><td>address.field.lastName</td><td><select style="height:28px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px"><option selected>必填</option><option>选填</option><option>隐藏</option></select></td><td><span class="tag on">显示</span></td></tr>
+        <tr><td><b>address_line1</b></td><td>address.field.streetAddress</td><td><select style="height:28px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px"><option selected>必填</option><option>选填</option><option>隐藏</option></select></td><td><span class="tag on">显示</span></td></tr>
+        <tr><td><b>address_line2</b></td><td>address.field.aptSuite</td><td><select style="height:28px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px"><option>必填</option><option selected>选填</option><option>隐藏</option></select></td><td><span class="tag on">显示</span></td></tr>
+        <tr><td><b>city</b></td><td>address.field.city</td><td><select style="height:28px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px"><option selected>必填</option><option>选填</option><option>隐藏</option></select></td><td><span class="tag on">显示</span></td></tr>
+        <tr><td><b>state_province</b></td><td>address.field.state</td><td><select style="height:28px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px"><option selected>必填</option><option>选填</option><option>隐藏</option></select></td><td><span class="tag on">显示</span></td></tr>
+        <tr><td><b>postal_code</b></td><td>address.field.zipCode</td><td><select style="height:28px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px"><option selected>必填</option><option>选填</option><option>隐藏</option></select></td><td><span class="tag on">显示</span></td></tr>
+        <tr><td><b>phone</b></td><td>address.field.phone</td><td><select style="height:28px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px"><option selected>必填</option><option>选填</option><option>隐藏</option></select></td><td><span class="tag on">显示</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <div class="form-section">
+    <div class="section-title">字段顺序 (field_order)</div>
+    <div class="page-desc" style="margin-bottom:12px">拖拽调整前端表单字段的显示顺序（原型中以序号展示）</div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>顺序</th><th>字段名</th><th>字段标签</th><th>操作</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>first_name</td><td>First Name</td><td><button class="btn" style="height:24px;padding:0 8px;font-size:11px">↑</button> <button class="btn" style="height:24px;padding:0 8px;font-size:11px">↓</button></td></tr>
+        <tr><td>2</td><td>last_name</td><td>Last Name</td><td><button class="btn" style="height:24px;padding:0 8px;font-size:11px">↑</button> <button class="btn" style="height:24px;padding:0 8px;font-size:11px">↓</button></td></tr>
+        <tr><td>3</td><td>phone</td><td>Phone</td><td><button class="btn" style="height:24px;padding:0 8px;font-size:11px">↑</button> <button class="btn" style="height:24px;padding:0 8px;font-size:11px">↓</button></td></tr>
+        <tr><td>4</td><td>address_line1</td><td>Street Address</td><td><button class="btn" style="height:24px;padding:0 8px;font-size:11px">↑</button> <button class="btn" style="height:24px;padding:0 8px;font-size:11px">↓</button></td></tr>
+        <tr><td>5</td><td>address_line2</td><td>Apt / Suite</td><td><button class="btn" style="height:24px;padding:0 8px;font-size:11px">↑</button> <button class="btn" style="height:24px;padding:0 8px;font-size:11px">↓</button></td></tr>
+        <tr><td>6</td><td>city</td><td>City</td><td><button class="btn" style="height:24px;padding:0 8px;font-size:11px">↑</button> <button class="btn" style="height:24px;padding:0 8px;font-size:11px">↓</button></td></tr>
+        <tr><td>7</td><td>state_province</td><td>State</td><td><button class="btn" style="height:24px;padding:0 8px;font-size:11px">↑</button> <button class="btn" style="height:24px;padding:0 8px;font-size:11px">↓</button></td></tr>
+        <tr><td>8</td><td>postal_code</td><td>ZIP Code</td><td><button class="btn" style="height:24px;padding:0 8px;font-size:11px">↑</button> <button class="btn" style="height:24px;padding:0 8px;font-size:11px">↓</button></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <div class="form-actions">
+    <button class="btn" onclick="navigateTo('country-config','国家地址配置')">取消</button>
+    <button class="btn primary">保存</button>
+  </div>
+  <!-- 操作日志 -->
+  <div class="op-log">
+    <div class="op-log-title">操作记录</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+      <select style="height:32px;padding:0 10px;border:1px solid #D1D5DB;border-radius:6px;font-size:13px;background:#fff">
+        <option>全部操作类型</option><option>创建</option><option>编辑</option><option>启用</option><option>停用</option>
+      </select>
+      <select style="height:32px;padding:0 10px;border:1px solid #D1D5DB;border-radius:6px;font-size:13px;background:#fff">
+        <option>全部操作人</option><option>admin@looply.com</option>
+      </select>
+      <input type="date" style="height:32px;padding:0 10px;border:1px solid #D1D5DB;border-radius:6px;font-size:13px;background:#fff">
+      <span style="color:#9CA3AF">至</span>
+      <input type="date" style="height:32px;padding:0 10px;border:1px solid #D1D5DB;border-radius:6px;font-size:13px;background:#fff">
+      <button class="btn" style="height:32px;padding:0 16px">查询</button>
+      <button class="btn" style="height:32px;padding:0 16px">重置</button>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>操作时间</th><th>操作人</th><th>操作类型</th><th>操作内容</th></tr></thead>
+      <tbody>
+        <tr><td class="op-time">2026-04-20 14:30</td><td class="op-user">admin@looply.com</td><td class="op-type">编辑</td><td class="op-detail">修改 phone 字段为必填</td></tr>
+        <tr><td class="op-time">2026-04-18 10:15</td><td class="op-user">admin@looply.com</td><td class="op-type">编辑</td><td class="op-detail">调整字段顺序：phone 移至第3位</td></tr>
+        <tr><td class="op-time">2026-04-15 09:00</td><td class="op-user">admin@looply.com</td><td class="op-type">编辑</td><td class="op-detail">修改邮编正则为 ^\d{5}(-\d{4})?$</td></tr>
+        <tr><td class="op-time">2026-04-10 16:20</td><td class="op-user">admin@looply.com</td><td class="op-type">创建</td><td class="op-detail">创建美国地址配置</td></tr>
+      </tbody>
+    </table></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:10px 14px;background:#F9FAFB;border-radius:8px">
+      <div style="font-size:12px;color:#6B7280">共 <strong style="color:#1F2937">4</strong> 条记录</div>
+    </div>
+  </div>
+</div>
+</div>
+  </div>
+</div>
+
+<script>
+window.toggleGroup = function(parent) {
+  var group = parent.closest('.menu-group');
+  group.classList.toggle('open');
+  parent.setAttribute('aria-expanded', group.classList.contains('open'));
+};
+window.toggleSubgroup = function(subparent) {
+  var group = subparent.closest('.menu-subgroup');
+  group.classList.toggle('open');
+  subparent.setAttribute('aria-expanded', group.classList.contains('open'));
+};
+function clearAllActive() {
+  document.querySelectorAll('.menu-solo,.menu-child,.menu-grandchild').forEach(function(el){el.classList.remove('active')});
+  document.querySelectorAll('.menu-parent').forEach(function(el){el.classList.remove('active-parent')});
+  document.querySelectorAll('.menu-subparent').forEach(function(el){el.classList.remove('active-parent')});
+}
+function navigateTo(pageId, label) {
+  clearAllActive();
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
+  var target = document.getElementById('page-' + pageId + '-list') || document.getElementById('page-' + pageId);
+  if (target) target.classList.add('active');
+  document.querySelector('.breadcrumb').textContent = label || '';
+}
+function showSubPage(module, action) {
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
+  var target = document.getElementById('page-' + module + '-' + action);
+  if (target) target.classList.add('active');
+}
+document.querySelectorAll('[data-page]').forEach(function(item) {
+  item.addEventListener('click', function() {
+    var pageId = this.dataset.page;
+    var label = this.querySelector('span') ? this.querySelector('span').textContent : '';
+    navigateTo(pageId, label);
+    this.classList.add('active');
+    var group = this.closest('.menu-group');
+    if (group) { group.classList.add('open'); var p = group.querySelector('.menu-parent'); if(p) p.classList.add('active-parent'); }
+    var subgroup = this.closest('.menu-subgroup');
+    if (subgroup) { subgroup.classList.add('open'); var sp = subgroup.querySelector('.menu-subparent'); if(sp) sp.classList.add('active-parent'); }
+  });
+});
+document.querySelectorAll('.tabs').forEach(function(tabBar) {
+  tabBar.querySelectorAll('.tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      var paneId = this.dataset.pane;
+      tabBar.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});
+      this.classList.add('active');
+      var container = tabBar.parentElement;
+      container.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active')});
+      var pane = container.querySelector('#' + paneId);
+      if (pane) pane.classList.add('active');
+    });
+  });
+});
+var firstMenu = document.querySelector('[data-page]');
+if (firstMenu) firstMenu.click();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang='zh-CN'>
+<head>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width,initial-scale=1.0'>
+<title>Looply 地址库管理后台原型 v4</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937;font-size:14px}
+.header{height:60px;background:#FFFFFF;color:#1F2937;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid #E5E7EB}
+.logo{font-size:18px;font-weight:700;letter-spacing:1px;display:flex;align-items:center}
+.header-divider{width:1px;height:20px;background:#E5E7EB;margin:0 16px}
+.system-label{font-size:14px;font-weight:500;color:#6B7280;letter-spacing:0.3px}
+.breadcrumb{margin-left:auto;color:#9CA3AF;font-size:13px;font-weight:400}
+.breadcrumb:empty{display:none}
+.container{display:flex;height:calc(100vh - 60px)}
+.sidebar{width:220px;background:#FFFFFF;overflow:auto;flex-shrink:0;border-right:none;box-shadow:3px 0 12px rgba(0,0,0,0.06);padding:8px 0}
+.main{flex:1;overflow:auto;padding:28px}
+.menu-solo{display:flex;align-items:center;padding:12px 16px;color:#374151;cursor:pointer;font-size:14px;font-weight:500;transition:background .15s;border-left:3px solid transparent;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-solo:hover{background:rgba(0,0,0,.04)}
+.menu-solo:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-solo.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.12),transparent);font-weight:600;border-left-color:#7C3AED}
+.menu-solo .mi{width:18px;height:18px;margin-right:10px;flex-shrink:0;opacity:.55}
+.menu-solo.active .mi{opacity:1}
+.menu-divider{height:1px;background:#F3F4F6;margin:8px 16px}
+.menu-group{margin-bottom:0}
+.menu-parent{display:flex;align-items:center;padding:12px 16px;color:#374151;cursor:pointer;font-size:14px;font-weight:500;transition:background .15s;user-select:none;border-left:3px solid transparent;outline:none;overflow:hidden}
+.menu-parent:hover{background:rgba(0,0,0,.04)}
+.menu-parent:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-parent .mi{width:18px;height:18px;margin-right:10px;flex-shrink:0;opacity:.55}
+.menu-parent .arrow{margin-left:auto;width:16px;height:16px;transition:transform .2s;opacity:.4;flex-shrink:0}
+.menu-group.open>.menu-parent .arrow{transform:rotate(90deg)}
+.menu-parent.active-parent{color:#7C3AED;font-weight:600;border-left-color:#7C3AED}
+.menu-parent.active-parent .mi{opacity:1}
+.menu-children{max-height:0;overflow:hidden;transition:max-height .3s cubic-bezier(.4,0,.2,1)}
+.menu-group.open>.menu-children{max-height:none}
+.menu-child{display:flex;align-items:center;padding:10px 16px 10px 44px;color:#4B5563;cursor:pointer;font-size:13px;transition:all .15s;border-left:3px solid transparent;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-child:hover{color:#374151;background:rgba(0,0,0,.03)}
+.menu-child:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-child.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.1),transparent);border-left-color:#7C3AED;font-weight:600}
+.menu-child .ci{width:15px;height:15px;margin-right:8px;flex-shrink:0;opacity:.45}
+.menu-child.active .ci{opacity:.8}
+.menu-subgroup{margin:0}
+.menu-subparent{display:flex;align-items:center;padding:10px 16px 10px 44px;color:#4B5563;cursor:pointer;font-size:13px;font-weight:500;transition:background .15s;user-select:none;outline:none;overflow:hidden}
+.menu-subparent:hover{color:#374151;background:rgba(0,0,0,.03)}
+.menu-subparent:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-subparent .ci{width:15px;height:15px;margin-right:8px;flex-shrink:0;opacity:.45}
+.menu-subparent .arrow-sm{margin-left:auto;width:14px;height:14px;transition:transform .2s;opacity:.35;flex-shrink:0}
+.menu-subgroup.open>.menu-subparent .arrow-sm{transform:rotate(90deg)}
+.menu-subparent.active-parent{color:#7C3AED;font-weight:600}
+.menu-subparent.active-parent .ci{opacity:.8}
+.menu-subchildren{max-height:0;overflow:hidden;transition:max-height .25s cubic-bezier(.4,0,.2,1)}
+.menu-subgroup.open>.menu-subchildren{max-height:none}
+.menu-sublabel{padding:8px 16px 4px 64px;color:#6B7280;font-size:11px;font-weight:600;letter-spacing:.3px;user-select:none}
+.menu-grandchild{display:flex;align-items:center;padding:8px 16px 8px 64px;color:#6B7280;cursor:pointer;font-size:12px;transition:all .15s;border-left:3px solid transparent;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-grandchild:hover{color:#374151;background:rgba(0,0,0,.02)}
+.menu-grandchild:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-grandchild.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.08),transparent);border-left-color:#7C3AED;font-weight:600}
+.menu-grandchild .gi{width:13px;height:13px;margin-right:8px;flex-shrink:0;opacity:.45}
+.menu-grandchild.active .gi{opacity:.75}
+@media(prefers-reduced-motion:reduce){.menu-children,.menu-subchildren,.menu-parent .arrow,.menu-subparent .arrow-sm,.menu-solo,.menu-child,.menu-grandchild,.menu-subparent,.menu-parent{transition:none !important}}
+.page{display:none}.page.active{display:block}
+.card{background:#fff;border-radius:16px;box-shadow:0 10px 24px rgba(16,24,40,.06);padding:28px}
+.page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}
+.page-title{font-size:20px;font-weight:700;margin-bottom:6px}
+.page-desc{color:#6B7280;font-size:13px;max-width:760px}
+.head-actions{display:flex;gap:10px;flex-wrap:wrap}
+.toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.toolbar .input,.toolbar select{height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff}
+.btn{height:34px;padding:0 14px;border:1px solid #D1D5DB;background:#fff;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.btn.primary{background:#7C3AED;border-color:#7C3AED;color:#fff}
+.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.summary .item{background:linear-gradient(180deg,#FEFCFF 0%,#F3EEFF 100%);border:1px solid #DDD6FE;border-radius:14px;padding:14px 16px}
+.summary .num{font-size:24px;font-weight:700;color:#7C3AED;margin-bottom:4px}
+.summary .label-sm{font-size:12px;color:#6B7280}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi .item{background:#FAF5FF;border:1px solid #DDD6FE;border-radius:14px;padding:14px}
+.kpi .num{font-size:24px;font-weight:700;margin-bottom:4px}
+.muted{color:#6B7280;font-size:12px}
+.table-wrap{border:1px solid #E5E7EB;border-radius:14px;overflow:hidden;background:#fff}
+table{width:100%;border-collapse:collapse}
+th{background:#FFFFFF;padding:10px 12px;text-align:left;font-size:12px;color:#6B7280;border-bottom:1px solid #E5E7EB;text-transform:uppercase;letter-spacing:.02em}
+td{padding:11px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;vertical-align:top}
+tr:hover{background:#FAF5FF}
+.split{display:flex;gap:18px}.left{width:280px;flex-shrink:0}.mid{width:300px;flex-shrink:0}.right{flex:1}
+.panel{border:1px solid #E5E7EB;border-radius:14px;background:#FFFFFF;padding:16px;min-height:420px}
+.panel h3{font-size:13px;color:#6B7280;margin-bottom:12px}
+.stack{display:flex;flex-direction:column;gap:16px}
+.tree-node{padding:8px 10px;border-radius:8px;cursor:pointer}
+.tree-node:hover{background:#F3EEFF}
+.tree-selected{background:#F3EEFF;color:#7C3AED;font-weight:600}
+.tree-child{margin-left:18px}
+.form-grid{display:grid;grid-template-columns:150px 1fr;gap:12px 16px;align-items:center}
+.label{color:#6B7280;font-size:13px}
+.field{min-height:36px;border:1px solid #D1D5DB;border-radius:8px;background:#fff;padding:8px 12px;display:flex;align-items:center}
+.field.readonly{background:#F9FAFB;color:#6B7280}
+.toggle{position:relative;width:40px;height:22px;background:#D1D5DB;border-radius:11px;cursor:pointer;display:inline-block}
+.toggle.on{background:#7C3AED}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform .2s}
+.toggle.on::after{transform:translateX(18px)}
+.form-row{display:flex;gap:16px;margin-bottom:12px}
+.form-row .label{width:120px;text-align:right;line-height:34px;color:#6B7280;flex-shrink:0}
+.form-row .field{flex:1}
+.form-row .input-display{height:34px;line-height:34px;padding:0 12px;border:1px solid #D1D5DB;border-radius:8px;background:#f9fafb}
+.form-row textarea.input-display{height:80px;line-height:1.5;padding:8px 12px}
+.form-section{margin-bottom:24px}
+.form-section .section-title{font-size:15px;font-weight:600;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #E5E7EB}
+.form-actions{display:flex;gap:12px;justify-content:flex-end;padding-top:16px;border-top:1px solid #E5E7EB;margin-top:24px}
+.section{margin-top:18px}
+.section-title{font-size:14px;font-weight:700;margin-bottom:10px;color:#7C3AED}
+.section-note{font-size:12px;color:#6B7280;margin:-4px 0 10px}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;margin-right:4px}
+.tag.sale{background:#EFF6FF;color:#2563EB;border:none}
+.tag.desc{background:#F0FDF4;color:#16A34A;border:none}
+.tag.enum{background:#FFFBEB;color:#D97706;border:none}
+.tag.req{background:#FEF2F2;color:#DC2626;border:none}
+.tag.opt{background:#F3F4F6;color:#6B7280;border:none}
+.tag.on{background:#F0FDF4;color:#16A34A;border:none}
+.tag.pending{background:#FFFBEB;color:#D97706;border:none}
+.tag.off{background:#F3F4F6;color:#6B7280;border:none}
+.tag.warn{background:#FFF1F2;color:#E11D48;border:none}
+.tabs{display:flex;border-bottom:1px solid #E5E7EB;margin-bottom:14px;gap:4px}
+.tab{padding:10px 18px;cursor:pointer;border-bottom:2px solid transparent;color:#6B7280}
+.tab.active{color:#7C3AED;border-bottom-color:#7C3AED;font-weight:600}
+.tab-pane{display:none}.tab-pane.active{display:block}
+.steps{display:flex;gap:8px;margin-bottom:16px}
+.step{flex:1;padding:10px;background:#fafafa;border:1px solid #E5E7EB;border-radius:10px;text-align:center;cursor:pointer;transition:all .2s}
+.step b{display:block;margin-bottom:4px}
+.step.current{background:#F3EEFF;border-color:#DDD6FE;color:#7C3AED;font-weight:600}
+.step.done{background:#ecfdf3;border-color:#abefc6;color:#027a48}
+.step.done b{color:#027a48}
+.wizard-body .wizard-step{display:none}
+.wizard-body .wizard-step.active{display:block}
+.wizard-nav{display:flex;gap:12px;justify-content:flex-end;padding-top:16px;border-top:1px solid #E5E7EB;margin-top:24px}
+.inline-meta{display:flex;gap:8px;flex-wrap:wrap}
+.pill{padding:4px 10px;border-radius:999px;background:#F3F4F6;color:#6B7280;font-size:12px}
+.rail-note{padding:12px 14px;border-radius:10px;background:#F3EEFF;border:1px solid #DDD6FE;color:#6D28D9;font-size:12px;line-height:1.6}
+.placeholder{padding:28px;border:1px dashed #D1D5DB;border-radius:14px;background:#FFFFFF;color:#6B7280}
+.preview{margin-top:18px;padding:16px;border:1px solid #E5E7EB;background:#FFFFFF;border-radius:14px}
+.preview-line{display:flex;justify-content:space-between;gap:20px;padding:10px 0;border-bottom:1px solid #E5E7EB}
+.preview-line:last-child{border-bottom:none}
+.sub-table{margin-top:8px}
+.empty-state{display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center}
+.empty-state .empty-icon{width:48px;height:48px;color:#9CA3AF;margin-bottom:16px}
+.empty-state .empty-icon.error{color:#DC2626}
+.empty-state .empty-title{font-size:16px;font-weight:600;color:#1F2937;margin-bottom:8px}
+.empty-state .empty-desc{font-size:13px;color:#6B7280;margin-bottom:24px;max-width:360px}
+.empty-state .btn{margin-top:0}
+
+
+/* Tooltip styles */
+.tooltip-trigger{border-bottom:1px dotted #9CA3AF;cursor:help;display:inline-block}
+th .tooltip-trigger{color:#6B7280}
+.tooltip-popup{position:fixed;z-index:9999;padding:10px 14px;background:#FFFFFF;color:#1F2937;font-size:12px;line-height:1.5;border-radius:8px;max-width:280px;box-shadow:0 4px 16px rgba(0,0,0,0.12),0 0 0 1px rgba(0,0,0,0.05);pointer-events:none;opacity:0;transition:opacity .15s;white-space:normal}
+.tooltip-popup.show{opacity:1}
+.tooltip-arrow{position:absolute;width:0;height:0;border:5px solid transparent;border-bottom-color:#FFFFFF;top:-10px;left:50%;transform:translateX(-50%);filter:drop-shadow(0 -1px 1px rgba(0,0,0,0.05))}
+
+/* 操作记录 */
+.op-log{margin-top:32px;padding-top:24px;border-top:1px solid #E5E7EB}
+.op-log-title{font-size:15px;font-weight:600;margin-bottom:16px}
+.op-log table{font-size:12px}
+.op-log th{font-size:11px;padding:8px 12px}
+.op-log td{padding:9px 12px}
+.op-log .op-time{color:#6B7280}
+.op-log .op-user{color:#374151}
+.op-log .op-type{font-weight:500}
+.op-log .op-detail{color:#6B7280}
+.form-row{display:flex;gap:16px;margin-bottom:12px}
+.form-row .label{width:120px;text-align:right;line-height:34px;color:#6B7280;flex-shrink:0}
+.form-row .input-display,.form-row input.input-display,.form-row select.input-display{flex:1;height:34px;padding:0 12px;border:1px solid #D1D5DB;border-radius:8px;font-size:13px}
+.form-row select.input-display{background:#fff}
+.btn.sm{height:28px;padding:0 10px;font-size:12px}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10000;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.18);width:520px;max-height:80vh;overflow:auto;padding:28px}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.modal-title{font-size:16px;font-weight:700}
+.modal-close{width:32px;height:32px;border:none;background:none;cursor:pointer;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#6B7280;font-size:18px}
+.modal-close:hover{background:#F3F4F6}
+.modal-row{display:flex;gap:16px;margin-bottom:14px;align-items:flex-start}
+.modal-label{width:100px;flex-shrink:0;color:#6B7280;font-size:13px;padding-top:8px}
+.modal-val{flex:1;padding:8px 12px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:monospace;color:#374151;min-height:36px}
+.modal-val.desc{font-family:inherit}
+.modal-input{flex:1;height:36px;padding:0 12px;border:1px solid #D1D5DB;border-radius:8px;font-size:13px;font-family:monospace}
+.modal-textarea{flex:1;padding:8px 12px;border:1px solid #D1D5DB;border-radius:8px;font-size:13px;min-height:60px;resize:vertical}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;padding-top:16px;border-top:1px solid #E5E7EB;margin-top:4px}
+</style>
+</head>
+<body>
+<div class='header'>
+  <div class='logo'><img src="logo.png" height="28" alt="Looply"></div>
+  <div class='header-divider'></div>
+  <span class='system-label'>地址库管理</span>
+  <div class='breadcrumb'></div>
+</div>
+<div class='container'>
+  <div class='sidebar' role="navigation" aria-label="主导航">
+<div class="menu-group">
+<div class="menu-parent" tabindex="0" role="button" aria-expanded="false" onclick="toggleGroup(this)"><svg class="mi" aria-hidden="true" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="2.5"/><path d="M9 2v2M9 14v2M2 9h2M14 9h2M4.2 4.2l1.4 1.4M12.4 12.4l1.4 1.4M4.2 13.8l1.4-1.4M12.4 5.6l1.4-1.4"/></svg><span>地址配置</span><svg class="arrow" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4L10 8L6 12"/></svg></div>
+<div class="menu-children" role="group">
+<div class="menu-child" tabindex="0" role="menuitem" data-page="country-config"><svg class="ci" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="7.5" r="5.5"/><path d="M2 7.5h11"/><ellipse cx="7.5" cy="7.5" rx="2.5" ry="5.5"/></svg><span>国家地址配置</span></div>
+<div class="menu-child" tabindex="0" role="menuitem" data-page="admin-division"><svg class="ci" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h11v9H2z"/><path d="M6 3v9"/><path d="M2 7.5h11"/></svg><span>行政区划管理</span></div>
+<div class="menu-child" tabindex="0" role="menuitem" data-page="data-import"><svg class="ci" aria-hidden="true" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 2v8M4.5 7l3 3 3-3"/><path d="M2.5 11v1.5h10V11"/></svg><span>国家邮编</span></div>
+<div class="menu-child" tabindex="0" role="menuitem" data-page="delivery-rules"><svg class="ci" aria-hidden="true" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 1.5L2.5 3.5v4c0 3.5 5 6 5 6s5-2.5 5-6v-4L7.5 1.5z"/><path d="M5.5 7.5l1.5 1.5 3-3"/></svg><span>配送限制（平台）</span></div>
+<div class="menu-child" tabindex="0" role="menuitem" data-page="delivery-rules-merchant"><svg class="ci" aria-hidden="true" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 1.5L2.5 3.5v4c0 3.5 5 6 5 6s5-2.5 5-6v-4L7.5 1.5z"/><path d="M5.5 7.5l1.5 1.5 3-3"/></svg><span>配送限制（商家）</span></div>
+</div></div>
+  </div>
+  <div class='main'>
+<div class="page" id="page-country-config"><div class="card">
+      <div class="page-head"><div><div class="page-title">国家地址配置</div><div class="page-desc">配置各国家的地址表单字段展示规则，包括字段可见性、必填规则和展示名称。配置数据由国家管理模块自动同步创建。</div></div><div class="head-actions"></div></div>
+      <div class="kpi" style="grid-template-columns:repeat(3,1fr)"><div class="item"><div class="num">1</div><div class="muted">配置国家数</div></div><div class="item"><div class="num">1</div><div class="muted">已启用</div></div><div class="item"><div class="num">0</div><div class="muted">未启用</div></div></div>
+      <div class="toolbar"><select><option>全部状态</option><option>已启用</option><option>未启用</option></select><input class="input" placeholder="搜索国家代码/名称" style="width:180px"><button class="btn">查询</button><button class="btn">重置</button></div>
+      <div class="table-wrap"><table><thead><tr><th>国家代码</th><th>国家名称</th><th>启用状态</th><th>字段配置</th><th>最后修改时间</th><th>操作</th></tr></thead><tbody><tr><td><b>US</b></td><td>美国</td><td><span class="tag on">启用</span></td><td><span class="tag enum">8个字段</span></td><td>2026-05-17 10:00</td><td><button class="btn" onclick="showSubPage('country-config','edit-us')">编辑</button></td></tr></tbody></table></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:12px 16px;background:#F9FAFB;border-radius:10px">
+        <div style="font-size:13px;color:#6B7280">共 <strong style="color:#1F2937">1</strong> 条记录</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <select style="height:32px;padding:0 10px;border:1px solid #D1D5DB;border-radius:8px;font-size:13px;background:#fff"><option>10条/页</option><option>20条/页</option><option>50条/页</option></select>
+          <button class="btn" style="height:32px;padding:0 12px;font-size:13px;opacity:0.4" disabled>上一页</button>
+          <span style="font-size:13px;color:#6B7280">1 / 1</span>
+          <button class="btn" style="height:32px;padding:0 12px;font-size:13px;opacity:0.4" disabled>下一页</button>
+        </div>
+      </div>
+    </div></div>
+<div class="page" id="page-admin-division"><div class="card">
+      <div class="page-head"><div><div class="page-title">行政区划管理</div><div class="page-desc">管理各国家的行政区划层级数据（州/省 → 城市 → 区/县），用于地址表单的级联选择。数据通过批量导入维护。</div></div><div class="head-actions"></div></div>
+      <div class="kpi"><div class="item"><div class="num">7</div><div class="muted">区划总数</div></div><div class="item"><div class="num">5</div><div class="muted">一级(州/省)</div></div><div class="item"><div class="num">2</div><div class="muted">二级(城市)</div></div><div class="item"><div class="num">1</div><div class="muted">覆盖国家</div></div></div>
+      <div class="toolbar"><select><option>全部国家</option><option>US</option><option>GB</option><option>JP</option></select><select><option>全部层级</option><option>L1 州/省</option><option>L2 城市</option><option>L3 区/县</option></select><input class="input" placeholder="搜索代码/名称" style="width:160px"><button class="btn">查询</button><button class="btn primary">导入区划数据</button></div>
+      <div class="table-wrap"><table><thead><tr><th>国家</th><th><span class="tooltip-trigger" data-tooltip="行政区划层级：L1=州/省，L2=城市，L3=区/县。层级决定在地址表单级联选择中的位置">层级</span></th><th>代码</th><th>名称</th><th><span class="tooltip-trigger" data-tooltip="该区划的本地语言名称，用于面向当地用户的展示场景">本地名称</span></th><th><span class="tooltip-trigger" data-tooltip="上级行政区划代码，L1级无父级显示为'-'">父级</span></th><th>排序</th></tr></thead><tbody><tr><td>US</td><td><span class="tag sale">L1</span></td><td><b>NY</b></td><td>New York</td><td>纽约州</td><td>-</td><td>1</td></tr><tr><td>US</td><td><span class="tag sale">L1</span></td><td><b>CA</b></td><td>California</td><td>加利福尼亚州</td><td>-</td><td>2</td></tr><tr><td>US</td><td><span class="tag sale">L1</span></td><td><b>TX</b></td><td>Texas</td><td>德克萨斯州</td><td>-</td><td>3</td></tr><tr><td>US</td><td><span class="tag sale">L1</span></td><td><b>FL</b></td><td>Florida</td><td>佛罗里达州</td><td>-</td><td>4</td></tr><tr><td>US</td><td><span class="tag sale">L1</span></td><td><b>IL</b></td><td>Illinois</td><td>伊利诺伊州</td><td>-</td><td>5</td></tr><tr><td>US</td><td><span class="tag enum">L2</span></td><td><b>NYC</b></td><td>New York City</td><td>纽约市</td><td>NY</td><td>1</td></tr><tr><td>US</td><td><span class="tag enum">L2</span></td><td><b>LA</b></td><td>Los Angeles</td><td>洛杉矶</td><td>CA</td><td>1</td></tr></tbody></table></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:12px 16px;background:#F9FAFB;border-radius:10px">
+        <div style="font-size:13px;color:#6B7280">共 <strong style="color:#1F2937">7</strong> 条记录</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <select style="height:32px;padding:0 10px;border:1px solid #D1D5DB;border-radius:8px;font-size:13px;background:#fff"><option>10条/页</option><option>20条/页</option><option>50条/页</option></select>
+          <button class="btn" style="height:32px;padding:0 12px;font-size:13px;opacity:0.4" disabled>上一页</button>
+          <span style="font-size:13px;color:#6B7280">1 / 1</span>
+          <button class="btn" style="height:32px;padding:0 12px;font-size:13px;opacity:0.4" disabled>下一页</button>
+        </div>
+      </div>
+    </div></div>
+<div class="page" id="page-country-config-edit-us">
+<div class="card">
+  <div class="page-head">
+    <div><div class="page-title">编辑国家地址配置 — US 美国</div><div class="page-desc">配置美国地区的地址表单字段展示规则。</div></div>
+    <div class="head-actions"><button class="btn" onclick="navigateTo('country-config','国家地址配置')">返回列表</button></div>
+  </div>
+  <div class="form-section">
+    <div class="section-title">基本配置</div>
+    <div class="form-row"><div class="label">国家代码</div><div class="input-display" style="background:#f9fafb">US</div></div>
+    <div class="form-row"><div class="label">国家名称</div><div class="input-display" style="background:#f9fafb">美国</div></div>
+    <div class="form-row"><div class="label">启用状态</div><select class="input-display"><option selected>启用</option><option>停用</option></select></div>
+  </div>
+  <div class="form-section">
+    <div class="section-title">前端展示字段</div>
+    <div class="page-desc" style="margin-bottom:12px">配置前端地址表单各字段的本地化文案。修改后需同步更新前端翻译文件。</div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>字段名</th><th><span class="tooltip-trigger" data-tooltip="停用后该字段不会出现在前端地址表单中，已保存的历史地址不受影响">启用状态</span></th><th><span class="tooltip-trigger" data-tooltip="数字越小越靠前，决定字段在前端地址表单中的展示顺序。点击箭头调整">排序</span></th><th>国际化文案</th></tr></thead>
+      <tbody>
+        <tr><td><b>first_name</b></td><td><span class="toggle on"></span></td><td><span style="display:inline-flex;align-items:center;gap:6px"><span style="opacity:.3;cursor:default">&#9650;</span><span style="cursor:pointer;color:#6B7280">&#9660;</span> 1</span></td><td><button class="btn sm" onclick="openI18nModal('first_name')">查看</button></td></tr>
+        <tr><td><b>last_name</b></td><td><span class="toggle on"></span></td><td><span style="display:inline-flex;align-items:center;gap:6px"><span style="cursor:pointer;color:#6B7280">&#9650;</span><span style="cursor:pointer;color:#6B7280">&#9660;</span> 2</span></td><td><button class="btn sm" onclick="openI18nModal('last_name')">查看</button></td></tr>
+        <tr><td><b>address_line1</b></td><td><span class="toggle on"></span></td><td><span style="display:inline-flex;align-items:center;gap:6px"><span style="cursor:pointer;color:#6B7280">&#9650;</span><span style="cursor:pointer;color:#6B7280">&#9660;</span> 3</span></td><td><button class="btn sm" onclick="openI18nModal('address_line1')">查看</button></td></tr>
+        <tr><td><b>address_line2</b></td><td><span class="toggle on"></span></td><td><span style="display:inline-flex;align-items:center;gap:6px"><span style="cursor:pointer;color:#6B7280">&#9650;</span><span style="cursor:pointer;color:#6B7280">&#9660;</span> 4</span></td><td><button class="btn sm" onclick="openI18nModal('address_line2')">查看</button></td></tr>
+        <tr><td><b>city</b></td><td><span class="toggle on"></span></td><td><span style="display:inline-flex;align-items:center;gap:6px"><span style="cursor:pointer;color:#6B7280">&#9650;</span><span style="cursor:pointer;color:#6B7280">&#9660;</span> 5</span></td><td><button class="btn sm" onclick="openI18nModal('city')">查看</button></td></tr>
+        <tr><td><b>state_province</b></td><td><span class="toggle on"></span></td><td><span style="display:inline-flex;align-items:center;gap:6px"><span style="cursor:pointer;color:#6B7280">&#9650;</span><span style="cursor:pointer;color:#6B7280">&#9660;</span> 6</span></td><td><button class="btn sm" onclick="openI18nModal('state_province')">查看</button></td></tr>
+        <tr><td><b>postal_code</b></td><td><span class="toggle on"></span></td><td><span style="display:inline-flex;align-items:center;gap:6px"><span style="cursor:pointer;color:#6B7280">&#9650;</span><span style="cursor:pointer;color:#6B7280">&#9660;</span> 7</span></td><td><button class="btn sm" onclick="openI18nModal('postal_code')">查看</button></td></tr>
+        <tr><td><b>phone</b></td><td><span class="toggle on"></span></td><td><span style="display:inline-flex;align-items:center;gap:6px"><span style="cursor:pointer;color:#6B7280">&#9650;</span><span style="cursor:pointer;color:#6B7280">&#9660;</span> 8</span></td><td><button class="btn sm" onclick="openI18nModal('phone')">查看</button></td></tr>
+        <tr style="background:#F9FAFB"><td><b>district</b> <span style="font-size:11px;color:#9CA3AF">亚洲地址预留</span></td><td><span class="toggle"></span></td><td><span style="display:inline-flex;align-items:center;gap:6px"><span style="cursor:pointer;color:#6B7280">&#9650;</span><span style="cursor:pointer;color:#6B7280">&#9660;</span> 9</span></td><td><button class="btn sm" onclick="openI18nModal('district')">查看</button></td></tr>
+        <tr style="background:#F9FAFB"><td><b>building_name</b> <span style="font-size:11px;color:#9CA3AF">日本预留</span></td><td><span class="toggle"></span></td><td><span style="display:inline-flex;align-items:center;gap:6px"><span style="cursor:pointer;color:#6B7280">&#9650;</span><span style="cursor:pointer;color:#6B7280">&#9660;</span> 10</span></td><td><button class="btn sm" onclick="openI18nModal('building_name')">查看</button></td></tr>
+        <tr style="background:#F9FAFB"><td><b>alternate_phone</b> <span style="font-size:11px;color:#9CA3AF">中东预留</span></td><td><span class="toggle"></span></td><td><span style="display:inline-flex;align-items:center;gap:6px"><span style="cursor:pointer;color:#6B7280">&#9650;</span><span style="opacity:.3;cursor:default">&#9660;</span> 11</span></td><td><button class="btn sm" onclick="openI18nModal('alternate_phone')">查看</button></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <div class="form-actions">
+    <button class="btn" onclick="navigateTo('country-config','国家地址配置')">取消</button>
+    <button class="btn primary">保存</button>
+  </div>
+  <!-- 操作日志 -->
+  <div class="op-log">
+    <div class="op-log-title">操作记录</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+      <select style="height:32px;padding:0 10px;border:1px solid #D1D5DB;border-radius:6px;font-size:13px;background:#fff">
+        <option>全部操作类型</option><option>创建</option><option>编辑</option><option>启用</option><option>停用</option>
+      </select>
+      <select style="height:32px;padding:0 10px;border:1px solid #D1D5DB;border-radius:6px;font-size:13px;background:#fff">
+        <option>全部操作人</option><option>admin@looply.com</option>
+      </select>
+      <input type="date" style="height:32px;padding:0 10px;border:1px solid #D1D5DB;border-radius:6px;font-size:13px;background:#fff">
+      <span style="color:#9CA3AF">至</span>
+      <input type="date" style="height:32px;padding:0 10px;border:1px solid #D1D5DB;border-radius:6px;font-size:13px;background:#fff">
+      <button class="btn" style="height:32px;padding:0 16px">查询</button>
+      <button class="btn" style="height:32px;padding:0 16px">重置</button>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>操作时间</th><th>操作人</th><th>操作类型</th><th>操作内容</th></tr></thead>
+      <tbody>
+        <tr><td class="op-time">2026-05-17 10:00</td><td class="op-user">admin@looply.com</td><td class="op-type">编辑</td><td class="op-detail">调整字段顺序：phone 移至最后一位</td></tr>
+        <tr><td class="op-time">2026-05-17 09:30</td><td class="op-user">admin@looply.com</td><td class="op-type">编辑</td><td class="op-detail">更新 first_name / last_name / address_line1 字段国际化文案（en / es / zh）</td></tr>
+        <tr><td class="op-time">2026-04-10 16:20</td><td class="op-user">admin@looply.com</td><td class="op-type">创建</td><td class="op-detail">创建美国地址配置，初始化8个展示字段</td></tr>
+      </tbody>
+    </table></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:10px 14px;background:#F9FAFB;border-radius:8px">
+      <div style="font-size:12px;color:#6B7280">共 <strong style="color:#1F2937">3</strong> 条记录</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <select style="height:28px;padding:0 8px;border:1px solid #D1D5DB;border-radius:6px;font-size:12px;background:#fff"><option>10条/页</option><option>20条/页</option><option>50条/页</option></select>
+        <button class="btn" style="height:28px;padding:0 10px;font-size:12px;opacity:0.4" disabled>上一页</button>
+        <span style="font-size:12px;color:#6B7280">1 / 1</span>
+        <button class="btn" style="height:28px;padding:0 10px;font-size:12px;opacity:0.4" disabled>下一页</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<div class="page" id="page-data-import"><div class="card">
+      <div class="page-head"><div><div class="page-title">国家邮编</div><div class="page-desc">管理各国家的邮编与行政区划映射数据，用于地址表单的邮编联动校验和城市/州自动填充。</div></div><div class="head-actions"><button class="btn primary">导入数据</button></div></div>
+      <div class="kpi"><div class="item"><div class="num">41,488</div><div class="muted">邮编总数</div></div><div class="item"><div class="num">53</div><div class="muted">州/地区 (L1)</div></div><div class="item"><div class="num">18,580</div><div class="muted">城市 (L2)</div></div><div class="item"><div class="num">1</div><div class="muted">覆盖国家</div></div></div>
+      <div class="toolbar"><select><option>全部国家</option><option>US</option></select><select><option>全部州</option><option>NY</option><option>CA</option><option>TX</option><option>FL</option><option>IL</option></select><input class="input" placeholder="搜索邮编/城市" style="width:160px"><button class="btn">查询</button><button class="btn">重置</button></div>
+      <div class="table-wrap"><table><thead><tr><th>国家</th><th>州/省 (L1)</th><th>城市 (L2)</th><th>邮编</th></tr></thead><tbody><tr><td>US</td><td>NY</td><td>New York</td><td><b>10001</b></td></tr><tr><td>US</td><td>NY</td><td>New York</td><td><b>10002</b></td></tr><tr><td>US</td><td>NY</td><td>New York</td><td><b>10003</b></td></tr><tr><td>US</td><td>NY</td><td>Brooklyn</td><td><b>11201</b></td></tr><tr><td>US</td><td>NY</td><td>Brooklyn</td><td><b>11215</b></td></tr><tr><td>US</td><td>CA</td><td>Los Angeles</td><td><b>90001</b></td></tr><tr><td>US</td><td>CA</td><td>Los Angeles</td><td><b>90012</b></td></tr><tr><td>US</td><td>CA</td><td>San Francisco</td><td><b>94102</b></td></tr><tr><td>US</td><td>TX</td><td>Houston</td><td><b>77001</b></td></tr><tr><td>US</td><td>TX</td><td>Austin</td><td><b>73301</b></td></tr></tbody></table></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:12px 16px;background:#F9FAFB;border-radius:10px">
+        <div style="font-size:13px;color:#6B7280">共 <strong style="color:#1F2937">41,488</strong> 条记录</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <select style="height:32px;padding:0 10px;border:1px solid #D1D5DB;border-radius:8px;font-size:13px;background:#fff"><option>10条/页</option><option>20条/页</option><option>50条/页</option></select>
+          <button class="btn" style="height:32px;padding:0 12px;font-size:13px;opacity:0.4" disabled>上一页</button>
+          <span style="font-size:13px;color:#6B7280">1 / 4,149</span>
+          <button class="btn" style="height:32px;padding:0 12px;font-size:13px">下一页</button>
+        </div>
+      </div>
+    </div></div>
+<div class="page" id="page-delivery-rules"><div class="card">
+      <div class="page-head"><div><div class="page-title">配送限制（平台视角）</div><div class="page-desc">管理配送限制规则。固定规则（PO Box / 军事地址）为系统内置，不可增删改，仅可调整适用范围；自定义规则由平台运营灵活配置。</div></div><div class="head-actions"><button class="btn primary" onclick="showSubPage('delivery-rules','create')">新增自定义规则</button></div></div>
+
+      <!-- 固定规则区 -->
+      <div class="form-section">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px"><span style="font-size:14px;font-weight:600;color:#374151">固定规则</span><span style="font-size:12px;color:#6B7280">— 系统内置，不可编辑识别逻辑，仅可调整适用范围</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <!-- PO Box 卡片 -->
+          <div style="border:1px solid #E5E7EB;border-radius:12px;padding:18px;background:#fff">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+              <div style="display:flex;align-items:center;gap:8px"><span style="font-size:15px;font-weight:600">PO Box 信箱地址</span><span class="tag on">启用</span></div>
+              <span style="font-size:12px;color:#9CA3AF">DR001</span>
+            </div>
+            <div style="font-size:12px;color:#6B7280;margin-bottom:14px;line-height:1.6">拦截收件地址中包含 PO Box（邮政信箱）的订单，此类地址无法接收实物包裹配送。</div>
+            <div style="display:flex;gap:12px;align-items:center;padding:12px;background:#F9FAFB;border-radius:8px;margin-bottom:12px">
+              <span style="font-size:12px;color:#6B7280;flex-shrink:0">识别规则</span>
+              <span style="font-size:12px;font-family:monospace;color:#374151">/^\s*P\.?\s*O\.?\s*Box\s*\d+/i</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:13px;color:#6B7280">适用范围</span>
+                <select style="height:30px;padding:0 8px;border:1px solid #D1D5DB;border-radius:6px;font-size:12px;background:#fff"><option selected>全部商家（含自营）启用</option><option>仅自营启用</option></select>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px">
+                <span style="font-size:11px;color:#9CA3AF">适用品类：全品类</span>
+                <span style="font-size:11px;color:#9CA3AF">国家：US</span>
+              </div>
+            </div>
+          </div>
+          <!-- 军事地址卡片 -->
+          <div style="border:1px solid #E5E7EB;border-radius:12px;padding:18px;background:#fff">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+              <div style="display:flex;align-items:center;gap:8px"><span style="font-size:15px;font-weight:600">军事地址 APO/FPO/DPO</span><span class="tag on">启用</span></div>
+              <span style="font-size:12px;color:#9CA3AF">DR002</span>
+            </div>
+            <div style="font-size:12px;color:#6B7280;margin-bottom:14px;line-height:1.6">拦截收件地址中包含军事地址标识（APO/FPO/DPO）的订单，此类地址需通过军事邮政系统，普通物流无法配送。</div>
+            <div style="display:flex;gap:12px;align-items:center;padding:12px;background:#F9FAFB;border-radius:8px;margin-bottom:12px">
+              <span style="font-size:12px;color:#6B7280;flex-shrink:0">识别规则</span>
+              <span style="font-size:12px;font-family:monospace;color:#374151">/\b(APO|FPO|DPO)\b/i</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:13px;color:#6B7280">适用范围</span>
+                <select style="height:30px;padding:0 8px;border:1px solid #D1D5DB;border-radius:6px;font-size:12px;background:#fff"><option selected>全部商家（含自营）启用</option><option>仅自营启用</option></select>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px">
+                <span style="font-size:11px;color:#9CA3AF">适用品类：全品类</span>
+                <span style="font-size:11px;color:#9CA3AF">国家：US</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 自定义规则区 -->
+      <div class="form-section" style="margin-top:28px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px"><span style="font-size:14px;font-weight:600;color:#374151">自定义规则</span><span style="font-size:12px;color:#6B7280">— 平台运营灵活配置，支持正则/关键词/州多选</span></div>
+        <div class="toolbar" style="margin-bottom:12px"><select><option selected>全部商家</option><option>Looply 自营</option><option>LuxBag Store</option></select><input class="input" placeholder="搜索规则名称" style="width:160px"><button class="btn">查询</button></div>
+        <div class="table-wrap"><table><thead><tr><th>ID</th><th>规则名称</th><th><span class="tooltip-trigger" data-tooltip="全部商家（含自营）启用=所有主体强制生效；三方商家启用（默认开启）=商家默认继承可关闭；三方商家启用（默认关闭）=商家自行决定开启；仅自营启用=仅Looply自营生效">适用范围</span></th><th>国家</th><th>匹配字段</th><th>匹配方式</th><th>识别规则</th><th>状态</th><th>操作</th></tr></thead><tbody>
+          <tr><td><b>DR003</b></td><td>偏远地区（GU/VI/AS）</td><td><select style="height:28px;padding:0 6px;border:1px solid #D1D5DB;border-radius:6px;font-size:12px;background:#fff"><option>全部商家（含自营）启用</option><option selected>三方商家启用（默认开启）</option><option>三方商家启用（默认关闭）</option><option>仅自营启用</option></select></td><td>US</td><td>州</td><td>州多选</td><td><span class="muted">GU / VI / AS</span></td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('delivery-rules','edit-remote')">编辑</button></td></tr>
+        </tbody></table></div>
+      </div>
+
+      <!-- 商家规则总览（只读） -->
+      <div class="form-section" style="margin-top:28px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px"><span style="font-size:14px;font-weight:600;color:#374151">商家规则总览</span><span style="font-size:12px;color:#6B7280">— 各商家自行配置的限制规则（只读）</span></div>
+        <div class="toolbar" style="margin-bottom:12px"><select><option selected>全部商家</option><option>LuxBag Store</option><option>PreOwned Jewelry</option></select><button class="btn">查询</button></div>
+        <div class="table-wrap"><table><thead><tr><th>商家名称</th><th>规则名称</th><th>国家</th><th>限制州</th><th>状态</th></tr></thead><tbody>
+          <tr><td>LuxBag Store</td><td>阿拉斯加/夏威夷限制</td><td>US</td><td><span class="muted">AK / HI</span></td><td><span class="tag on">启用</span></td></tr>
+        </tbody></table></div>
+      </div>
+    </div></div>
+
+    <!-- 平台自定义规则编辑页 -->
+    <div class="page" id="page-delivery-rules-edit-remote">
+    <div class="card">
+      <div class="page-head"><div><div class="page-title">编辑自定义规则 — 偏远地区</div><div class="page-desc">修改自定义配送限制规则</div></div><div class="head-actions"><button class="btn" onclick="navigateTo('delivery-rules','配送限制（平台）')">返回列表</button></div></div>
+      <div class="form-section">
+        <div class="section-title">基本信息</div>
+        <div class="form-grid">
+          <div class="label">规则 ID</div><div class="field readonly">DR003</div>
+          <div class="label">规则名称</div><div class="field">偏远地区（GU/VI/AS）</div>
+          <div class="label"><span class="tooltip-trigger" data-tooltip="全部商家（含自营）启用=所有主体强制生效；三方商家启用（默认开启）=商家默认继承可关闭；三方商家启用（默认关闭）=商家自行决定开启；仅自营启用=仅Looply自营生效">适用范围</span></div><div class="field"><select style="border:none;outline:none;font-size:13px;color:#1F2937;background:transparent"><option>全部商家（含自营）启用</option><option selected>三方商家启用（默认开启）</option><option>三方商家启用（默认关闭）</option><option>仅自营启用</option></select></div>
+          <div class="label">国家</div><div class="field"><select style="border:none;outline:none;font-size:13px;color:#1F2937;background:transparent"><option selected>US 美国</option></select></div>
+          <div class="label">适用品类</div><div class="field readonly">全品类</div>
+          <div class="label"><span class="tooltip-trigger" data-tooltip="适用范围为三方商家时，备注将展示给商家，帮助商家理解规则用途">备注</span></div><div class="field"><textarea style="border:none;outline:none;font-size:13px;width:100%;background:transparent;resize:vertical;min-height:36px;font-family:inherit" placeholder="选填，开放给商家时展示给商家看">不配送到 Guam、Virgin Islands、American Samoa 等偏远地区，物流时效和费用无法保障。</textarea></div>
+          <div class="label">状态</div><div class="field"><span class="toggle on"></span></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="section-title">识别规则</div>
+        <div class="form-grid">
+          <div class="label">匹配字段</div><div class="field"><select id="dr-edit-remote-field" style="border:none;outline:none;font-size:13px;color:#1F2937;background:transparent" onchange="toggleRemoteMatchMode(this)"><option>地址行1（Address Line 1）</option><option>地址行2（Address Line 2）</option><option>城市（City）</option><option selected>州（State）— 支持多选</option></select></div>
+        </div>
+        <div id="dr-edit-remote-text" class="form-grid" style="display:none">
+          <div class="label">匹配方式</div><div class="field"><select style="border:none;outline:none;font-size:13px;color:#1F2937;background:transparent"><option selected>关键词匹配</option><option>正则表达式</option></select></div>
+          <div class="label">匹配内容</div><div class="field" style="color:#9CA3AF">请输入匹配关键词或正则表达式</div>
+        </div>
+        <div id="dr-edit-remote-state" class="form-grid">
+          <div class="label"><span class="tooltip-trigger" data-tooltip="匹配字段为"州"时，无需配置匹配方式，直接从下拉中选择目标州">限制州</span></div><div class="field"><div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center"><span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:4px;font-size:12px;color:#1D4ED8">GU<span style="cursor:pointer;color:#93C5FD;margin-left:2px">✕</span></span><span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:4px;font-size:12px;color:#1D4ED8">VI<span style="cursor:pointer;color:#93C5FD;margin-left:2px">✕</span></span><span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:4px;font-size:12px;color:#1D4ED8">AS<span style="cursor:pointer;color:#93C5FD;margin-left:2px">✕</span></span><select style="border:1px solid #D1D5DB;border-radius:4px;padding:3px 8px;font-size:12px;color:#6B7280;background:#fff"><option value="">+ 添加州</option><option>Alaska (AK)</option><option>Hawaii (HI)</option><option>Puerto Rico (PR)</option><option>Northern Mariana Islands (MP)</option></select></div></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="section-title">提示文案</div>
+        <div class="form-grid">
+          <div class="label">买家端提示 i18n Key</div><div class="field">delivery_restriction.remote_area</div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn" onclick="navigateTo('delivery-rules','配送限制（平台）')">取消</button>
+        <button class="btn primary">保存</button>
+      </div>
+      <div class="op-log">
+        <div class="op-log-title">操作记录</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>操作时间</th><th>操作人</th><th>操作类型</th><th>操作内容</th></tr></thead>
+          <tbody>
+            <tr><td class="muted">2026-05-03 09:00</td><td>admin</td><td><b>创建</b></td><td class="muted">创建自定义规则 偏远地区 (GU/VI/AS)</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+    </div>
+
+    <!-- 平台新增自定义规则 -->
+    <div class="page" id="page-delivery-rules-create">
+    <div class="card">
+      <div class="page-head"><div><div class="page-title">新增自定义规则</div><div class="page-desc">添加新的配送限制规则</div></div><div class="head-actions"><button class="btn" onclick="navigateTo('delivery-rules','配送限制（平台）')">返回列表</button></div></div>
+      <div class="form-section">
+        <div class="section-title">基本信息</div>
+        <div class="form-grid">
+          <div class="label">规则名称</div><div class="field"><input type="text" placeholder="请输入规则名称（如 偏远地区限制）" style="border:none;outline:none;font-size:13px;width:100%;background:transparent"></div>
+          <div class="label"><span class="tooltip-trigger" data-tooltip="全部商家（含自营）启用=所有主体强制生效；三方商家启用（默认开启）=商家默认继承可关闭；三方商家启用（默认关闭）=商家自行决定开启；仅自营启用=仅Looply自营生效">适用范围</span></div><div class="field"><select style="border:none;outline:none;font-size:13px;color:#1F2937;background:transparent"><option selected>全部商家（含自营）启用</option><option>三方商家启用（默认开启）</option><option>三方商家启用（默认关闭）</option><option>仅自营启用</option></select></div>
+          <div class="label">国家</div><div class="field"><select style="border:none;outline:none;font-size:13px;color:#1F2937;background:transparent"><option selected>US 美国</option></select></div>
+          <div class="label">适用品类</div><div class="field readonly">全品类</div>
+          <div class="label"><span class="tooltip-trigger" data-tooltip="适用范围为三方商家时，备注将展示给商家，帮助商家理解规则用途">备注</span></div><div class="field"><textarea style="border:none;outline:none;font-size:13px;width:100%;background:transparent;resize:vertical;min-height:36px;font-family:inherit" placeholder="选填，开放给商家时展示给商家看"></textarea></div>
+          <div class="label">状态</div><div class="field"><span class="toggle on"></span></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="section-title">识别规则</div>
+        <div class="form-grid">
+          <div class="label">匹配字段</div><div class="field"><select style="border:none;outline:none;font-size:13px;color:#1F2937;background:transparent"><option selected>地址行1（Address Line 1）</option><option>地址行2（Address Line 2）</option><option>城市（City）</option><option>州（State）— 支持多选</option></select></div>
+          <div class="label">匹配方式</div><div class="field"><select style="border:none;outline:none;font-size:13px;color:#1F2937;background:transparent"><option selected>关键词匹配</option><option>正则表达式</option></select></div>
+          <div class="label">匹配内容</div><div class="field" style="color:#9CA3AF">请输入匹配关键词或正则表达式</div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="section-title">提示文案</div>
+        <div class="form-grid">
+          <div class="label">买家端提示 i18n Key</div><div class="field" style="color:#9CA3AF">delivery_restriction.{rule_code}</div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn" onclick="navigateTo('delivery-rules','配送限制（平台）')">取消</button>
+        <button class="btn primary">保存</button>
+      </div>
+    </div>
+    </div>
+
+<!-- 配送限制（商家视角） -->
+<div class="page" id="page-delivery-rules-merchant"><div class="card">
+      <div class="page-head"><div><div class="page-title">配送限制（商家视角）</div><div class="page-desc">管理本店的配送限制规则。固定规则由平台统一配置，可选规则可自行开关，也可新增自定义的州限制。</div></div><div class="head-actions"><button class="btn primary" onclick="showSubPage('delivery-rules-merchant','create-merchant')">新增州限制</button></div></div>
+
+      <!-- 固定规则（勾选卡片） -->
+      <div class="form-section">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px"><span style="font-size:14px;font-weight:600;color:#374151">固定规则</span><span style="font-size:12px;color:#6B7280">— 由平台统一配置的通用限制</span></div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <!-- PO Box -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border:1px solid #E5E7EB;border-radius:10px;background:#fff">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span class="toggle on" style="pointer-events:none;opacity:.6"></span>
+              <div>
+                <div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600;color:#374151">PO Box 信箱地址</span><span style="font-size:11px;color:#9CA3AF;background:#F3F4F6;padding:1px 6px;border-radius:4px">US</span></div>
+                <div style="font-size:12px;color:#6B7280;margin-top:2px">拦截包含 PO Box 的收件地址 <span style="color:#9CA3AF;margin-left:6px">全品类</span></div>
+              </div>
+            </div>
+            <span class="tag" style="background:#FEE2E2;color:#DC2626">平台强制开启</span>
+          </div>
+          <!-- 军事地址 -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border:1px solid #E5E7EB;border-radius:10px;background:#fff">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span class="toggle on" style="pointer-events:none;opacity:.6"></span>
+              <div>
+                <div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600;color:#374151">军事地址 APO/FPO/DPO</span><span style="font-size:11px;color:#9CA3AF;background:#F3F4F6;padding:1px 6px;border-radius:4px">US</span></div>
+                <div style="font-size:12px;color:#6B7280;margin-top:2px">拦截包含军事地址标识的收件地址 <span style="color:#9CA3AF;margin-left:6px">全品类</span></div>
+              </div>
+            </div>
+            <span class="tag" style="background:#FEE2E2;color:#DC2626">平台强制开启</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 可选规则（平台推荐） -->
+      <div class="form-section" style="margin-top:24px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px"><span style="font-size:14px;font-weight:600;color:#374151">可选规则</span><span style="font-size:12px;color:#6B7280">— 平台推荐的限制规则，可自行开关</span></div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <!-- 偏远地区 -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border:1px solid #E5E7EB;border-radius:10px;background:#fff">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span class="toggle on" style="cursor:pointer"></span>
+              <div>
+                <div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600;color:#374151">偏远地区（GU/VI/AS）</span><span style="font-size:11px;color:#9CA3AF;background:#F3F4F6;padding:1px 6px;border-radius:4px">US</span></div>
+                <div style="font-size:12px;color:#6B7280;margin-top:2px">不配送到 Guam、Virgin Islands、American Samoa <span style="color:#9CA3AF;margin-left:6px">全品类</span></div>
+              </div>
+            </div>
+            <span class="tag" style="background:#DBEAFE;color:#1D4ED8">平台推荐开启</span>
+          </div>
+          </div>
+        </div>
+
+      <!-- 我的州限制 -->
+      <div class="form-section" style="margin-top:24px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px"><span style="font-size:14px;font-weight:600;color:#374151">我的州限制</span><span style="font-size:12px;color:#6B7280">— 自定义不配送的州，仅对本店生效</span></div>
+        <div class="table-wrap"><table><thead><tr><th>规则名称</th><th>国家</th><th>限制州</th><th>状态</th><th>操作</th></tr></thead><tbody>
+          <tr><td><b>阿拉斯加/夏威夷限制</b></td><td>US</td><td><span style="display:inline-flex;gap:4px"><span style="padding:2px 8px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:4px;font-size:12px;color:#1D4ED8">AK</span><span style="padding:2px 8px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:4px;font-size:12px;color:#1D4ED8">HI</span></span></td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="showSubPage('delivery-rules-merchant','edit-merchant')">编辑</button></td></tr>
+        </tbody></table></div>
+      </div>
+    </div></div>
+
+    <!-- 商家编辑州限制 -->
+    <div class="page" id="page-delivery-rules-merchant-edit-merchant">
+    <div class="card">
+      <div class="page-head"><div><div class="page-title">编辑州限制 — 阿拉斯加/夏威夷限制</div><div class="page-desc">修改不配送的州</div></div><div class="head-actions"><button class="btn" onclick="navigateTo('delivery-rules-merchant','配送限制（商家）')">返回列表</button></div></div>
+      <div class="form-section">
+        <div class="section-title">基本信息</div>
+        <div class="form-grid">
+          <div class="label">规则名称</div><div class="field"><input type="text" value="阿拉斯加/夏威夷限制" style="border:none;outline:none;font-size:13px;width:100%;background:transparent"></div>
+          <div class="label">国家</div><div class="field readonly">US 美国</div>
+          <div class="label">适用品类</div><div class="field readonly">全品类</div>
+          <div class="label">备注</div><div class="field"><textarea style="border:none;outline:none;font-size:13px;width:100%;background:transparent;resize:vertical;min-height:36px;font-family:inherit" placeholder="选填，仅自己可见">阿拉斯加和夏威夷物流费用过高，暂不配送。</textarea></div>
+          <div class="label">状态</div><div class="field"><span class="toggle on"></span></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="section-title">不配送的州</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+          <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;font-size:13px;color:#1D4ED8">Alaska (AK)<span style="cursor:pointer;color:#93C5FD;margin-left:4px">✕</span></span>
+          <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;font-size:13px;color:#1D4ED8">Hawaii (HI)<span style="cursor:pointer;color:#93C5FD;margin-left:4px">✕</span></span>
+          <select style="height:32px;border:1px solid #D1D5DB;border-radius:6px;padding:0 10px;font-size:13px;color:#6B7280;background:#fff"><option value="">+ 添加州</option><option>Guam (GU)</option><option>Puerto Rico (PR)</option><option>Virgin Islands (VI)</option><option>American Samoa (AS)</option><option>Northern Mariana Islands (MP)</option></select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn" onclick="navigateTo('delivery-rules-merchant','配送限制（商家）')">取消</button>
+        <button class="btn primary">保存</button>
+      </div>
+    </div>
+    </div>
+
+    <!-- 商家新增州限制 -->
+    <div class="page" id="page-delivery-rules-merchant-create-merchant">
+    <div class="card">
+      <div class="page-head"><div><div class="page-title">新增州限制</div><div class="page-desc">选择不配送的州，仅对本店生效</div></div><div class="head-actions"><button class="btn" onclick="navigateTo('delivery-rules-merchant','配送限制（商家）')">返回列表</button></div></div>
+      <div class="form-section">
+        <div class="section-title">基本信息</div>
+        <div class="form-grid">
+          <div class="label">规则名称</div><div class="field"><input type="text" placeholder="请输入规则名称（如 阿拉斯加限制）" style="border:none;outline:none;font-size:13px;width:100%;background:transparent"></div>
+          <div class="label">国家</div><div class="field readonly">US 美国</div>
+          <div class="label">适用品类</div><div class="field readonly">全品类</div>
+          <div class="label">备注</div><div class="field"><textarea style="border:none;outline:none;font-size:13px;width:100%;background:transparent;resize:vertical;min-height:36px;font-family:inherit" placeholder="选填，仅自己可见"></textarea></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="section-title">不配送的州</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+          <select style="height:32px;border:1px solid #D1D5DB;border-radius:6px;padding:0 10px;font-size:13px;color:#6B7280;background:#fff"><option value="">+ 选择州</option><option>Alaska (AK)</option><option>Hawaii (HI)</option><option>Guam (GU)</option><option>Puerto Rico (PR)</option><option>Virgin Islands (VI)</option><option>American Samoa (AS)</option><option>Northern Mariana Islands (MP)</option></select>
+          <span style="font-size:12px;color:#9CA3AF">可多次选择添加</span>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn" onclick="navigateTo('delivery-rules-merchant','配送限制（商家）')">取消</button>
+        <button class="btn primary">保存</button>
+      </div>
+    </div>
+    </div>
+
+</div>
+<!-- i18n 文案弹窗 -->
+<div class="modal-overlay" id="modal-i18n-overlay" onclick="if(event.target===this)closeI18nModal()">
+  <div class="modal" style="width:600px">
+    <div class="modal-head">
+      <div class="modal-title" id="modal-i18n-title"></div>
+      <button class="modal-close" onclick="closeI18nModal()">✕</button>
+    </div>
+    <div id="modal-i18n-view">
+      <div class="modal-row" style="align-items:center;margin-bottom:14px">
+        <div class="modal-label" style="color:#6B7280">国际化文案 Key</div>
+        <div class="modal-val" id="modal-view-key" style="font-family:monospace;color:#6B7280"></div>
+      </div>
+      <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px 12px;font-size:12px;color:#1E40AF;margin-bottom:14px">
+        <b>提示：</b>国际化文案统一在<b>翻译管理</b>模块中维护，此处仅供查看。如需修改，请前往翻译管理模块。
+      </div>
+      <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:12px">当前文案</div>
+      <div class="modal-row" style="align-items:center">
+        <div class="modal-label" style="color:#6B7280">英文（en）</div>
+        <div class="modal-val" id="modal-view-locale-en" style="font-family:inherit"></div>
+      </div>
+      <div id="modal-view-other-locales"></div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeI18nModal()">关闭</button>
+        <button class="btn primary" onclick="alert('跳转到翻译管理模块（原型中暂未实现）')">前往翻译管理</button>
+      </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+window.toggleGroup = function(parent) {
+  var group = parent.closest('.menu-group');
+  group.classList.toggle('open');
+  parent.setAttribute('aria-expanded', group.classList.contains('open'));
+};
+window.toggleSubgroup = function(subparent) {
+  var group = subparent.closest('.menu-subgroup');
+  group.classList.toggle('open');
+  subparent.setAttribute('aria-expanded', group.classList.contains('open'));
+};
+function clearAllActive() {
+  document.querySelectorAll('.menu-solo,.menu-child,.menu-grandchild').forEach(function(el){el.classList.remove('active')});
+  document.querySelectorAll('.menu-parent').forEach(function(el){el.classList.remove('active-parent')});
+  document.querySelectorAll('.menu-subparent').forEach(function(el){el.classList.remove('active-parent')});
+}
+function navigateTo(pageId, label) {
+  clearAllActive();
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
+  var target = document.getElementById('page-' + pageId + '-list') || document.getElementById('page-' + pageId);
+  if (target) target.classList.add('active');
+  document.querySelector('.breadcrumb').textContent = label || '';
+}
+function showSubPage(module, action) {
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
+  var target = document.getElementById('page-' + module + '-' + action);
+  if (target) target.classList.add('active');
+}
+document.querySelectorAll('[data-page]').forEach(function(item) {
+  item.addEventListener('click', function() {
+    var pageId = this.dataset.page;
+    var label = this.querySelector('span') ? this.querySelector('span').textContent : '';
+    navigateTo(pageId, label);
+    this.classList.add('active');
+    var group = this.closest('.menu-group');
+    if (group) { group.classList.add('open'); var p = group.querySelector('.menu-parent'); if(p) p.classList.add('active-parent'); }
+    var subgroup = this.closest('.menu-subgroup');
+    if (subgroup) { subgroup.classList.add('open'); var sp = subgroup.querySelector('.menu-subparent'); if(sp) sp.classList.add('active-parent'); }
+  });
+});
+document.querySelectorAll('.tabs').forEach(function(tabBar) {
+  tabBar.querySelectorAll('.tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      var paneId = this.dataset.pane;
+      tabBar.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});
+      this.classList.add('active');
+      var container = tabBar.parentElement;
+      container.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active')});
+      var pane = container.querySelector('#' + paneId);
+      if (pane) pane.classList.add('active');
+    });
+  });
+});
+var firstMenu = document.querySelector('[data-page]');
+if (firstMenu) firstMenu.click();
+
+/* ── i18n 弹窗 ── */
+var I18N_LOCALES = {
+  en: { label: 'en', name: 'English', default: true },
+  es: { label: 'es', name: 'Español' },
+  zh: { label: 'zh', name: '中文' },
+};
+var I18N_TRANSLATIONS = {
+  first_name:    { en: 'First Name',      es: 'Nombre',          zh: '名字' },
+  last_name:     { en: 'Last Name',       es: 'Apellido',        zh: '姓氏' },
+  address_line1: { en: 'Street Address',  es: 'Dirección',       zh: '街道地址' },
+  address_line2: { en: 'Apt / Suite',     es: 'Apto / Suite',    zh: '公寓/套房' },
+  city:          { en: 'City',            es: 'Ciudad',          zh: '城市' },
+  state_province:{ en: 'State',           es: 'Estado',          zh: '州/省' },
+  postal_code:   { en: 'ZIP Code',        es: 'Código Postal',   zh: '邮政编码' },
+  phone:         { en: 'Phone',           es: 'Teléfono',        zh: '电话' },
+};
+var _curField = '';
+
+function toggleRemoteMatchMode(sel) {
+  var isState = sel.value.indexOf('州') > -1;
+  document.getElementById('dr-edit-remote-text').style.display = isState ? 'none' : '';
+  document.getElementById('dr-edit-remote-state').style.display = isState ? '' : 'none';
+}
+
+function openI18nModal(field, key, desc) {
+  _curField = field;
+  document.getElementById('modal-i18n-title').textContent = field + ' — 国际化文案';
+  document.getElementById('modal-view-key').textContent = 'address.field.' + field;
+  var t = I18N_TRANSLATIONS[field] || {};
+  document.getElementById('modal-view-locale-en').textContent = t.en || '';
+  var otherView = '';
+  Object.keys(I18N_LOCALES).forEach(function(lc) {
+    if (lc === 'en') return;
+    var info = I18N_LOCALES[lc];
+    var val = t[lc] || '';
+    otherView += '<div class="modal-row" style="align-items:center"><div class="modal-label" style="color:#6B7280">' + lc + '<span style="color:#9CA3AF;font-size:11px;margin-left:4px">' + info.name + '</span></div><div class="modal-val" style="font-family:inherit">' + (val || '<span style="color:#9CA3AF">—</span>') + '</div></div>';
+  });
+  document.getElementById('modal-view-other-locales').innerHTML = otherView;
+  document.getElementById('modal-i18n-overlay').classList.add('show');
+}
+function closeI18nModal() {
+  document.getElementById('modal-i18n-overlay').classList.remove('show');
+}
+
+/* ── 浮层 Tooltip ── */
+(function(){
+  var tip = document.createElement('div');
+  tip.className = 'tooltip-popup';
+  var arrow = document.createElement('div');
+  arrow.className = 'tooltip-arrow';
+  tip.appendChild(arrow);
+  var body = document.createElement('span');
+  tip.appendChild(body);
+  document.body.appendChild(tip);
+
+  function show(e){
+    var text = this.getAttribute('data-tooltip');
+    if(!text) return;
+    body.textContent = text;
+    tip.classList.add('show');
+    var rect = this.getBoundingClientRect();
+    tip.style.left = '0'; tip.style.top = '0';
+    var tw = tip.offsetWidth, th2 = tip.offsetHeight;
+    var left = rect.left + rect.width/2 - tw/2;
+    var top = rect.bottom + 8;
+    if(left < 8) left = 8;
+    if(left + tw > window.innerWidth - 8) left = window.innerWidth - 8 - tw;
+    if(top + th2 > window.innerHeight - 8){ top = rect.top - th2 - 8; arrow.style.top = ''; arrow.style.bottom = '-10px'; arrow.style.borderBottomColor = 'transparent'; arrow.style.borderTopColor = '#FFFFFF'; }
+    else { arrow.style.top = '-10px'; arrow.style.bottom = ''; arrow.style.borderTopColor = 'transparent'; arrow.style.borderBottomColor = '#FFFFFF'; }
+    var arrowLeft = rect.left + rect.width/2 - left;
+    arrowLeft = Math.max(10, Math.min(arrowLeft, tw - 10));
+    arrow.style.left = arrowLeft + 'px'; arrow.style.transform = 'translateX(-50%)';
+    tip.style.left = left + 'px'; tip.style.top = top + 'px';
+  }
+  function hide(){ tip.classList.remove('show'); }
+
+  document.querySelectorAll('.tooltip-trigger').forEach(function(el){
+    el.addEventListener('mouseenter', show);
+    el.addEventListener('mouseleave', hide);
+    el.addEventListener('focus', show);
+    el.addEventListener('blur', hide);
+  });
+})();
+
+</script>
+</body>
+</html>

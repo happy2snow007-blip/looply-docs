@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Looply 地址库管理 — 需求分析报告 v2.0</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif; line-height: 1.8; color: #1a1a1a; background: #f8f9fa; padding: 40px 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: #fff; padding: 60px 80px; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+        h1 { font-size: 28px; font-weight: 700; color: #111; margin-bottom: 8px; padding-bottom: 16px; border-bottom: 3px solid #2563eb; }
+        h2 { font-size: 22px; font-weight: 600; color: #1e40af; margin-top: 48px; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; }
+        h3 { font-size: 17px; font-weight: 600; color: #374151; margin-top: 32px; margin-bottom: 12px; }
+        h4 { font-size: 15px; font-weight: 600; color: #4b5563; margin-top: 24px; margin-bottom: 8px; }
+        p { margin-bottom: 12px; color: #374151; }
+        blockquote { border-left: 4px solid #2563eb; padding: 12px 20px; margin: 16px 0; background: #eff6ff; border-radius: 0 4px 4px 0; color: #1e40af; font-weight: 500; }
+        table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+        th { background: #f1f5f9; font-weight: 600; text-align: left; padding: 10px 14px; border: 1px solid #e2e8f0; color: #1e293b; }
+        td { padding: 10px 14px; border: 1px solid #e2e8f0; color: #475569; }
+        tr:hover td { background: #f8fafc; }
+        code { font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace; font-size: 13px; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #dc2626; }
+        pre { background: #1e293b; color: #e2e8f0; padding: 20px 24px; border-radius: 8px; overflow-x: auto; margin: 16px 0; line-height: 1.6; }
+        pre code { background: none; color: #e2e8f0; padding: 0; font-size: 13px; }
+        ul, ol { margin: 12px 0; padding-left: 24px; }
+        li { margin-bottom: 6px; color: #374151; }
+        hr { border: none; border-top: 1px solid #e5e7eb; margin: 40px 0; }
+        strong { font-weight: 600; color: #111827; }
+        a { color: #2563eb; text-decoration: none; }
+        @media (max-width: 768px) { .container { padding: 30px 20px; } table { font-size: 12px; } th, td { padding: 8px 10px; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+<h1>Looply 地址库管理 — 需求分析报告 v2.0</h1>
+<blockquote><p>版本：v2.0 | 日期：2026-05-08 | 作者：产品架构组</p></blockquote>
+<hr>
+<h2>版本更新说明</h2>
+<h3>v2.0 主要变更（2026-05-08）</h3>
+<ol>
+<li><strong>引入版本分层</strong>：将原 v1.0 的全量设计拆分为 MVP → V1.1 → V2 → V3 四个阶段</li>
+<li><strong>MVP 聚焦美国单国</strong>：砍掉多国家、多语言、ES 搜索、规则引擎、审计平台等非必要设计</li>
+<li><strong>明确"不做什么"</strong>：列出 MVP 阶段明确不做的能力，避免过度设计</li>
+<li><strong>简化技术方案</strong>：移除 Redis/ES 等中间件依赖描述，技术选型由开发团队决定</li>
+<li><strong>调整成本估算</strong>：按 MVP 实际调用量重新估算</li>
+</ol>
+<hr>
+<h2>一、模块概述</h2>
+<h3>1.1 模块定位</h3>
+<p>地址库管理是 Looply 平台的<strong>轻基础服务</strong>，核心职责：</p>
+<ul>
+<li>为美国用户提供流畅的地址填写体验（Google Autocomplete）</li>
+<li>存储结构化地址数据，供订单和物流消费</li>
+<li>基础格式校验，降低无效地址率</li>
+</ul>
+<h3>1.2 业务背景</h3>
+<p>Looply 面向美国市场的跨境二手奢侈品电商，当前阶段核心目标是：</p>
+<blockquote><p><strong>美国用户顺利完成「浏览 → 下单 → 发货 → 收货」闭环</strong></p></blockquote>
+<p>地址模块在整个链路中的角色：</p>
+<ul>
+<li>不是核心竞争力，但是下单闭环的必要环节</li>
+<li>地址错误直接导致退件（行业退件率 5-8%）</li>
+<li>复杂地址表单导致弃单（行业弃单率 15-25%）</li>
+</ul>
+<h3>1.3 设计原则</h3>
+<table>
+<tr>
+<th>原则</th>
+<th>说明</th>
+</tr>
+<tr>
+<td>先跑通再优化</td>
+<td>MVP 只做美国，验证闭环后再扩展</td>
+</tr>
+<tr>
+<td>依赖成熟服务</td>
+<td>重度依赖 Google Places，不自建</td>
+</tr>
+<tr>
+<td>最小字段集</td>
+<td>只收集下单必要字段，不过度收集</td>
+</tr>
+<tr>
+<td>预留钩子不预建系统</td>
+<td>存 place_id、verified 等为后续预留，但不提前建去重/风控系统</td>
+</tr>
+<tr>
+<td>国家数据统一管理</td>
+<td>国家可用性引用 market 模块，地址库不独立维护国家列表</td>
+</tr>
+</table>
+<h3>1.4 目标用户</h3>
+<table>
+<tr>
+<th>角色</th>
+<th>MVP 场景</th>
+</tr>
+<tr>
+<td>C端买家</td>
+<td>填写收货地址、管理地址簿、设置默认地址</td>
+</tr>
+<tr>
+<td>物流系统</td>
+<td>消费地址数据生成面单</td>
+</tr>
+</table>
+<p>MVP 不涉及：卖家地址、运营后台地址管理、风控系统。</p>
+<hr>
+<h2>二、版本规划（核心变更）</h2>
+<h3>总览</h3>
+<table>
+<tr>
+<th>版本</th>
+<th>目标</th>
+<th>核心能力</th>
+<th>不做</th>
+</tr>
+<tr>
+<td><strong>MVP</strong></td>
+<td>美国用户顺利下单</td>
+<td>美国地址结构（超集字段）+ Google Autocomplete + CRUD + 基础校验 + snapshot + place_id + billing address + 前端 i18n</td>
+<td>多国家启用、Address Validation、规则引擎、ES、风控、审计</td>
+</tr>
+<tr>
+<td><strong>V1.1</strong></td>
+<td>降低物流失败率</td>
+<td>ZIP-city-state 匹配 + Address Validation（仅高风险订单）+ 地址去重</td>
+<td>多国家、后台配置中心</td>
+</tr>
+<tr>
+<td><strong>V2</strong></td>
+<td>欧洲/中东扩展</td>
+<td>UK/EU/中东地址结构 + 多国字段配置 + 地址数据多语言</td>
+<td>日本、地址画像</td>
+</tr>
+<tr>
+<td><strong>V3</strong></td>
+<td>平台化</td>
+<td>后台配置中心 + 审计日志 + 风控联动 + 地址智能</td>
+<td>—</td>
+</tr>
+</table>
+<h3>MVP 明确不做</h3>
+<table>
+<tr>
+<th>不做的事</th>
+<th>原因</th>
+</tr>
+<tr>
+<td>ES 搜索</td>
+<td>PostgreSQL 足够，用户地址簿不超过 10 条</td>
+</tr>
+<tr>
+<td>地址相似度检测</td>
+<td>后期优化项，MVP 用户量小</td>
+</tr>
+<tr>
+<td>Address Validation API</td>
+<td>成本高、复杂、ROI 不确定（verified 字段已预留）</td>
+</tr>
+<tr>
+<td>后台正则规则引擎</td>
+<td>写死即可，美国地址格式固定</td>
+</tr>
+<tr>
+<td>GDPR 导出 / 审计日志平台</td>
+<td>数据量小、美国优先、CCPA 只需支持删除</td>
+</tr>
+<tr>
+<td>风控联动</td>
+<td>还没到风控阶段</td>
+</tr>
+<tr>
+<td>启用非美国国家配置</td>
+<td>数据模型已支持多国，但 MVP 只启用美国</td>
+</tr>
+<tr>
+<td>地址数据多语言存储</td>
+<td>美国地址不需要多语言存储（前端 i18n 界面多语言 MVP 会做）</td>
+</tr>
+<tr>
+<td>地址标准化建议</td>
+<td>V1.1 再做</td>
+</tr>
+<tr>
+<td>邮编反查城市/州</td>
+<td>V1.1 再做</td>
+</tr>
+</table>
+<hr>
+<h2>三、MVP 详细设计</h2>
+<h3>3.1 数据模型设计原则</h3>
+<p><strong>核心原则：超集字段 + 国家配置</strong></p>
+<p>虽然 MVP 只支持美国，但数据模型从一开始就采用<strong>超集字段设计</strong>，避免后续扩展时改表结构。通过<strong>国家配置</strong>控制哪些字段在前端展示、哪些必填。</p>
+<table>
+<tr>
+<th>设计层</th>
+<th>MVP 做法</th>
+<th>扩展时</th>
+</tr>
+<tr>
+<td>数据库表结构</td>
+<td>包含所有国家可能用到的字段（超集）</td>
+<td>不改表</td>
+</tr>
+<tr>
+<td>国家配置表</td>
+<td>只配置美国的字段规则</td>
+<td>新增国家配置记录</td>
+</tr>
+<tr>
+<td>前端表单</td>
+<td>根据 country_code 动态渲染字段</td>
+<td>读取新国家配置</td>
+</tr>
+</table>
+<h3>3.2 地址数据模型（超集设计）</h3>
+<pre><code class="">
+address {
+  id              UUID        主键
+  user_id         UUID        关联用户
+  country_code    String(2)   ISO 3166-1 alpha-2 国家代码（MVP 固定 "US"）
+  address_type    String(20)  地址类型：shipping / billing（支付 AVS 校验需要 billing）
+  
+  -- 收件人信息
+  recipient_first_name     String(50)  收件人名
+  recipient_last_name      String(50)  收件人姓
+  recipient_name           String(100) 完整姓名（冗余拼接，用于展示）
+  phone_country            String(5)   电话国家区号（MVP 固定 "+1"）
+  phone_number             String(20)  电话号码（E.164 格式）
+  alternate_phone_country  String(5)   备用电话区号（中东等地区需要，MVP 不用）
+  alternate_phone_number   String(20)  备用电话号码（MVP 不用）
+  
+  -- 地址行（通用）
+  address_line1   String(200) 地址行1（街道门牌号）
+  address_line2   String(200) 地址行2（Apt/Suite/Unit 等）
+  
+  -- 行政区划（超集字段）
+  city            String(100) 城市/Town
+  state_province  String(100) 州/省/县（MVP 存美国州缩写，如 NY）
+  postal_code     String(20)  邮编/ZIP/Postcode
+  district        String(100) 区/町（日本等亚洲地址，MVP 不用）
+  building_name   String(100) 建筑名称（日本地址，MVP 不用）
+  
+  -- 元数据
+  is_default      Boolean     是否默认地址
+  place_id        String(300) Google Place ID（预留去重/标准化）
+  latitude        Decimal     纬度（Autocomplete 自动获取）
+  longitude       Decimal     经度（Autocomplete 自动获取）
+  
+  -- 验证状态（预留）
+  verified        Boolean     是否经过三方验证（默认 false，V1.1 启用）
+  verified_at     Timestamp   验证时间
+  verified_source String(50)  验证来源（google/usps/loqate）
+  
+  created_at      Timestamp
+  updated_at      Timestamp
+}
+</code></pre>
+<p><strong>MVP 阶段字段使用情况</strong>：</p>
+<ul>
+<li>✅ <strong>使用</strong>：country_code, address_type, recipient_first_name, recipient_last_name, recipient_name, phone_country, phone_number, address_line1, address_line2, city, state_province, postal_code, is_default, place_id, latitude, longitude</li>
+<li>⏸️ <strong>预留不用</strong>：alternate_phone_*（中东扩展）、district, building_name（日本扩展）、verified_*（V1.1 Address Validation 启用）</li>
+</ul>
+<p><strong>姓名字段设计说明</strong>：</p>
+<ul>
+<li><code>recipient_first_name</code> + <code>recipient_last_name</code>：拆分存储，支持支付网关 AVS 校验和物流 API</li>
+<li><code>recipient_name</code>：冗余存储拼接结果，用于前端展示</li>
+<li>拼接顺序由 <code>country_address_config.name_format</code> 控制（美国 first_last，日本 last_first）</li>
+</ul>
+<p><strong>MVP 地址类型说明</strong>：</p>
+<ul>
+<li><code>shipping</code>：收货地址，用户地址簿管理</li>
+<li><code>billing</code>：账单地址，支付网关 AVS 校验需要。前端提供"Same as shipping"选项，用户可复用收货地址</li>
+</ul>
+<p><strong>与 v1.0 对比砍掉的字段</strong>：</p>
+<ul>
+<li><code>label</code>（地址标签）— MVP 不需要</li>
+<li><code>raw_input</code> — 不做审计</li>
+</ul>
+<h3>3.3 国家配置模型</h3>
+<p>控制各国地址字段的展示规则、校验规则、表单布局。</p>
+<p><strong>与 market 模块的关系</strong>：<code>country_code</code> 引用 market 系统的国家主数据（<code>market.countries</code>），地址库不独立维护国家列表。前端国家下拉选项读取 market 已启用的国家，地址库只负责该国家的地址字段配置。</p>
+<pre><code class="">
+country_address_config {
+  id              UUID        主键
+  country_code    String(2)   国家代码（引用 market.countries.country_code）
+  enabled         Boolean     该国家地址功能是否启用（MVP 只有 US 为 true）
+  
+  -- 姓名配置
+  name_format     String(20)  姓名拼接顺序（first_last / last_first）
+  
+  -- 字段配置（JSON）
+  field_config    JSON        各字段的必填/选填/隐藏规则
+  field_order     JSON        前端表单字段顺序
+  field_labels    JSON        字段 i18n key 映射（国家特定业务概念）
+  
+  -- 校验规则
+  postal_regex    String      邮编正则
+  phone_format    String      电话格式说明
+  
+  created_at      Timestamp
+  updated_at      Timestamp
+}
+</code></pre>
+<p><strong>MVP 美国配置示例</strong>：</p>
+<pre><code class="json">
+{
+  "country_code": "US",
+  "enabled": true,
+  "name_format": "first_last",
+  "field_config": {
+    "recipient_first_name": { "required": true, "visible": true },
+    "recipient_last_name": { "required": true, "visible": true },
+    "phone_number": { "required": true, "visible": true },
+    "alternate_phone_number": { "required": false, "visible": false },
+    "address_line1": { "required": true, "visible": true },
+    "address_line2": { "required": false, "visible": true },
+    "city": { "required": true, "visible": true },
+    "state_province": { "required": true, "visible": true },
+    "postal_code": { "required": true, "visible": true },
+    "district": { "required": false, "visible": false },
+    "building_name": { "required": false, "visible": false }
+  },
+  "field_order": ["recipient_first_name", "recipient_last_name", "phone_number", "address_line1", "address_line2", "city", "state_province", "postal_code"],
+  "field_labels": {
+    "state_province": "address.field.state",
+    "postal_code": "address.field.zipCode"
+  },
+  "postal_regex": "^\\d{5}(-\\d{4})?$",
+  "phone_format": "+1 (XXX) XXX-XXXX"
+}
+</code></pre>
+<p><strong>field_labels 说明</strong>：</p>
+<ul>
+<li>存储的是 i18n key，不是直接的文案</li>
+<li>解决"不同国家业务概念不同"的问题（美国叫 State，英国叫 County）</li>
+<li>前端根据用户选择的语言，查询对应的翻译文件</li>
+<li>示例：<code>"state_province": "address.field.state"</code> → 前端查 <code>en-US.json</code> 得到 "State"，查 <code>es-US.json</code> 得到 "Estado"</li>
+</ul>
+<p><strong>国家可用性联动规则</strong>：</p>
+<ul>
+<li><code>market.countries.enabled = false</code> → 该国家完全不可用，地址库也不可用</li>
+<li><code>market.countries.enabled = true</code> + <code>country_address_config.enabled = true</code> → 地址功能可用</li>
+<li>前端国家下拉列表：读取 <code>market.countries WHERE enabled = true</code></li>
+<li>地址表单渲染：读取 <code>country_address_config WHERE country_code = ? AND enabled = true</code></li>
+</ul>
+<h3>3.4 行政区划数据模型</h3>
+<p>支持州/省下拉选择、邮编-城市映射等功能。</p>
+<pre><code class="">
+administrative_division {
+  id              UUID        主键
+  country_code    String(2)   国家代码
+  level           Int         层级（1=州/省，2=城市，3=区/县）
+  code            String(20)  行政区划代码（如美国州缩写 NY/CA）
+  name            String(100) 名称
+  name_local      String(100) 本地语言名称
+  parent_id       UUID        父级ID（城市的父级是州）
+  enabled         Boolean     是否启用
+  sort_order      Int         排序
+  
+  created_at      Timestamp
+  updated_at      Timestamp
+}
+</code></pre>
+<p><strong>MVP 美国数据示例</strong>：</p>
+<table>
+<tr>
+<th>level</th>
+<th>code</th>
+<th>name</th>
+<th>parent_id</th>
+</tr>
+<tr>
+<td>1</td>
+<td>NY</td>
+<td>New York</td>
+<td>NULL</td>
+</tr>
+<tr>
+<td>1</td>
+<td>CA</td>
+<td>California</td>
+<td>NULL</td>
+</tr>
+<tr>
+<td>1</td>
+<td>TX</td>
+<td>Texas</td>
+<td>NULL</td>
+</tr>
+<tr>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+</tr>
+</table>
+<p><strong>扩展时（UK）</strong>：</p>
+<table>
+<tr>
+<th>level</th>
+<th>code</th>
+<th>name</th>
+<th>parent_id</th>
+</tr>
+<tr>
+<td>1</td>
+<td>ENG</td>
+<td>England</td>
+<td>NULL</td>
+</tr>
+<tr>
+<td>2</td>
+<td>LDN</td>
+<td>London</td>
+<td>{England_id}</td>
+</tr>
+<tr>
+<td>2</td>
+<td>MAN</td>
+<td>Manchester</td>
+<td>{England_id}</td>
+</tr>
+</table>
+<p><strong>MVP 阶段数据范围</strong>：</p>
+<ul>
+<li>只录入美国 50 州 + DC 的 level=1 数据</li>
+<li>不录入城市级数据（V1.1 做邮编-城市映射时再补充）</li>
+</ul>
+<h3>3.5 邮编-城市映射表（V1.1 预留）</h3>
+<pre><code class="">
+postal_code_mapping {
+  id              UUID        主键
+  country_code    String(2)   国家代码
+  postal_code     String(20)  邮编
+  city            String(100) 对应城市
+  state_code      String(20)  州/省代码
+  latitude        Decimal     中心点纬度
+  longitude       Decimal     中心点经度
+  
+  created_at      Timestamp
+  updated_at      Timestamp
+}
+</code></pre>
+<p><strong>MVP 不做</strong>，V1.1 加入后支持"输入邮编自动填充城市/州"功能。</p>
+<h3>3.6 地址 CRUD</h3>
+<table>
+<tr>
+<th>操作</th>
+<th>说明</th>
+</tr>
+<tr>
+<td>新增</td>
+<td>用户手动填写或通过 Autocomplete 填充后保存</td>
+</tr>
+<tr>
+<td>编辑</td>
+<td>修改已有地址任意字段</td>
+</tr>
+<tr>
+<td>删除</td>
+<td>软删除（已被订单 snapshot 引用的地址不受影响）</td>
+</tr>
+<tr>
+<td>列表</td>
+<td>展示用户所有地址，默认地址置顶</td>
+</tr>
+<tr>
+<td>设为默认</td>
+<td>同一用户只有一个默认地址</td>
+</tr>
+</table>
+<p><strong>限制</strong>：</p>
+<ul>
+<li>每个用户最多 20 个地址</li>
+<li>默认地址不可删除（需先取消默认）</li>
+</ul>
+<h3>3.7 Google Places Autocomplete</h3>
+<p><strong>为什么 MVP 必须做</strong>：直接提升下单转化率，用户体验差异巨大。</p>
+<p><strong>交互流程</strong>：</p>
+<pre><code class="">
+用户在 address_line1 输入框键入
+        ↓ 防抖 300ms
+调用 Google Places Autocomplete API
+（限定 country: "us", types: "address"）
+        ↓
+展示候选地址列表（最多 5 条）
+        ↓
+用户点击选择
+        ↓
+调用 Place Details API 获取结构化地址
+        ↓
+自动填充 address_line1, city, state, zip_code
+（address_line2 留空让用户补充 Apt/Suite）
+        ↓
+用户确认/修改 → 保存
+</code></pre>
+<p><strong>关键实现要点</strong>：</p>
+<ul>
+<li>防抖 300ms，减少无效 API 调用</li>
+<li>Session Token：将多次 Autocomplete + 1 次 Details 合并计费（$7/session vs 分开 $10+）</li>
+<li>国家限制：<code>componentRestrictions: { country: 'us' }</code></li>
+<li>降级策略：Google API 不可用时，退化为纯手动输入，不阻断下单</li>
+</ul>
+<p><strong>字段映射</strong>：</p>
+<table>
+<tr>
+<th>Google address_component</th>
+<th>映射到</th>
+<th>说明</th>
+</tr>
+<tr>
+<td>street_number + route</td>
+<td>address_line1</td>
+<td>拼接为完整街道地址</td>
+</tr>
+<tr>
+<td>subpremise</td>
+<td>address_line2</td>
+<td>如有则预填</td>
+</tr>
+<tr>
+<td>locality</td>
+<td>city</td>
+<td>城市</td>
+</tr>
+<tr>
+<td>administrative_area_level_1 (short_name)</td>
+<td>state</td>
+<td>州缩写</td>
+</tr>
+<tr>
+<td>postal_code</td>
+<td>zip_code</td>
+<td>邮编</td>
+</tr>
+</table>
+<h3>3.8 基础格式校验</h3>
+<p>MVP 只做硬校验，不做智能建议。</p>
+<table>
+<tr>
+<th>字段</th>
+<th>校验规则</th>
+<th>时机</th>
+</tr>
+<tr>
+<td>recipient_first_name</td>
+<td>必填，1-50 字符</td>
+<td>提交时</td>
+</tr>
+<tr>
+<td>recipient_last_name</td>
+<td>必填，1-50 字符</td>
+<td>提交时</td>
+</tr>
+<tr>
+<td>phone_number</td>
+<td>必填，美国手机号 10 位数字</td>
+<td>失焦时</td>
+</tr>
+<tr>
+<td>address_line1</td>
+<td>必填，5-200 字符</td>
+<td>提交时</td>
+</tr>
+<tr>
+<td>address_line2</td>
+<td>选填，0-200 字符</td>
+<td>—</td>
+</tr>
+<tr>
+<td>city</td>
+<td>必填，2-100 字符</td>
+<td>提交时</td>
+</tr>
+<tr>
+<td>state</td>
+<td>必填，美国 50 州 + DC 有效缩写</td>
+<td>提交时</td>
+</tr>
+<tr>
+<td>zip_code</td>
+<td>必填，格式 <code>^\d{5}(-\d{4})?$</code></td>
+<td>失焦时</td>
+</tr>
+</table>
+<p><strong>校验策略</strong>：</p>
+<ul>
+<li>前端：实时格式校验（输入/失焦）</li>
+<li>后端：提交时再次校验（不信任前端）</li>
+<li>不做：邮编-城市-州匹配校验（V1.1）、Address Validation（V1.1）</li>
+</ul>
+<h3>3.9 Address Snapshot（关键）</h3>
+<p><strong>为什么 MVP 必须做</strong>：订单创建后用户可能修改/删除地址，物流面单必须使用下单时的地址。</p>
+<p><strong>机制</strong>：</p>
+<ul>
+<li>订单创建时，订单模块调用地址库 API 读取地址数据</li>
+<li>订单模块在自己的数据库中创建快照（snapshot）</li>
+<li>快照与订单绑定，不受原地址后续修改/删除影响</li>
+<li>物流系统读取快照数据，不读取实时地址</li>
+</ul>
+<p><strong>职责边界</strong>：</p>
+<ul>
+<li>✅ <strong>地址库职责</strong>：提供地址数据读取接口（GET /api/v1/addresses/{id}）</li>
+<li>✅ <strong>订单模块职责</strong>：创建和管理 order_address_snapshot 表</li>
+<li>❌ <strong>地址库不负责</strong>：快照的创建、存储、管理</li>
+</ul>
+<p><strong>数据模型</strong>（订单模块管理）：</p>
+<pre><code class="">
+order_address_snapshot {
+  id              UUID        主键
+  order_id        UUID        关联订单
+  address_id      UUID        来源地址ID（可追溯）
+  address_type    String(20)  shipping / billing
+  recipient_first_name  String  收件人名
+  recipient_last_name   String  收件人姓
+  phone_number    String
+  address_line1   String
+  address_line2   String
+  city            String
+  state           String
+  zip_code        String
+  place_id        String      快照时的 place_id
+  snapshot_at     Timestamp   快照时间
+}
+</code></pre>
+<p><strong>说明</strong>：此表由订单模块管理，不在地址库 ER 图中体现。</p>
+<h3>3.10 place_id 存储（预留钩子）</h3>
+<p><strong>为什么 MVP 要存</strong>：</p>
+<ul>
+<li>后续地址去重：同一个 place_id = 同一个物理地址</li>
+<li>后续地址标准化：通过 place_id 可随时获取 Google 最新标准化结果</li>
+<li>后续风控：多账户使用同一 place_id 是风险信号</li>
+<li>成本为零：Autocomplete 流程中自然获得，只需存储</li>
+</ul>
+<p><strong>MVP 阶段不基于 place_id 做任何逻辑</strong>，纯存储预留。</p>
+<h3>3.11 前端多语言（i18n）</h3>
+<p><strong>为什么 MVP 要做</strong>：美国约 18% 人口为西班牙语用户，前端界面多语言直接影响用户体验和转化率。</p>
+<p><strong>范围界定</strong>：</p>
+<ul>
+<li>✅ <strong>MVP 做</strong>：前端界面多语言（表单标签、按钮文案、错误提示、placeholder）</li>
+<li>❌ <strong>MVP 不做</strong>：地址数据多语言存储（如日文地址需要存罗马音 + 日文两种形式，V2 再做）</li>
+</ul>
+<p><strong>实现方式</strong>：前端 i18n（国际化），不涉及数据库改动。</p>
+<table>
+<tr>
+<th>层面</th>
+<th>说明</th>
+</tr>
+<tr>
+<td>翻译文件</td>
+<td>前端维护 <code>en-US.json</code>、<code>es-US.json</code> 等语言包</td>
+</tr>
+<tr>
+<td>代码调用</td>
+<td>所有界面文案通过 <code>t('key')</code> 函数渲染，不硬编码</td>
+</tr>
+<tr>
+<td>语言切换</td>
+<td>根据浏览器语言自动匹配，或用户手动切换</td>
+</tr>
+<tr>
+<td>数据库</td>
+<td>无需改动，用户输入的地址数据与界面语言无关</td>
+</tr>
+</table>
+<p><strong>MVP 支持语言</strong>：</p>
+<ul>
+<li><code>en-US</code>（英文，默认）</li>
+<li><code>es-US</code>（美国西班牙语）</li>
+</ul>
+<hr>
+<h2>四、前端交互设计</h2>
+<h3>4.1 地址表单布局（美国）</h3>
+<pre><code class="">
+┌─────────────────────────────────────────────┐
+│  First Name                                  │
+│  [____________________________________]      │
+│                                              │
+│  Last Name                                   │
+│  [____________________________________]      │
+│                                              │
+│  Phone Number                                │
+│  [+1] [____________________________________] │
+│                                              │
+│  Address Line 1 (Street address)             │
+│  [____________________________________] ← Autocomplete 触发点
+│                                              │
+│  Address Line 2 (Apt, Suite, Unit, etc.)     │
+│  [____________________________________]      │
+│                                              │
+│  City              State ▼      ZIP Code     │
+│  [____________]    [__]         [_________]  │
+│                                              │
+│  ☐ Set as default address                    │
+│                                              │
+│  [Cancel]                    [Save Address]  │
+└─────────────────────────────────────────────┘
+</code></pre>
+<h3>4.2 Autocomplete 下拉交互</h3>
+<ul>
+<li>用户在 Address Line 1 输入 3+ 字符后触发</li>
+<li>下拉列表最多 5 条候选</li>
+<li>候选项格式：<code>街道地址, 城市, 州 邮编</code></li>
+<li>选中后自动填充 city/state/zip_code，光标跳到 address_line2</li>
+<li>用户可修改任何自动填充的字段</li>
+</ul>
+<h3>4.3 地址列表页</h3>
+<pre><code class="">
+┌─────────────────────────────────────────────┐
+│  My Addresses                    [+ Add New] │
+│─────────────────────────────────────────────│
+│  ★ Default                                   │
+│  John Smith                                  │
+│  123 Main St, Apt 4B                         │
+│  New York, NY 10001                          │
+│  +1 (212) 555-0123                           │
+│  [Edit]  [Delete]  [Set as Default]          │
+│─────────────────────────────────────────────│
+│  Jane Smith                                  │
+│  456 Oak Ave                                 │
+│  Los Angeles, CA 90001                       │
+│  +1 (310) 555-0456                           │
+│  [Edit]  [Delete]  [Set as Default]          │
+└─────────────────────────────────────────────┘
+</code></pre>
+<hr>
+<h2>五、与下游模块的关系</h2>
+<h3>5.1 职责边界</h3>
+<table>
+<tr>
+<th>模块</th>
+<th>职责</th>
+<th>MVP 是否涉及</th>
+</tr>
+<tr>
+<td>地址库</td>
+<td>地址存储、格式校验、Autocomplete、提供地址读取接口</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>订单模块</td>
+<td>读取地址数据、创建和管理 order_address_snapshot</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>物流模块</td>
+<td>消费 snapshot 数据、PO Box 检测、Zone 映射、运费计算</td>
+<td>✅（物流模块自己负责）</td>
+</tr>
+<tr>
+<td>风控模块</td>
+<td>地址黑名单、异常检测</td>
+<td>❌ MVP 不涉及</td>
+</tr>
+</table>
+<h3>5.2 数据流向（MVP）</h3>
+<pre><code class="">
+用户填写/选择地址 → 地址库（校验 &amp; 存储）
+                          ↓
+                    返回 address_id
+                          ↓
+用户下单 → 订单模块读取地址数据 → 订单模块创建 snapshot → 物流模块消费 snapshot
+</code></pre>
+<p><strong>说明</strong>：</p>
+<ul>
+<li>地址库只负责提供地址数据的读取接口（GET /api/v1/addresses/{id}）</li>
+<li>snapshot 的创建和管理由订单模块负责</li>
+<li>地址库不感知 snapshot 的存在</li>
+</ul>
+<h3>5.3 接口预留（MVP 最小集）</h3>
+<pre><code class="">
+GET    /api/v1/users/{user_id}/addresses          获取用户地址列表
+GET    /api/v1/addresses/{id}                     获取单个地址
+POST   /api/v1/addresses                          创建地址
+PUT    /api/v1/addresses/{id}                     更新地址
+DELETE /api/v1/addresses/{id}                     删除地址（软删除）
+POST   /api/v1/addresses/{id}/set-default         设为默认
+POST   /api/v1/orders/{order_id}/address-snapshot  创建订单地址快照
+</code></pre>
+<hr>
+<h2>六、依赖与风险</h2>
+<h3>6.1 外部依赖</h3>
+<table>
+<tr>
+<th>依赖</th>
+<th>用途</th>
+<th>风险</th>
+<th>缓解</th>
+</tr>
+<tr>
+<td>Google Places API</td>
+<td>Autocomplete + Details</td>
+<td>API 故障/限流</td>
+<td>降级为手动输入</td>
+</tr>
+</table>
+<p>MVP 阶段<strong>不依赖</strong>：Address Validation API、USPS 邮编数据库、Loqate。</p>
+<h3>6.2 内部依赖</h3>
+<table>
+<tr>
+<th>依赖模块</th>
+<th>提供内容</th>
+<th>说明</th>
+</tr>
+<tr>
+<td>用户模块</td>
+<td>user_id</td>
+<td>地址归属</td>
+</tr>
+<tr>
+<td>订单模块</td>
+<td>触发 snapshot</td>
+<td>下单时冻结地址</td>
+</tr>
+</table>
+<h3>6.3 风险评估</h3>
+<table>
+<tr>
+<th>风险</th>
+<th>影响</th>
+<th>应对</th>
+</tr>
+<tr>
+<td>Google API 故障</td>
+<td>无法自动填充</td>
+<td>降级手动输入，不阻断下单</td>
+</tr>
+<tr>
+<td>用户填错地址</td>
+<td>物流退件</td>
+<td>MVP 接受一定退件率，V1.1 加 Validation</td>
+</tr>
+<tr>
+<td>地址格式不规范</td>
+<td>面单打印异常</td>
+<td>基础校验兜底</td>
+</tr>
+</table>
+<hr>
+<h2>七、成本估算（MVP）</h2>
+<h3>Google Maps Platform 费用</h3>
+<p>按 MVP 阶段月活 1 万用户、平均每人 2 次地址操作估算：</p>
+<table>
+<tr>
+<th>API</th>
+<th>单价</th>
+<th>预估月调用量</th>
+<th>月费用</th>
+</tr>
+<tr>
+<td>Places Autocomplete (Session)</td>
+<td>$7/session</td>
+<td>2 万次</td>
+<td>$140</td>
+</tr>
+<tr>
+<td><strong>合计</strong></td>
+<td></td>
+<td></td>
+<td><strong>~$140/月</strong></td>
+</tr>
+</table>
+<p>说明：使用 Session Token 模式，Autocomplete + Details 合并为一次 session 计费。</p>
+<p>对比 v1.0 报告的 $2,165/月，MVP 成本降低 93%。</p>
+<hr>
+<h2>八、后续版本能力预览</h2>
+<p>以下能力已在 v1.0 调研报告中完成分析，确认可行，按业务节奏分批落地：</p>
+<h3>V1.1（订单稳定后）</h3>
+<ul>
+<li>ZIP-city-state 匹配校验</li>
+<li>Google Address Validation（仅高风险订单）</li>
+<li>基于 place_id 的地址去重提示</li>
+<li>地址标准化建议（缩写规范化）</li>
+</ul>
+<h3>V2（欧洲/中东扩展）</h3>
+<ul>
+<li>UK/EU/中东地址结构（Postcode、County、alternate_phone 等）</li>
+<li>多国字段动态配置（启用更多国家的 country_address_config）</li>
+<li>地址数据多语言存储（日文罗马音 + 本地语言）</li>
+<li>Loqate 备选数据源</li>
+</ul>
+<h3>V3（平台化）</h3>
+<ul>
+<li>后台校验规则配置中心</li>
+<li>审计日志与数据导出</li>
+<li>风控联动（地址黑名单、异常检测）</li>
+<li>地址使用历史与画像</li>
+<li>地址相似度检测</li>
+</ul>
+<hr>
+<h2>九、安全与合规（MVP 最小集）</h2>
+<table>
+<tr>
+<th>要求</th>
+<th>MVP 做法</th>
+</tr>
+<tr>
+<td>数据传输加密</td>
+<td>全链路 HTTPS</td>
+</tr>
+<tr>
+<td>敏感字段存储</td>
+<td>phone_number 加密存储</td>
+</tr>
+<tr>
+<td>用户数据删除</td>
+<td>支持用户请求删除地址（CCPA 基本要求）</td>
+</tr>
+<tr>
+<td>日志脱敏</td>
+<td>日志中地址信息做掩码</td>
+</tr>
+</table>
+<p>MVP 不做：GDPR 合规（不涉及欧洲用户）、完整审计日志平台、数据导出功能。</p>
+<hr>
+<h2>附录</h2>
+<h3>A. 参考竞品</h3>
+<table>
+<tr>
+<th>平台</th>
+<th>地址方案</th>
+<th>启示</th>
+</tr>
+<tr>
+<td>Shopify（初期）</td>
+<td>Google Places + 基础校验</td>
+<td><strong>MVP 对标</strong>：薄、简单、强依赖 Google</td>
+</tr>
+<tr>
+<td>The RealReal</td>
+<td>Google Places</td>
+<td>同为奢侈品电商，地址流程简洁</td>
+</tr>
+<tr>
+<td>Amazon</td>
+<td>自建 + USPS</td>
+<td>亿级订单后演化的结果，不是起步方案</td>
+</tr>
+</table>
+<h3>B. v1.0 调研报告保留说明</h3>
+<p>v1.0 调研报告（<code>looply-地址库管理-需求分析报告-v1.0.md</code>）作为完整技术调研存档保留，其中的多国地址字段设计、三方服务对比、校验规则详情等内容在后续版本落地时仍有参考价值。</p>
+<h3>C. Google Maps API 接入清单（MVP）</h3>
+<ol>
+<li>创建 Google Cloud 项目</li>
+<li>启用 Places API（含 Autocomplete + Details）</li>
+<li>创建 API Key，配置域名白名单</li>
+<li>设置月度预算告警（$200 阈值）</li>
+<li>前端集成 Places JS SDK（Autocomplete widget）</li>
+</ol>
+    </div>
+</body>
+</html>

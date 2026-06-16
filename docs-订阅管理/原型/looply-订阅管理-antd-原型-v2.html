@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Looply 订阅管理后台</title>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/dayjs@1.11.21/dayjs.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/antd@6.4.3/dist/antd.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/@ant-design/icons@6.2.1/dist/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.28.4/babel.min.js"></script>
+<style>
+html,body,#root{height:100%;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937}
+#root::before{content:'正在加载 antd 原型……';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#9CA3AF;font-size:14px}
+#root:not(:empty)::before{display:none}
+.lp-kpi{background:linear-gradient(180deg,#FEFCFF 0%,#F3EEFF 100%);border:1px solid #DDD6FE;border-radius:14px;padding:14px 16px}
+.lp-kpi .num{font-size:24px;font-weight:700;color:#7C3AED;line-height:1;margin-bottom:6px;font-variant-numeric:tabular-nums}
+.lp-kpi .label{font-size:12px;color:#6B7280}
+.lp-pagination{display:flex;align-items:center;justify-content:center;gap:24px;padding:12px 16px;font-size:13px;color:#6B7280}
+.lp-pagination .divider{width:1px;height:20px;background:#E5E7EB}
+.lp-tip-trigger{cursor:help;border-bottom:1px dashed #9CA3AF;padding-bottom:1px}
+.lp-note{padding:14px;border-radius:10px;background:#F3EEFF;border:1px solid #DDD6FE;color:#6D28D9;font-size:12px;line-height:1.8}
+.lp-note-sm{padding:10px 14px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:8px;font-size:12px;color:#6D28D9}
+.lp-section{font-size:15px;font-weight:600;color:#1F2937;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #E5E7EB}
+.lp-section-purple{font-size:14px;font-weight:700;color:#7C3AED;margin:0 0 12px}
+.lp-empty{display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center}
+.lp-empty .icon{font-size:48px;margin-bottom:16px;color:#9CA3AF}
+.lp-empty .icon.err{color:#DC2626}
+.lp-empty .title{font-size:16px;font-weight:600;color:#1F2937;margin-bottom:8px}
+.lp-empty .desc{font-size:13px;color:#6B7280;margin-bottom:24px;max-width:360px}
+.lp-detail{display:grid;grid-template-columns:120px 1fr;gap:10px 16px;font-size:13px;margin-bottom:24px}
+.lp-detail .dl{color:#6B7280}
+.lp-detail .dv{color:#1F2937}
+.lp-code{font-family:Menlo,Monaco,Consolas,monospace;font-size:12px;color:#374151;background:#F3F4F6;padding:1px 6px;border-radius:4px}
+:focus-visible{outline:none;box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useMemo } = React;
+const {
+  ConfigProvider, Layout, Menu, Card, Table, Button, Input, Select, Space,
+  Tag, Tooltip, Drawer, Timeline
+} = antd;
+const {
+  UserOutlined, SearchOutlined, ReloadOutlined, MailOutlined,
+  InboxOutlined, ExclamationCircleOutlined, SafetyCertificateOutlined,
+  DesktopOutlined, GlobalOutlined
+} = icons;
+
+const LOGO_SRC = "data:image/png;base64,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";
+
+const looplyTheme = {
+  token: {
+    colorPrimary: '#7C3AED', colorInfo: '#7C3AED', colorBgLayout: '#F9FAFB',
+    colorBgContainer: '#FFFFFF', colorText: '#1F2937', colorTextSecondary: '#374151',
+    colorTextTertiary: '#4B5563', colorTextDescription: '#6B7280', colorTextPlaceholder: '#9CA3AF',
+    colorBorder: '#E5E7EB', colorBorderSecondary: '#F3F4F6', colorSuccess: '#16A34A',
+    colorWarning: '#D97706', colorError: '#DC2626', borderRadius: 8, borderRadiusLG: 14,
+    borderRadiusSM: 6, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: 14, controlHeight: 34, controlHeightSM: 28,
+  },
+  components: {
+    Layout: { headerBg: '#FFFFFF', headerHeight: 60, headerPadding: '0 24px', siderBg: '#FFFFFF', bodyBg: '#F9FAFB' },
+    Menu: { itemBg: 'transparent', subMenuItemBg: 'transparent', itemHoverBg: 'rgba(0,0,0,.03)',
+      itemSelectedBg: '#F3EEFF', itemSelectedColor: '#7C3AED', itemBorderRadius: 0,
+      itemMarginInline: 0, itemMarginBlock: 0, itemHeight: 40, subMenuItemBorderRadius: 0 },
+    Card: { borderRadiusLG: 16, paddingLG: 28 },
+    Table: { headerBg: '#FFFFFF', headerColor: '#6B7280', rowHoverBg: '#FAF5FF', borderColor: '#E5E7EB',
+      headerSplitColor: 'transparent', cellFontSize: 13, cellFontSizeMD: 13, cellFontSizeSM: 13,
+      cellPaddingBlock: 11, cellPaddingInline: 12, cellPaddingBlockMD: 11, cellPaddingInlineMD: 12,
+      cellPaddingBlockSM: 9, cellPaddingInlineSM: 12, headerBorderRadius: 0 },
+    Tag: { defaultBg: '#F3F4F6', defaultColor: '#6B7280' },
+    Tabs: { itemSelectedColor: '#7C3AED', itemHoverColor: '#374151', inkBarColor: '#7C3AED' },
+    Steps: { colorPrimary: '#7C3AED' },
+    Button: { controlHeight: 34, paddingInline: 14, fontSize: 13 },
+    Input: { controlHeight: 34, paddingInline: 12 }, Select: { controlHeight: 34 },
+    DatePicker: { controlHeight: 34 }, Modal: { borderRadiusLG: 16, paddingContentHorizontalLG: 28 },
+  },
+};
+const CARD_STYLE = { boxShadow: '0 10px 24px rgba(16,24,40,.06)', marginBottom: 20 };
+const TABLE_STYLES = { root: { borderRadius: 14, border: '1px solid #E5E7EB', overflow: 'hidden' } };
+const SIDER_STYLE = { boxShadow: '3px 0 12px rgba(0,0,0,0.06)', padding: '8px 0', overflowY: 'auto', height: '100%' };
+const TAG_COLORS = {
+  on: {bg:'#F0FDF4',color:'#16A34A'}, sale: {bg:'#EFF6FF',color:'#2563EB'},
+  pending: {bg:'#FFFBEB',color:'#D97706'}, off: {bg:'#F3F4F6',color:'#6B7280'},
+  req: {bg:'#FEF2F2',color:'#DC2626'}, warn: {bg:'#FFF1F2',color:'#E11D48'},
+};
+function Kpi({ num, label, numStyle }) {
+  return (
+    <div className="lp-kpi">
+      <div className="label" style={{ marginBottom: 6 }}>{label}</div>
+      <div className="num" style={numStyle}>{num}</div>
+    </div>
+  );
+}
+function StatusTag({ variant, children }) {
+  const c = TAG_COLORS[variant] || TAG_COLORS.off;
+  return (
+    <Tag bordered={false} style={{ background:c.bg, color:c.color, borderRadius:999,
+      padding:'2px 8px', fontSize:12, lineHeight:'18px', marginInlineEnd:4 }}>{children}</Tag>
+  );
+}
+function TipText({ label, tip }) {
+  return (
+    <Tooltip title={<div style={{ whiteSpace:'pre-line', lineHeight:1.6 }}>{tip}</div>} color="#fff"
+      styles={{ body: { color:'#374151', fontSize:12, padding:'10px 14px' } }}>
+      <span className="lp-tip-trigger">{label}</span>
+    </Tooltip>
+  );
+}
+function CompactPagination({ total, current=1, pageSize=10, totalPages }) {
+  const pages = useMemo(() => {
+    const tp = totalPages || Math.ceil(total / pageSize) || 1;
+    const out = [{ k:'prev', label:'<', disabled:current===1, arrow:true }];
+    if (tp <= 6) for (let i=1; i<=tp; i++) out.push({ k:i, label:i });
+    else { out.push({k:1,label:1}); out.push({k:2,label:2}); out.push({k:3,label:3}); out.push({k:'gap',label:'…',disabled:true}); out.push({k:tp,label:tp}); }
+    out.push({ k:'next', label:'>', disabled:current===tp, arrow:true });
+    return out;
+  }, [current, totalPages, total, pageSize]);
+  const tp = totalPages || Math.ceil(total / pageSize) || 1;
+  return (
+    <div className="lp-pagination">
+      <span>共 {total.toLocaleString()} 条,每页{' '}
+        <Select size="small" value={pageSize} style={{ width:72, marginInline:4 }}
+          options={[{value:10,label:10},{value:20,label:20},{value:50,label:50}]} />{' '}条</span>
+      <div className="divider" />
+      <Space size={2}>
+        {pages.map(p => (
+          <span key={p.k} style={{ minWidth:32, height:32, display:'inline-flex', alignItems:'center', justifyContent:'center',
+            borderRadius:8, fontSize:13, cursor:p.disabled?'default':'pointer',
+            background:p.k===current?'#7C3AED':(p.arrow?'#fff':'transparent'),
+            color:p.k===current?'#fff':'#374151', border:p.arrow?'1px solid #E5E7EB':'none',
+            fontWeight:p.k===current?600:400, opacity:p.disabled?0.35:1 }}>{p.label}</span>
+        ))}
+      </Space>
+      <div className="divider" />
+      <span>第 {current}/{tp} 页</span>
+    </div>
+  );
+}
+function EmptyZero() {
+  return <div className="lp-empty"><InboxOutlined className="icon" />
+    <div className="title">暂无订阅记录</div>
+    <div className="desc">访客通过页脚订阅框/订阅弹窗订阅,或注册用户在偏好中心开启后,将出现在此列表</div>
+  </div>;
+}
+function EmptyNoMatch({ onClear }) {
+  return <div className="lp-empty"><SearchOutlined className="icon" />
+    <div className="title">未找到匹配结果</div>
+    <div className="desc">请尝试调整搜索关键词或筛选条件</div>
+    <Button onClick={onClear}>清除筛选条件</Button>
+  </div>;
+}
+function EmptyError({ onRetry }) {
+  return <div className="lp-empty"><ExclamationCircleOutlined className="icon err" />
+    <div className="title">加载失败</div>
+    <div className="desc">网络异常,请检查网络连接后重试</div>
+    <Button type="primary" onClick={onRetry}>重试</Button>
+  </div>;
+}
+function EmptyStateSwitcher({ mode, setMode }) {
+  return (
+    <div style={{ marginTop:12, display:'flex', gap:8, justifyContent:'center' }}>
+      {[['data','正常数据'],['zero','零数据态'],['no-match','无匹配态'],['error','异常态']].map(([k, label]) =>
+        <Button key={k} type={mode===k?'primary':'default'} onClick={() => setMode(k)}>{label}</Button>
+      )}
+    </div>
+  );
+}
+// 订阅来源枚举(本期3个,均为订阅入口):页脚订阅框 / 订阅弹窗 / 偏好中心
+// 注:退订动作不进 source(看订阅状态筛选);凭证流水里才记退订触发来源(如邮件退订链接)
+const SOURCE_LABEL = { footer: '页脚订阅框', popup: '订阅弹窗', preference: '偏好中心' };
+// 凭证流水的触发来源(含退订动作来源,仅用于时间线展示)
+const CONSENT_SOURCE_LABEL = { footer: '页脚订阅框', popup: '订阅弹窗', preference: '偏好中心', email_unsub: '邮件退订链接' };
+
+// 同意凭证流水(每次订阅状态变更一条),按订阅记录 id 聚合。未注册订阅者也有凭证
+const CONSENT_RECORDS = {
+  u1001: [
+    { id:'c1', at:'2026-06-09 14:32', action:'subscribe', from:'未订阅', to:'已订阅', source:'preference', ip:'73.21.55.10', device:'iPhone 15 · iOS 18 · Safari' },
+  ],
+  u1002: [
+    { id:'c5', at:'2026-05-01 09:12', action:'unsubscribe', from:'已订阅', to:'未订阅', source:'email_unsub', ip:'104.28.6.90', device:'Mac · Chrome 125' },
+    { id:'c4', at:'2026-03-15 20:41', action:'subscribe', from:'未订阅', to:'已订阅', source:'preference', ip:'104.28.6.90', device:'Mac · Chrome 125' },
+    { id:'c3', at:'2026-02-02 11:05', action:'unsubscribe', from:'已订阅', to:'未订阅', source:'email_unsub', ip:'66.102.0.1', device:'Windows · Edge 124' },
+    { id:'c2', at:'2026-01-10 08:30', action:'subscribe', from:'未订阅', to:'已订阅', source:'preference', ip:'66.102.0.1', device:'Windows · Edge 124' },
+  ],
+  u1003: [
+    { id:'c6', at:'2026-06-08 16:50', action:'subscribe', from:'未订阅', to:'已订阅', source:'preference', ip:'98.45.12.33', device:'Android 14 · Chrome 125' },
+  ],
+  u1004: [
+    { id:'c8', at:'2026-04-22 13:20', action:'unsubscribe', from:'已订阅', to:'未订阅', source:'email_unsub', ip:'71.198.4.21', device:'iPad · iOS 18 · Safari' },
+    { id:'c7', at:'2026-04-20 10:00', action:'subscribe', from:'未订阅', to:'已订阅', source:'popup', ip:'71.198.4.21', device:'iPad · iOS 18 · Safari' },
+  ],
+  u1005: [
+    { id:'c9', at:'2026-06-07 19:14', action:'subscribe', from:'未订阅', to:'已订阅', source:'preference', ip:'45.33.88.2', device:'Mac · Safari 18' },
+  ],
+  a2001: [
+    { id:'c10', at:'2026-06-09 10:05', action:'subscribe', from:'未订阅', to:'已订阅', source:'footer', ip:'24.55.110.7', device:'Mac · Chrome 125' },
+  ],
+  a2002: [
+    { id:'c12', at:'2026-06-06 21:33', action:'subscribe', from:'未订阅', to:'已订阅', source:'popup', ip:'52.119.8.44', device:'iPhone 14 · iOS 17 · Safari' },
+  ],
+  a2003: [
+    { id:'c14', at:'2026-05-28 12:10', action:'unsubscribe', from:'已订阅', to:'未订阅', source:'email_unsub', ip:'188.43.2.9', device:'Windows · Chrome 124' },
+    { id:'c13', at:'2026-05-20 15:48', action:'subscribe', from:'未订阅', to:'已订阅', source:'footer', ip:'188.43.2.9', device:'Windows · Chrome 124' },
+  ],
+};
+
+// 订阅记录当前状态(每条记录一行)。registered=false 表示未注册订阅者(user_id/姓名 为空)
+const USERS = [
+  { id:'u1001', uid:'U-100231', name:'Sarah Johnson', email:'sarah.j@example.com', registered:true,  subscribed:true,  source:'preference',  changedAt:'2026-06-09 14:32' },
+  { id:'u1002', uid:'U-100244', name:'James Miller',  email:'james.m@example.com', registered:true,  subscribed:false, source:'preference',  changedAt:'2026-05-01 09:12' },
+  { id:'u1003', uid:'U-100258', name:'Emma Davis',    email:'emma.d@example.com',  registered:true,  subscribed:true,  source:'preference',  changedAt:'2026-06-08 16:50' },
+  { id:'u1004', uid:'U-100262', name:'Linda Brown',   email:'linda.b@example.com', registered:true,  subscribed:false, source:'popup',       changedAt:'2026-04-22 13:20' },
+  { id:'u1005', uid:'U-100279', name:'Michael Wilson',email:'michael.w@example.com',registered:true, subscribed:true,  source:'preference',  changedAt:'2026-06-07 19:14' },
+  { id:'a2001', uid:null, name:null, email:'olivia.k@example.com', registered:false, subscribed:true,  source:'footer', changedAt:'2026-06-09 10:05' },
+  { id:'a2002', uid:null, name:null, email:'noah.p@example.com',   registered:false, subscribed:true,  source:'popup',  changedAt:'2026-06-06 21:33' },
+  { id:'a2003', uid:null, name:null, email:'ava.t@example.com',    registered:false, subscribed:false, source:'footer', changedAt:'2026-05-28 12:10' },
+];
+
+const ACTION_TAG = { subscribe: { variant:'on', label:'订阅' }, unsubscribe: { variant:'req', label:'退订' } };
+// 抽屉:单个用户的订阅状态 + 同意凭证时间线(UC-26 合规调取)
+function UserDrawer({ user, open, onClose }) {
+  const records = user ? (CONSENT_RECORDS[user.id] || []) : [];
+  return (
+    <Drawer title={user ? '订阅用户详情' : ''} width={520} open={open} onClose={onClose}
+      destroyOnHidden>
+      {user && (
+        <>
+          <h4 className="lp-section-purple">基本信息</h4>
+          <div className="lp-detail">
+            <div className="dl">用户 ID</div>
+            <div className="dv">{user.uid
+              ? <span className="lp-code">{user.uid}</span>
+              : <StatusTag variant="pending">未注册</StatusTag>}</div>
+            <div className="dl">订阅邮箱</div><div className="dv">{user.email}</div>
+          </div>
+
+          <h4 className="lp-section-purple">当前订阅状态</h4>
+          <div className="lp-detail">
+            <div className="dl"><MailOutlined style={{ marginRight:6, color:'#7C3AED' }} />Email 营销</div>
+            <div className="dv">
+              {user.subscribed
+                ? <StatusTag variant="on">已订阅</StatusTag>
+                : <StatusTag variant="req">已退订</StatusTag>}
+            </div>
+            <div className="dl">最近来源</div><div className="dv">{SOURCE_LABEL[user.source] || '—'}</div>
+            <div className="dl">最近变更</div><div className="dv">{user.changedAt}</div>
+          </div>
+
+          <h4 className="lp-section-purple">
+            <SafetyCertificateOutlined style={{ marginRight:6 }} />同意凭证时间线(合规审计)
+          </h4>
+          <Timeline
+            items={records.map(r => ({
+              color: r.action === 'subscribe' ? '#16A34A' : '#DC2626',
+              children: (
+                <div>
+                  <div style={{ marginBottom:4 }}>
+                    <StatusTag variant={ACTION_TAG[r.action].variant}>{ACTION_TAG[r.action].label}</StatusTag>
+                    <span style={{ color:'#6B7280', fontSize:12, marginLeft:4 }}>{r.at}</span>
+                  </div>
+                  <div style={{ fontSize:13, marginBottom:4 }}>
+                    {r.from} <span style={{ color:'#9CA3AF' }}>→</span> <strong>{r.to}</strong>
+                    <span style={{ marginLeft:8, color:'#6B7280' }}>来源:{CONSENT_SOURCE_LABEL[r.source] || '—'}</span>
+                  </div>
+                  <div style={{ fontSize:12, color:'#9CA3AF' }}>
+                    <GlobalOutlined style={{ marginRight:4 }} /><span className="lp-code">{r.ip}</span>
+                    <DesktopOutlined style={{ margin:'0 4px 0 12px' }} />{r.device}
+                  </div>
+                </div>
+              ),
+            }))}
+          />
+        </>
+      )}
+    </Drawer>
+  );
+}
+
+function SubscriptionPage() {
+  const [mode, setMode] = useState('data');
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [active, setActive] = useState(null);
+  const [kw, setKw] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('');
+  const [regFilter, setRegFilter] = useState('');
+
+  const openUser = (u) => { setActive(u); setDrawerOpen(true); };
+
+  const filtered = useMemo(() => USERS.filter(u => {
+    if (kw) {
+      const hay = [u.email, u.name || '', u.uid || ''].join(' ').toLowerCase();
+      if (!hay.includes(kw.toLowerCase())) return false;
+    }
+    if (statusFilter === 'on' && !u.subscribed) return false;
+    if (statusFilter === 'off' && u.subscribed) return false;
+    if (sourceFilter && u.source !== sourceFilter) return false;
+    if (regFilter === 'reg' && !u.registered) return false;
+    if (regFilter === 'unreg' && u.registered) return false;
+    return true;
+  }), [kw, statusFilter, sourceFilter, regFilter]);
+
+  const subCount = USERS.filter(u => u.subscribed).length;
+  const unsubCount = USERS.length - subCount;
+  const unregCount = USERS.filter(u => !u.registered).length;
+  const rate = USERS.length ? Math.round(subCount / USERS.length * 100) : 0;
+
+  const columns = [
+    { title: '订阅邮箱', dataIndex: 'email', render: v => <span style={{ fontWeight:500 }}>{v}</span> },
+    { title: '用户 ID', dataIndex: 'uid', render: v => v
+      ? <span className="lp-code">{v}</span>
+      : <StatusTag variant="pending">未注册</StatusTag> },
+    { title: <TipText label="Email 营销订阅" tip={'已订阅 = 允许发送营销邮件\n已退订 = 仅发送订单履约等事务邮件'} />,
+      dataIndex: 'subscribed', render: v => v
+        ? <StatusTag variant="on">已订阅</StatusTag>
+        : <StatusTag variant="req">已退订</StatusTag> },
+    { title: '最近来源', dataIndex: 'source', render: v => SOURCE_LABEL[v] || '—' },
+    { title: '最近变更时间', dataIndex: 'changedAt' },
+    { title: '操作', key: 'op', render: (_, r) => (
+      <Space size={6}>
+        <Button size="small" onClick={() => openUser(r)}>查看 / 调取凭证</Button>
+      </Space>
+    ) },
+  ];
+
+  const clearFilter = () => { setKw(''); setStatusFilter(''); setSourceFilter(''); setRegFilter(''); setMode('data'); };
+
+  return (
+    <Card style={CARD_STYLE}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:16, marginBottom:18 }}>
+        <div>
+          <div style={{ fontSize:20, fontWeight:700, marginBottom:6 }}>订阅用户</div>
+          <div style={{ color:'#6B7280', fontSize:13 }}>查询 Email 营销订阅状态(以邮箱为主体,含未注册访客),点击行调取该邮箱的同意凭证(合规审计)</div>
+        </div>
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:18 }}>
+        <Kpi num={USERS.length} label="订阅记录总数" />
+        <Kpi num={subCount} label="已订阅" numStyle={{ color:'#16A34A' }} />
+        <Kpi num={unsubCount} label="已退订" numStyle={{ color:'#DC2626' }} />
+        <Kpi num={unregCount} label="未注册订阅" />
+      </div>
+
+      <Space size={12} wrap style={{ marginBottom:16 }}>
+        <Input placeholder="搜索 邮箱 / 姓名 / 用户ID" prefix={<SearchOutlined style={{ color:'#9CA3AF' }} />}
+          allowClear style={{ width:220 }} value={kw} onChange={e => setKw(e.target.value)} />
+        <Select value={statusFilter} style={{ width:130 }} onChange={setStatusFilter}
+          options={[{value:'',label:'全部状态'},{value:'on',label:'已订阅'},{value:'off',label:'已退订'}]} />
+        <Select value={regFilter} style={{ width:130 }} onChange={setRegFilter}
+          options={[{value:'',label:'全部注册状态'},{value:'reg',label:'已注册'},{value:'unreg',label:'未注册'}]} />
+        <Select value={sourceFilter} style={{ width:150 }} onChange={setSourceFilter}
+          options={[{value:'',label:'全部来源'},{value:'footer',label:'页脚订阅框'},{value:'popup',label:'订阅弹窗'},{value:'preference',label:'偏好中心'}]} />
+        <Button type="primary" icon={<SearchOutlined />}>查询</Button>
+        <Button icon={<ReloadOutlined />} onClick={clearFilter}>重置</Button>
+      </Space>
+
+      {mode === 'data' && (
+        <>
+          <Table rowKey="id" columns={columns} dataSource={filtered} pagination={false} styles={TABLE_STYLES}
+            onRow={r => ({ onClick: () => openUser(r), style: { cursor:'pointer' } })} />
+          <CompactPagination total={filtered.length} pageSize={10} />
+        </>
+      )}
+      {mode === 'zero' && <EmptyZero />}
+      {mode === 'no-match' && <EmptyNoMatch onClear={clearFilter} />}
+      {mode === 'error' && <EmptyError onRetry={() => setMode('data')} />}
+
+      <EmptyStateSwitcher mode={mode} setMode={setMode} />
+
+      <UserDrawer user={active} open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+    </Card>
+  );
+}
+
+function App() {
+  const [activeKey, setActiveKey] = useState('sub-users');
+  const menuItems = [
+    { key: 'sub-users', icon: <UserOutlined />, label: '订阅用户' },
+  ];
+  return (
+    <Layout style={{ height: '100vh' }}>
+      <Layout.Header style={{ borderBottom: '1px solid #E5E7EB', display:'flex', alignItems:'center' }}>
+        <img src={LOGO_SRC} alt="Looply" style={{ height: 32, display: 'block' }} />
+        <div style={{ width:1, height:20, background:'#E5E7EB', margin:'0 16px' }} />
+        <span style={{ fontSize:14, fontWeight:500, color:'#6B7280' }}>订阅管理后台</span>
+        <span style={{ marginLeft:'auto', color:'#9CA3AF', fontSize:13 }}>订阅管理 / 订阅用户</span>
+      </Layout.Header>
+      <Layout>
+        <Layout.Sider width={220} theme="light" style={SIDER_STYLE}>
+          <Menu mode="inline" items={menuItems} selectedKeys={[activeKey]}
+            style={{ borderInlineEnd: 'none' }} onClick={({ key }) => setActiveKey(key)} />
+        </Layout.Sider>
+        <Layout.Content style={{ padding:28, overflow:'auto' }}>
+          <SubscriptionPage />
+        </Layout.Content>
+      </Layout>
+    </Layout>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <ConfigProvider theme={looplyTheme}><App /></ConfigProvider>
+);
+</script>
+</body>
+</html>

@@ -1,0 +1,626 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1861pt" height="1083pt" viewBox="0.00 0.00 1861.00 1083.00">
+<metadata><er-schema format="json" version="1.0">
+{
+  "title": "looply · 用户订阅管理 实体关系图",
+  "version": "v1.0 · 2026-06-09",
+  "tables": [
+    {
+      "name": "email_subscription",
+      "comment": "邮箱订阅状态",
+      "columns": [
+        {
+          "name": "email",
+          "comment": "邮箱(主体)",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "status",
+          "comment": "订阅状态 subscribed/unsubscribed",
+          "constraint": ""
+        },
+        {
+          "name": "user_id",
+          "comment": "账户ID(可空,注册后回填认领)",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "source",
+          "comment": "订阅入口 footer/popup/preference",
+          "constraint": ""
+        },
+        {
+          "name": "updated_at",
+          "comment": "最近状态变更时间",
+          "constraint": ""
+        }
+      ],
+      "note": "订阅唯一权威源 · 主体=email · user_id可空 · source仅3个订阅入口"
+    },
+    {
+      "name": "consent_record",
+      "comment": "同意凭证流水",
+      "columns": [
+        {
+          "name": "id",
+          "comment": "凭证ID",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "email",
+          "comment": "关联邮箱",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "user_id",
+          "comment": "账户ID(可空快照)",
+          "constraint": ""
+        },
+        {
+          "name": "action",
+          "comment": "动作 subscribe/unsubscribe",
+          "constraint": ""
+        },
+        {
+          "name": "from_status",
+          "comment": "变更前状态",
+          "constraint": ""
+        },
+        {
+          "name": "to_status",
+          "comment": "变更后状态",
+          "constraint": ""
+        },
+        {
+          "name": "source",
+          "comment": "触发来源 footer/popup/preference/email_unsub(二期补bounce/complaint)",
+          "constraint": ""
+        },
+        {
+          "name": "ip",
+          "comment": "操作IP(审计)",
+          "constraint": ""
+        },
+        {
+          "name": "device",
+          "comment": "操作设备UA快照(审计,非推送token)",
+          "constraint": ""
+        },
+        {
+          "name": "created_at",
+          "comment": "动作时间(不可篡改)",
+          "constraint": ""
+        }
+      ],
+      "note": "合规审计 · 每次动作落一条 · 不可篡改 · source含退订触发来源"
+    },
+    {
+      "name": "user_account",
+      "comment": "账户(外部)",
+      "columns": [
+        {
+          "name": "user_id",
+          "comment": "账户ID",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "email",
+          "comment": "注册邮箱",
+          "constraint": ""
+        },
+        {
+          "name": "created_at",
+          "comment": "注册时间",
+          "constraint": ""
+        }
+      ],
+      "note": "归用户中心/注册模块维护 · 本模块只读 · 注册不采集订阅,仅按email关联认领"
+    },
+    {
+      "name": "push_subscription",
+      "comment": "推送订阅(二期)",
+      "columns": [
+        {
+          "name": "user_id",
+          "comment": "账户ID",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "device_token",
+          "comment": "推送令牌(APNs/FCM)",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "status",
+          "comment": "订阅状态",
+          "constraint": ""
+        },
+        {
+          "name": "updated_at",
+          "comment": "最近变更时间",
+          "constraint": ""
+        }
+      ],
+      "note": "二期 · 主体=device_token(APNs/FCM推送令牌) · 一用户多设备"
+    },
+    {
+      "name": "sms_subscription",
+      "comment": "短信订阅(二期)",
+      "columns": [
+        {
+          "name": "phone",
+          "comment": "手机号(主体)",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "user_id",
+          "comment": "账户ID(可空关联)",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "status",
+          "comment": "订阅状态",
+          "constraint": ""
+        },
+        {
+          "name": "consent_type",
+          "comment": "同意类型 TCPA express opt-in",
+          "constraint": ""
+        },
+        {
+          "name": "updated_at",
+          "comment": "最近变更时间",
+          "constraint": ""
+        }
+      ],
+      "note": "二期 · 主体=phone · TCPA express opt-in"
+    }
+  ],
+  "relations": [
+    {
+      "from": "email_subscription",
+      "to": "consent_record",
+      "type": "1:N",
+      "label": "email关联每次动作流水",
+      "color": "#1565C0",
+      "penwidth": 1.6
+    },
+    {
+      "from": "user_account",
+      "to": "email_subscription",
+      "type": "1:0..N",
+      "label": "user_id可空·订阅可先于账户·注册后认领",
+      "style": "dashed"
+    },
+    {
+      "from": "user_account",
+      "to": "push_subscription",
+      "type": "1:0..N",
+      "label": "二期",
+      "color": "#B0A0CC",
+      "style": "dashed"
+    },
+    {
+      "from": "user_account",
+      "to": "sms_subscription",
+      "type": "1:0..N",
+      "label": "二期",
+      "color": "#B0A0CC",
+      "style": "dashed"
+    }
+  ],
+  "design_rules": {
+    "subject_email": "订阅以 email 为主体,user_id 可空。支持未注册访客订阅(CAN-SPAM 管制邮箱而非账户)",
+    "flat_per_channel": "按渠道分表平铺:email主键email、push主键(user_id+device_token)、sms主键phone。各表独立主键不共用主体,靠user_id关联,扩展加表不改既有表结构",
+    "register_link_only": "注册不采集营销订阅,注册模块也无订阅功能。本订阅模块监听注册事件:若该email已有订阅记录则把email_subscription.user_id从null回填(一次UPDATE)。关联认领不改变同意状态,不写consent_record,不污染同意凭证表。换邮箱注册=新账户,旧邮箱订阅保持user_id=null独立存活",
+    "source_two_layers": "source两层语义:email_subscription.source=订阅入口(仅footer/popup/preference 3个);consent_record.source=每次同意变更的触发来源(订阅footer/popup/preference、退订email_unsub/preference)。两者不混用",
+    "consent_pure": "consent_record只记同意的授予与撤销(subscribe/unsubscribe两类),用于合规举证。关联认领等不改变同意状态的动作不进此表",
+    "source_phase2_todo": "二期待补:硬退信(bounce)/垃圾投诉(complaint)类系统自动退订,EDM检测后写unsubscribe凭证。本期source不含这两值,归EDM抑制列表能力,二期再定协作写入",
+    "consent_immutable": "consent_record每次状态变更落一条,不可篡改,用于合规举证。状态表只存当前态,历史进流水",
+    "device_not_token": "consent_record.device是操作设备UA审计快照(如iPhone15·iOS18·Safari),与二期push_subscription.device_token(推送令牌)是完全不同概念",
+    "readonly_account": "user_account归用户中心/注册模块维护,本模块只读关联,不写"
+  }
+}
+</er-schema><er-tech-spec format="yaml"><![CDATA[
+title: looply · 用户订阅管理 实体关系图
+version: v1.0 · 2026-06-09
+tables:
+- name: email_subscription
+  comment: 邮箱订阅状态
+  note: 订阅唯一权威源 · 主体=email · user_id可空 · source仅3个订阅入口
+  columns:
+  - name: email
+    comment: 邮箱(主体)
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: status
+    comment: 订阅状态 subscribed/unsubscribed
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: user_id
+    comment: 账户ID(可空,注册后回填认领)
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: source
+    comment: 订阅入口 footer/popup/preference
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: updated_at
+    comment: 最近状态变更时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: consent_record
+  comment: 同意凭证流水
+  note: 合规审计 · 每次动作落一条 · 不可篡改 · source含退订触发来源
+  columns:
+  - name: id
+    comment: 凭证ID
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: email
+    comment: 关联邮箱
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: user_id
+    comment: 账户ID(可空快照)
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: action
+    comment: 动作 subscribe/unsubscribe
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: from_status
+    comment: 变更前状态
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: to_status
+    comment: 变更后状态
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: source
+    comment: 触发来源 footer/popup/preference/email_unsub(二期补bounce/complaint)
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: ip
+    comment: 操作IP(审计)
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: device
+    comment: 操作设备UA快照(审计,非推送token)
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: created_at
+    comment: 动作时间(不可篡改)
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: user_account
+  comment: 账户(外部)
+  note: 归用户中心/注册模块维护 · 本模块只读 · 注册不采集订阅,仅按email关联认领
+  columns:
+  - name: user_id
+    comment: 账户ID
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: email
+    comment: 注册邮箱
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: created_at
+    comment: 注册时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: push_subscription
+  comment: 推送订阅(二期)
+  note: 二期 · 主体=device_token(APNs/FCM推送令牌) · 一用户多设备
+  columns:
+  - name: user_id
+    comment: 账户ID
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: device_token
+    comment: 推送令牌(APNs/FCM)
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: status
+    comment: 订阅状态
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: updated_at
+    comment: 最近变更时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: sms_subscription
+  comment: 短信订阅(二期)
+  note: 二期 · 主体=phone · TCPA express opt-in
+  columns:
+  - name: phone
+    comment: 手机号(主体)
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: user_id
+    comment: 账户ID(可空关联)
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: status
+    comment: 订阅状态
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: consent_type
+    comment: 同意类型 TCPA express opt-in
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: updated_at
+    comment: 最近变更时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+relations:
+- from: email_subscription
+  to: consent_record
+  type: 1:N
+  label: email关联每次动作流水
+  color: '#1565C0'
+  penwidth: 1.6
+- from: user_account
+  to: email_subscription
+  type: 1:0..N
+  label: user_id可空·订阅可先于账户·注册后认领
+  style: dashed
+- from: user_account
+  to: push_subscription
+  type: 1:0..N
+  label: 二期
+  color: '#B0A0CC'
+  style: dashed
+- from: user_account
+  to: sms_subscription
+  type: 1:0..N
+  label: 二期
+  color: '#B0A0CC'
+  style: dashed
+design_rules:
+  subject_email: 订阅以 email 为主体,user_id 可空。支持未注册访客订阅(CAN-SPAM 管制邮箱而非账户)
+  flat_per_channel: 按渠道分表平铺:email主键email、push主键(user_id+device_token)、sms主键phone。各表独立主键不共用主体,靠user_id关联,扩展加表不改既有表结构
+  register_link_only: 注册不采集营销订阅,注册模块也无订阅功能。本订阅模块监听注册事件:若该email已有订阅记录则把email_subscription.user_id从null回填(一次UPDATE)。关联认领不改变同意状态,不写consent_record,不污染同意凭证表。换邮箱注册=新账户,旧邮箱订阅保持user_id=null独立存活
+  source_two_layers: source两层语义:email_subscription.source=订阅入口(仅footer/popup/preference 3个);consent_record.source=每次同意变更的触发来源(订阅footer/popup/preference、退订email_unsub/preference)。两者不混用
+  consent_pure: consent_record只记同意的授予与撤销(subscribe/unsubscribe两类),用于合规举证。关联认领等不改变同意状态的动作不进此表
+  source_phase2_todo: 二期待补:硬退信(bounce)/垃圾投诉(complaint)类系统自动退订,EDM检测后写unsubscribe凭证。本期source不含这两值,归EDM抑制列表能力,二期再定协作写入
+  consent_immutable: consent_record每次状态变更落一条,不可篡改,用于合规举证。状态表只存当前态,历史进流水
+  device_not_token: consent_record.device是操作设备UA审计快照(如iPhone15·iOS18·Safari),与二期push_subscription.device_token(推送令牌)是完全不同概念
+  readonly_account: user_account归用户中心/注册模块维护,本模块只读关联,不写
+]]></er-tech-spec></metadata><g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(57.6 1025.6)">
+<title>ER</title>
+<polygon fill="#f8f9fc" stroke="none" points="-57.6,57.6 -57.6,-1025.6 1803.85,-1025.6 1803.85,57.6 -57.6,57.6" />
+<g id="clust1" class="cluster">
+<title>cluster_core</title>
+<path fill="#ebf3fb" stroke="#a3c4e9" stroke-width="2.5" d="M638.25,-514C638.25,-514 1726.25,-514 1726.25,-514 1732.25,-514 1738.25,-520 1738.25,-526 1738.25,-526 1738.25,-948 1738.25,-948 1738.25,-954 1732.25,-960 1726.25,-960 1726.25,-960 638.25,-960 638.25,-960 632.25,-960 626.25,-954 626.25,-948 626.25,-948 626.25,-526 626.25,-526 626.25,-520 632.25,-514 638.25,-514" />
+<text xml:space="preserve" text-anchor="start" x="1088.88" y="-943.7" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="#4a90d9">本期核心层 · 订阅状态与凭证</text>
+</g>
+<g id="clust2" class="cluster">
+<title>cluster_external</title>
+<path fill="#f0f0f2" stroke="#c0c0c8" stroke-width="2.5" d="M20,-270C20,-270 380.75,-270 380.75,-270 386.75,-270 392.75,-276 392.75,-282 392.75,-282 392.75,-478 392.75,-478 392.75,-484 386.75,-490 380.75,-490 380.75,-490 20,-490 20,-490 14,-490 8,-484 8,-478 8,-478 8,-282 8,-282 8,-276 14,-270 20,-270" />
+<text xml:space="preserve" text-anchor="start" x="95.38" y="-473.7" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="#6b7280">外部依赖 · 用户中心(本模块只读)</text>
+</g>
+<g id="clust3" class="cluster">
+<title>cluster_phase2</title>
+<path fill="#f7f4fb" stroke="#d6c9e8" stroke-width="2.5" d="M630,-8C630,-8 981.75,-8 981.75,-8 987.75,-8 993.75,-14 993.75,-20 993.75,-20 993.75,-494 993.75,-494 993.75,-500 987.75,-506 981.75,-506 981.75,-506 630,-506 630,-506 624,-506 618,-500 618,-494 618,-494 618,-20 618,-20 618,-14 624,-8 630,-8" />
+<text xml:space="preserve" text-anchor="start" x="700.88" y="-489.7" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="#9b7fc4">二期预留 · 多渠道扩展(本期不建)</text>
+</g>
+
+<g id="node1" class="node">
+<title>email_subscription</title>
+<polygon fill="#4a90d9" stroke="none" points="644.25,-760 644.25,-792.25 927.75,-792.25 927.75,-760 644.25,-760" />
+<text xml:space="preserve" text-anchor="start" x="678.38" y="-773.95" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">邮箱订阅状态 email_subscription</text>
+<text xml:space="preserve" text-anchor="start" x="650.25" y="-739" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">email 邮箱(主体)</text>
+<text xml:space="preserve" text-anchor="start" x="933.75" y="-739" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="650.25" y="-706.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">status 订阅状态 subscribed/unsubscribed</text>
+<text xml:space="preserve" text-anchor="start" x="650.25" y="-674.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">user_id 账户ID(可空,注册后回填认领)</text>
+<text xml:space="preserve" text-anchor="start" x="934.12" y="-674.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="650.25" y="-642.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">source 订阅入口 footer/popup/preference</text>
+<text xml:space="preserve" text-anchor="start" x="650.25" y="-610" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">updated_at 最近状态变更时间</text>
+<polygon fill="#e3f2fd" stroke="none" points="644.25,-571.75 644.25,-598.75 967.5,-598.75 967.5,-571.75 644.25,-571.75" />
+<text xml:space="preserve" text-anchor="start" x="656.62" y="-584.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">订阅唯一权威源 · 主体=email · user_id可空 · source仅3个订阅入口</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="643.25,-570.75 643.25,-793.25 968.5,-793.25 968.5,-570.75 643.25,-570.75" />
+</g>
+
+<g id="node2" class="node">
+<title>consent_record</title>
+<polygon fill="#4a90d9" stroke="none" points="1144.25,-881.62 1144.25,-913.88 1680.5,-913.88 1680.5,-881.62 1144.25,-881.62" />
+<text xml:space="preserve" text-anchor="start" x="1316" y="-895.58" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">同意凭证流水 consent_record</text>
+<text xml:space="preserve" text-anchor="start" x="1150.25" y="-860.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 凭证ID</text>
+<text xml:space="preserve" text-anchor="start" x="1686.5" y="-860.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="1150.25" y="-828.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">email 关联邮箱</text>
+<text xml:space="preserve" text-anchor="start" x="1686.88" y="-828.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="1150.25" y="-796.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">user_id 账户ID(可空快照)</text>
+<text xml:space="preserve" text-anchor="start" x="1150.25" y="-763.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">action 动作 subscribe/unsubscribe</text>
+<text xml:space="preserve" text-anchor="start" x="1150.25" y="-731.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">from_status 变更前状态</text>
+<text xml:space="preserve" text-anchor="start" x="1150.25" y="-699.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">to_status 变更后状态</text>
+<text xml:space="preserve" text-anchor="start" x="1150.25" y="-667.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">source 触发来源 footer/popup/preference/email_unsub(二期补bounce/complaint)</text>
+<text xml:space="preserve" text-anchor="start" x="1150.25" y="-634.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">ip 操作IP(审计)</text>
+<text xml:space="preserve" text-anchor="start" x="1150.25" y="-602.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">device 操作设备UA快照(审计,非推送token)</text>
+<text xml:space="preserve" text-anchor="start" x="1150.25" y="-570.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">created_at 动作时间(不可篡改)</text>
+<polygon fill="#e3f2fd" stroke="none" points="1144.25,-532.12 1144.25,-559.12 1720.25,-559.12 1720.25,-532.12 1144.25,-532.12" />
+<text xml:space="preserve" text-anchor="start" x="1292.75" y="-544.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">合规审计 · 每次动作落一条 · 不可篡改 · source含退订触发来源</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="1143.25,-531.12 1143.25,-914.88 1721.25,-914.88 1721.25,-531.12 1143.25,-531.12" />
+</g>
+
+<g id="edge1" class="edge">
+<title>email_subscription-&gt;consent_record</title>
+<path fill="none" stroke="#1565c0" stroke-width="1.6" d="M969.29,-692.67C1019.62,-695.97 1076.76,-699.72 1133.28,-703.43" />
+<polygon fill="#1565c0" stroke="#1565c0" stroke-width="1.6" points="1132.78,-705.86 1139.93,-703.87 1133.1,-700.97 1132.78,-705.86" />
+<text xml:space="preserve" text-anchor="middle" x="1061" y="-708" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#1565c0">1:N email关联每次动作流水</text>
+</g>
+
+<g id="node3" class="node">
+<title>user_account</title>
+<polygon fill="#6b7280" stroke="none" points="26,-411.75 26,-444 266.38,-444 266.38,-411.75 26,-411.75" />
+<text xml:space="preserve" text-anchor="start" x="66.31" y="-425.7" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">账户(外部) user_account</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-390.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">user_id 账户ID</text>
+<text xml:space="preserve" text-anchor="start" x="306.69" y="-390.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-358.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">email 注册邮箱</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-326.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">created_at 注册时间</text>
+<polygon fill="#e3f2fd" stroke="none" points="26,-288 26,-315 374.75,-315 374.75,-288 26,-288" />
+<text xml:space="preserve" text-anchor="start" x="32" y="-300.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">归用户中心/注册模块维护 · 本模块只读 · 注册不采集订阅,仅按email关联认领</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="25,-287 25,-445 375.75,-445 375.75,-287 25,-287" />
+</g>
+
+<g id="edge2" class="edge">
+<title>user_account-&gt;email_subscription</title>
+<path fill="none" stroke="#90caf9" stroke-dasharray="5,2" d="M354.05,-445.94C439.64,-490.76 546.61,-546.77 634.86,-592.98" />
+<polygon fill="#90caf9" stroke="#90caf9" points="633.58,-595.07 640.92,-596.15 635.85,-590.73 633.58,-595.07" />
+<text xml:space="preserve" text-anchor="middle" x="505.38" y="-585.29" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#4a90d9">1:0..N user_id可空·订阅可先于账户·注册后认领</text>
+</g>
+
+<g id="node4" class="node">
+<title>push_subscription</title>
+<polygon fill="#b0a0cc" stroke="none" points="657.75,-427.88 657.75,-460.12 905.25,-460.12 905.25,-427.88 657.75,-427.88" />
+<text xml:space="preserve" text-anchor="start" x="671.62" y="-441.82" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">推送订阅(二期) push_subscription</text>
+<text xml:space="preserve" text-anchor="start" x="663.75" y="-406.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">user_id 账户ID</text>
+<text xml:space="preserve" text-anchor="start" x="915.75" y="-406.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="663.75" y="-374.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">device_token 推送令牌(APNs/FCM)</text>
+<text xml:space="preserve" text-anchor="start" x="915.75" y="-374.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="663.75" y="-342.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">status 订阅状态</text>
+<text xml:space="preserve" text-anchor="start" x="663.75" y="-310.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">updated_at 最近变更时间</text>
+<polygon fill="#e3f2fd" stroke="none" points="657.75,-271.88 657.75,-298.88 954,-298.88 954,-271.88 657.75,-271.88" />
+<text xml:space="preserve" text-anchor="start" x="663.75" y="-284.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">二期 · 主体=device_token(APNs/FCM推送令牌) · 一用户多设备</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="656.75,-270.88 656.75,-461.12 955,-461.12 955,-270.88 656.75,-270.88" />
+</g>
+
+<g id="edge3" class="edge">
+<title>user_account-&gt;push_subscription</title>
+<path fill="none" stroke="#b0a0cc" stroke-dasharray="5,2" d="M376.74,-366C462.37,-366 564.58,-366 647.65,-366" />
+<polygon fill="#b0a0cc" stroke="#b0a0cc" points="647.62,-368.45 654.62,-366 647.62,-363.55 647.62,-368.45" />
+<text xml:space="preserve" text-anchor="middle" x="505.38" y="-371.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#b0a0cc">1:0..N 二期</text>
+</g>
+
+<g id="node5" class="node">
+<title>sms_subscription</title>
+<polygon fill="#b0a0cc" stroke="none" points="636,-214 636,-246.25 936,-246.25 936,-214 636,-214" />
+<text xml:space="preserve" text-anchor="start" x="678.38" y="-227.95" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">短信订阅(二期) sms_subscription</text>
+<text xml:space="preserve" text-anchor="start" x="642" y="-193" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">phone 手机号(主体)</text>
+<text xml:space="preserve" text-anchor="start" x="942" y="-193" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="642" y="-160.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">user_id 账户ID(可空关联)</text>
+<text xml:space="preserve" text-anchor="start" x="942.38" y="-160.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="642" y="-128.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">status 订阅状态</text>
+<text xml:space="preserve" text-anchor="start" x="642" y="-96.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">consent_type 同意类型 TCPA express opt-in</text>
+<text xml:space="preserve" text-anchor="start" x="642" y="-64" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">updated_at 最近变更时间</text>
+<polygon fill="#e3f2fd" stroke="none" points="636,-25.75 636,-52.75 975.75,-52.75 975.75,-25.75 636,-25.75" />
+<text xml:space="preserve" text-anchor="start" x="709.12" y="-38.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">二期 · 主体=phone · TCPA express opt-in</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="635,-24.75 635,-247.25 976.75,-247.25 976.75,-24.75 635,-24.75" />
+</g>
+
+<g id="edge4" class="edge">
+<title>user_account-&gt;sms_subscription</title>
+<path fill="none" stroke="#b0a0cc" stroke-dasharray="5,2" d="M376.74,-299.17C455.21,-269.26 547.6,-234.05 626.43,-204.01" />
+<polygon fill="#b0a0cc" stroke="#b0a0cc" points="626.93,-206.44 632.6,-201.66 625.19,-201.86 626.93,-206.44" />
+<text xml:space="preserve" text-anchor="middle" x="505.38" y="-295.48" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#b0a0cc">1:0..N 二期</text>
+</g>
+</g>
+</svg>

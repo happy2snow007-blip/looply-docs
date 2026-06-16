@@ -296,6 +296,33 @@ MODULES = {
             },
         },
     },
+    'subscription': {
+        'name': '订阅管理',
+        'default_source': '$HOME/Desktop/订阅管理',
+        'target': 'docs-订阅管理',
+        'keywords': ['订阅', 'subscription', 'subscribe'],
+        'config_key': 'subscription',
+        'artifacts': {
+            # 主原型为 antd 版：源目录命名为 "订阅管理-antd-原型-v{n}.html"
+            'prototype': {
+                'subdir': '原型',
+                'pattern': r'looply-订阅管理-antd-原型-v(.+?)\.html',
+                'exclude': r'(backup|对比|report)',
+            },
+            'prd': {
+                'subdir': 'PRD',
+                'pattern': r'looply-用户订阅管理-PRD-v(.+?)\.md',
+            },
+            'er': {
+                'subdir': '实体关系图',
+                'pattern': r'looply-用户订阅管理实体关系图-v(.+?)\.svg',
+            },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'订阅管理-交付开发 V(.+?)\.zip',
+            },
+        },
+    },
 }
 
 # ─── 自动发现新模块 ────────────────────────────────────────────────────────────────
