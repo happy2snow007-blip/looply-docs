@@ -68,13 +68,17 @@ MODULES = {
     },
     'home': {
         'name': '首页',
-        'default_source': '$HOME/looply/home/feed-prd',
+        'default_source': '$HOME/looply/首页',
         'target': 'docs-首页',
         'keywords': ['首页', 'home'],
         'config_key': None,
         'artifacts': {
             'prd': {
-                'subdir': '.',
+                'subdir': 'PRD',
+                'pattern': r'looply-首页-PRD-v(.+?)\.md',
+            },
+            'prd_feed': {
+                'subdir': 'feed-prd',
                 'pattern': r'Looply-首页Feed-PRD-v(.+?)\.md',
             },
         },
