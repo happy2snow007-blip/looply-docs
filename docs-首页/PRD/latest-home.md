@@ -985,18 +985,19 @@ Feed 相关埋点的详细定义见《Looply 首页 Feed PRD v2.3》§10 行为�
 
 | 页面 / 区域 | 端 | 设计稿文件 | 关键 Frame / Node |
 |-------------|----|-----------|--------------------|
-| 首页移动端全页 | App | `looply-home-PC.pen`（含移动端 Frame） | Frame `R0Yxz` |
-| 首页 PC 端全页（方案 A-Fixed） | PC | `looply-home-PC.pen` | Frame `kSmej` |
-| 移动端 Header + Search Pill | App | `looply-home-PC.pen` | Node `Ajij5`（Header） |
+| 首页移动端全页 | App | [首页 APP 端（Figma）](https://www.figma.com/design/hwPpMTL2rFF8fcWD8mHmLE/Untitled?node-id=280-2&t=n8yG97WUo5EQiBJF-1) | Node 280-2 |
+| 首页 PC 端全页 | PC | `looply-home-PC.pen` | Frame `kSmej` |
+| 移动端 Header + Search Pill | App | [首页 APP 端（Figma）](https://www.figma.com/design/hwPpMTL2rFF8fcWD8mHmLE/Untitled?node-id=280-2&t=n8yG97WUo5EQiBJF-1) | — |
 | PC Navbar（含搜索 + navRight） | PC | `looply-home-PC.pen` | Node `PP8Uk` |
 | PC Announcement Bar | PC | `looply-home-PC.pen` | Node `EhX1v` |
-| Trust Bar（2×2 网格） | App | `looply-home-PC.pen` | Trust Bar 区域 |
-| Collections（横向卡片） | App | `looply-home-PC.pen` | Collections 区域 |
-| Feed 区域（Tab + 商品网格） | App | `looply-home-PC.pen` | Feed 区域 |
+| Trust Bar | App / PC | `looply-home-PC.pen` | Trust Bar 区域 |
+| Collections（横向卡片） | App / PC | `looply-home-PC.pen` | Collections 区域 |
+| Feed 区域（Tab + 商品网格） | App / PC | `looply-home-PC.pen` | Feed 区域 |
 | 底部 Tab Bar | App | `looply-home-PC.pen` | Node `o4oh3V` |
-| 首页移动端参考截图 | App | `Main full-1.png` | `/Users/zz/looply/cms/前端页面参考mobile/Main full-1.png` |
 
-设计稿路径：`/Users/zz/looply/cms/looply-home-PC.pen`
+设计稿路径：
+- 移动端：[首页 APP 端（Figma）](https://www.figma.com/design/hwPpMTL2rFF8fcWD8mHmLE/Untitled?node-id=280-2&t=n8yG97WUo5EQiBJF-1)
+- PC 端：`/Users/zz/looply/cms/looply-home-PC.pen`
 
 ---
 
