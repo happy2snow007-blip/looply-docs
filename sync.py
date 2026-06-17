@@ -365,6 +365,29 @@ MODULES = {
             },
         },
     },
+    'social_share': {
+        'name': '社媒分享管理',
+        'default_source': '$HOME/Desktop/社媒分享',
+        'target': 'docs-社媒分享管理',
+        'keywords': ['社媒', '分享', 'share', 'social'],
+        'config_key': 'social_share',
+        'artifacts': {
+            # 主原型为后台 antd 短链管理控制台；C 端前端原型已迁 Figma，.pen 不进文档中心
+            'prototype': {
+                'subdir': '原型',
+                'pattern': r'looply-社媒分享管理-antd-原型-v(.+?)\.html',
+                'exclude': r'(backup|对比|report)',
+            },
+            'prd': {
+                'subdir': 'PRD',
+                'pattern': r'looply-社媒分享管理-PRD-v(.+?)\.md',
+            },
+            'er': {
+                'subdir': '实体关系图',
+                'pattern': r'looply-社媒分享实体关系图-v(.+?)\.svg',
+            },
+        },
+    },
 }
 
 # ─── 自动发现新模块 ────────────────────────────────────────────────────────────────
