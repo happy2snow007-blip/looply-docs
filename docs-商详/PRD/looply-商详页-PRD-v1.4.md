@@ -1,6 +1,6 @@
-# looply 商详页 PRD V1.5
+# looply 商详页 PRD V1.4
 
-> **版本**：V1.5 | **日期**：2026-06-17
+> **版本**：V1.4 | **日期**：2026-06-11
 >
 > **定位**：本文档定义商详页所有模块的数据来源、取值规则、业务逻辑和边界处理。不含端交互行为（PC/APP 各自的交互说明文档维护）。
 >
@@ -25,7 +25,7 @@ looply 是二手奢侈品电商平台，商详页（Product Detail Page, PDP）�
 | 不做 | 说明 |
 |------|------|
 | 端交互行为 | hover、手势、动效、布局尺寸等由 PC/APP 各自的交互说明文档维护 |
-| CMS 后台页面交互 | 后台的页面交互、表单校验等由 CMS 后台原型文档维护；CMS 配置的业务规则（模板管理、模块开关、保存、变更记录等）在本文档 2.3 节定义 |
+| CMS 后台页面交互 | 后台的页面交互、表单校验等由 CMS 后台原型文档维护；CMS 配置的业务规则（继承、保存、变更记录等）在本文档 2.3 节定义 |
 | 后端接口设计 | API 路径、参数格式属于技术文档范畴 |
 
 ### 1.3 用户角色
@@ -40,9 +40,8 @@ looply 是二手奢侈品电商平台，商详页（Product Detail Page, PDP）�
 
 | 场景 | 用户行为 | 关键模块 |
 |------|---------|---------|
-| 了解商品基本信息 | 查看品牌、标题、价格、描述 | 商品信息区、Description 描述折叠区 |
-| 了解平台信任保障 | 查看认证、成色检查、售后保障承诺 | Trust Statement 信任声明 |
-| 评估二手品质 | 查看成色等级、成色进度条、成色描述、配件信息，查看 Condition Guide | Condition 成色折叠区 |
+| 了解商品基本信息 | 查看品牌、标题、价格、描述 | 商品信息区、商品描述 |
+| 评估二手品质 | 查看成色等级、成色与外观描述、鉴定认证、配件信息 | Condition 成色折叠区 |
 | 了解商品属性 | 查看材质、颜色、尺寸等属性，查看尺寸标注 | Description 描述折叠区 |
 | 查看商品实拍图 | 浏览图片、放大查看细节 | Gallery、Lightbox |
 | 了解物流与退换政策 | 查看运费、退货政策 | Shipping & Returns |
@@ -62,13 +61,13 @@ Gallery 图片区
   ↓
 商品信息区（品牌 / 标题 / 价格 / Tax）
   ↓
-CTA 按钮 & 支付方式
+商品描述
   ↓
-Trust Statement 信任声明
+CTA 按钮 & 支付方式
   ↓
 Condition 成色折叠区
   ↓
-Description 描述折叠区（含商品描述文案）
+Description 描述折叠区
   ↓
 Shipping & Returns 折叠区
   ↓
@@ -81,8 +80,6 @@ Footer 页脚
 
 其中 Lightbox（灯箱）为 Gallery 主图点击后的全屏查看器。
 
-> **V1.5 变更**：原独立的"商品描述"模块合并到 Description 描述折叠区（属性表下方展示商品描述文案）；新增 Trust Statement 模块（位于 CTA 和 Condition 之间）。
-
 ### 1.6 术语说明
 
 | 术语 | 说明 |
@@ -92,8 +89,7 @@ Footer 页脚
 | SPU | 标品（Standard Product Unit），如"LV Speedy 25"，product 通过 standard_sku 关联到 SPU |
 | standard_sku | 标品 SKU，SPU 下按销售属性（颜色、尺码）区分的标准单品 |
 | Market | 市场区域（如 US Market），决定默认语言、默认货币、配送策略 |
-| PDP 模板 | 商详页内容模板，将 Trust Statement / Condition / Description 的配置捆绑管理，一个模板关联一组类目 |
-| CMS 配置 | 通过后台管理系统配置的内容，按 PDP 模板组织，支持模板级和类目级两种粒度 |
+| CMS 配置 | 通过后台管理系统配置的内容，支持按维度（类目/品牌/系列）差异化 |
 | 币种转换 | 当用户选择的展示货币与 listing 定价货币不同时，按汇率换算并适配尾数规则 |
 | 展示标题 | 渠道商品的前台展示标题（listing_title），默认使用商品原始名称，可按渠道差异化修改 |
 
@@ -153,10 +149,9 @@ Footer 页脚
 | `category` | 类目名 | 面包屑 | category_id | `category_name` |
 | `attribute` | 属性展示名 | Description 折叠区左列 | attribute_id | `display_name`（CMS 覆盖值）或 `attribute_name`（兜底） |
 | `attribute_option` | 属性值 | Description 折叠区右列 | option_id | `option_value` |
-| `enum` | 枚举展示名 | 成色等级 | -- | 枚举值（如 `Like New`, `Excellent`） |
+| `enum` | 枚举展示名 | 成色等级 | -- | 枚举值（如 `NWT`, `Excellent`） |
 | `ui` | 界面文案 | 按钮、徽章、Tax 提示 | -- | Key（如 `btn.add_to_cart`） |
-| `content` | CMS 内容 | Trust Statement、Shipping & Returns | content_id | `title`, `body` |
-| `pdp_template` | PDP 模板内容 | Trust Statement 标题/描述/详情，Condition 等级名/描述 | template_id | 各字段 |
+| `content` | CMS 内容 | Shipping & Returns | content_id | `body` |
 
 **翻译查询优先级（Fallback 策略）**
 
@@ -187,73 +182,67 @@ Footer 页脚
 
 **功能描述**
 
-商详页部分模块的展示内容由 CMS 后台配置驱动。配置通过 **PDP 模板（Template）** 组织，每个模板关联一组类目，模板内分模块管理配置。后台操作流程详见 CMS 配置后台原型文档。
+商详页部分模块的展示内容由 CMS 后台配置驱动，支持按「类目 > 品牌 > 系列」维度差异化配置。后台操作流程详见 CMS 配置后台原型文档。
 
-#### PDP 模板
+**可配置模块**
 
-**模板概念**
+| 模块 | 可配置内容 | 详见章节 |
+|------|-----------|---------|
+| Description 描述 | 属性展示配置（定义展示名 + 绑定数据源 + 排序），含 Size Guide（固定模块，选择类目后自动带入） | 2.11 |
 
-PDP 模板是商详页内容配置的顶层组织单元。一个模板定义了一组商详页的 Trust Statement、Condition 等级体系和 Description 属性展示规则。
+**不可配置（固定）模块**
 
-| 属性 | 说明 |
-|------|------|
-| 模板名称 | 运营自定义（如"Luxury PDP"、"Electronics PDP"） |
-| 关联类目 | 一个模板关联一组类目；一个类目只能属于一个模板 |
-| 模板级配置 | Trust Statement、Condition 等级体系——同一模板下所有类目共享 |
-| 类目级配置 | Description 属性展示——模板内按类目差异化配置 |
-
-**模板与类目的关系**
-
-- 一个类目只能关联到一个 PDP 模板（1:N 关系，模板:类目）
-- 未关联任何模板的类目，商详页上 Trust Statement 不展示、Condition 仅展示基本成色信息（无进度条和等级体系）、Description 不展示
-- 修改模板关联的类目即时生效
-
-#### 可配置模块
-
-| 模块 | 配置粒度 | 可配置内容 | 详见章节 |
-|------|---------|-----------|---------|
-| Trust Statement 信任声明 | 模板级 | 标题、描述文案、详细说明（半层弹窗内容） | 2.9 |
-| Condition 成色等级体系 | 模板级 | 等级名称、等级描述（定义该模板使用的成色等级集合） | 2.10 |
-| Description 描述 | 类目级（模板内） | 属性展示配置（定义展示名 + 绑定数据源 + 排序），含 Size Guide | 2.11 |
-
-#### 不可配置（固定）模块
-
-Breadcrumb、Gallery、商品信息区、CTA & 支付方式、Shipping & Returns、推荐区、浏览历史、Footer、Lightbox——这些模块的数据来源固定，无需后台配置。
+Breadcrumb、Gallery、商品信息区、商品描述、Condition 成色、CTA & 支付方式、Shipping & Returns、推荐区、浏览历史、Footer、Lightbox——这些模块的数据来源固定，无需后台配置。
 
 > CTA 支付方式图标本期写死 12 个，后续支付模块就绪后升级为动态配置。Shipping & Returns 本期为前端固定文案，后续配送模块就绪且规则更灵活时再升级为 CMS 配置。
 
-#### Description 属性配置规则
+**继承机制**
 
-Description 模块在模板内按类目配置，每个类目独立维护一套属性展示规则：
+适用于 Description 模块的展示配置：
 
-- 每个类目一条规则，定义展示哪些属性、展示名、排序
-- 同一模板内不同类目可配置不同的属性集合
-- 类目规则**整条替换**，不做属性级合并
-- 删除某类目的规则后，该类目商品的 Description 区域整体隐藏
-- 模板内所有类目的规则均被删除时，该模板下所有商品的 Description 区域隐藏
+- 按 **系列 > 品牌 > 类目** 逐级查找，命中即停
+- 示例：LV Monogram 项链 → 先找「Jewelry > LV > Monogram」→ 无则找「Jewelry > LV」→ 无则找「Jewelry」兜底
+- 子级规则**整条覆盖**父级，不做属性级合并
+- 删除子级规则后**立即**回退到继承父级，无延迟生效
+- 所有层级规则均被删除（含类目级兜底）时，前台 Description 区域整体隐藏，不展示
 
-#### 保存行为
+**作用域唯一性**
+
+- 同一作用域（类目 + 品牌 + 系列的组合）只能存在一条规则
+- 新增规则时，若选择的作用域已有规则，系统报错提示"该作用域已存在规则，请编辑现有规则"
+
+**保存行为**
 
 - 当前不设草稿态，保存即生效
-- 运营点击「保存」后，配置立即应用到前台商详页
+- 运营点击「保存」后，规则立即应用到前台商详页
 - 不设审批流程
 
-#### 模块开关
+**筛选联动规则**
 
-- Trust Statement / Condition / Description 模块各有独立开关
-- 模块开关关闭后，前台商详页不展示该模块（完全隐藏，无默认内容）
+规则列表支持按类目和品牌筛选：
+
+| 筛选器 | 行为 |
+|-------|------|
+| 类目筛选 | 选择即筛选（无查询按钮），展示该类目及其下属所有层级规则 |
+| 品牌筛选 | 跟随类目级联——选择类目后，品牌下拉只显示该类目下已有规则的品牌 |
+| 组合筛选 | 类目 + 品牌同时选中时，展示该品牌及其下属系列的规则 |
+| 无结果 | 表格空态显示"未找到匹配的规则" |
+
+**模块开关**
+
+- Description 模块开关关闭后，前台商详页不展示 Description 区域（完全隐藏，无默认内容）
 - 开关切换即时生效，不需要额外保存操作
-- 开关作用于整个模板（即模板下所有关联类目统一生效）
+- 后续其他可配置模块沿用同一套开关逻辑
 
-#### Size Guide 默认值策略
+**Size Guide 默认值策略**
 
-- 新增 Description 规则时 Size Guide 作为固定模块自动带入属性列表
+- 新增规则时 Size Guide 作为固定模块自动带入属性列表
 - 有尺码概念的类目（Jewelry / Bags / Clothing 等）：Size Guide 默认开启
 - 无尺码概念的类目（Electronics 等）：Size Guide 默认关闭
-- 关闭 Size Guide = 该类目下商详页不展示 Size Guide 入口
+- 关闭 Size Guide = 该作用域下商详页不展示 Size Guide 入口
 - Size Guide 数据来源关联商品属性中的尺码体系（`size_system` + `size_mapping` + `dimension_diagram`）
 
-#### 配置变更记录
+**配置变更记录**
 
 记录所有 CMS 配置操作，用于审计追溯：
 
@@ -261,23 +250,20 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 |---------|------|
 | 操作人 | 执行配置操作的运营人员 |
 | 操作时间 | 精确到分钟 |
-| 所属模板 | 该操作所在的 PDP 模板 |
-| 所属模块 | 模板管理 / Trust Statement / Condition / Description / 模块管理 |
-| 操作类型 | 创建模板 / 编辑模板 / 删除模板 / 编辑配置 / 新增规则 / 编辑规则 / 删除规则 / 关闭模块 / 开启模块 |
-| 变更详情 | 具体变更内容（如"修改 Trust Statement 标题"、"新增 Watches 类目级 Description 属性配置"） |
+| 操作类型 | 新增规则 / 编辑规则 / 删除规则 / 模块开关变更 |
+| 变更详情 | 涉及的作用域 + 具体变更内容（如"新增 Material / Color 2 个属性"、"关闭 Size Guide"） |
 
 - 永久保留，不设滚动清理（配置变更频率低，存储成本可忽略）
-- 支持按操作人、所属模板、所属模块和操作类型筛选
+- 支持按操作人和操作类型筛选
 
-#### 操作权限
+**操作权限**
 
 - 当前不做权限细分，所有后台运营人员均可配置规则和查看变更记录
 - 后续接入权限系统后按角色区分（CMS 管理员 / 只读运营）
 
-#### 属性展示名与翻译
+**属性展示名与翻译**
 
 - 运营配置的属性前台展示名（`display_name`），保存后自动进入翻译队列，由翻译模块统一处理
-- Trust Statement 标题/描述/详情、Condition 等级名/描述同样保存后自动进入翻译队列
 - 翻译完成前，前台按原始语言（英文）展示
 - 翻译流程不在本文档定义，详见翻译模块 PRD
 
@@ -310,8 +296,8 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 
 **UI 关联**
 
-- PC 端：Figma Looply-v1.0 → PDP-PC → Header
-- APP 端：Figma Looply-v1.0 → PDP-APP → Header
+- PC 端：looply-商详页-PC-交互说明.html → Module 1
+- APP 端：looply-商详页-APP-v3.html → Module 1
 
 ---
 
@@ -342,7 +328,7 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 
 **UI 关联**
 
-- PC 端：Figma Looply-v1.0 → PDP-PC → Breadcrumb
+- PC 端：looply-商详页-PC-交互说明.html → Module 2
 - APP 端：无（APP 端不展示面包屑）
 
 ---
@@ -377,8 +363,8 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 
 **UI 关联**
 
-- PC 端：Figma Looply-v1.0 → PDP-PC → Gallery
-- APP 端：Figma Looply-v1.0 → PDP-APP → Gallery
+- PC 端：looply-商详页-PC-交互说明.html → Module 3
+- APP 端：looply-商详页-APP-v3.html → Module 2
 
 ---
 
@@ -444,12 +430,41 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 
 **UI 关联**
 
-- PC 端：Figma Looply-v1.0 → PDP-PC → Product Info
-- APP 端：Figma Looply-v1.0 → PDP-APP → Product Info
+- PC 端：looply-商详页-PC-交互说明.html → Module 4
+- APP 端：looply-商详页-APP-v3.html → Module 3
 
 ---
 
-### 2.8 CTA 按钮 & 支付方式
+### 2.8 商品描述
+
+**功能描述**
+
+展示商品的营销性描述文案，描述品牌、品类、材质、成色特征等。
+
+**数据来源与取值规则**
+
+| 页面元素 | 数据源 | 取值逻辑 |
+|---------|-------|---------|
+| 描述文案 | `listing.listing_description` | 渠道描述，走翻译 |
+
+**展示规则**
+
+- PC 端全文展示，不做截断
+- APP 端默认截断 2 行，末尾渐隐，点击 "Read more" 展开全文，展开后变为 "Read less" 可收起
+
+**边界情况**
+
+- 描述为空时：整个段落区域隐藏，不留空白
+- APP 端文案不足 2 行时：不截断，不显示 Read more 按钮
+
+**UI 关联**
+
+- PC 端：looply-商详页-PC-交互说明.html → Module 5（描述部分）
+- APP 端：looply-商详页-APP-v3.html → Module 4
+
+---
+
+### 2.9 CTA 按钮 & 支付方式
 
 **功能描述**
 
@@ -495,54 +510,13 @@ AMEX / Apple Pay / Diners Club / Discover / Google Pay / JCB / Maestro / Masterc
 
 **边界情况**
 
+- 描述为空时：CTA 按钮上移（PC 端）
 - Sold Out 时：两个按钮均禁用，变灰色
 
 **UI 关联**
 
-- PC 端：Figma Looply-v1.0 → PDP-PC → CTA & Payment
-- APP 端：Figma Looply-v1.0 → PDP-APP → Sticky Bottom Bar
-
----
-
-### 2.9 Trust Statement 信任声明
-
-**功能描述**
-
-展示平台对商品认证、成色检查和售后保障的信任承诺，帮助用户建立购买信心。内容由 CMS 后台按 PDP 模板级别配置，同一模板下所有类目的商品共享同一套信任声明。
-
-**数据来源与取值规则**
-
-| 页面元素 | 数据源 | 取值逻辑 |
-|---------|-------|---------|
-| 标题 | CMS 模板配置 | 如 "Confidence in Every Find"。走翻译（`resource_type='pdp_template'`） |
-| 描述文案 | CMS 模板配置 | 简要说明（如 "Each luxury piece is carefully reviewed for authenticity, condition, and listing accuracy."）。走翻译 |
-| 详细说明 | CMS 模板配置 | 点击后展示的完整内容（多段落，如认证流程、成色分级标准、售后保障条款等）。走翻译 |
-
-**CMS 配置**
-
-通过 CMS 后台的 PDP 模板 → Trust Statement 模块配置：
-
-- **模板级配置**：同一模板下所有关联类目共享同一套 Trust Statement 内容
-- **三个字段**：标题（`title`）、描述文案（`desc`）、详细说明（`detail`，富文本/多段落）
-- **模块开关**：关闭后前台不展示 Trust Statement 区域
-- **不同模板可配不同内容**：如 Luxury PDP 模板强调认证鉴定，Electronics PDP 模板强调功能测试
-
-**展示规则**
-
-- 以卡片形式展示，包含标题 + 描述文案 + 可点击的箭头/入口
-- 点击卡片或箭头打开详细说明：PC 端弹窗展示，APP 端 Bottom Sheet（半层弹窗）展示
-- 位于 CTA 区域下方、Condition 折叠区上方
-
-**边界情况**
-
-- 当前商品所属类目未关联任何 PDP 模板：Trust Statement 区域不展示
-- 模板的 Trust Statement 模块开关关闭：不展示
-- 标题或描述为空：不展示（三个字段中标题和描述为必填）
-
-**UI 关联**
-
-- PC 端：Figma Looply-v1.0 → PDP-PC → Trust Statement
-- APP 端：Figma Looply-v1.0 → PDP-APP → Trust Statement
+- PC 端：looply-商详页-PC-交互说明.html → Module 5（CTA + 支付方式部分）
+- APP 端：looply-商详页-APP-v3.html → Module 5（支付方式）+ Module 12（Sticky 底部栏）
 
 ---
 
@@ -550,65 +524,32 @@ AMEX / Apple Pay / Diners Club / Discover / Google Pay / JCB / Maestro / Masterc
 
 **功能描述**
 
-展示二手商品的成色信息，是 looply 作为二手平台的核心差异化模块。包含成色等级（含分段进度条）、Condition Guide 入口、鉴定认证徽章、成色描述、外观描述、配件信息、补充描述。
+展示二手商品的成色信息，是 looply 作为二手平台的核心差异化模块。包含鉴定认证徽章、整体成色等级、成色描述、外观描述、配件信息、补充描述。
 
 **数据来源与取值规则**
 
 | 页面元素 | 数据源 | 取值逻辑 |
 |---------|-------|---------|
 | Certified Authentic 徽章 | `product_inspection.is_authenticated` + `product_inspection.authenticator` | `is_authenticated=true` 时展示绿色盾牌 + "Certified Authentic — by {authenticator}"。点击跳转鉴定说明页面（展示鉴定机构介绍、证书编号 `certificate_number`、鉴定日期 `auth_date` 等完整信息）。`is_authenticated=false` 时隐藏 |
-| 成色等级 | `product_inspection.grade` | 取值为模板定义的等级之一（如 `Like New` / `Excellent` / `Very Good` / `Good` / `Fair`），走翻译（`resource_type='enum'`） |
-| 成色等级进度条 | CMS 模板配置 + `product_inspection.grade` | 分段进度条展示模板定义的所有等级，高亮当前商品等级（详见下方「分段进度条」） |
-| Condition Guide | CMS 模板配置 | 展示模板定义的所有等级名称和描述（详见下方「Condition Guide」） |
-| 成色描述 | `product_inspection.condition_summary` | 必填字段，整体成色概述，始终展示。走翻译 |
-| 外观描述 | `product_inspection.appearance_desc` | 选填，描述各部位外观状况。有值时展示，为空时隐藏该段。走翻译 |
-| 配件信息 | `product_inspection.accessories_info` | 选填，描述配件齐全情况。有值时展示，为空时隐藏该段。走翻译 |
-| 补充描述 | `product_inspection.supplement_notes` | 选填，养护信息或功能使用情况等。有值时展示，为空时隐藏该段。走翻译 |
+| 成色等级 | `product_inspection.grade` | ENUM(NWT/Excellent/Good/Fair)，映射为展示名，走翻译（`resource_type='enum'`） |
+| 成色描述 | `product_inspection.condition_summary` | 必填字段，整体成色概述，始终展示。走翻译（`resource_type='product'`, `field_name='condition_summary'`） |
+| 外观描述 | `product_inspection.appearance_desc` | 选填，描述各部位外观状况。有值时展示，为空时隐藏该段。走翻译（`resource_type='product'`, `field_name='appearance_desc'`） |
+| 配件信息 | `product_inspection.accessories_info` | 选填，描述配件齐全情况。有值时展示，为空时隐藏该段。走翻译（`resource_type='product'`, `field_name='accessories_info'`） |
+| 补充描述 | `product_inspection.supplement_notes` | 选填，养护信息或功能使用情况等。有值时展示，为空时隐藏该段。走翻译（`resource_type='product'`, `field_name='supplement_notes'`） |
 
-#### 成色等级体系
+**成色等级枚举定义**
 
-成色等级由 CMS 模板定义，不同模板可配置不同的等级集合。
-
-**Luxury PDP 模板默认等级**
-
-| 等级名称 | 含义 |
-|---------|------|
-| Like New | 几乎全新，无可见使用痕迹，所有原始组件完好 |
-| Excellent | 极轻微使用痕迹，远距离不可见 |
-| Very Good | 轻微使用痕迹，近距离可见 |
-| Good | 中等使用痕迹 |
-| Fair | 明显使用痕迹，仍然结构完好可用 |
-
-> 等级集合由模板决定，商品录入时 `product_inspection.grade` 从该模板定义的等级中选取。不同模板可有不同数量和名称的等级（如 Electronics PDP 可定义 Mint / Excellent / Good / Fair 四级）。
-
-#### 分段进度条
-
-- 进度条分为等宽的 N 段（N = 模板定义的等级数量）
-- 每段对应一个等级，从高到低依次排列（如 Like New → Excellent → Very Good → Good → Fair）
-- 当前商品等级对应的段高亮为品牌色（紫色 #5212FF），其余段为浅色（#F3F0FF）
-- 每段下方显示等级名称标签，当前等级标签为品牌色，其余为灰色
-
-#### Condition Guide
-
-- 通过成色等级旁的信息图标（ⓘ）触发
-- PC 端打开弹窗，APP 端打开 Bottom Sheet
-- 展示当前模板定义的所有成色等级，每个等级包含名称和详细描述
-- 等级按从高到低排列
-- 数据来源：CMS 模板的 Condition 等级配置
-
-#### CMS 配置
-
-通过 CMS 后台的 PDP 模板 → Condition 模块配置：
-
-- **模板级配置**：定义该模板的成色等级集合（等级名称 + 等级描述）
-- **等级数量灵活**：不同模板可定义 3-6 个等级
-- **等级排序**：按配置顺序从高到低排列，排序即展示顺序
-- **模块开关**：关闭后前台不展示 Condition 折叠区的进度条和 Condition Guide（但成色描述等质检信息仍展示）
+| 枚举值 | 展示名 | 含义 |
+|--------|-------|------|
+| NWT | New With Tags | 近全新带标签 |
+| Excellent | Excellent | 几乎全新，极轻微使用痕迹 |
+| Good | Good | 轻微使用痕迹 |
+| Fair | Fair | 明显使用痕迹 |
 
 **展示规则**
 
 - 默认展开（核心二手差异信息，用户最关注）
-- 展示顺序（固定）：成色等级（含进度条）+ Condition Guide 入口 → 徽章 → 成色描述 → 外观描述 → 配件信息 → 补充描述
+- 展示顺序（固定）：徽章 → 成色等级 → 成色描述 → 外观描述 → 配件信息 → 补充描述
 - 成色描述为核心字段，PC 端和 APP 端均全文展示，不截断
 - APP 端选填字段（外观描述、配件信息、补充描述）：每段独立截断，超过 3 行时截断并渐隐，点击 "Read more" 展开该段，展开后变为 "Read less" 可收起
 - PC 端所有字段全文展示，不截断
@@ -617,14 +558,13 @@ AMEX / Apple Pay / Diners Club / Discover / Google Pay / JCB / Maestro / Masterc
 **边界情况**
 
 - 外观描述 / 配件信息 / 补充描述为空时：该段落整体隐藏（含标题），不留空白
-- 三个选填字段全部为空时：仅展示等级进度条 + 徽章 + 成色描述
+- 三个选填字段全部为空时：仅展示徽章 + 成色等级 + 成色描述
 - APP 端某段文案不足 3 行时：不截断，不显示 Read more 按钮
-- 当前商品所属类目未关联模板：不展示进度条和 Condition Guide，仅展示基本成色文本信息
 
 **UI 关联**
 
-- PC 端：Figma Looply-v1.0 → PDP-PC → Condition + Condition Guide Modal
-- APP 端：Figma Looply-v1.0 → PDP-APP → Condition
+- PC 端：looply-商详页-PC-交互说明.html → Module 6
+- APP 端：looply-商详页-APP-v3.html → Module 6
 
 ---
 
@@ -632,7 +572,7 @@ AMEX / Apple Pay / Diners Club / Discover / Google Pay / JCB / Maestro / Masterc
 
 **功能描述**
 
-展示商品的属性信息（如材质、颜色、尺寸等）和商品描述文案，由 CMS 配置驱动展示哪些属性和排序。包含 Listing 编号、Size Guide 入口和商品描述段落。
+展示商品的属性信息（如材质、颜色、尺寸等），由 CMS 配置驱动展示哪些属性和排序。包含 Listing 编号和 Size Guide 入口。
 
 **数据来源与取值规则**
 
@@ -641,13 +581,12 @@ AMEX / Apple Pay / Diners Club / Discover / Google Pay / JCB / Maestro / Masterc
 | item # | `listing.listing_id` | Listing 编号，对外展示，不翻译 |
 | 描述属性（如 Material、Length） | `spu_attribute_value` + `attribute_def` | 通过 `standard_sku` → `spu` → `spu_attribute_value` 取值。属性名取值见下方「属性名取值逻辑」，属性值走翻译 |
 | 销售属性（如 Color、Size） | `standard_sku_attribute` | 通过 `standard_sku_id` 查询。属性名取值见下方「属性名取值逻辑」，属性值走翻译 |
-| 商品描述文案 | `listing.listing_description` | 渠道描述，走翻译。展示在属性表下方 |
 
 **属性展示筛选流程**
 
 商品系统维护了完整的属性集，商详页不全量展示，经过以下筛选：
 
-1. **查询展示范围**：通过 CMS 配置，根据当前商品的 `category_id` 查询该类目的属性展示配置（模板内按类目配置，详见 2.3）
+1. **查询展示范围**：通过 `attribute_scope_config`，根据当前商品的 `category_id` + `brand_id` + `series_id` 查询可展示属性定义（CMS 配置驱动，继承规则详见 2.3）
 2. **取值**：描述属性从 `spu_attribute_value` 取值，销售属性从 `standard_sku_attribute` 取值
 3. **过滤空值**：属性值为空的行不展示
 4. **排序**：按 CMS 配置的排序顺序展示
@@ -665,35 +604,29 @@ AMEX / Apple Pay / Diners Club / Discover / Google Pay / JCB / Maestro / Masterc
 
 **CMS 配置**
 
-通过 CMS 后台的 PDP 模板 → Description 模块，按类目配置：
+通过 CMS 后台的「Description 描述」模块配置：
 
-- **类目级配置**：每个类目一条规则，定义前台展示名 + 绑定数据源属性 + 拖拽调整排序
+- **属性展示配置**：定义前台展示名 + 绑定数据源属性 + 拖拽调整排序（操作顺序：先填展示名，再选数据源）
 - **Size Guide**：固定模块，选择类目后自动带入属性列表，始终保留不可删除。运营可编辑前台展示名（默认 "Size"）、拖拽调整在属性列表中的位置、通过开关控制显示/隐藏。数据源为尺码体系（`size_system` + `size_mapping` + `dimension_diagram`），不可更换。前台渲染时如果该商品无尺码数据或 Size Guide 已关闭，链接不展示
-- **模块开关**：关闭后前台不展示 Description 区域
+- **继承规则**：按 系列 > 品牌 > 类目 逐级查找（详见 2.3）
 
 **展示规则**
 
 - 默认展开
-- 属性区：每行一条属性，格式 "Label: Value"
-- 商品描述文案：展示在属性表下方，作为描述折叠区的一部分
-- PC 端全文展示，不截断
+- 每行一条属性，格式 "Label: Value"
 - APP 端属性数量 > 8 行时截断，底部显示 "Show more attributes" 展开
-- APP 端商品描述文案默认截断 2 行，末尾渐隐，点击 "Read more" 展开全文
 - CMS 中配置了 Size Guide 但该商品无尺码数据时：Size Guide 链接不展示（静默隐藏，不报错）
 
 **边界情况**
 
 - 属性值为空时：该行不展示
-- 商品描述文案为空时：该段落区域隐藏，不留空白
 - 当前类目未配置尺寸测量方法 SVG 模板：Size Guide 退化为文字列表
 - 属性值带特殊字符：做 HTML 转义
-- 当前类目未配置 Description 规则：整个 Description 折叠区隐藏
-- APP 端商品描述文案不足 2 行：不截断，不显示 Read more 按钮
 
 **UI 关联**
 
-- PC 端：Figma Looply-v1.0 → PDP-PC → Description + Size Guide Modal
-- APP 端：Figma Looply-v1.0 → PDP-APP → Description
+- PC 端：looply-商详页-PC-交互说明.html → Module 7
+- APP 端：looply-商详页-APP-v3.html → Module 7
 
 ---
 
@@ -718,8 +651,8 @@ AMEX / Apple Pay / Diners Club / Discover / Google Pay / JCB / Maestro / Masterc
 
 **UI 关联**
 
-- PC 端：Figma Looply-v1.0 → PDP-PC → Shipping & Returns
-- APP 端：Figma Looply-v1.0 → PDP-APP → Shipping & Returns
+- PC 端：looply-商详页-PC-交互说明.html → Module 8
+- APP 端：looply-商详页-APP-v3.html → Module 8
 
 ---
 
@@ -759,8 +692,8 @@ AMEX / Apple Pay / Diners Club / Discover / Google Pay / JCB / Maestro / Masterc
 
 **UI 关联**
 
-- PC 端：Figma Looply-v1.0 → PDP-PC → You May Also Like
-- APP 端：Figma Looply-v1.0 → PDP-APP → You May Also Like
+- PC 端：looply-商详页-PC-交互说明.html → Module 9
+- APP 端：looply-商详页-APP-v3.html → Module 9
 
 ---
 
@@ -789,8 +722,8 @@ AMEX / Apple Pay / Diners Club / Discover / Google Pay / JCB / Maestro / Masterc
 
 **UI 关联**
 
-- PC 端：Figma Looply-v1.0 → PDP-PC → Recently Viewed
-- APP 端：Figma Looply-v1.0 → PDP-APP → Recently Viewed
+- PC 端：looply-商详页-PC-交互说明.html → Module 10
+- APP 端：looply-商详页-APP-v3.html → Module 10
 
 ---
 
@@ -818,8 +751,8 @@ AMEX / Apple Pay / Diners Club / Discover / Google Pay / JCB / Maestro / Masterc
 
 **UI 关联**
 
-- PC 端：Figma Looply-v1.0 → PDP-PC → Footer
-- APP 端：Figma Looply-v1.0 → PDP-APP → Footer
+- PC 端：looply-商详页-PC-交互说明.html → Module 11
+- APP 端：looply-商详页-APP-v3.html → Module 11
 
 ---
 
@@ -848,8 +781,8 @@ Gallery 主图点击后的全屏图片查看器，支持左右切换浏览所有
 
 **UI 关联**
 
-- PC 端：Figma Looply-v1.0 → PDP-PC → Lightbox
-- APP 端：Figma Looply-v1.0 → PDP-APP → Gallery（Lightbox 部分）
+- PC 端：looply-商详页-PC-交互说明.html → Module 12
+- APP 端：looply-商详页-APP-v3.html → Module 2（Lightbox 部分）
 
 ---
 
@@ -864,7 +797,6 @@ Gallery 主图点击后的全屏图片查看器，支持左右切换浏览所有
 | 汇率管理模块 | 平台汇率（已含点差）查询接口 | 已有 | -- |
 | 商品定价（尾差规则） | 心理定价尾数策略（.99/.95/整十等） | 已设计（商品系统 PRD 2.8.1） | -- |
 | 翻译模块 | 多语言文本 | 已有 | -- |
-| CMS 系统 | PDP 模板管理、模块配置（Trust Statement / Condition / Description） | 原型 v3 已出 | 需开发实现；模板级 Condition 等级体系需扩展 ER（从固定 ENUM 改为模板关联的等级表） |
 | 促销模块 | 促销价计算 | 待设计 | 促销价计算逻辑未定义，当前商详页按"无促销价"展示 |
 | 收藏模块 | 收藏状态查询、收藏计数 | 待设计 | 收藏模块未设计，需对外提供查询接口 |
 | 用户域 | 浏览历史 | 待设计 | `user_view_history` 实体未设计 |
@@ -873,12 +805,12 @@ Gallery 主图点击后的全屏图片查看器，支持左右切换浏览所有
 | 搜索服务 | Header 搜索功能 | 待设计 | 独立模块 |
 | 支付模块 | 支付方式图标配置 | 待设计 | 本期写死 12 个固定图标 |
 | 前台类目 | Header 导航链接 | 待设计 | 本期跳转地址写死 |
+| CMS 系统 | 后台配置能力 | 原型已出 | 需开发实现 |
 
 ### 风险项
 
 | 风险 | 影响 | 应对 |
 |------|------|------|
-| Condition 等级体系 ER 扩展 | 成色等级从固定 ENUM 改为模板关联的等级表，涉及 `product_inspection.grade` 字段类型变更和新增等级定义表 | 需与开发协商迁移方案，评估对商品录入流程的影响 |
 | 收藏模块未设计 | 收藏状态和收藏人数无法展示 | 收藏按钮和人数需等收藏模块就绪后接入 |
 | 浏览历史实体未设计 | 已登录用户浏览历史无法持久化 | 先用 localStorage 兜底 |
 | 促销模块未设计 | 所有商品仅展示 listing_price，无促销价 | 价格展示逻辑已预留促销价入口，模块就绪后无需改动商详页 |
@@ -889,8 +821,8 @@ Gallery 主图点击后的全屏图片查看器，支持左右切换浏览所有
 
 ### 当前版本（MVP）
 
-- 商详页所有模块的展示逻辑（含 Trust Statement、Condition 进度条 / Condition Guide）
-- CMS 后台配置（PDP 模板管理、Trust Statement / Condition / Description 三模块配置）
+- 商详页所有模块的展示逻辑
+- CMS 后台配置（Description 属性展示）
 - 币种转换（汇率换算 + 尾差规则，详见商品系统 PRD 2.8.1）
 - 多语言翻译
 
@@ -913,8 +845,9 @@ Gallery 主图点击后的全屏图片查看器，支持左右切换浏览所有
 
 | 模块 | PC 端设计稿 | APP 端设计稿 |
 |------|-----------|------------|
-| 整体页面 | [Figma Looply-v1.0 PDP-PC](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=454-5904) | [Figma Looply-v1.0 PDP-APP](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=452-4153) |
-| CMS 后台 | looply-商详页CMS配置后台原型-v3-antd.html | -- |
+| 整体页面 | looply-商详页-PC-v1.3.html | looply-商详页-APP-v3.html |
+| 交互说明 | looply-商详页-PC-交互说明.html | looply-商详页-APP-v3.html（含交互说明） |
+| CMS 后台 | looply-商详页CMS配置后台原型-v1-antd.html | -- |
 
 ### 5.2 PC / APP 端差异对照表
 
@@ -925,27 +858,22 @@ Gallery 主图点击后的全屏图片查看器，支持左右切换浏览所有
 | 面包屑 | 有 | 无 |
 | Gallery 切换方式 | 鼠标悬停缩放 + 点击缩略图 | 左右滑动 |
 | 缩略图选中样式 | 深色边框 + 透明度 0.7→1 | 紫色边框 + 透明度 0.6→1 |
-| CTA 按钮位置 | 页面内独立按钮 | Sticky 底部购买栏 |
-| Trust Statement 详细说明 | 弹窗展示 | Bottom Sheet 展示 |
-| Condition Guide | 弹窗展示 | Bottom Sheet 展示 |
+| 商品描述 | 全文展示 | 2 行截断 + Read more |
 | Condition 成色区文本 | 全文展示 | 选填字段每段独立截断 3 行 + Read more |
 | Description 属性截断 | 不截断 | > 8 行截断 + Show more |
-| Description 商品描述 | 全文展示 | 2 行截断 + Read more |
-| Size Guide | 弹窗展示 | Bottom Sheet 展示 |
+| CTA 按钮位置 | 页面内独立按钮 | Sticky 底部购买栏 |
 | Shipping & Returns 默认状态 | 默认展开 | 默认折叠 |
 | 推荐区导航 | Carousel 左右箭头 | 水平滑动 |
 | Lightbox 操作 | 键盘导航（Escape / 箭头） | 手势（滑动 / 双指缩放） |
 | Add to Cart 反馈 | 文字变 "Added ✓"，2 秒恢复 | 文字变 "Added ✓" + 浅绿色背景，1.5 秒恢复 |
 | Footer 导航展示 | 链接列表直接展示 | 手风琴展开 |
 | Footer 免责声明 | 有 | 无 |
-| Sticky 底部购买栏 | 无 | 有（详见 2.8 APP Sticky 部分） |
+| Sticky 底部购买栏 | 无 | 有（详见 2.9 APP Sticky 部分） |
 
 ### 5.3 待补充项汇总
 
 | 项目 | 类型 | 所属域 | 说明 |
 |------|------|-------|------|
-| PDP 模板 ER 设计 | 新实体 | CMS 域 | 模板表、模板-类目关联表、Trust Statement 配置表、Condition 等级定义表 |
-| Condition 等级体系迁移 | ER 变更 | 商品域 | `product_inspection.grade` 从固定 ENUM 改为关联模板等级表 |
 | 收藏模块 | 模块设计 | 独立模块 | 对外提供收藏状态查询、收藏计数、收藏/取消收藏等接口 |
 | `user_view_history` | 新实体 | 用户域 | user_id + listing_id + viewed_at |
 | 前台类目模块 | 新模块 | 独立模块 | Header 导航栏数据源 |
@@ -957,9 +885,9 @@ Gallery 主图点击后的全屏图片查看器，支持左右切换浏览所有
 
 | 文档 | 位置 | 说明 |
 |------|------|------|
-| PC 端设计稿 | [Figma Looply-v1.0 PDP-PC](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=454-5904) | PC 端商详页设计稿 |
-| APP 端设计稿 | [Figma Looply-v1.0 PDP-APP](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=452-4153) | APP 端商详页设计稿 |
-| CMS 后台原型 | `~/Desktop/海外业务/商详/原型/looply-商详页CMS配置后台原型-v3-antd.html` | PDP 模板管理 + Trust Statement / Condition / Description 三模块后台配置（antd 版） |
+| PC 端交互说明 | `~/Desktop/海外业务/商详/UI/looply-商详页-PC-交互说明.html` | 12 模块的 PC 端交互行为 |
+| APP 端交互说明 | `~/Desktop/海外业务/商详/UI/looply-商详页-APP-v3.html` | 12 模块的 APP 端交互行为 |
+| CMS 后台原型 | `~/Desktop/海外业务/商详/原型/looply-商详页CMS配置后台原型-v1-antd.html` | Description 模块的后台配置操作（antd 版） |
 | 数据来源与取值逻辑 V1.3 | `~/Desktop/海外业务/商详/looply-商详页-数据来源与取值逻辑.html` | 历史参考（已被本 PRD 替代） |
 | 数据来源与实现逻辑 V2.0 | `~/Desktop/海外业务/商详/looply-商详页-数据来源与实现逻辑-V2.0.md` | 历史参考（已被本 PRD 替代） |
 
@@ -974,4 +902,3 @@ Gallery 主图点击后的全屏图片查看器，支持左右切换浏览所有
 | V1.2 | 2026-06-10 | 全量交叉对齐商品/Market/翻译/库存/汇率五模块最新方案。**修正**：成色字段从 product 表移至 product_inspection 表；supplement_notes 替代 additional_desc；Gallery 图片从 JSON 数组改为 product_image 独立表；汇率从直查表改为调汇率模块统一接口；语言/货币列表增加 status=active 过滤和 priority 排序；新增货币符号位置 symbol_position；库存可售状态改为调用库存服务查询接口。**新增**：翻译 Fallback 四级优先策略；RTL 布局支持；收藏人数展示；度量单位本期策略说明 |
 | V1.3 | 2026-06-10 | **修正**：收藏相关数据源从直查 user_wishlist 改为调用收藏模块接口（收藏模块独立设计，对外提供查询能力）；移除 SEO 章节（SEO 为独立模块）；商品描述仅取 listing.listing_description，移除 product.description 兜底；库存可售判断改为调用库存服务可售库存查询接口，不暴露内部计算公式 |
 | V1.4 | 2026-06-11 | **新增 CMS 后台业务规则（2.3 节扩展）**：作用域唯一性约束（重复报错）；保存行为（保存即生效，无草稿态）；筛选联动规则（选择即筛选 + 品牌级联）；模块开关行为（关闭=完全隐藏，即时生效）；Size Guide 默认值策略（按类目区分默认开/关）；配置变更记录（永久保留，4 种操作类型）；操作权限（当前不限，预留扩展）；属性展示名翻译流程（自动入队列）。**完善**：继承机制补充边界（所有层级删除→不展示）。**更新**：CMS 后台原型引用改为 antd 版 |
-| V1.5 | 2026-06-17 | **对齐 Figma 设计稿 + CMS 原型 v3**。**新增**：Trust Statement 信任声明模块（2.9 节，CMS 模板级配置，含标题/描述/详细说明半层弹窗）；PDP 模板概念（2.3 节重写，模板关联类目，模板级管理 Trust Statement + Condition，类目级管理 Description）；Condition 分段进度条和 Condition Guide 弹窗（2.10 节）；成色等级从固定 4 级 ENUM 扩展为模板可配置等级集合（默认 5 级：Like New / Excellent / Very Good / Good / Fair）。**变更**：Description CMS 配置从「类目 > 品牌 > 系列」三级继承简化为仅按类目配置（2.11 节）；商品描述文案从独立模块合并到 Description 折叠区（属性表下方展示）；CMS 变更记录新增模板管理/模块管理操作类型。**更新**：设计稿引用从 HTML 交互说明切换为 Figma 在线设计稿；CMS 后台原型引用更新为 v3 |
