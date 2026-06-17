@@ -62,7 +62,7 @@ Gallery 图片区
   ↓
 商品信息区（品牌 / 标题 / 价格 / Tax）
   ↓
-CTA 按钮 & 支付方式
+CTA 按钮
   ↓
 Trust Statement 信任声明
   ↓
@@ -218,9 +218,9 @@ PDP 模板是商详页内容配置的顶层组织单元。一个模板定义了�
 
 #### 不可配置（固定）模块
 
-Breadcrumb、Gallery、商品信息区、CTA & 支付方式、Shipping & Returns、推荐区、浏览历史、Footer、Lightbox——这些模块的数据来源固定，无需后台配置。
+Breadcrumb、Gallery、商品信息区、CTA 按钮、Shipping & Returns、推荐区、浏览历史、Footer、Lightbox——这些模块的数据来源固定，无需后台配置。
 
-> CTA 支付方式图标本期写死 12 个，后续支付模块就绪后升级为动态配置。Shipping & Returns 本期为前端固定文案，后续配送模块就绪且规则更灵活时再升级为 CMS 配置。
+> Shipping & Returns 本期为前端固定文案，后续配送模块就绪且规则更灵活时再升级为 CMS 配置。
 
 #### Description 属性配置规则
 
@@ -449,11 +449,11 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 
 ---
 
-### 2.8 CTA 按钮 & 支付方式
+### 2.8 CTA 按钮
 
 **功能描述**
 
-核心转化模块，包含 Add to Cart 按钮、Checkout 按钮和支付方式图标展示。PC 端 CTA 按钮在页面内独立展示，APP 端 CTA 按钮在 Sticky 底部购买栏中（常驻屏幕底部，替代 APP 底部 TabBar）。
+核心转化模块，包含 Add to Cart 按钮和 Checkout 按钮。PC 端 CTA 按钮在页面内独立展示，APP 端 CTA 按钮在 Sticky 底部购买栏中（常驻屏幕底部，替代 APP 底部 TabBar）。
 
 #### 商品可售性判断
 
@@ -473,22 +473,12 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 |---------|-------|---------|
 | Add to Cart 按钮价格 | 同 2.7 现价 | 展示当前现价，做币种转换 |
 | 按钮文案 | 翻译模块 | `resource_type='ui'`，如 `btn.add_to_cart`、`btn.checkout` |
-| 支付方式图标 | CMS 配置 | **本期写死**（12 个固定图标），后期由支付模块按 `market_id` / `country` 动态配置 |
 | Verified 标记（APP 端） | `product_inspection.is_authenticated` | `is_authenticated=true` 时在 Sticky 底部栏显示绿色 "✓ Verified" 认证标记 |
-
-**支付方式图标列表（本期固定）**
-
-AMEX / Apple Pay / Diners Club / Discover / Google Pay / JCB / Maestro / Mastercard / PayPal / UnionPay / VISA / Klarna
-
-**本期固定，后续升级**
-
-支付方式图标本期前端写死 12 个全量展示，后续支付模块就绪后按 Market 动态配置可用支付方式。
 
 **展示规则**
 
 - Add to Cart：点击加入购物车，成功后按钮文字变为 "Added ✓" 并在短时间后恢复
 - Checkout：点击直接进入结算流程（跳过购物车，直接结算当前商品）
-- 支付方式图标纯展示，不可点击
 - 未登录时点击按钮，先触发登录流程
 - APP 端 Sticky 底部栏：三栏布局（左侧价格 | Add to Cart | Checkout），仅展示现价，不重复展示划线价和 Save（上方信息区已有）
 - APP 端商详页隐藏底部 TabBar，由 Sticky 底部购买栏替代
@@ -499,7 +489,7 @@ AMEX / Apple Pay / Diners Club / Discover / Google Pay / JCB / Maestro / Masterc
 
 **UI 关联**
 
-- PC 端：Figma Looply-v1.0 → PDP-PC → CTA & Payment
+- PC 端：Figma Looply-v1.0 → PDP-PC → CTA
 - APP 端：Figma Looply-v1.0 → PDP-APP → Sticky Bottom Bar
 
 ---
@@ -871,7 +861,6 @@ Gallery 主图点击后的全屏图片查看器，支持左右切换浏览所有
 | 库存模块 | 商品可售状态 | 已有 | -- |
 | 推荐引擎 | 推荐商品列表 | 待设计 | 推荐算法和输出格式未定义 |
 | 搜索服务 | Header 搜索功能 | 待设计 | 独立模块 |
-| 支付模块 | 支付方式图标配置 | 待设计 | 本期写死 12 个固定图标 |
 | 前台类目 | Header 导航链接 | 待设计 | 本期跳转地址写死 |
 
 ### 风险项
@@ -900,7 +889,6 @@ Gallery 主图点击后的全屏图片查看器，支持左右切换浏览所有
 |------|------|
 | 促销价展示 | 促销模块就绪后接入商详页 |
 | 收藏功能 | 收藏模块就绪后接入 |
-| 支付方式动态配置 | 支付模块就绪后按 Market 动态展示 |
 | 前台类目导航 | 前台类目模块就绪后替换写死链接 |
 | 推荐引擎接入 | 推荐算法就绪后替换推荐区数据源 |
 | Shipping & Returns CMS 化 | 配送模块就绪后，Shipping 文案从写死升级为 CMS 配置，支持按 Market 差异化 |
@@ -949,7 +937,6 @@ Gallery 主图点击后的全屏图片查看器，支持左右切换浏览所有
 | 收藏模块 | 模块设计 | 独立模块 | 对外提供收藏状态查询、收藏计数、收藏/取消收藏等接口 |
 | `user_view_history` | 新实体 | 用户域 | user_id + listing_id + viewed_at |
 | 前台类目模块 | 新模块 | 独立模块 | Header 导航栏数据源 |
-| 支付模块配置 | 模块设计 | 支付模块 | 按 Market 配置可用支付方式 |
 | 推荐引擎 | 模块设计 | 独立模块 | 推荐算法和输出格式 |
 | Shipping & Returns 内容 | CMS 配置 | 内容域 | 按 Market 区分政策内容 |
 
@@ -974,4 +961,4 @@ Gallery 主图点击后的全屏图片查看器，支持左右切换浏览所有
 | V1.2 | 2026-06-10 | 全量交叉对齐商品/Market/翻译/库存/汇率五模块最新方案。**修正**：成色字段从 product 表移至 product_inspection 表；supplement_notes 替代 additional_desc；Gallery 图片从 JSON 数组改为 product_image 独立表；汇率从直查表改为调汇率模块统一接口；语言/货币列表增加 status=active 过滤和 priority 排序；新增货币符号位置 symbol_position；库存可售状态改为调用库存服务查询接口。**新增**：翻译 Fallback 四级优先策略；RTL 布局支持；收藏人数展示；度量单位本期策略说明 |
 | V1.3 | 2026-06-10 | **修正**：收藏相关数据源从直查 user_wishlist 改为调用收藏模块接口（收藏模块独立设计，对外提供查询能力）；移除 SEO 章节（SEO 为独立模块）；商品描述仅取 listing.listing_description，移除 product.description 兜底；库存可售判断改为调用库存服务可售库存查询接口，不暴露内部计算公式 |
 | V1.4 | 2026-06-11 | **新增 CMS 后台业务规则（2.3 节扩展）**：作用域唯一性约束（重复报错）；保存行为（保存即生效，无草稿态）；筛选联动规则（选择即筛选 + 品牌级联）；模块开关行为（关闭=完全隐藏，即时生效）；Size Guide 默认值策略（按类目区分默认开/关）；配置变更记录（永久保留，4 种操作类型）；操作权限（当前不限，预留扩展）；属性展示名翻译流程（自动入队列）。**完善**：继承机制补充边界（所有层级删除→不展示）。**更新**：CMS 后台原型引用改为 antd 版 |
-| V1.5 | 2026-06-17 | **对齐 Figma 设计稿 + CMS 原型 v3**。**新增**：Trust Statement 信任声明模块（2.9 节，CMS 模板级配置，含标题/描述/详细说明半层弹窗）；PDP 模板概念（2.3 节重写，模板关联类目，模板级管理 Trust Statement + Condition，类目级管理 Description）；Condition 分段进度条和 Condition Guide 弹窗（2.10 节）；成色等级从固定 4 级 ENUM 扩展为模板可配置等级集合（默认 5 级：Like New / Excellent / Very Good / Good / Fair）。**变更**：Description CMS 配置从「类目 > 品牌 > 系列」三级继承简化为仅按类目配置（2.11 节）；商品描述文案从独立模块合并到 Description 折叠区（属性表下方展示）；CMS 变更记录新增模板管理/模块管理操作类型。**更新**：设计稿引用从 HTML 交互说明切换为 Figma 在线设计稿；CMS 后台原型引用更新为 v3 |
+| V1.5 | 2026-06-17 | **对齐 Figma 设计稿 + CMS 原型 v3**。**新增**：Trust Statement 信任声明模块（2.9 节，CMS 模板级配置，含标题/描述/详细说明半层弹窗）；PDP 模板概念（2.3 节重写，模板关联类目，模板级管理 Trust Statement + Condition，类目级管理 Description）；Condition 分段进度条和 Condition Guide 弹窗（2.10 节）；成色等级从固定 4 级 ENUM 扩展为模板可配置等级集合（默认 5 级：Like New / Excellent / Very Good / Good / Fair）。**变更**：Description CMS 配置从「类目 > 品牌 > 系列」三级继承简化为仅按类目配置（2.11 节）；商品描述文案从独立模块合并到 Description 折叠区（属性表下方展示）；CMS 变更记录新增模板管理/模块管理操作类型。**移除**：CTA 按钮区的支付方式图标列表（Figma 设计稿已不包含，对齐删除）。**更新**：设计稿引用从 HTML 交互说明切换为 Figma 在线设计稿；CMS 后台原型引用更新为 v3 |
