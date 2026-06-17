@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Looply CMS PRD</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f7fa;color:#1e1e2e;line-height:1.8}
+#topbar{position:sticky;top:0;z-index:30;background:#fff;border-bottom:1px solid #e5e7eb;padding:0 24px;height:48px;display:flex;align-items:center;gap:12px}
+#topbar .brand{font-size:15px;font-weight:700;color:#1e1e2e}
+#topbar .vtag{background:#ede9fe;color:#6432fc;font-size:11px;padding:2px 10px;border-radius:20px;font-weight:600;cursor:default}
+#topbar .actions{margin-left:auto;display:flex;gap:6px}
+#topbar button{border:1px solid #d1d5db;background:#fff;color:#555;font-size:12px;padding:4px 12px;border-radius:5px;cursor:pointer;transition:.12s}
+#topbar button:hover{background:#f0f0ff;border-color:#6432fc;color:#6432fc}
+#layout{max-width:1280px;margin:0 auto;display:flex}
+#sidebar{position:sticky;top:48px;width:260px;height:calc(100vh - 48px);overflow-y:auto;padding:20px 12px;flex-shrink:0;border-right:1px solid #e5e7eb;background:#fff;display:flex;flex-direction:column;gap:0}
+.vsec{margin-bottom:16px}
+.vsec-title{font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.vlist{list-style:none}
+.vlist li a{display:block;padding:5px 10px;font-size:13px;color:#555;text-decoration:none;border-radius:5px;transition:.12s;border:1px solid transparent}
+.vlist li a:hover{background:#f0f0ff;color:#6432fc}
+.vlist li a.active{background:#ede9fe;color:#6432fc;font-weight:600;border-color:#c4b5fd}
+.toc-title{font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+#tocList,#tocList ul{list-style:none;padding:0}
+#tocList li{margin:0}
+#tocList a{display:block;padding:3px 8px;font-size:12px;color:#555;text-decoration:none;border-radius:4px;transition:.12s;line-height:1.5}
+#tocList a:hover{background:#f0f0ff;color:#6432fc}
+#tocList a.active{background:#ede9fe;color:#6432fc;font-weight:500}
+#tocList .toc-h1{padding-left:8px;font-weight:600;font-size:13px}
+#tocList .toc-h2{padding-left:8px}
+#tocList .toc-h3{padding-left:22px;font-size:12px;color:#888}
+#tocList .toc-h4{padding-left:36px;font-size:11px;color:#aaa}
+.toc-toggle{display:inline-block;width:14px;font-size:10px;color:#bbb;cursor:pointer;text-align:center;flex-shrink:0;transition:transform .2s;user-select:none}
+.toc-toggle.collapsed{transform:rotate(-90deg)}
+.toc-link-row{display:flex;align-items:center}
+.toc-link-row a{flex:1}
+.toc-children{overflow:hidden;transition:max-height .25s ease}
+.toc-children.collapsed{max-height:0!important}
+#main{flex:1;min-width:0;padding:40px 52px 80px;max-width:860px}
+.version-block{display:none}
+.version-block.active{display:block}
+.prd-body h1{font-size:26px;margin:36px 0 14px;color:#1e1e2e;border-bottom:2px solid #6432fc;padding-bottom:8px}
+.prd-body h2{font-size:20px;margin:30px 0 10px;color:#1e1e2e}
+.prd-body h3{font-size:17px;margin:24px 0 8px;color:#333}
+.prd-body h4{font-size:15px;margin:18px 0 6px;color:#444}
+.prd-body p{margin:6px 0;font-size:15px}
+.prd-body ul,.prd-body ol{margin:6px 0 6px 22px;font-size:15px}
+.prd-body li{margin:3px 0;position:relative}
+.prd-body table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14px}
+.prd-body th,.prd-body td{border:1px solid #e5e7eb;padding:7px 12px;text-align:left;position:relative}
+.prd-body th{background:#f8f9fb;font-weight:600}
+.prd-body code{background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:13px;font-family:"SF Mono",Monaco,Consolas,monospace}
+.prd-body pre{background:#1e1e2e;padding:16px;border-radius:8px;overflow-x:auto;margin:12px 0}
+.prd-body pre code{background:none;padding:0;color:#e2e8f0;font-size:13px}
+.prd-body blockquote{border-left:3px solid #6432fc;padding:8px 16px;margin:12px 0;background:#f8f7ff;color:#555;border-radius:0 6px 6px 0}
+.prd-body hr{border:none;border-top:1px solid #e5e7eb;margin:24px 0}
+.prd-body del{color:#c03;text-decoration:line-through}
+.prd-body strong{font-weight:600}
+.prd-body a{color:#6432fc;text-decoration:none}
+.prd-body a:hover{text-decoration:underline}
+.diff-tag{position:absolute;right:-8px;top:50%;transform:translate(100%,-50%);background:#fff;border:1.5px solid #f0c000;border-radius:6px;padding:3px 10px;font-size:11px;white-space:nowrap;color:#7a6000;box-shadow:0 2px 8px rgba(0,0,0,.1);z-index:10}
+.diff-tag:before{content:'';position:absolute;left:-7px;top:50%;transform:translateY(-50%);border:4px solid transparent;border-right-color:#f0c000}
+.dt-old{color:#c03;text-decoration:line-through;margin-right:4px}
+.dt-arr{color:#999;margin:0 3px}
+.dt-new{color:#067a3a;font-weight:600}
+.version-changelog{background:#fffdf0;border:1px solid #f0c000;border-radius:10px;padding:20px 24px;margin-top:40px}
+.version-changelog h2{font-size:17px;color:#7a6000;margin-bottom:12px}
+.version-changelog h3{font-size:14px;color:#555;margin:12px 0 4px}
+.version-changelog p{font-size:13px;color:#666;margin:2px 0}
+.has-comment{background:rgba(240,192,0,.18)!important;border-radius:3px;cursor:pointer}
+#sel-tb{position:fixed;background:#222;color:#fff;border-radius:6px;padding:6px 14px;font-size:13px;display:none;cursor:pointer;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,.25);white-space:nowrap}
+#sel-tb:hover{background:#333}
+#cm-panel{position:fixed;right:0;top:48px;width:320px;height:calc(100vh - 48px);background:#fff;border-left:1px solid #e5e7eb;overflow-y:auto;padding:20px;z-index:20;transform:translateX(100%);transition:transform .25s}
+#cm-panel.open{transform:translateX(0)}
+#cm-panel h3{font-size:14px;font-weight:700;margin-bottom:14px;color:#1e1e2e}
+.cm-entry{background:#fff9e6;border:1px solid #f0c000;border-radius:8px;padding:12px;margin-bottom:10px;position:relative}
+.cm-entry .cm-section{font-size:11px;color:#aaa;margin-bottom:4px}
+.cm-entry .cm-anchor{font-size:12px;font-style:italic;color:#666;background:#f5f5f5;padding:3px 8px;border-radius:4px;margin-bottom:6px;display:block;word-break:break-all}
+.cm-entry .cm-text{font-size:13px;line-height:1.6;color:#222}
+.cm-entry .cm-del{position:absolute;top:8px;right:8px;background:none;border:none;color:#aaa;font-size:16px;cursor:pointer;line-height:1}
+.cm-entry .cm-del:hover{color:#c03}
+.cm-entry .cm-meta{font-size:11px;color:#bbb;margin-top:6px}
+.cm-other-notice{font-size:12px;color:#999;background:#f5f5f5;border-radius:5px;padding:6px 10px;margin-bottom:10px}
+.cm-empty{color:#aaa;font-size:13px;text-align:center;padding:24px 0}
+#cm-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:center;justify-content:center}
+#cm-modal.show{display:flex}
+.modal-box{background:#fff;border-radius:12px;padding:24px;width:440px;max-width:90vw;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.modal-box h4{font-size:15px;font-weight:700;margin-bottom:8px}
+.anchor-preview{font-size:12px;color:#666;background:#f5f5f5;padding:6px 10px;border-radius:4px;margin-bottom:12px;font-style:italic;line-height:1.5;max-height:60px;overflow:hidden}
+.modal-box textarea{width:100%;height:90px;border:1px solid #d1d5db;border-radius:6px;padding:10px;font-size:14px;resize:vertical;outline:none;font-family:inherit}
+.modal-box textarea:focus{border-color:#6432fc}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+.modal-actions button{padding:6px 16px;border-radius:6px;font-size:13px;cursor:pointer;border:1px solid #d1d5db;background:#fff}
+.btn-save{background:#6432fc!important;color:#fff!important;border-color:#6432fc!important;font-weight:600}
+.btn-save:hover{background:#5020d0!important}
+#cm-toggle{position:fixed;right:0;top:50%;transform:translateY(-50%);background:#6432fc;color:#fff;border:none;padding:10px 5px;border-radius:8px 0 0 8px;cursor:pointer;font-size:12px;z-index:21;writing-mode:vertical-rl;letter-spacing:1px}
+.proto-ref{margin:8px 0 16px;padding:6px 14px;background:#f0f4ff;border-left:3px solid #6432fc;border-radius:0 6px 6px 0;font-size:13px;color:#555}
+.proto-ref a{color:#6432fc;font-weight:500}
+@media(max-width:768px){#sidebar{display:none}#main{padding:20px 16px}#cm-panel{width:100%}}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <span class="brand">Looply CMS PRD</span>
+  <span class="vtag" id="cur-ver-tag">v1.0</span>
+  <div class="actions">
+    <button onclick="exportComments()">导出评论</button>
+    <button onclick="downloadHtml()">下载（含评论）</button>
+    <button onclick="clearAllComments()">清空评论</button>
+    <button onclick="togglePanel()">评论 (<span id="cm-count">0</span>)</button>
+  </div>
+</div>
+
+<div id="layout">
+  <nav id="sidebar">
+    <div class="vsec">
+      <div class="vsec-title">版本</div>
+      <ul class="vlist" id="versionList"></ul>
+    </div>
+    <div>
+      <div class="toc-title">目录</div>
+      <ul id="tocList"></ul>
+    </div>
+  </nav>
+
+  <div id="main">
+    <div class="version-block active" id="block-v1.0">
+      <div class="prd-body" id="content-v1.0">
+<h1 id="title">Looply · CMS 后台 PRD v1.0</h1>
+<blockquote><p>版本：v1.0 | 日期：2026-06-17 | 范围：资源位管理 · 合集管理（待上线）· 全局配置（待上线）· 搜索配置（待上线）</p></blockquote>
+<hr>
+<h2 id="1-概述">一、概述</h2>
+<div class="proto-ref">设计参考：<a href="../原型/looply-cms-antd-原型-v1.0.html" target="_blank">looply-cms-antd-原型-v1.0.html</a> — 整体概述 · 系统介绍</div>
+<h3 id="1-1">1.1 背景与目标</h3>
+<p>Looply 前台页面内容需要运营团队高频更新——坑位 Banner、合集入口等。CMS 的目标是让运营在不依赖开发的情况下完成内容日常管理。</p>
+<p><strong>设计原则：</strong></p>
+<ul><li><strong>骨架写死，内容放开</strong>：页面 Section 的上下顺序由产品硬编码，运营只配各 Section 内的内容，不能改页面结构</li><li><strong>低代码配置</strong>：选市场 → 选终端 → 选坑位 → 选模板 → 填参数，约束即表单</li><li><strong>预览上下文常驻</strong>：配置资源位时，右侧始终展示完整页面预览，当前编辑区高亮，其他区块灰显占位</li><li><strong>即时生效</strong>：上线后前台直接读取，无需开发部署</li></ul>
+<h3 id="1-2">1.2 本期不做</h3>
+<table><thead><tr><th>模块</th><th>说明</th></tr></thead><tbody><tr><td>合集管理</td><td>已在其他模块实现，CMS 内标注【待上线】</td></tr><tr><td>全局配置</td><td>Trust Bar / 导航链接 / Footer / Feed Tab，V2 启用，标注【待上线】</td></tr><tr><td>搜索配置</td><td>热门品牌 / 热搜词 / 搜索类目，V2 启用，标注【待上线】</td></tr><tr><td>权限管理</td><td>一期超级运营，V2 引入角色权限</td></tr><tr><td>促销管理</td><td>V2 规划</td></tr><tr><td>商品内容标注</td><td>V2 规划</td></tr><tr><td>多语言 / 多 Market</td><td>本期仅 US 市场英文，字段预留 <code>market_id</code></td></tr><tr><td>A/B 测试框架</td><td>V2 引入</td></tr><tr><td>PC 端预览</td><td>本期仅 Mobile 预览，PC 预览 V2 补充</td></tr></tbody></table>
+<h3 id="1-3">1.3 用户角色</h3>
+<p>一期只有一种角色：<strong>运营</strong>，登录即有全部操作权限。</p>
+<h3 id="1-4">1.4 核心操作场景</h3>
+<ol><li>运营配置首页 Banner：资源位管理 → 市场选 US → 终端选 App → 坑位选 <code>home_banner</code> → 新建配置 → 选 <code>banner_image</code> 模板 → 上传图片 → 关联合集 → 上线</li><li>运营配置首页合集入口：资源位管理 → US / App → 坑位选 <code>home_collection</code> → 新建配置 → 选 <code>collection_card_slide</code> → 上传图片 → 关联合集 → 上线</li><li>运营调整配置展示顺序：进入坑位配置列表 → 点排序上/下按钮，同一坑位内配置在 C 端的展示位置随之变化</li></ol>
+<h3 id="1-5">1.5 CMS 全局页面结构</h3>
+<div class="proto-ref">设计参考：<a href="../原型/looply-cms-antd-原型-v1.0.html" target="_blank">looply-cms-antd-原型-v1.0.html</a> — 左侧导航 · 菜单结构</div>
+<pre><code>cms.looply.com
+├── 登录
+└── 主导航（左侧固定）
+    ├── 资源位管理
+    │   ├── 首页      ← 可点击，进入首页资源位编辑器
+    │   └── Shop 页   ← 可点击，进入 Shop 资源位编辑器
+    ├── 合集管理      ← 标注【待上线】，不可点击
+    ├── 全局配置      ← 标注【待上线】，不可点击
+    └── 搜索配置      ← 标注【待上线】，不可点击</code></pre>
+<blockquote><p><strong>导航规范</strong>：「资源位管理」本身不是可点击页面，其下「首页」和「Shop 页」是两个独立的可点击二级菜单，点击后进入对应的资源位配置编辑器。</p></blockquote>
+<hr>
+<h2 id="2-资源位管理">二、模块一：资源位管理</h2>
+<div class="proto-ref">设计参考：<a href="../原型/looply-cms-antd-原型-v1.0.html" target="_blank">looply-cms-antd-原型-v1.0.html</a> — 资源位管理 — 首页 / Shop 页</div>
+<h3 id="2-1">2.1 概念说明</h3>
+<table><thead><tr><th>概念</th><th>说明</th></tr></thead><tbody><tr><td>坑位（Zone）</td><td>页面上固定的内容承载区，由产品定义，运营不可新建</td></tr><tr><td>模板（Template）</td><td>坑位支持的视觉样式，由开发实现，运营只选不建</td></tr><tr><td>配置（Config）</td><td>运营在某个坑位用某个模板填充的一条内容记录（原「实例」）。每条配置包含一个素材（一张图或一段视频）+ 关联一个合集</td></tr></tbody></table>
+<blockquote><p><strong>核心逻辑</strong>：去掉 <code>asset_item</code> 层级。每条配置 = 一个素材 + 一个关联合集。同一坑位下可有多条配置，前台以横向平铺、支持左右滑动的方式展示所有上线配置。</p></blockquote>
+<h4 id="2-1-1">2.1.1 同坑位多配置排布</h4>
+<p>同一坑位下多条上线配置，统一以横向平铺支持左右滑动方式展示：</p>
+<ul><li><strong>全幅类（<code>banner_image</code> / <code>banner_video</code>）</strong>：配置间自动轮播，切换间隔由系统固定（运营不可配），用户也可左右滑动</li><li><strong>卡片类（<code>collection_card_slide</code> / <code>collection_card_small</code> / <code>collection_chip</code>）</strong>：配置间横向排列，用户主动左右滑动，不自动轮播</li></ul>
+<h4 id="2-1-2">2.1.2 素材来源</h4>
+<p>本期所有素材类型统一为<strong>本地上传</strong>，需满足各坑位规定的图片规格：</p>
+<table><thead><tr><th>素材类型</th><th>支持来源</th><th>格式要求</th></tr></thead><tbody><tr><td>图片（<code>asset_image</code>）</td><td>仅本地上传</td><td>JPG/PNG/WebP；分辨率要求见 §6.1</td></tr><tr><td>视频（<code>asset_video</code>）</td><td>仅本地上传</td><td>MP4，建议 ≤ 20MB</td></tr></tbody></table>
+<h4 id="2-1-3">2.1.3 市场与终端维度</h4>
+<p>运营进入坑位配置列表前，需先选定：</p>
+<ol><li><strong>市场（Market）</strong>：目前仅 US，字段预留 <code>market_id</code></li><li><strong>终端（Terminal）</strong>：App（即 Mobile）/ PC</li></ol>
+<p>同一 zone_key 在不同市场、不同终端下是独立的配置集合，字段结构完全一致。</p>
+<blockquote><p>进入编辑页后，市场字段<strong>置灰不可修改</strong>。</p></blockquote>
+<h4 id="2-1-4">2.1.4 Landing 配置</h4>
+<p>每条配置有唯一一个 Landing，自动从关联合集读取：</p>
+<table><thead><tr><th>字段</th><th>来源</th><th>展示方式</th></tr></thead><tbody><tr><td><code>landing_page</code></td><td>关联合集的页面名称</td><td>CMS 内展示页面名称，可点击</td></tr><tr><td><code>landing_page_url</code></td><td>关联合集的页面链接</td><td>点击页面名称后跳转</td></tr></tbody></table>
+<ul><li>只有一种 Landing 类型，无 landing_fallback，无 shop_filter 选项</li><li>Landing 不可手动修改，跟随合集自动更新</li></ul>
+<h4 id="2-1-5">2.1.5 坑位清单（4 个）</h4>
+<table><thead><tr><th>zone_key</th><th>所属页面</th><th>中文名</th><th>配置上限</th></tr></thead><tbody><tr><td><code>home_banner</code></td><td>首页</td><td>首页 Banner</td><td>4</td></tr><tr><td><code>home_collection</code></td><td>首页</td><td>首页 Collection</td><td>8</td></tr><tr><td><code>shop_banner</code></td><td>Shop 页</td><td>Shop Banner</td><td>4</td></tr><tr><td><code>shop_collection</code></td><td>Shop 页</td><td>Shop Collection</td><td>6</td></tr></tbody></table>
+<h4 id="2-1-6">2.1.6 模板清单（5 个）</h4>
+<table><thead><tr><th>template_key</th><th>中文名</th><th>适用坑位</th><th>MVP</th><th>说明</th></tr></thead><tbody><tr><td><code>banner_image</code></td><td>Banner 大图</td><td><code>home_banner</code>, <code>shop_banner</code></td><td><strong>P0</strong></td><td>单素材图片，全幅展示</td></tr><tr><td><code>banner_video</code></td><td>Banner 视频</td><td><code>home_banner</code>, <code>shop_banner</code></td><td>P1</td><td>单素材视频，全幅展示</td></tr><tr><td><code>collection_card_slide</code></td><td>合集滑动卡片</td><td><code>home_collection</code>, <code>shop_collection</code></td><td><strong>P0</strong></td><td>图片卡片 + 合集信息</td></tr><tr><td><code>collection_chip</code></td><td>文字芯片</td><td><code>home_collection</code>, <code>shop_collection</code></td><td>P1</td><td>文字 Chip，无图片</td></tr><tr><td><code>collection_card_small</code></td><td>小尺寸卡片</td><td><code>home_collection</code>, <code>shop_collection</code></td><td>P1</td><td>小卡片，图片+合集信息</td></tr></tbody></table>
+<h3 id="2-2">2.2 配置字段结构</h3>
+<div class="proto-ref">设计参考：<a href="../原型/looply-cms-antd-原型-v1.0.html" target="_blank">looply-cms-antd-原型-v1.0.html</a> — 新建/编辑配置页 — 表单字段</div>
+<p>所有配置模板共用以下统一字段结构（不再区分「实例层」和「asset_item 层」）：</p>
+<h4 id="2-2-1">通用字段（所有模板）</h4>
+<table><thead><tr><th>字段</th><th>标签</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>config_name</code></td><td>模板名称</td><td>text</td><td>否</td><td>运营内部标注，不对外展示</td></tr><tr><td><code>market_id</code></td><td>市场</td><td>select</td><td>是</td><td>当前仅 US；进入编辑后置灰</td></tr><tr><td><code>terminal</code></td><td>终端</td><td>select</td><td>是</td><td>App / PC；进入编辑后置灰</td></tr><tr><td><code>zone_key</code></td><td>坑位</td><td>select</td><td>是</td><td>按市场+终端过滤；进入编辑后置灰</td></tr><tr><td><code>template_key</code></td><td>模板</td><td>select/card</td><td>是</td><td>按 zone_key 过滤可用模板</td></tr><tr><td><code>asset_image</code></td><td>素材图片</td><td>image</td><td>图片模板必填</td><td>仅本地上传；视频模板不显示</td></tr><tr><td><code>asset_video</code></td><td>素材视频</td><td>video</td><td>视频模板必填</td><td>仅本地上传；图片模板不显示</td></tr><tr><td><code>asset_poster</code></td><td>封面帧</td><td>image</td><td>banner_video 必填</td><td>视频加载前展示，仅本地上传</td></tr><tr><td><code>title</code></td><td>标题</td><td>text</td><td>否</td><td>字符数限制待与设计/前端对齐</td></tr><tr><td><code>subtitle</code></td><td>副标题</td><td>text</td><td>否</td><td>字符数限制待对齐；<code>collection_chip</code> 不显示</td></tr><tr><td><code>cta_text</code></td><td>按钮文案</td><td>text</td><td>否</td><td>字符数限制待对齐；留空不渲染按钮</td></tr><tr><td><code>text_color</code></td><td>文字颜色</td><td>select</td><td>否</td><td>light / dark；默认 light</td></tr><tr><td><code>collection_id</code></td><td>关联合集</td><td>select</td><td>是</td><td>按 market_id 过滤；选后自动填充 landing_page / landing_page_url</td></tr><tr><td><code>landing_page</code></td><td>落地页名称</td><td>readonly</td><td>自动填充</td><td>从关联合集读取，只读展示，可点击跳转</td></tr><tr><td><code>landing_page_url</code></td><td>落地页链接</td><td>readonly</td><td>自动填充</td><td>从关联合集读取，通过点击 landing_page 跳转</td></tr><tr><td><code>start_time</code></td><td>生效开始时间</td><td>datetime</td><td>否</td><td>空 = 立即生效（开关打开即生效）</td></tr><tr><td><code>end_time</code></td><td>生效结束时间</td><td>datetime</td><td>否</td><td>空 = 永久有效</td></tr></tbody></table>
+<blockquote><p>字符数限制（title / subtitle / cta_text）均标注为"待与设计/前端对齐后给出最终数值"，当前原型仅作示意。</p></blockquote>
+<h4 id="2-2-chip">collection_chip 特殊说明</h4>
+<ul><li>无 <code>asset_image</code> 字段（纯文字 Chip）</li><li><code>title</code> 作为 Chip 显示文案</li><li>无 <code>subtitle</code>、<code>cta_text</code>、<code>text_color</code> 字段</li></ul>
+<h3 id="2-3">2.3 配置状态</h3>
+<div class="proto-ref">设计参考：<a href="../原型/looply-cms-antd-原型-v1.0.html" target="_blank">looply-cms-antd-原型-v1.0.html</a> — 配置状态 Tag · 列表状态展示</div>
+<table><thead><tr><th>状态</th><th>中文</th><th>触发条件</th><th>前台行为</th></tr></thead><tbody><tr><td><code>not_started</code></td><td>未生效</td><td>上线开关开，但 start_time 晚于当前时间</td><td>前台不展示</td></tr><tr><td><code>active</code></td><td>生效中</td><td>上线开关开，且当前时间在 start_time 与 end_time 之间</td><td>前台展示</td></tr><tr><td><code>paused</code></td><td>已暂停</td><td>上线开关关，且当前时间在 start_time 与 end_time 之间</td><td>前台不展示，保留配置</td></tr><tr><td><code>expired</code></td><td>已失效</td><td>当前时间大于 end_time</td><td>前台不展示</td></tr></tbody></table>
+<blockquote><p><strong>状态由上线开关 + 时间共同决定，不再有独立的「初始状态」字段。</strong></p></blockquote>
+<h3 id="2-4">2.4 配置列表视图</h3>
+<div class="proto-ref">设计参考：<a href="../原型/looply-cms-antd-原型-v1.0.html" target="_blank">looply-cms-antd-原型-v1.0.html</a> — 资源位管理列表页 — 三级联动筛选 · 配置列表</div>
+<h4 id="2-4-1">顶部筛选导航（三层级联）</h4>
+<table><thead><tr><th>层级</th><th>内容</th><th>选择方式</th></tr></thead><tbody><tr><td>第一层：市场</td><td>US（当前唯一）</td><td>单选</td></tr><tr><td>第二层：终端</td><td>App / PC</td><td>单选（Mobile 与 App 端一致，界面标注说明）</td></tr><tr><td>第三层：坑位</td><td>对应页面下所有坑位</td><td><strong>单选</strong>，必须选中一个坑位</td></tr></tbody></table>
+<p>筛选后，下方展示所选坑位的配置列表（按坑位分组展示）。</p>
+<h4 id="2-4-2">列表每行展示</h4>
+<table><thead><tr><th>字段</th><th>说明</th></tr></thead><tbody><tr><td>配置名称</td><td>即 <code>config_name</code>，运营内部标注</td></tr><tr><td>模板类型</td><td><code>template_key</code> 对应中文名</td></tr><tr><td>状态</td><td>当前状态 Tag（未生效 / 生效中 / 已暂停 / 已失效）</td></tr><tr><td>预览</td><td>素材缩略图，点击可放大到原尺寸</td></tr></tbody></table>
+<h4 id="2-4-3">每行操作</h4>
+<table><thead><tr><th>操作</th><th>说明</th><th>显示条件</th></tr></thead><tbody><tr><td>上线/下线开关</td><td>打开=上线，关闭=下线；与时间共同决定实际状态</td><td>始终显示</td></tr><tr><td>排序上↑</td><td>点击，当前配置与上一条互换位置</td><td>始终显示</td></tr><tr><td>排序下↓</td><td>点击，当前配置与下一条互换位置</td><td>始终显示</td></tr><tr><td>删除</td><td>删除该配置，需二次确认弹窗（不可恢复）</td><td><strong>仅状态非「生效中」时显示</strong>；生效中配置在线上，不允许直接删除，需先下线</td></tr><tr><td>编辑</td><td>进入编辑页，市场/终端/坑位字段置灰不可修改</td><td>始终显示，<strong>使用编辑图标（EditOutlined）</strong>，排在操作列最后一位</td></tr></tbody></table>
+<h3 id="2-5">2.5 新建/编辑配置</h3>
+<div class="proto-ref">设计参考：<a href="../原型/looply-cms-antd-原型-v1.0.html" target="_blank">looply-cms-antd-原型-v1.0.html</a> — 新建配置页 · 编辑配置页</div>
+<h4 id="2-5-1">页面流转</h4>
+<pre><code>资源位管理（首页/Shop页）
+→ 顶部筛选（市场 + 终端 + 坑位）
+→ 配置列表
+→ 点击「新建配置」或编辑行
+→ 编辑页（市场/终端/坑位 置灰）
+→ 选模板 → 填参数（单屏，无分步）
+→ 保存</code></pre>
+<h4 id="2-5-2">编辑页内容（单屏，不分步）</h4>
+<p><strong>区块 1 — 基本信息（置灰只读）</strong></p>
+<ul><li>市场、终端、坑位（进入前已选定，不可修改）</li></ul>
+<p><strong>区块 2 — 模板选择</strong></p>
+<ul><li>卡片网格，只展示该坑位允许的模板，含 P0/P1 标注</li><li>切换模板弹出确认：「切换模板将清空已填参数，确认切换？」</li></ul>
+<p><strong>区块 3 — 素材与内容</strong></p>
+<ul><li>按模板类型显示对应字段（见 §2.2）</li><li>图片上传：本地上传，规格要求见 §6.1</li><li>关联合集（必填）：下拉选择，按 market_id 过滤；选择后自动填充 landing_page / landing_page_url</li><li>Landing 只读展示页面名称（不展示 URL）</li></ul>
+<p><strong>区块 4 — 生效时间</strong></p>
+<ul><li>生效开始时间（空 = 立即生效）</li><li>生效结束时间（空 = 永久有效）</li></ul>
+<p><strong>校验规则</strong></p>
+<ul><li>关联合集必填，未填不可保存</li><li>图片/视频类模板素材必填</li><li>保存后上线开关默认关闭（即新建配置默认「已暂停」状态，需手动上线）</li></ul>
+<h3 id="2-6">2.6 预览面板</h3>
+<div class="proto-ref">设计参考：<a href="../原型/looply-cms-antd-原型-v1.0.html" target="_blank">looply-cms-antd-原型-v1.0.html</a> — 右侧实时预览面板</div>
+<p>右侧实时预览区，模拟对应终端（App/PC）效果。当前坑位高亮蓝/紫色框，其他 Section 灰显。</p>
+<p>本期实现：<strong>Mobile（App）预览</strong>，PC 预览 V2 补充。</p>
+<hr>
+<h2 id="3-合集管理">三、模块二：合集管理</h2>
+<div class="proto-ref">设计参考：<a href="../原型/looply-cms-antd-原型-v1.0.html" target="_blank">looply-cms-antd-原型-v1.0.html</a> — 合集管理（待上线占位）</div>
+<blockquote><p>【待上线】本期已在独立系统中实现，CMS 内占位标注，不做配置页面。</p></blockquote>
+<hr>
+<h2 id="4-全局配置">四、模块三：全局配置</h2>
+<div class="proto-ref">设计参考：<a href="../原型/looply-cms-antd-原型-v1.0.html" target="_blank">looply-cms-antd-原型-v1.0.html</a> — 全局配置（待上线占位）</div>
+<blockquote><p>【待上线】Trust Bar / 导航链接 / Footer / Feed Tab 配置，V2 启用。</p></blockquote>
+<hr>
+<h2 id="5-搜索配置">五、模块四：搜索配置</h2>
+<div class="proto-ref">设计参考：<a href="../原型/looply-cms-antd-原型-v1.0.html" target="_blank">looply-cms-antd-原型-v1.0.html</a> — 搜索配置（待上线占位）</div>
+<blockquote><p>【待上线】热门品牌 / 热搜词 / 搜索类目入口，V2 启用。</p></blockquote>
+<hr>
+<h2 id="6-公共规范">六、公共交互规范</h2>
+<div class="proto-ref">设计参考：<a href="../原型/looply-cms-antd-原型-v1.0.html" target="_blank">looply-cms-antd-原型-v1.0.html</a> — 通用交互规范 · 上传 · 保存 · 确认弹窗</div>
+<h3 id="6-1">6.1 素材上传规范</h3>
+<table><thead><tr><th>坑位</th><th>素材类型</th><th>推荐规格</th><th>格式</th></tr></thead><tbody><tr><td><code>home_banner</code> / <code>shop_banner</code></td><td>图片</td><td>750×400px（Mobile）</td><td>JPG/PNG/WebP</td></tr><tr><td><code>home_banner</code> / <code>shop_banner</code></td><td>视频</td><td>MP4，≤ 20MB</td><td>MP4</td></tr><tr><td><code>home_collection</code> / <code>shop_collection</code></td><td>图片</td><td>600×800px（3:4）</td><td>JPG/PNG/WebP</td></tr></tbody></table>
+<blockquote><p>字符数限制（title/subtitle/cta_text）以及精确分辨率要求，待与设计、前端对齐后补充。</p></blockquote>
+<p>上传失败提示：「Upload failed. Try again」</p>
+<h3 id="6-2">6.2 保存与上线</h3>
+<ul><li>保存：存储配置，不影响线上</li><li>上线：通过列表行的上线开关控制；上线开关打开且时间在有效范围内，前台即展示</li></ul>
+<h3 id="6-3">6.3 操作确认</h3>
+<ul><li>切换模板（清空已填参数）</li><li>删除配置（不可恢复）</li></ul>
+<h3 id="6-4">6.4 空状态</h3>
+<ul><li>坑位无配置：首次使用引导态</li><li>筛选无结果：无匹配态</li></ul>
+<h3 id="6-5">6.5 配置上限</h3>
+<p>达到坑位配置上限时，新建按钮禁用，提示：「需先下线一个现有配置」</p>
+<hr>
+<h2 id="7-v2规划">七、待规划模块（V2）</h2>
+<div class="proto-ref">设计参考：<a href="../原型/looply-cms-antd-原型-v1.0.html" target="_blank">looply-cms-antd-原型-v1.0.html</a> — V2 路线图规划</div>
+<p>促销管理 / 商品内容标注 / 权限管理 / 数据看板 / 合集管理 CMS 集成 / PC 预览</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="sel-tb">添加评论</div>
+
+<div id="cm-panel">
+  <h3>评论面板</h3>
+  <div id="cm-list"></div>
+</div>
+
+<button id="cm-toggle" onclick="togglePanel()">评论</button>
+
+<div id="cm-modal">
+  <div class="modal-box">
+    <h4>添加评论</h4>
+    <div class="anchor-preview" id="modal-anchor"></div>
+    <textarea id="modal-input" placeholder="写下你的评论..."></textarea>
+    <div class="modal-actions">
+      <button onclick="closeModal()">取消</button>
+      <button class="btn-save" onclick="saveComment()">保存 (Cmd+Enter)</button>
+    </div>
+  </div>
+</div>
+
+<script id="prd-comments" type="application/json">[]</script>
+<script id="prd-versions" type="application/json">[{"id":"v1.0","label":"v1.0","date":"2026-06-17","is_current":true}]</script>
+<script>
+var comments = [];
+var versions = [];
+var currentVid = 'v1.0';
+var pendingAnchor = '';
+var pendingSection = '';
+
+function init() {
+  try { comments = JSON.parse(document.getElementById('prd-comments').textContent) || []; } catch(e){comments=[];}
+  try { versions = JSON.parse(document.getElementById('prd-versions').textContent) || []; } catch(e){versions=[];}
+  var saved = localStorage.getItem('prd-cms-v10-comments');
+  if (saved) { try { var arr = JSON.parse(saved); if (arr.length >= comments.length) { comments = arr; } } catch(e){} }
+  var cur = versions.find(function(v){return v.is_current;});
+  if (cur) currentVid = cur.id;
+  buildVersionList();
+  buildToc();
+  showVersion(currentVid);
+  bindHighlights();
+  renderPanel();
+  updateCount();
+}
+
+function buildVersionList() {
+  var ul = document.getElementById('versionList');
+  ul.innerHTML = '';
+  versions.forEach(function(v) {
+    var li = document.createElement('li');
+    var a = document.createElement('a');
+    a.href = '#'; a.textContent = v.label + ' (' + v.date + ')';
+    a.setAttribute('data-vid', v.id);
+    if (v.id === currentVid) a.classList.add('active');
+    a.addEventListener('click', function(e) { e.preventDefault(); switchVersion(v.id); });
+    li.appendChild(a); ul.appendChild(li);
+  });
+}
+
+function switchVersion(vid) {
+  currentVid = vid;
+  document.querySelectorAll('#versionList a').forEach(function(a){
+    a.classList.toggle('active', a.getAttribute('data-vid') === vid);
+  });
+  showVersion(vid);
+  buildToc();
+  renderPanel();
+}
+
+function showVersion(vid) {
+  document.querySelectorAll('.version-block').forEach(function(el){
+    el.classList.toggle('active', el.id === 'block-' + vid);
+  });
+}
+
+function buildToc() {
+  var block = document.getElementById('block-' + currentVid);
+  if (!block) return;
+  var headings = block.querySelectorAll('h1,h2,h3,h4');
+  var items = [];
+  headings.forEach(function(h,i){
+    if (!h.id) h.id = 'v' + currentVid + '-h' + i;
+    items.push({level:parseInt(h.tagName[1]),text:h.textContent,id:h.id,el:h});
+  });
+  function buildTree(items) {
+    var root={children:[],level:0}; var stack=[root];
+    items.forEach(function(item){
+      var node={item:item,children:[]}; while(stack.length>1&&stack[stack.length-1].level>=item.level)stack.pop();
+      stack[stack.length-1].children.push(node); node.level=item.level; stack.push(node);
+    });
+    return root.children;
+  }
+  function renderTree(nodes) {
+    var ul=document.createElement('ul');
+    nodes.forEach(function(node){
+      var li=document.createElement('li'); var row=document.createElement('div'); row.className='toc-link-row';
+      var hasC=node.children.length>0;
+      if(hasC){var tog=document.createElement('span');tog.className='toc-toggle';tog.textContent='▼';row.appendChild(tog);}
+      else{var sp=document.createElement('span');sp.style.cssText='width:14px;display:inline-block;flex-shrink:0';row.appendChild(sp);}
+      var a=document.createElement('a');a.className='toc-h'+node.item.level;a.href='#'+node.item.id;a.textContent=node.item.text;row.appendChild(a);li.appendChild(row);
+      if(hasC){var cul=renderTree(node.children);cul.className='toc-children';li.appendChild(cul);
+        tog.addEventListener('click',function(e){e.stopPropagation();var c=cul.classList.contains('collapsed');cul.classList.toggle('collapsed',!c);tog.classList.toggle('collapsed',!c);});}
+      ul.appendChild(li);
+    });
+    return ul;
+  }
+  var tree=buildTree(items); var tocList=document.getElementById('tocList'); tocList.innerHTML='';
+  var r=renderTree(tree); while(r.firstChild)tocList.appendChild(r.firstChild);
+  var allLinks=tocList.querySelectorAll('a');
+  var headingEls=items.map(function(it){return it.el;});
+  function updateActive(){var st=window.scrollY+80;var cur=0;headingEls.forEach(function(h,i){if(h.offsetTop<=st)cur=i;});allLinks.forEach(function(a,i){a.classList.toggle('active',i===cur);});}
+  window.removeEventListener('scroll',window._tocScroll||function(){});
+  window._tocScroll=updateActive;
+  window.addEventListener('scroll',updateActive); updateActive();
+  allLinks.forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();var t=document.getElementById(a.getAttribute('href').slice(1));if(t)window.scrollTo({top:t.offsetTop-60,behavior:'smooth'});});});
+  tocList.querySelectorAll('.toc-children').forEach(function(ul){var pr=ul.previousElementSibling;if(pr){var a=pr.querySelector('a');if(a&&(a.classList.contains('toc-h2')||a.classList.contains('toc-h3'))){ul.classList.add('collapsed');var t=pr.querySelector('.toc-toggle');if(t)t.classList.add('collapsed');}}});
+}
+
+function getNearestSection(el) {
+  var cur = el;
+  while (cur && cur.id !== 'block-' + currentVid) {
+    if (/^H[1-3]$/.test(cur.tagName)) return cur.textContent;
+    cur = cur.previousElementSibling || cur.parentElement;
+  }
+  return '';
+}
+
+document.addEventListener('mouseup', function(e) {
+  if (document.getElementById('cm-modal').classList.contains('show')) return;
+  var sel = window.getSelection(); if (!sel || sel.isCollapsed) { document.getElementById('sel-tb').style.display='none'; return; }
+  var text = sel.toString().trim(); if (!text || text.length < 2) { document.getElementById('sel-tb').style.display='none'; return; }
+  var range = sel.getRangeAt(0); var rect = range.getBoundingClientRect();
+  var tb = document.getElementById('sel-tb');
+  tb.style.left = Math.max(4, rect.left + rect.width/2 - 55) + 'px';
+  tb.style.top = (window.scrollY + rect.top - 42) + 'px';
+  tb.style.display = 'block';
+  pendingAnchor = text.substring(0, 200);
+  var container = range.commonAncestorContainer;
+  var el = container.nodeType === 3 ? container.parentElement : container;
+  pendingSection = getNearestSection(el);
+});
+document.getElementById('sel-tb').addEventListener('click', function() { openModal(); document.getElementById('sel-tb').style.display='none'; });
+document.addEventListener('mousedown', function(e) { if (e.target !== document.getElementById('sel-tb')) document.getElementById('sel-tb').style.display='none'; });
+
+function openModal() {
+  document.getElementById('modal-anchor').textContent = '"' + pendingAnchor.substring(0,100) + (pendingAnchor.length>100?'...':'') + '"';
+  document.getElementById('modal-input').value = '';
+  document.getElementById('cm-modal').classList.add('show');
+  setTimeout(function(){ document.getElementById('modal-input').focus(); }, 100);
+}
+function closeModal() { document.getElementById('cm-modal').classList.remove('show'); }
+document.getElementById('modal-input').addEventListener('keydown', function(e) { if ((e.metaKey||e.ctrlKey)&&e.key==='Enter') saveComment(); if (e.key==='Escape') closeModal(); });
+document.getElementById('cm-modal').addEventListener('click', function(e) { if (e.target===this) closeModal(); });
+
+function saveComment() {
+  var text = document.getElementById('modal-input').value.trim(); if (!text) return;
+  var c = {id:'c'+Date.now(), version:currentVid, section:pendingSection, anchor_text:pendingAnchor, comment:text, created_at:new Date().toISOString()};
+  comments.push(c); persist(); bindHighlights(); renderPanel(); updateCount(); closeModal();
+}
+
+function deleteComment(id) { comments = comments.filter(function(c){return c.id!==id;}); persist(); bindHighlights(); renderPanel(); updateCount(); }
+
+function persist() {
+  document.getElementById('prd-comments').textContent = JSON.stringify(comments, null, 2);
+  localStorage.setItem('prd-cms-v10-comments', JSON.stringify(comments));
+}
+
+function bindHighlights() {
+  document.querySelectorAll('.has-comment').forEach(function(el){ el.classList.remove('has-comment'); });
+  var mine = comments.filter(function(c){return c.version===currentVid;});
+  mine.forEach(function(c) {
+    if (!c.anchor_text) return;
+    var block = document.getElementById('block-' + currentVid); if (!block) return;
+    var walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT, null, false);
+    var node; while (node=walker.nextNode()) {
+      if (node.textContent.indexOf(c.anchor_text.substring(0,40)) >= 0) { node.parentElement.classList.add('has-comment'); break; }
+    }
+  });
+}
+
+function renderPanel() {
+  var mine = comments.filter(function(c){return c.version===currentVid;});
+  var others = comments.filter(function(c){return c.version!==currentVid;});
+  var list = document.getElementById('cm-list');
+  var html = '';
+  if (others.length) html += '<div class="cm-other-notice">其他版本有 '+others.length+' 条评论</div>';
+  if (!mine.length) { html += '<div class="cm-empty">暂无评论，选中文字可添加</div>'; list.innerHTML = html; return; }
+  mine.forEach(function(c) {
+    var t = new Date(c.created_at);
+    var ts = t.getFullYear()+'/'+(t.getMonth()+1)+'/'+t.getDate()+' '+t.getHours()+':'+(t.getMinutes()<10?'0':'')+t.getMinutes();
+    html += '<div class="cm-entry"><button class="cm-del" onclick="deleteComment(\''+c.id+'\')">x</button>'
+          + (c.section?'<div class="cm-section">'+esc(c.section)+'</div>':'')
+          + '<div class="cm-anchor">'+esc(c.anchor_text.substring(0,80))+'...</div>'
+          + '<div class="cm-text">'+esc(c.comment)+'</div>'
+          + '<div class="cm-meta">'+ts+'</div></div>';
+  });
+  list.innerHTML = html;
+}
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function updateCount() { document.getElementById('cm-count').textContent = comments.length; }
+function togglePanel() { document.getElementById('cm-panel').classList.toggle('open'); }
+
+function exportComments() {
+  var mine = comments.filter(function(c){return c.version===currentVid;});
+  if (!mine.length) { alert('当前版本暂无评论'); return; }
+  var text = mine.map(function(c,i){
+    return '['+(i+1)+'] 版本：'+c.version+'\n章节：'+c.section+'\n锚点："'+c.anchor_text.substring(0,80)+'"\n评论：'+c.comment+'\n时间：'+c.created_at;
+  }).join('\n\n---\n\n');
+  navigator.clipboard.writeText(text).then(function(){ alert('已复制 '+mine.length+' 条评论到剪贴板'); });
+}
+
+function downloadHtml() {
+  persist();
+  var html = '<!DOCTYPE html>' + document.documentElement.outerHTML;
+  var blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'looply-cms-PRD.html'; a.click();
+}
+
+function clearAllComments() {
+  if (!confirm('确认清空所有评论？')) return;
+  comments = []; persist(); bindHighlights(); renderPanel(); updateCount();
+}
+
+init();
+</script>
+</body>
+</html>

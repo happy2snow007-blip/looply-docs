@@ -323,6 +323,44 @@ MODULES = {
             },
         },
     },
+    'cms': {
+        'name': 'CMS管理',
+        'default_source': '$HOME/looply/cms/资源位配置/正式文件',
+        'target': 'docs-CMS管理',
+        'keywords': ['cms', 'CMS', 'CMS管理'],
+        'config_key': 'cms',
+        'artifacts': {
+            'prototype': {
+                'subdir': '原型',
+                'pattern': r'looply-cms-antd-原型-v(.+?)\.html',
+                'exclude': r'(backup)',
+            },
+            'prd_html': {
+                'subdir': 'PRD',
+                'pattern': r'looply-CMS管理-PRD\.html',
+            },
+            'prd': {
+                'subdir': 'PRD',
+                'pattern': r'looply-CMS管理-PRD-v(.+?)\.md',
+            },
+            'architecture': {
+                'subdir': '产品架构图',
+                'pattern': r'looply-CMS资源位配置产品架构图-v(.+?)\.svg',
+            },
+            'er': {
+                'subdir': '实体关系图',
+                'pattern': r'looply-CMS资源位配置实体关系图-v(.+?)\.svg',
+            },
+            'flowchart': {
+                'subdir': '系统流程图',
+                'pattern': r'looply-CMS资源位配置流程图-v(.+?)\.svg',
+            },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'CMS管理-交付开发 V(.+?)\.zip',
+            },
+        },
+    },
 }
 
 # ─── 自动发现新模块 ────────────────────────────────────────────────────────────────
