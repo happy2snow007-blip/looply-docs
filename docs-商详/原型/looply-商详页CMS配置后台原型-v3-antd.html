@@ -264,7 +264,6 @@ const DESC_RULES = {
   luxury: [
     { id:'r1', scope:'Jewelry & Accessories', attrs:['Material','Color'], more:3 },
     { id:'r4', scope:'Bags', attrs:['Material','Color'], more:5 },
-    { id:'r5', scope:'Watches', attrs:['Movement','Case Material','Water Resistance'], more:3 },
   ],
   electronics: [
     { id:'r1', scope:'Phones', attrs:['Storage','Color','Screen Size'], more:4 },
@@ -295,7 +294,7 @@ const OPLOG_DATA = [
   { key:'2', time:'2026-06-16 10:50', user:'Sarah Chen', template:'Luxury PDP', module:'Trust Statement', type:'编辑配置', detail:'修改 Trust Statement 标题和信任项内容' },
   { key:'3', time:'2026-06-15 16:30', user:'Mike Wang', template:'Luxury PDP', module:'Condition', type:'编辑配置', detail:'修改成色等级描述文案优化' },
   { key:'4', time:'2026-06-15 14:30', user:'Sarah Chen', template:'Luxury PDP', module:'Description', type:'新增规则', detail:'新增「Watches」类目级 Description 属性配置' },
-  { key:'5', time:'2026-06-14 11:00', user:'Admin', template:'Luxury PDP', module:'Description', type:'编辑规则', detail:'修改「Jewelry > LV」品牌级配置：新增 Length 属性' },
+  { key:'5', time:'2026-06-14 11:00', user:'Admin', template:'Luxury PDP', module:'Description', type:'编辑规则', detail:'修改「Jewelry & Accessories」类目级配置：新增 Length 属性' },
   { key:'6', time:'2026-06-14 10:00', user:'Admin', template:'Electronics PDP', module:'模板管理', type:'创建模板', detail:'创建「电子产品商详页模板」，关联 Phones / Laptops / Tablets' },
   { key:'7', time:'2026-06-13 09:45', user:'Sarah Chen', template:'Electronics PDP', module:'Description', type:'编辑规则', detail:'修改「Phones」属性配置：关闭 Size Guide 展示' },
   { key:'8', time:'2026-06-13 09:00', user:'Admin', template:'Luxury PDP', module:'模块管理', type:'关闭模块', detail:'关闭 Trust Statement 模块展示（后恢复开启）' },
@@ -381,6 +380,9 @@ function DescPreviewCard({ attrs, itemNo }) {
           </div>
         );
       })}
+      <div style={{ marginTop:10, padding:'8px 0', borderTop:'1px solid #F3F4F6', fontSize:11, color:'#9CA3AF', lineHeight:1.5 }}>
+        属性下方将自动展示商品描述文案（来自渠道描述，非 CMS 配置）
+      </div>
     </div>
   );
 }
@@ -393,57 +395,8 @@ function DeleteConfirmModal({ rule, scopeKey, onClose }) {
         <Button key="c" onClick={onClose}>取消</Button>,
         <Button key="d" type="primary" danger onClick={onClose}>确认删除</Button>,
       ]}>
-      <p style={{ color:'#6B7280', fontSize:13 }}>删除后，该作用域下的商品将回退到上级规则（如品牌级删除后回退到类目级）。</p>
+      <p style={{ color:'#6B7280', fontSize:13 }}>删除后，该类目下的商品将不展示 Description 区域。</p>
       {rule && <p style={{ color:'#374151', fontWeight:600, fontSize:13 }}>作用域：{rule[scopeKey || 'scope'] || rule.category}</p>}
-    </Modal>
-  );
-}
-
-/* ========== TrustEditModal ========== */
-function TrustEditModal({ open, config, onClose }) {
-  const [title, setTitle] = useState(config?.title || '');
-  const [desc, setDesc] = useState(config?.desc || '');
-  const [detail, setDetail] = useState(config?.detail || '');
-  const [dirty, setDirty] = useState(false);
-  const mark = (fn) => (...a) => { setDirty(true); fn(...a); };
-  const handleCancel = () => confirmDiscard(dirty, () => { setDirty(false); onClose(); });
-
-  return (
-    <Modal open={open} onCancel={handleCancel} closable={false} maskClosable={false} centered width={920}
-      title="编辑 Trust Statement 信任声明" footer={[
-        <Button key="c" onClick={handleCancel}>取消</Button>,
-        <Button key="s" type="primary" onClick={() => { setDirty(false); onClose(); }}>保存</Button>,
-      ]}>
-      <div style={{ display:'flex',gap:16 }}>
-        <div style={{ flex:1,minWidth:0 }}>
-          <div style={{ marginBottom:16 }}>
-            <div style={{ fontSize:13,fontWeight:600,color:'#374151',marginBottom:6 }}>标题</div>
-            <Input value={title} onChange={mark(e => setTitle(e.target.value))} placeholder="如：Confidence in Every Find" />
-          </div>
-          <div style={{ marginBottom:16 }}>
-            <div style={{ fontSize:13,fontWeight:600,color:'#374151',marginBottom:6 }}>描述（前台直接展示的一句话）</div>
-            <Input.TextArea value={desc} onChange={mark(e => setDesc(e.target.value))} placeholder="简要概括信任承诺，前台直接展示" rows={2} />
-          </div>
-          <div>
-            <div style={{ fontSize:13,fontWeight:600,color:'#374151',marginBottom:6 }}>详细说明（点击后半层弹窗展示）</div>
-            <Input.TextArea value={detail} onChange={mark(e => setDetail(e.target.value))} placeholder="详细的信任声明内容，用户点击标题后在半层弹窗中查看" rows={8} />
-          </div>
-        </div>
-        <div style={{ width:280,flexShrink:0 }}>
-          <div style={{ fontSize:13,fontWeight:600,color:'#374151',marginBottom:8 }}>前台预览效果</div>
-          <div className="lp-trust-preview">
-            <div style={{ display:'flex',alignItems:'center',gap:6,marginBottom:6 }}>
-              <CheckCircleOutlined style={{ color:'#16A34A',fontSize:16 }} />
-              <span style={{ fontWeight:600,fontSize:14,color:'#1F2937' }}>{title || 'Trust Statement Title'}</span>
-            </div>
-            <div style={{ fontSize:12,color:'#6B7280',lineHeight:1.6 }}>{desc || '描述文案...'}</div>
-            <div style={{ marginTop:8,fontSize:11,color:'#7C3AED',textDecoration:'underline',cursor:'pointer' }}>Learn more →</div>
-          </div>
-          <div className="lp-note-sm" style={{ marginTop:8,fontSize:11 }}>
-            用户点击标题或 "Learn more" 后打开半层弹窗，展示详细说明内容。
-          </div>
-        </div>
-      </div>
     </Modal>
   );
 }
@@ -583,7 +536,7 @@ function DescAttrEditModal({ open, rule, initialAttrs, templateCategories, onClo
 }
 
 /* ========== DescAttrNewModal（v2 风格：选类目后左右分栏） ========== */
-function DescAttrNewModal({ open, templateCategories, onClose }) {
+function DescAttrNewModal({ open, templateCategories, configuredCategories, onClose }) {
   const [cat, setCat] = useState(undefined);
   const [dirty, setDirty] = useState(false);
   const mark = (fn) => (...a) => { setDirty(true); fn(...a); };
@@ -635,8 +588,13 @@ function DescAttrNewModal({ open, templateCategories, onClose }) {
       <div style={{ marginBottom:16 }}>
         <div style={{ fontSize:13,fontWeight:600,color:'#374151',marginBottom:6 }}>选择类目</div>
         <Select placeholder="请选择类目" value={cat} onChange={mark(setCat)} style={{ width:260 }}
-          options={(templateCategories||[]).map(c=>({value:c,label:c}))} />
-        {!hasCat && <div style={{ marginTop:6,fontSize:12,color:'#D97706' }}>选择类目后加载该类目下可配置的属性</div>}
+          options={(templateCategories||[]).map(c=>{
+            const configured = (configuredCategories||[]).includes(c);
+            return {value:c, label: configured ? `${c}（已配置）` : c, disabled: configured};
+          })} />
+        {!hasCat && (templateCategories||[]).every(c=>(configuredCategories||[]).includes(c))
+          ? <div style={{ marginTop:6,fontSize:12,color:'#9CA3AF' }}>当前模板下所有类目已配置，如需调整请编辑已有规则</div>
+          : !hasCat && <div style={{ marginTop:6,fontSize:12,color:'#D97706' }}>选择类目后加载该类目下可配置的属性</div>}
       </div>
       {!hasCat ? (
         <div style={{ border:'1px dashed #D1D5DB',borderRadius:12,textAlign:'center',padding:'40px 0',color:'#9CA3AF' }}>
@@ -684,13 +642,12 @@ function DescAttrNewModal({ open, templateCategories, onClose }) {
 
 /* ========== NewTemplateModal（P1-7：类目互斥） ========== */
 function NewTemplateModal({ open, onClose }) {
-  const [nameEn, setNameEn] = useState('');
-  const [nameCn, setNameCn] = useState('');
+  const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
   const [cats, setCats] = useState([]);
   const [dirty, setDirty] = useState(false);
   const mark = (fn) => (...a) => { setDirty(true); fn(...a); };
-  const handleClose = () => confirmDiscard(dirty, () => { setNameEn(''); setNameCn(''); setDesc(''); setCats([]); setDirty(false); onClose(); });
+  const handleClose = () => confirmDiscard(dirty, () => { setName(''); setDesc(''); setCats([]); setDirty(false); onClose(); });
   const catOptions = ALL_CATEGORIES.map(c => {
     const occupied = OCCUPIED_CATEGORIES.includes(c);
     const owner = occupied ? TEMPLATES.find(t => t.categories.includes(c))?.label : '';
@@ -700,15 +657,11 @@ function NewTemplateModal({ open, onClose }) {
     <Modal open={open} onCancel={handleClose} closable={false} maskClosable={false} centered width={720}
       title="新建商详页模板" footer={[
         <Button key="c" onClick={handleClose}>取消</Button>,
-        <Button key="s" type="primary" disabled={!nameEn||!nameCn} onClick={() => { setDirty(false); handleClose(); }}>创建</Button>,
+        <Button key="s" type="primary" disabled={!name} onClick={() => { setDirty(false); handleClose(); }}>创建</Button>,
       ]}>
       <div style={{ marginBottom:14 }}>
-        <div style={{ fontSize:13,fontWeight:600,color:'#374151',marginBottom:6 }}>模板英文名 <span style={{ color:'#DC2626' }}>*</span></div>
-        <Input value={nameEn} onChange={mark(e=>setNameEn(e.target.value))} placeholder="如 Fashion PDP" />
-      </div>
-      <div style={{ marginBottom:14 }}>
-        <div style={{ fontSize:13,fontWeight:600,color:'#374151',marginBottom:6 }}>模板中文名 <span style={{ color:'#DC2626' }}>*</span></div>
-        <Input value={nameCn} onChange={mark(e=>setNameCn(e.target.value))} placeholder="如 时尚服饰商详页模板" />
+        <div style={{ fontSize:13,fontWeight:600,color:'#374151',marginBottom:6 }}>模板名称 <span style={{ color:'#DC2626' }}>*</span></div>
+        <Input value={name} onChange={mark(e=>setName(e.target.value))} placeholder="如 Luxury PDP 奢侈品商详页" />
       </div>
       <div style={{ marginBottom:14 }}>
         <div style={{ fontSize:13,fontWeight:600,color:'#374151',marginBottom:6 }}>描述</div>
@@ -769,42 +722,67 @@ function EditTemplateModal({ open, template, onClose }) {
   );
 }
 
-/* ========== TrustPanel ========== */
-function TrustPanel({ templateKey }) {
-  const [editOpen, setEditOpen] = useState(false);
-  const config = TRUST_CONFIGS[templateKey];
+/* ========== RichTextToolbar（原型占位：展示工具栏样式，实际富文本由前端框架实现） ========== */
+function RichTextToolbar() {
+  const btnStyle = { display:'inline-flex',alignItems:'center',justifyContent:'center',width:28,height:28,border:'1px solid #E5E7EB',borderRadius:4,background:'#fff',cursor:'pointer',fontSize:13,fontWeight:600,color:'#374151' };
+  const sepStyle = { width:1,height:20,background:'#E5E7EB',margin:'0 4px' };
   return (
-    <>
-      <div className="lp-config-panel">
-        <div className="lp-config-panel-title">
-          <span>Module 1 — Trust Statement 信任声明</span>
-          <Button icon={<EditOutlined />} onClick={() => setEditOpen(true)}>编辑</Button>
-        </div>
-        <div style={{ padding:16,background:'#FAFAFA',borderRadius:10,border:'1px solid #E5E7EB',marginBottom:20 }}>
-          <div style={{ fontSize:13,fontWeight:600,color:'#9CA3AF',marginBottom:12 }}>配置内容</div>
-          <div style={{ fontSize:12,color:'#9CA3AF',marginBottom:4 }}>标题</div>
-          <div style={{ fontSize:15,fontWeight:600,color:'#1F2937',marginBottom:16 }}>{config.title}</div>
-          <div style={{ fontSize:12,color:'#9CA3AF',marginBottom:4 }}>描述</div>
-          <div style={{ fontSize:13,color:'#374151',marginBottom:16,lineHeight:1.6 }}>{config.desc}</div>
-          <div style={{ fontSize:12,color:'#9CA3AF',marginBottom:4 }}>详细说明（半层弹窗内容）</div>
-          <div style={{ fontSize:12,color:'#6B7280',lineHeight:1.8,whiteSpace:'pre-line',padding:12,background:'#fff',borderRadius:8,border:'1px solid #E5E7EB',maxHeight:120,overflow:'auto' }}>
-            {config.detail}
-          </div>
-        </div>
-        <div style={{ fontSize:11,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.5px',marginBottom:12,paddingTop:12,borderTop:'1px solid #E5E7EB' }}>
-          前台预览
-        </div>
-        <div className="lp-trust-preview">
-          <div style={{ display:'flex',alignItems:'center',gap:6,marginBottom:6 }}>
-            <CheckCircleOutlined style={{ color:'#16A34A',fontSize:16 }} />
-            <span style={{ fontWeight:600,fontSize:14,color:'#1F2937' }}>{config.title}</span>
-          </div>
-          <div style={{ fontSize:12,color:'#6B7280',lineHeight:1.6 }}>{config.desc}</div>
-          <div style={{ marginTop:6,fontSize:11,color:'#7C3AED',textDecoration:'underline' }}>Learn more →</div>
-        </div>
+    <div style={{ display:'flex',alignItems:'center',gap:4,padding:'6px 8px',background:'#F9FAFB',borderRadius:'8px 8px 0 0',border:'1px solid #E5E7EB',borderBottom:'none' }}>
+      <span style={btnStyle} title="加粗"><strong>B</strong></span>
+      <span style={btnStyle} title="斜体"><em>I</em></span>
+      <span style={btnStyle} title="下划线"><span style={{ textDecoration:'underline' }}>U</span></span>
+      <span style={sepStyle} />
+      <span style={{ ...btnStyle, fontSize:11 }} title="无序列表">•≡</span>
+      <span style={{ ...btnStyle, fontSize:11 }} title="有序列表">1.</span>
+      <span style={sepStyle} />
+      <span style={{ ...btnStyle, fontSize:11, color:'#7C3AED' }} title="插入链接">🔗</span>
+      <span style={{ marginLeft:'auto',fontSize:11,color:'#9CA3AF' }}>富文本编辑器</span>
+    </div>
+  );
+}
+
+/* ========== TrustPanel（页面内直接编辑，无弹窗） ========== */
+function TrustPanel({ templateKey }) {
+  const config = TRUST_CONFIGS[templateKey];
+  const [title, setTitle] = useState(config?.title || '');
+  const [desc, setDesc] = useState(config?.desc || '');
+  const [detail, setDetail] = useState(config?.detail || '');
+  const [dirty, setDirty] = useState(false);
+  const mark = (fn) => (...a) => { setDirty(true); fn(...a); };
+  React.useEffect(() => { setTitle(config?.title||''); setDesc(config?.desc||''); setDetail(config?.detail||''); setDirty(false); }, [templateKey]);
+
+  return (
+    <div className="lp-config-panel">
+      <div className="lp-config-panel-title">
+        <span>Module 1 — Trust Statement 信任声明</span>
+        {dirty && <Button type="primary" onClick={() => setDirty(false)}>保存</Button>}
       </div>
-      <TrustEditModal open={editOpen} config={config} onClose={() => setEditOpen(false)} />
-    </>
+      <div style={{ marginBottom:20 }}>
+        <div style={{ fontSize:13,fontWeight:600,color:'#374151',marginBottom:6 }}>标题 <span style={{ color:'#DC2626' }}>*</span></div>
+        <Input value={title} onChange={mark(e => setTitle(e.target.value))} placeholder="如：Confidence in Every Find" />
+      </div>
+      <div style={{ marginBottom:20 }}>
+        <div style={{ fontSize:13,fontWeight:600,color:'#374151',marginBottom:6 }}>描述（前台直接展示的一句话） <span style={{ color:'#DC2626' }}>*</span></div>
+        <Input.TextArea value={desc} onChange={mark(e => setDesc(e.target.value))} placeholder="简要概括信任承诺，前台直接展示" rows={2} />
+      </div>
+      <div style={{ marginBottom:20 }}>
+        <div style={{ fontSize:13,fontWeight:600,color:'#374151',marginBottom:6 }}>详细说明（用户点击后在半层弹窗中查看）</div>
+        <RichTextToolbar />
+        <Input.TextArea value={detail} onChange={mark(e => setDetail(e.target.value))} placeholder="详细的信任声明内容，支持富文本格式" rows={8}
+          style={{ borderRadius:'0 0 8px 8px',borderTop:'1px solid #E5E7EB' }} />
+      </div>
+      <div style={{ fontSize:11,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.5px',marginBottom:12,paddingTop:12,borderTop:'1px solid #E5E7EB' }}>
+        前台预览
+      </div>
+      <div className="lp-trust-preview">
+        <div style={{ display:'flex',alignItems:'center',gap:6,marginBottom:6 }}>
+          <CheckCircleOutlined style={{ color:'#16A34A',fontSize:16 }} />
+          <span style={{ fontWeight:600,fontSize:14,color:'#1F2937' }}>{title || 'Trust Statement Title'}</span>
+        </div>
+        <div style={{ fontSize:12,color:'#6B7280',lineHeight:1.6 }}>{desc || '描述文案...'}</div>
+        <div style={{ marginTop:6,fontSize:11,color:'#7C3AED',textDecoration:'underline' }}>Learn more →</div>
+      </div>
+    </div>
   );
 }
 
@@ -883,7 +861,7 @@ function DescriptionPanel({ templateKey, templateCategories }) {
         <Table rowKey="id" columns={columns} dataSource={rules} pagination={false} styles={TABLE_STYLES} />
       </div>
       <DescAttrEditModal open={editOpen} rule={editRule} initialAttrs={editAttrs} templateCategories={templateCategories} onClose={()=>{setEditOpen(false);setEditRule(null);}} />
-      <DescAttrNewModal open={newOpen} templateCategories={templateCategories} onClose={()=>setNewOpen(false)} />
+      <DescAttrNewModal open={newOpen} templateCategories={templateCategories} configuredCategories={rules.map(r=>r.scope)} onClose={()=>setNewOpen(false)} />
       <DeleteConfirmModal rule={delRule} scopeKey="scope" onClose={()=>setDelRule(null)} />
     </>
   );
