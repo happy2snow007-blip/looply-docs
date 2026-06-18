@@ -139,7 +139,7 @@ Footer 页脚
 
 **功能描述**
 
-商详页几乎所有文本内容都需要多语言支持。翻译通过统一的 `translation` 表查询，当前语言等于 Market 默认语言时直接取源值，不查翻译表。
+商详页几乎所有文本内容都需要多语言支持。所有文本统一调用翻译模块接口获取当前语言的译文，商详页不处理翻译内部逻辑（如默认语言短路、Fallback 策略等）。
 
 **resource_type 全量清单**
 
@@ -158,18 +158,14 @@ Footer 页脚
 | `content` | CMS 内容 | Certified Authentic、Shipping & Returns | content_id | `title`, `body` |
 | `pdp_template` | PDP 模板内容 | Certified Authentic 标题/描述/详情，Condition 等级名/描述 | template_id | 各字段 |
 
-**翻译查询优先级（Fallback 策略）**
+**Fallback 策略**
 
-商详页查询翻译时，按以下优先级取值：
+| 条件 | 展示内容 |
+|------|---------|
+| 目标语言有译文 | 展示译文 |
+| 目标语言无译文 | 回退到 Market 默认语言的源值 |
 
-| 优先级 | 条件 | 展示内容 |
-|--------|------|---------|
-| 1 | 目标语言有 `status=approved` 的译文 | 展示该译文 |
-| 2 | 目标语言有 `status=pending_review` 的译文（AI/人工翻译完成，未审核） | 展示该译文（AI 翻译质量已足够可读） |
-| 3 | 目标语言有 `status=outdated` 的译文（源内容已变更，旧译文可能不准确） | 展示旧译文（有旧译文优于无译文） |
-| 4 | 目标语言无任何翻译记录 | 回退到 Market 默认语言的源值 |
-
-> 当用户当前语言 = Market 默认语言时，直接取源值，不查翻译表。
+> Fallback 由翻译模块内部处理，商详页仅接收最终结果。
 
 **不翻译的内容**
 
@@ -213,7 +209,7 @@ PDP 模板是商详页内容配置的顶层组织单元。一个模板定义了�
 | 模块 | 配置粒度 | 可配置内容 | 详见章节 |
 |------|---------|-----------|---------|
 | Certified Authentic 鉴定认证 | 模板级 | 标题、描述文案、详细说明（半层弹窗内容） | 2.9 |
-| Condition 成色等级体系 | 模板级 | 等级名称、等级描述（定义该模板使用的成色等级集合） | 2.10 |
+| Condition 成色 | 模板级 + 类目级 | 模板级：成色等级体系（等级名称 + 描述）；类目级：成色详细信息展示配置（定义展示名 + 绑定数据源字段 + 排序） | 2.10 |
 | Description 描述 | 类目级（模板内） | 属性展示配置（定义展示名 + 绑定数据源 + 排序），含 Size Guide | 2.11 |
 
 #### 不可配置（固定）模块
@@ -221,6 +217,18 @@ PDP 模板是商详页内容配置的顶层组织单元。一个模板定义了�
 Breadcrumb、Gallery、商品信息区、CTA 按钮、Shipping & Returns、推荐区、浏览历史、Footer、Lightbox——这些模块的数据来源固定，无需后台配置。
 
 > Shipping & Returns 本期为前端固定文案，后续配送模块就绪且规则更灵活时再升级为 CMS 配置。
+
+#### Condition 成色详细信息配置规则
+
+Condition 模块的成色详细信息在模板内按类目配置，每个类目独立维护一套字段展示规则（与 Description 属性配置模式一致）：
+
+- 每个类目一条规则，从 `product_inspection` 可用字段中选择要展示的字段，定义展示名和排序
+- 可配置的数据源字段：`condition_summary`（成色概述）、`appearance_desc`（外观状况）、`accessories_info`（配件情况）、`supplement_notes`（补充说明）
+- 每个字段可自定义展示名（如珠宝类 appearance_desc → "Chain"，箱包类 → "Exterior"），展示名走翻译
+- 同一模板内不同类目可配置不同的字段集合和展示名
+- **新增规则时类目选择互斥**：同 Description，已配置类目置灰不可选
+- 类目规则**整条替换**，不做字段级合并
+- 删除某类目的规则后，该类目商品的成色详细信息区域不展示（仅保留进度条 + Condition Guide + 徽章）
 
 #### Description 属性配置规则
 
@@ -243,7 +251,7 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 
 - Certified Authentic / Condition / Description 模块各有独立开关
 - 模块开关关闭后，前台商详页不展示该模块的 CMS 配置内容（完全隐藏，无默认内容）
-  - **Condition 例外**：Condition 模块开关仅控制 CMS 配置的部分（进度条 + Condition Guide）。关闭后这些内容不展示，但成色描述、外观描述、配件信息、补充描述等来自 `product_inspection` 的质检信息仍保留展示（属于商品固有属性，不受 CMS 开关控制）
+  - **Condition 例外**：Condition 模块开关仅控制模板级 CMS 配置的部分（进度条 + Condition Guide）。关闭后这些内容不展示，但成色详细信息（CMS 类目级配置的展示名 + product_inspection 数据值）仍保留展示（属于商品固有质检信息，不受模块开关控制）
 - 开关切换即时生效，不需要额外保存操作
 - 开关作用于整个模板（即模板下所有关联类目统一生效）
 
@@ -252,8 +260,8 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 - 新增 Description 规则时 Size Guide 作为固定模块自动带入属性列表，默认开启
 - 运营可通过开关控制该类目是否展示 Size Guide 入口
 - 关闭 Size Guide = 该类目下商详页不展示 Size Guide 入口
-- 前台渲染时，即使 Size Guide 开启，如果该商品无尺码数据，链接自动不展示（静默隐藏）
-- Size Guide 数据来源关联商品属性中的尺码体系（`size_system` + `size_mapping` + `dimension_diagram`）
+- 前台渲染时，即使 Size Guide 开启，如果该商品无尺寸测量数据，链接自动不展示（静默隐藏）
+- Size Guide 数据来源关联商品的尺寸测量方法：后台按末级类目配置多套 SVG 测量示意图（不同形状比例），前端根据商品实测尺寸比值自动匹配最合适的模板，用实测数据动态填充 SVG 标记位
 
 #### 配置变更记录
 
@@ -314,7 +322,9 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 
 **边界情况**
 
-- 未登录时点击 Account 或 Wishlist 图标，跳转登录页
+- 未登录时点击 Account 图标，跳转登录页
+- 未登录时点击 Wishlist 图标，直接打开 Wishlist 页面，展示当前 Cookie 中的收藏数据（不引导登录）
+- 未登录时点击购物车图标，直接打开购物车页面，展示当前 Cookie 中的加购数据（不引导登录）
 
 **UI 关联**
 
@@ -340,7 +350,7 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 **展示规则**
 
 - 层级格式：品牌 > 品类 > 商品标题
-- 品牌名和品类名可点击，分别跳转品牌聚合页和商品列表页
+- 品牌名和品类名可点击，本期统一跳转 www.looply.com（后续 Collection 聚合页上线后分别跳转品牌聚合页和商品列表页）
 - 最后一段（商品标题）为当前页，不可点击
 
 **边界情况**
@@ -367,14 +377,14 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 |---------|-------|---------|
 | 商品图片 | `product_image` 表（实拍图） | `WHERE product_id=? ORDER BY sort_order ASC`。**仅当实拍图为空（0 张）时**兜底取 `spu_image`（标品图，`image_type=main`，按 `sort_order` 排序） |
 | 缩略图排序 | 同上 | 按 `sort_order` 排序 |
-| 收藏按钮状态 | 收藏模块 | 已登录：调用收藏模块查询接口，判断当前用户是否已收藏该 listing；未登录：默认未收藏 |
+| 收藏按钮状态 | 收藏模块 | 已登录：调用收藏模块查询接口，判断当前用户是否已收藏该 listing；未登录：从 Cookie 读取本地收藏状态 |
 | 收藏人数 | 收藏模块 | 调用收藏模块收藏计数接口。有收藏时展示（如 "12 people wishlisted"），无收藏时不展示 |
 
 **展示规则**
 
-- 主图使用 width=1200 高清 URL，缩略图使用 width=200
+- 主图和缩略图的显示尺寸以 Figma 设计稿为准，图片 URL 按实际渲染尺寸请求对应分辨率
 - 点击主图进入 Lightbox 全屏查看模式（详见 2.16）
-- 收藏按钮点击切换收藏/取消收藏状态，未登录时先触发登录流程
+- 收藏按钮点击切换收藏/取消收藏状态。已登录时调用收藏模块接口；未登录时存入 Cookie，不触发登录流程（登录后自动合并 Cookie 收藏到账号）
 
 **边界情况**
 
@@ -400,10 +410,10 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 
 | 页面元素 | 数据源 | 取值逻辑 |
 |---------|-------|---------|
-| 品牌名 | `brand.brand_name_en` | 链路：`spu.series_id` → `series.brand_id` → `brand`。通常禁译（术语表标记）。点击跳转品牌聚合页 |
+| 品牌名 | `brand.brand_name_en` | 链路：`spu.series_id` → `series.brand_id` → `brand`。通常禁译（术语表标记）。点击跳转（本期写死 www.looply.com，后续 Collection 上线后跳品牌聚合页） |
 | 商品标题 | `listing.listing_title` > `product.title` | 展示标题优先；`product.title` 为空时系统自动拼接：`{关键属性值} {spu_name}`。走翻译 |
 | 现价 | `listing.listing_price` 或 `promotion_price` | 有促销价时展示促销价，无促销价时展示 listing_price |
-| 划线价 | `listing.listing_price` | 仅当促销价存在时展示（加删除线） |
+| 划线价 | `listing.compare_at_price` 或 `listing.listing_price` | 优先级：①有促销价时划线价=listing_price ②无促销但有 compare_at_price 且 > listing_price 时划线价=compare_at_price ③均无则不展示 |
 | Save 差值 | 划线价 - 现价 | 均经币种转换后计算差值，差值本身不做尾数处理 |
 | Tax 提示 | 翻译模块 | 固定文案 "No extra sales tax added at checkout."，按 Market 税务政策可能变化（如含税市场显示 "Includes VAT"）。`resource_type='ui'` |
 
@@ -435,13 +445,14 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 | 场景 | 现价 | 划线价 | Save |
 |------|------|-------|------|
 | 有促销价（`promotion_price < listing_price`） | promotion_price | listing_price（删除线） | listing_price - promotion_price |
-| 无促销价 | listing_price | 不展示 | 不展示 |
+| 无促销价，有 compare_at_price 且 > listing_price | listing_price | compare_at_price（删除线） | compare_at_price - listing_price |
+| 无促销价，无 compare_at_price | listing_price | 不展示 | 不展示 |
 
 > 注意：现价、划线价均需做币种转换 + 尾数适配后再计算 Save。Save = 转换后划线价 - 转换后现价，Save 本身不做尾数处理。
 
 **展示规则**
 
-- 品牌名：大写字母展示，可点击跳转品牌聚合页
+- 品牌名：大写字母展示，点击跳转（本期写死 www.looply.com）
 - 货币符号：取 `currency.currency_symbol`（如 "$"）
 - 符号位置：取 `market_currency.symbol_position`（`before` = 前置如 `$12.99`，`after` = 后置如 `12.99€`），Market 级配置
 - 小数位数：取 `currency.decimal_places`（如 USD=2 位，JPY=0 位）
@@ -481,12 +492,11 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 |---------|-------|---------|
 | Add to Cart 按钮价格 | 同 2.7 现价 | 展示当前现价，做币种转换 |
 | 按钮文案 | 翻译模块 | `resource_type='ui'`，如 `btn.add_to_cart`、`btn.buy_now` |
-| Verified 标记（APP 端） | `product_inspection.is_authenticated` | `is_authenticated=true` 时在 Sticky 底部栏显示绿色 "✓ Verified" 认证标记 |
+| Verified 标记（APP 端） | CMS 模板配置（2.9） | 当前模板的 Certified Authentic 模块已配置内容时，在 Sticky 底部栏显示绿色 "✓ Verified" 认证标记 |
 
 **展示规则**
 
-- Buy Now：点击直接进入结算流程（跳过购物车，直接结算当前商品）
-- 未登录时点击按钮，先触发登录流程
+- Buy Now：点击直接进入结算流程（跳过购物车，直接结算当前商品），未登录用户同样可点击，登录判断由结算流程处理（非商详页职责）
 - APP 端 Sticky 底部栏：三栏布局（左侧收藏 | Add to Cart | Buy Now），仅展示现价，不重复展示划线价和 Save（上方信息区已有）
 - APP 端商详页隐藏底部 TabBar，由 Sticky 底部购买栏替代
 
@@ -573,20 +583,17 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 
 | 页面元素 | 数据源 | 取值逻辑 |
 |---------|-------|---------|
-| Certified Authentic 徽章 | `product_inspection.is_authenticated` | `is_authenticated=true` 时展示绿色盾牌 + "Certified Authentic"。点击打开详情弹层（内容由 CMS 模板级配置，详见 2.9 Certified Authentic）。`is_authenticated=false` 时隐藏 |
-| 成色等级 | `product_inspection.grade` | 取值为模板定义的等级之一（如 `Like New` / `Excellent` / `Very Good` / `Good` / `Fair`），走翻译（`resource_type='enum'`） |
-| 成色等级进度条 | CMS 模板配置 + `product_inspection.grade` | 分段进度条展示模板定义的所有等级，高亮当前商品等级（详见下方「分段进度条」） |
+| Certified Authentic 徽章 | CMS 模板配置（2.9） | 当前模板的 Certified Authentic 模块已配置内容时展示绿色盾牌 + "Certified Authentic"。点击打开详情弹层（详见 2.9）。模块未配置内容或开关关闭时隐藏 |
+| 成色等级 | `product_inspection.grade` | 商品系统固定枚举值（如 `Like New` / `Excellent` / `Very Good` / `Good` / `Fair`），商品录入时选取，走翻译（`resource_type='enum'`） |
+| 成色等级进度条 | CMS 模板配置 + `product_inspection.grade` | 分段进度条展示模板配置的展示等级，高亮当前商品等级（详见下方「分段进度条」） |
 | Condition Guide | CMS 模板配置 | 展示模板定义的所有等级名称和描述（详见下方「Condition Guide」） |
-| 成色描述 | `product_inspection.condition_summary` | 必填字段，整体成色概述，始终展示。走翻译 |
-| 外观描述 | `product_inspection.appearance_desc` | 选填，描述各部位外观状况。有值时展示，为空时隐藏该段。走翻译 |
-| 配件信息 | `product_inspection.accessories_info` | 选填，描述配件齐全情况。有值时展示，为空时隐藏该段。走翻译 |
-| 补充描述 | `product_inspection.supplement_notes` | 选填，养护信息或功能使用情况等。有值时展示，为空时隐藏该段。走翻译 |
+| 成色详细信息 | CMS 类目级配置 + `product_inspection` 字段 | 展示哪些字段、展示名、排序由 CMS 按类目配置（同 Description 模式）。数据值取自 `product_inspection` 对应字段，走翻译。可配置的数据源字段：`condition_summary`（成色概述）、`appearance_desc`（外观状况）、`accessories_info`（配件情况）、`supplement_notes`（补充说明）。有值时展示，为空时该行隐藏 |
 
 #### 成色等级体系
 
-成色等级由 CMS 模板定义，不同模板可配置不同的等级集合。
+`product_inspection.grade` 是商品系统的固定枚举值，商品录入时由运营从系统预定义的等级中选取。CMS 模板的等级配置**仅控制前台展示**（进度条分段、Condition Guide 内容），不影响商品录入流程。
 
-**Luxury PDP 模板默认等级**
+**商品系统等级枚举（固定）**
 
 | 等级名称 | 含义 |
 |---------|------|
@@ -596,7 +603,7 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 | Good | 中等使用痕迹 |
 | Fair | 明显使用痕迹，仍然结构完好可用 |
 
-> 等级集合由模板决定，商品录入时 `product_inspection.grade` 从该模板定义的等级中选取。不同模板可有不同数量和名称的等级（如 Electronics PDP 可定义 Mint / Excellent / Good / Fair 四级）。
+> CMS 模板配置的等级集合决定前台进度条展示哪些段、Condition Guide 展示哪些等级说明。商品的 `grade` 值不受 CMS 模板影响（由商品系统固定枚举控制）。如果商品的 grade 在当前模板的等级集合中匹配不上，进度条和等级名称静默隐藏。不同模板可配置不同的展示等级集合（如 Electronics PDP 可配置 Mint / Excellent / Good / Fair 四级）。
 
 #### 分段进度条
 
@@ -617,24 +624,31 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 
 通过 CMS 后台的 PDP 模板 → Condition 模块配置：
 
-- **成色等级配置（模板级）**：定义该模板的成色等级集合（等级名称 + 等级描述）
-- **等级数量灵活**：不同模板可定义不同数量的等级，无上下限约束
+- **成色等级配置（模板级）**：配置该模板前台展示的等级集合（等级名称 + 等级描述），仅控制进度条和 Condition Guide 的展示内容，不影响商品录入的 grade 枚举
+- **等级数量灵活**：不同模板可配置不同数量的展示等级，无上下限约束
 - **等级排序**：按配置顺序从高到低排列，排序即展示顺序
-- **等级删除**：允许删除已被商品使用的等级。删除后，前台渲染时如果商品的 grade 在当前模板等级集合中匹配不上，进度条和等级名称不展示（静默隐藏），成色描述等文字信息保留展示
-- **模块开关**：关闭后前台不展示 Condition 折叠区的进度条和 Condition Guide（但成色描述等质检信息仍展示，详见 2.3 模块开关说明）
+- **等级删除**：允许删除已被商品使用的等级。删除后，前台渲染时如果商品的 grade 在当前模板等级集合中匹配不上，进度条和等级名称不展示（静默隐藏），成色详细信息保留展示
+- **成色详细信息配置（类目级）**：模板内按类目配置，定义前台展示哪些 `product_inspection` 字段、展示名和排序。与 Description 属性配置模式一致：
+  - 每个类目一条规则，选择要展示的字段（`condition_summary` / `appearance_desc` / `accessories_info` / `supplement_notes`），同一类目规则内每个数据源字段最多选一次
+  - 每个字段可自定义展示名（如珠宝类 appearance_desc → "Chain"，箱包类 → "Exterior"），展示名走翻译；展示名留空时前台只展示值
+  - 拖拽调整字段排序
+  - 新增规则时类目选择互斥（同 Description，已配置的类目置灰不可选）
+  - 未配置规则的类目：成色详细信息区域不展示（仅保留进度条 + Condition Guide + 徽章）
+- **模块开关**：关闭后前台不展示 Condition 折叠区的进度条和 Condition Guide（但成色详细信息仍展示，详见 2.3 模块开关说明）
 
 **展示规则**
 
 - 默认展开（核心二手差异信息，用户最关注）
-- 展示顺序（固定）：成色等级（含进度条）+ Condition Guide 入口 → 徽章 → 成色描述 → 外观描述 → 配件信息 → 补充描述
-- 成色描述为核心字段，PC 端和 APP 端均全文展示，不截断
-- APP 端选填字段（外观描述、配件信息、补充描述）：每段独立截断，超过 3 行时截断并渐隐，点击 "Read more" 展开该段，展开后变为 "Read less" 可收起
+- 展示顺序：成色等级（含进度条）+ Condition Guide 入口 → 徽章 → 成色详细信息（按 CMS 配置的字段顺序展示）
+- 每个字段格式："展示名: 值"（展示名由 CMS 类目级配置，值取自 product_inspection 对应字段）。展示名为空时前台只展示值，不带冒号（如 condition_summary 通常不设展示名，直接展示成色概述文案）
+- APP 端每个字段独立截断，超过 3 行时截断并渐隐，点击 "Read more" 展开该段，展开后变为 "Read less" 可收起
 - PC 端所有字段全文展示，不截断
-- Certified Authentic 徽章：`is_authenticated=false` 时隐藏（徽章受 Certified Authentic 模块开关控制，详见 2.9）
+- Certified Authentic 徽章：模板未配置 Certified Authentic 内容或模块开关关闭时隐藏（详见 2.9）
 
 **边界情况**
 
-- 外观描述 / 配件信息 / 补充描述为空时：该段落整体隐藏（含标题），不留空白
+- CMS 配置的某字段在 product_inspection 中值为空时：该行整体隐藏（含展示名），不留空白
+- 当前类目未配置成色详细信息规则：整个成色详细信息区域隐藏，仅保留进度条 + Condition Guide + 徽章
 - 三个选填字段全部为空时：仅展示等级进度条 + 徽章 + 成色描述
 - APP 端某段文案不足 3 行时：不截断，不显示 Read more 按钮
 - 当前商品所属类目未关联模板：不展示进度条和 Condition Guide，仅展示基本成色文本信息
@@ -676,7 +690,7 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 
 点击打开尺寸标注弹窗（PC 端弹窗 / APP 端 Bottom Sheet），展示逻辑分两种模式：
 
-- **有 SVG 模板时（Template Mode）**：后台按末级类目配置 SVG 示意图模板（设计师出图，预留 `data-slot` 标记位置），前端根据当前商品所属类目查找模板 → 用 SKU 实测值替换 `data-slot` 占位符 → 拼接单位后渲染标注图
+- **有 SVG 模板时（Template Mode）**：后台按末级类目配置一组 SVG 测量示意图（每套对应一种形状比例，预留 `data-slot` 标记位），前端根据当前商品的实测尺寸（长宽高比值）自动匹配最接近的模板 → 用实测数据填充 `data-slot` 占位符 → 拼接单位后渲染标注图
 - **无模板时（Fallback）**：退化为纯文字列表，展示尺寸类属性（如 Length: 12.2 in, Width: 5.5 in）
 
 > **度量单位（本期策略）**：本期属性值按录入值原样展示，不做运行时单位转换。商品录入时按目标市场习惯录入（如美国市场录 inches）。后续扩展欧洲等市场时再设计按 Market 偏好自动换算的方案。
@@ -686,7 +700,7 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 通过 CMS 后台的 PDP 模板 → Description 模块，按类目配置：
 
 - **类目级配置**：每个类目一条规则，定义前台展示名 + 绑定数据源属性 + 拖拽调整排序
-- **Size Guide**：固定模块，选择类目后自动带入属性列表，始终保留不可删除。运营可编辑前台展示名（默认 "Size"）、拖拽调整在属性列表中的位置、通过开关控制显示/隐藏。数据源为尺码体系（`size_system` + `size_mapping` + `dimension_diagram`），不可更换。前台渲染时如果该商品无尺码数据或 Size Guide 已关闭，链接不展示
+- **Size Guide**：固定模块，选择类目后自动带入属性列表，始终保留不可删除。运营可编辑前台展示名（默认 "Size"）、拖拽调整在属性列表中的位置、通过开关控制显示/隐藏。数据源为尺寸测量方法（类目级多套 SVG 模板 + 尺寸比值自动匹配 + 商品实测数据），不可更换。前台渲染时如果该商品无尺寸测量数据或 Size Guide 已关闭，链接不展示
 - **模块开关**：关闭后前台不展示 Description 区域
 
 **展示规则**
@@ -697,13 +711,13 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 - PC 端全文展示，不截断
 - APP 端属性数量 > 8 行时截断，底部显示 "Show more attributes" 展开
 - APP 端商品描述文案默认截断 2 行，末尾渐隐，点击 "Read more" 展开全文
-- CMS 中配置了 Size Guide 但该商品无尺码数据时：Size Guide 链接不展示（静默隐藏，不报错）
+- CMS 中配置了 Size Guide 但该商品无尺寸测量数据时：Size Guide 链接不展示（静默隐藏，不报错）
 
 **边界情况**
 
 - 属性值为空时：该行不展示
 - 商品描述文案为空时：该段落区域隐藏，不留空白
-- 当前类目未配置尺寸测量方法 SVG 模板：Size Guide 退化为文字列表
+- 当前类目未配置尺寸测量方法 SVG 模板，或商品实测尺寸无法匹配到任何模板：Size Guide 退化为文字列表
 - 属性值带特殊字符：做 HTML 转义
 - 当前类目未配置 Description 规则：整个 Description 折叠区隐藏
 - APP 端商品描述文案不足 2 行：不截断，不显示 Read more 按钮
@@ -759,7 +773,7 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 | 品牌名 | `brand.brand_name_en` | 通常禁译 |
 | 商品名 | `listing.listing_title` > `product.title` | 展示标题优先，走翻译 |
 | 现价 | `listing.listing_price` 或 `promotion_price` | 有促销价时展示促销价，做币种转换 + 尾数适配（见 2.7） |
-| 划线价 | `listing.listing_price` | 仅促销时展示，做币种转换 + 尾数适配 |
+| 划线价 | `listing.compare_at_price` 或 `listing.listing_price` | 同 2.7 划线价逻辑（促销→listing_price，无促销→compare_at_price），做币种转换 + 尾数适配 |
 | Save | 划线价 - 现价 | 均经币种转换后计算，不做尾数处理 |
 | 收藏数 | 收藏模块 | 调用收藏模块收藏计数接口，无收藏时不显示数字 |
 | 收藏按钮状态 | 收藏模块 | 同 2.6 Gallery 收藏按钮 |
@@ -767,7 +781,7 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 **展示规则**
 
 - 点击整张卡片跳转对应商品的商详页
-- 收藏按钮点击直接收藏/取消收藏（无需进入详情页），未登录时触发登录流程
+- 收藏按钮点击直接收藏/取消收藏（无需进入详情页），未登录时存入 Cookie（同 2.6 Gallery 收藏逻辑）
 - 卡片标题超 2 行截断
 
 **边界情况**
@@ -849,7 +863,7 @@ Gallery 主图点击后的全屏图片查看器，支持左右切换浏览所有
 
 **数据来源与取值规则**
 
-- 图片数据同 2.6 Gallery，使用高清 URL（width=1200）
+- 图片数据同 2.6 Gallery，使用高清 URL（尺寸以 Figma 设计稿为准）
 - 切换图片时同步更新 Gallery 缩略图高亮
 
 **展示规则**
@@ -882,7 +896,7 @@ Gallery 主图点击后的全屏图片查看器，支持左右切换浏览所有
 | 汇率管理模块 | 平台汇率（已含点差）查询接口 | 已有 | -- |
 | 商品定价（尾差规则） | 心理定价尾数策略（.99/.95/整十等） | 已设计（商品系统 PRD 2.8.1） | -- |
 | 翻译模块 | 多语言文本 | 已有 | -- |
-| CMS 系统 | PDP 模板管理、模块配置（Certified Authentic / Condition / Description） | 原型 v3 已出 | 需开发实现；模板级 Condition 等级体系需扩展 ER（从固定 ENUM 改为模板关联的等级表） |
+| CMS 系统 | PDP 模板管理、模块配置（Certified Authentic / Condition / Description） | 原型 v3 已出 | 需开发实现；CMS 域新建等级展示配置表（商品系统 grade 枚举不变） |
 | 促销模块 | 促销价计算 | 待设计 | 促销价计算逻辑未定义，当前商详页按"无促销价"展示 |
 | 收藏模块 | 收藏状态查询、收藏计数 | 待设计 | 收藏模块未设计，需对外提供查询接口 |
 | 用户域 | 浏览历史 | 待设计 | `user_view_history` 实体未设计 |
@@ -895,7 +909,7 @@ Gallery 主图点击后的全屏图片查看器，支持左右切换浏览所有
 
 | 风险 | 影响 | 应对 |
 |------|------|------|
-| Condition 等级体系 ER 扩展 | 成色等级从固定 ENUM 改为模板关联的等级表，涉及 `product_inspection.grade` 字段类型变更和新增等级定义表 | 需与开发协商迁移方案，评估对商品录入流程的影响 |
+| Condition 等级展示配置 | CMS 域需新建等级展示配置表（模板 → 展示等级名称 + 描述 + 排序），商品系统 `product_inspection.grade` 固定枚举不变，无迁移风险 | 仅 CMS 域新增，不影响商品录入 |
 | 收藏模块未设计 | 收藏状态和收藏人数无法展示 | 收藏按钮和人数需等收藏模块就绪后接入 |
 | 浏览历史实体未设计 | 已登录用户浏览历史无法持久化 | 先用 localStorage 兜底 |
 | 促销模块未设计 | 所有商品仅展示 listing_price，无促销价 | 价格展示逻辑已预留促销价入口，模块就绪后无需改动商详页 |
@@ -963,8 +977,7 @@ Gallery 主图点击后的全屏图片查看器，支持左右切换浏览所有
 
 | 项目 | 类型 | 所属域 | 说明 |
 |------|------|-------|------|
-| PDP 模板 ER 设计 | 新实体 | CMS 域 | 模板表、模板-类目关联表、Certified Authentic 配置表、Condition 等级定义表 |
-| Condition 等级体系迁移 | ER 变更 | 商品域 | `product_inspection.grade` 从固定 ENUM 改为关联模板等级表 |
+| PDP 模板 ER 设计 | 新实体 | CMS 域 | 模板表、模板-类目关联表、Certified Authentic 配置表、Condition 等级展示配置表（`product_inspection.grade` 固定枚举不变，无需迁移） |
 | 收藏模块 | 模块设计 | 独立模块 | 对外提供收藏状态查询、收藏计数、收藏/取消收藏等接口 |
 | `user_view_history` | 新实体 | 用户域 | user_id + listing_id + viewed_at |
 | 前台类目模块 | 新模块 | 独立模块 | Header 导航栏数据源 |
@@ -992,5 +1005,5 @@ Gallery 主图点击后的全屏图片查看器，支持左右切换浏览所有
 | V1.2 | 2026-06-10 | 全量交叉对齐商品/Market/翻译/库存/汇率五模块最新方案。**修正**：成色字段从 product 表移至 product_inspection 表；supplement_notes 替代 additional_desc；Gallery 图片从 JSON 数组改为 product_image 独立表；汇率从直查表改为调汇率模块统一接口；语言/货币列表增加 status=active 过滤和 priority 排序；新增货币符号位置 symbol_position；库存可售状态改为调用库存服务查询接口。**新增**：翻译 Fallback 四级优先策略；RTL 布局支持；收藏人数展示；度量单位本期策略说明 |
 | V1.3 | 2026-06-10 | **修正**：收藏相关数据源从直查 user_wishlist 改为调用收藏模块接口（收藏模块独立设计，对外提供查询能力）；移除 SEO 章节（SEO 为独立模块）；商品描述仅取 listing.listing_description，移除 product.description 兜底；库存可售判断改为调用库存服务可售库存查询接口，不暴露内部计算公式 |
 | V1.4 | 2026-06-11 | **新增 CMS 后台业务规则（2.3 节扩展）**：作用域唯一性约束（重复报错）；保存行为（保存即生效，无草稿态）；筛选联动规则（选择即筛选 + 品牌级联）；模块开关行为（关闭=完全隐藏，即时生效）；Size Guide 默认值策略（按类目区分默认开/关）；配置变更记录（永久保留，4 种操作类型）；操作权限（当前不限，预留扩展）；属性展示名翻译流程（自动入队列）。**完善**：继承机制补充边界（所有层级删除→不展示）。**更新**：CMS 后台原型引用改为 antd 版 |
-| V1.6 | 2026-06-18 | **二轮对齐 Figma PC/APP 设计稿 + CMS 原型 v3**。**变更**：Certified Authentic 模块统一更名为 Certified Authentic（本质为同一模块，统一命名）；CTA 区 Checkout 按钮更名为 Buy Now（btn.checkout → btn.buy_now）；Add to Cart 重复点击逻辑改为基于库存校验（非"已在购物车"特殊判断）；Description 新增规则时类目选择互斥（已配置类目置灰不可选）。**新增**：APP 端 Header 分享按钮入口（详细交互见 Share To PRD）；Add to Cart 飞入动效（商品图飞向购物车图标 + 角标 +1）；库存/价格校验 toast 文案（英文，3 条）。**后续迭代**：相似商品引导卡标记为本期不做 |
-| V1.5 | 2026-06-17 | **对齐 Figma 设计稿 + CMS 原型 v3**。**新增**：Certified Authentic 鉴定认证模块（2.9 节，CMS 模板级配置，含标题/描述/详细说明半层弹窗）；PDP 模板概念（2.3 节重写，模板关联类目，模板级管理 Certified Authentic + Condition，类目级管理 Description）；Condition 分段进度条和 Condition Guide 弹窗（2.10 节）；成色等级从固定 4 级 ENUM 扩展为模板可配置等级集合（默认 5 级：Like New / Excellent / Very Good / Good / Fair）。**变更**：Description CMS 配置从「类目 > 品牌 > 系列」三级继承简化为仅按类目配置（2.11 节）；商品描述文案从独立模块合并到 Description 折叠区（属性表下方展示）；CMS 变更记录新增模板管理/模块管理操作类型。**移除**：CTA 按钮区的支付方式图标列表（Figma 设计稿已不包含，对齐删除）。**更新**：设计稿引用从 HTML 交互说明切换为 Figma 在线设计稿；CMS 后台原型引用更新为 v3。**评审修正**：Condition 模块开关增加例外说明（仅控制进度条+Guide，质检信息保留）；进度条色值删除改为以 Figma 为准；等级数量删除 3-6 限制；补充等级删除后匹配不上的处理（静默隐藏）；Size Guide 默认值简化为统一开启+前台无数据自动隐藏；变更记录筛选缩减为模板+模块 2 个维度；Certified Authentic 补充保存非空校验；Certified Authentic 编辑改为页面内直接编辑（去掉弹窗），详细说明字段改为富文本编辑器 |
+| V1.5 | 2026-06-17 | **对齐 Figma 设计稿 + CMS 原型 v3**。**新增**：Certified Authentic 鉴定认证模块（2.9 节，CMS 模板级配置，含标题/描述/详细说明半层弹窗）；PDP 模板概念（2.3 节重写，模板关联类目，模板级管理 Certified Authentic + Condition，类目级管理 Description）；Condition 分段进度条和 Condition Guide 弹窗（2.10 节）；成色等级前台展示从固定 4 级扩展为模板可配置展示等级集合（默认 5 级：Like New / Excellent / Very Good / Good / Fair，商品系统 grade 枚举不变）。**变更**：Description CMS 配置从「类目 > 品牌 > 系列」三级继承简化为仅按类目配置（2.11 节）；商品描述文案从独立模块合并到 Description 折叠区（属性表下方展示）；CMS 变更记录新增模板管理/模块管理操作类型。**移除**：CTA 按钮区的支付方式图标列表（Figma 设计稿已不包含，对齐删除）。**更新**：设计稿引用从 HTML 交互说明切换为 Figma 在线设计稿；CMS 后台原型引用更新为 v3。**评审修正**：Condition 模块开关增加例外说明（仅控制进度条+Guide，质检信息保留）；进度条色值删除改为以 Figma 为准；等级数量删除 3-6 限制；补充等级删除后匹配不上的处理（静默隐藏）；Size Guide 默认值简化为统一开启+前台无数据自动隐藏；变更记录筛选缩减为模板+模块 2 个维度；Certified Authentic 补充保存非空校验；Certified Authentic 编辑改为页面内直接编辑（去掉弹窗），详细说明字段改为富文本编辑器 |
+| V1.6 | 2026-06-18 | **二轮对齐 Figma PC/APP 设计稿 + CMS 原型 v3，PRD-原型交叉校验**。**命名统一**：Trust Statement 和 Certified Authentic 合并为 Certified Authentic（全局 32+ 处替换）。**变更**：Certified Authentic 徽章改为纯 CMS 驱动（移除 is_authenticated 依赖，有 CMS 配置即展示）；Condition 成色详细信息从 4 个固定字段改为 CMS 类目级配置（同 Description 模式，定义展示名+绑定数据源+排序）；翻译 Fallback 从四级简化为二级（平台默认语言→原文）；成色等级明确为商品系统固定枚举（CMS 模板仅控制前台展示，不影响商品录入）；Size Guide 数据来源从"单模板"改为"多模板+按尺寸比值自动匹配"；面包屑品牌/品类跳转本期写死 www.looply.com（依赖 collection 模块）；Gallery 图片尺寸约束改为以 Figma 设计稿为准。**新增**：非促销划线价 compare_at_price（listing 级，3 级优先：促销价 > compare_at_price > 不展示）；Cookie 未登录收藏/加购支持；Condition 成色详细信息展示名为空时只展示值的规则；同一类目数据源字段互斥（最多选一次）；Condition 模块开关关闭时类目级配置仍可编辑。**CMS 原型同步**：Condition 面板新增类目级成色详细信息配置（规则表+编辑/新增/删除弹窗+预览）；数据源 Select 加互斥；模块开关关闭时模板级置灰+类目级正常。**风险项降级**：Condition 等级 ER 扩展从"grade 字段迁移"降为"CMS 域新增展示配置表，无迁移风险" |

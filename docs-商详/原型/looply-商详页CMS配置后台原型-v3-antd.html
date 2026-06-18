@@ -259,6 +259,39 @@ const CONDITION_CONFIGS = {
   },
 };
 
+/* ========== Condition Detail Fields (类目级成色详细信息) ========== */
+const COND_DETAIL_SOURCES = [
+  { key:'condition_summary', label:'成色概述 (condition_summary)', sample:'Very Good Condition, With Slight Signs Of Wear' },
+  { key:'appearance_desc', label:'外观状况 (appearance_desc)', sample:'Minor surface scratches' },
+  { key:'accessories_info', label:'配件情况 (accessories_info)', sample:'Receipt · Dust Bag · Box' },
+  { key:'supplement_notes', label:'补充说明 (supplement_notes)', sample:'Recently polished' },
+];
+
+const COND_DETAIL_RULES = {
+  luxury: [
+    { id:'cd1', scope:'Jewelry & Accessories', fields:[
+      { id:'cf1', name:'', source:'condition_summary', sample:'Very Good Condition, With Slight Signs Of Wear' },
+      { id:'cf2', name:'Chain', source:'appearance_desc', sample:'Minor Tarnish, Moderate Wear' },
+      { id:'cf3', name:'Care Notes', source:'supplement_notes', sample:'Recently polished, stored in dust bag' },
+      { id:'cf4', name:'Original Accessories', source:'accessories_info', sample:'Receipt · Dust Bag · Box · Information Card' },
+    ]},
+    { id:'cd2', scope:'Bags', fields:[
+      { id:'cf1', name:'', source:'condition_summary', sample:'Excellent Condition, Minimal Signs Of Use' },
+      { id:'cf2', name:'Exterior', source:'appearance_desc', sample:'Light corner wear' },
+      { id:'cf3', name:'Interior', source:'appearance_desc', sample:'Clean, no stains' },
+      { id:'cf4', name:'Original Accessories', source:'accessories_info', sample:'Dust Bag · Authenticity Card' },
+      { id:'cf5', name:'Care Notes', source:'supplement_notes', sample:'Stored in dust bag, recently conditioned' },
+    ]},
+  ],
+  electronics: [
+    { id:'cd1', scope:'Phones', fields:[
+      { id:'cf1', name:'', source:'condition_summary', sample:'Good Condition, Some Signs Of Use' },
+      { id:'cf2', name:'Screen & Body', source:'appearance_desc', sample:'Light scratches on back panel' },
+      { id:'cf3', name:'Battery Health', source:'supplement_notes', sample:'92% of original capacity' },
+    ]},
+  ],
+};
+
 /* ========== Description ========== */
 const DESC_RULES = {
   luxury: [
@@ -465,6 +498,221 @@ function ConditionEditModal({ open, config, onClose }) {
       ))}
       <Button type="dashed" block icon={<PlusOutlined />} onClick={mark(addGrade)} style={{ marginTop:4 }}>添加等级</Button>
       <ConditionBarPreview grades={grades} activeIndex={2} />
+    </Modal>
+  );
+}
+
+/* ========== CondDetailRows（拖拽 + 展示名 + 数据源 Select + 删除） ========== */
+function CondDetailRows({ fields, onName, onSource, onRemove, onReorder }) {
+  const [dragId, setDragId] = React.useState(null);
+  const [overId, setOverId] = React.useState(null);
+  const onDragStart = (e, id) => { setDragId(id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', id); };
+  const onDragOver = (e, id) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (id !== dragId) setOverId(id); };
+  const onDrop = (e, id) => { e.preventDefault(); if (dragId && dragId !== id && onReorder) onReorder(dragId, id); setDragId(null); setOverId(null); };
+  const onDragEnd = () => { setDragId(null); setOverId(null); };
+
+  return fields.map(f => {
+    const isDragging = dragId === f.id;
+    const isOver = overId === f.id && dragId !== f.id;
+    const dragProps = { draggable:true, onDragStart:e=>onDragStart(e,f.id), onDragOver:e=>onDragOver(e,f.id), onDrop:e=>onDrop(e,f.id), onDragEnd };
+    const dropStyle = isOver ? { borderTopColor:'#7C3AED', borderTopWidth:2 } : {};
+
+    return (
+      <div className="lp-attr-row" key={f.id} {...dragProps}
+        style={{ opacity: isDragging ? 0.35 : 1, transition:'opacity .15s', ...dropStyle }}>
+        <HolderOutlined className="drag" />
+        <Input value={f.name} style={{ width:140 }}
+          placeholder="展示名（空则仅展示值）" onChange={e => onName?.(f.id, e.target.value)} />
+        <Select value={f.source || undefined} placeholder="请选择数据源" style={{ flex:1 }}
+          onChange={v => onSource?.(f.id, v)}
+          options={COND_DETAIL_SOURCES.map(s => { const used = fields.some(o => o.id !== f.id && o.source === s.key); return { value:s.key, label: used ? s.label+' (已选)' : s.label, disabled: used }; })} />
+        <Button size="small" danger onClick={() => onRemove?.(f.id)}>删除</Button>
+      </div>
+    );
+  });
+}
+
+/* ========== CondDetailPreviewCard（成色详细信息前台预览） ========== */
+function CondDetailPreviewCard({ fields }) {
+  return (
+    <div className="lp-preview-card">
+      <div className="pv-title">Condition Detail 区域预览</div>
+      {fields.map(f => {
+        const src = COND_DETAIL_SOURCES.find(s => s.key === f.source);
+        const sampleVal = f.sample || src?.sample || '(value)';
+        if (!f.name) return (
+          <div className="lp-preview-attr" key={f.id}>
+            <span className="pv-val" style={{ color:'#374151' }}>{sampleVal}</span>
+          </div>
+        );
+        return (
+          <div className="lp-preview-attr" key={f.id}>
+            <span className="pv-label">{f.name}</span>
+            <span className="pv-val">{sampleVal}</span>
+          </div>
+        );
+      })}
+      {fields.length === 0 && (
+        <div style={{ padding:'16px 0', textAlign:'center', color:'#9CA3AF', fontSize:12 }}>暂无字段，请在左侧添加</div>
+      )}
+    </div>
+  );
+}
+
+/* ========== CondDetailEditModal ========== */
+function CondDetailEditModal({ open, rule, onClose }) {
+  const [fields, setFields] = useState(rule?.fields || []);
+  const [dirty, setDirty] = useState(false);
+  const mark = (fn) => (...a) => { setDirty(true); fn(...a); };
+  const seq = React.useRef(300);
+  React.useEffect(() => { if (rule) { setFields(rule.fields.map(f => ({ ...f }))); setDirty(false); } }, [open]);
+  const onName = (id, name) => setFields(p => p.map(f => f.id === id ? { ...f, name } : f));
+  const onSource = (id, source) => {
+    setFields(p => p.map(f => {
+      if (f.id !== id) return f;
+      const src = COND_DETAIL_SOURCES.find(s => s.key === source);
+      return { ...f, source, sample: src?.sample || '' };
+    }));
+  };
+  const onRemove = (id) => setFields(p => p.filter(f => f.id !== id));
+  const onReorder = (fromId, toId) => setFields(p => {
+    const arr = [...p]; const fi = arr.findIndex(f => f.id === fromId); const ti = arr.findIndex(f => f.id === toId);
+    const [moved] = arr.splice(fi, 1); arr.splice(ti, 0, moved); return arr;
+  });
+  const addField = () => {
+    const nid = 'ncf' + (seq.current++);
+    setFields(p => [...p, { id:nid, name:'', source:'', sample:'' }]);
+  };
+  const handleCancel = () => confirmDiscard(dirty, () => { setDirty(false); onClose(); });
+  const catName = rule?.scope || '';
+
+  return (
+    <Modal open={open} onCancel={handleCancel} closable={false} maskClosable={false} centered width={920}
+      title={<span>编辑成色详细信息规则 — {catName}<span style={{ fontSize:11,color:'#9CA3AF',fontWeight:400,marginLeft:8 }}>类目不可修改，如需更换请删除后新建</span></span>}
+      footer={[
+        <Button key="c" onClick={handleCancel}>取消</Button>,
+        <Button key="s" type="primary" onClick={() => { setDirty(false); onClose(); }}>保存</Button>,
+      ]}>
+      <div style={{ display:'flex', gap:16 }}>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize:13,fontWeight:600,color:'#374151',marginBottom:8 }}>字段配置</div>
+          <Alert type="info" showIcon={false} style={{ marginBottom:12 }}
+            message={<span style={{ fontSize:11,lineHeight:1.6 }}><strong>操作说明：</strong>先填写前台展示名（用户看到的字段名），再选择数据源（取 product_inspection 的哪个字段）。展示名为空时前台只展示值（如成色概述）。</span>} />
+          <div style={{ marginBottom:12 }}>
+            <Tag style={{ background:'#F9FAFB',border:'1px solid #E5E7EB',color:'#6B7280',borderRadius:6,padding:'2px 8px' }}>
+              已配置 {fields.length} 个字段
+            </Tag>
+          </div>
+          <div style={{ marginBottom:6,fontSize:11,fontWeight:600,color:'#9CA3AF',letterSpacing:'.3px' }}>
+            已配置（拖拽调整展示顺序）
+          </div>
+          <CondDetailRows fields={fields} onName={mark(onName)} onSource={mark(onSource)} onRemove={mark(onRemove)} onReorder={mark(onReorder)} />
+          {fields.filter(f=>f.source).length >= COND_DETAIL_SOURCES.length
+            ? <div style={{ marginTop:12,textAlign:'center',fontSize:12,color:'#9CA3AF',padding:'8px 0',border:'1px dashed #E5E7EB',borderRadius:8 }}>所有数据源字段已配置</div>
+            : <Button block onClick={mark(addField)} icon={<PlusOutlined />}
+                style={{ marginTop:12,borderStyle:'dashed',color:'#7C3AED',borderColor:'#D1D5DB' }}>
+                添加字段
+              </Button>}
+        </div>
+        <div style={{ width:280, flexShrink:0 }}>
+          <div style={{ fontSize:13,fontWeight:600,color:'#374151',marginBottom:8 }}>前台预览效果</div>
+          <CondDetailPreviewCard fields={fields} />
+          <div className="lp-note-sm" style={{ marginTop:8,fontSize:11 }}>
+            预览实时联动：修改展示名或清空后，右侧预览自动更新
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/* ========== CondDetailNewModal ========== */
+function CondDetailNewModal({ open, templateCategories, configuredCategories, onClose }) {
+  const [cat, setCat] = useState(undefined);
+  const [dirty, setDirty] = useState(false);
+  const mark = (fn) => (...a) => { setDirty(true); fn(...a); };
+  const seq = React.useRef(400);
+  const [fields, setFields] = useState([]);
+  React.useEffect(() => {
+    if (!cat) { setFields([]); return; }
+    setFields([
+      { id:'ncdf1', name:'', source:'condition_summary', sample:'Very Good Condition, With Slight Signs Of Wear' },
+      { id:'ncdf2', name:'', source:'appearance_desc', sample:'Minor surface scratches' },
+    ]);
+  }, [cat]);
+  const onName = (id, name) => setFields(p => p.map(f => f.id === id ? { ...f, name } : f));
+  const onSource = (id, source) => {
+    setFields(p => p.map(f => {
+      if (f.id !== id) return f;
+      const src = COND_DETAIL_SOURCES.find(s => s.key === source);
+      return { ...f, source, sample: src?.sample || '' };
+    }));
+  };
+  const onRemove = (id) => setFields(p => p.filter(f => f.id !== id));
+  const onReorder = (fromId, toId) => setFields(p => {
+    const arr = [...p]; const fi = arr.findIndex(f => f.id === fromId); const ti = arr.findIndex(f => f.id === toId);
+    const [moved] = arr.splice(fi, 1); arr.splice(ti, 0, moved); return arr;
+  });
+  const addField = () => {
+    const nid = 'ncf' + (seq.current++);
+    setFields(p => [...p, { id:nid, name:'', source:'', sample:'' }]);
+  };
+  const hasCat = !!cat;
+  const handleClose = () => confirmDiscard(dirty, () => { setCat(undefined); setFields([]); setDirty(false); onClose(); });
+
+  return (
+    <Modal open={open} onCancel={handleClose} closable={false} maskClosable={false} centered width={920}
+      title="新增成色详细信息规则" footer={[
+        <Button key="c" onClick={handleClose}>取消</Button>,
+        <Button key="s" type="primary" disabled={!hasCat || fields.length === 0} onClick={() => { setDirty(false); setCat(undefined); setFields([]); onClose(); }}>保存</Button>,
+      ]}>
+      <div style={{ marginBottom:16 }}>
+        <div style={{ fontSize:13,fontWeight:600,color:'#374151',marginBottom:6 }}>选择类目</div>
+        <Select placeholder="请选择类目" value={cat} onChange={mark(setCat)} style={{ width:260 }}
+          options={(templateCategories||[]).map(c=>{
+            const configured = (configuredCategories||[]).includes(c);
+            return {value:c, label: configured ? `${c}（已配置）` : c, disabled: configured};
+          })} />
+        {!hasCat && (templateCategories||[]).every(c=>(configuredCategories||[]).includes(c))
+          ? <div style={{ marginTop:6,fontSize:12,color:'#9CA3AF' }}>当前模板下所有类目已配置，如需调整请编辑已有规则</div>
+          : !hasCat && <div style={{ marginTop:6,fontSize:12,color:'#D97706' }}>选择类目后配置该类目的成色详细信息展示字段</div>}
+      </div>
+      {!hasCat ? (
+        <div style={{ border:'1px dashed #D1D5DB',borderRadius:12,textAlign:'center',padding:'40px 0',color:'#9CA3AF' }}>
+          <div style={{ fontSize:14,marginBottom:6 }}>请先选择类目</div>
+          <div style={{ fontSize:12 }}>选择类目后将自动加载默认字段配置</div>
+        </div>
+      ) : (
+        <div style={{ display:'flex', gap:16 }}>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontSize:13,fontWeight:600,color:'#374151',marginBottom:8 }}>字段配置</div>
+            <Alert type="info" showIcon={false} style={{ marginBottom:12 }}
+              message={<span style={{ fontSize:11,lineHeight:1.6 }}><strong>操作说明：</strong>先填写前台展示名（用户看到的字段名），再选择数据源（取 product_inspection 的哪个字段）。展示名为空时前台只展示值（如成色概述）。</span>} />
+            <div style={{ marginBottom:12 }}>
+              <Tag style={{ background:'#F9FAFB',border:'1px solid #E5E7EB',color:'#6B7280',borderRadius:6,padding:'2px 8px' }}>
+                已配置 {fields.length} 个字段
+              </Tag>
+            </div>
+            <div style={{ marginBottom:6,fontSize:11,fontWeight:600,color:'#9CA3AF',letterSpacing:'.3px' }}>
+              已配置（拖拽调整展示顺序）
+            </div>
+            <CondDetailRows fields={fields} onName={mark(onName)} onSource={mark(onSource)} onRemove={mark(onRemove)} onReorder={mark(onReorder)} />
+            {fields.filter(f=>f.source).length >= COND_DETAIL_SOURCES.length
+              ? <div style={{ marginTop:12,textAlign:'center',fontSize:12,color:'#9CA3AF',padding:'8px 0',border:'1px dashed #E5E7EB',borderRadius:8 }}>所有数据源字段已配置</div>
+              : <Button block onClick={mark(addField)} icon={<PlusOutlined />}
+                  style={{ marginTop:12,borderStyle:'dashed',color:'#7C3AED',borderColor:'#D1D5DB' }}>
+                  添加字段
+                </Button>}
+          </div>
+          <div style={{ width:280, flexShrink:0 }}>
+            <div style={{ fontSize:13,fontWeight:600,color:'#374151',marginBottom:8 }}>前台预览效果</div>
+            <CondDetailPreviewCard fields={fields} />
+            <div className="lp-note-sm" style={{ marginTop:8,fontSize:11 }}>
+              预览实时联动：修改展示名或清空后，右侧预览自动更新
+            </div>
+          </div>
+        </div>
+      )}
     </Modal>
   );
 }
@@ -787,33 +1035,77 @@ function TrustPanel({ templateKey }) {
 }
 
 /* ========== ConditionPanel ========== */
-function ConditionPanel({ templateKey }) {
+function ConditionPanel({ templateKey, templateCategories, switchOff }) {
   const [editOpen, setEditOpen] = useState(false);
+  const [cdEditOpen, setCdEditOpen] = useState(false);
+  const [cdNewOpen, setCdNewOpen] = useState(false);
+  const [cdDelRule, setCdDelRule] = useState(null);
+  const [cdEditRule, setCdEditRule] = useState(null);
   const config = CONDITION_CONFIGS[templateKey];
+  const cdRules = COND_DETAIL_RULES[templateKey] || [];
+
+  const handleCdEdit = (r) => {
+    setCdEditRule(r);
+    setCdEditOpen(true);
+  };
+
+  const cdColumns = [
+    { title:'类目', dataIndex:'scope', render:v=><strong>{v}</strong> },
+    { title:'已配置字段', key:'fields',
+      render:(_,r)=><Space size={4} wrap>{r.fields.map(f => f.name ? <Tag key={f.id}>{f.name}</Tag> : <Tag key={f.id} style={{fontStyle:'italic',color:'#9CA3AF'}}>（成色概述）</Tag>)}</Space>,
+    },
+    { title:'操作', key:'op', width:140,
+      render:(_,r)=><Space size={6}><Button size="small" onClick={()=>handleCdEdit(r)}>编辑</Button><Button size="small" danger onClick={()=>setCdDelRule(r)}>删除</Button></Space>,
+    },
+  ];
+
   return (
     <>
       <div className="lp-config-panel">
         <div className="lp-config-panel-title">
           <span>Module 2 — Condition 成色</span>
-          <Button icon={<EditOutlined />} onClick={() => setEditOpen(true)}>编辑</Button>
         </div>
-        <div style={{ padding:16,background:'#FAFAFA',borderRadius:10,border:'1px solid #E5E7EB',marginBottom:20 }}>
-          <div style={{ fontSize:13,fontWeight:600,color:'#9CA3AF',marginBottom:12 }}>配置内容 · {config.grades.length} 个等级</div>
-          <Table rowKey="id" pagination={false} size="small" styles={TABLE_STYLES} dataSource={config.grades} columns={[
-            { title:'序号', key:'idx', width:60, render:(_,__,i)=><span style={{color:'#9CA3AF'}}>{i+1}</span> },
-            { title:'等级名称', dataIndex:'name', width:120, render:v=><strong>{v}</strong> },
-            { title:'成色说明', dataIndex:'desc', ellipsis:true },
-            { title:'进度位置', key:'progress', width:120,
-              render:(_,__,i)=>{ const pct = Math.round(100*(config.grades.length-i)/config.grades.length); return <div style={{display:'flex',alignItems:'center',gap:8}}><div style={{flex:1,height:4,background:'#E5E7EB',borderRadius:2,overflow:'hidden'}}><div style={{width:pct+'%',height:'100%',background:'#16A34A',borderRadius:2}}/></div><span style={{fontSize:12,color:'#6B7280',minWidth:30}}>{pct}%</span></div>; },
-            },
-          ]} />
+
+        {/* Section 1: 成色等级配置（模板级） */}
+        {switchOff && <Alert type="warning" showIcon style={{ marginBottom:16 }} message="模块开关已关闭 — 成色等级配置（进度条 + Condition Guide）前台不展示。下方「成色详细信息」不受开关影响，仍正常展示。" />}
+        <div style={switchOff ? { opacity:0.4, pointerEvents:'none', filter:'grayscale(0.6)' } : {}}>
+          <div style={{ fontSize:14,fontWeight:600,color:'#374151',marginBottom:12 }}>
+            成色等级配置（模板级）
+            <Button icon={<EditOutlined />} size="small" style={{ marginLeft:12 }} onClick={() => setEditOpen(true)}>编辑</Button>
+          </div>
+          <div style={{ padding:16,background:'#FAFAFA',borderRadius:10,border:'1px solid #E5E7EB',marginBottom:20 }}>
+            <div style={{ fontSize:13,fontWeight:600,color:'#9CA3AF',marginBottom:12 }}>配置内容 · {config.grades.length} 个等级</div>
+            <Table rowKey="id" pagination={false} size="small" styles={TABLE_STYLES} dataSource={config.grades} columns={[
+              { title:'序号', key:'idx', width:60, render:(_,__,i)=><span style={{color:'#9CA3AF'}}>{i+1}</span> },
+              { title:'等级名称', dataIndex:'name', width:120, render:v=><strong>{v}</strong> },
+              { title:'成色说明', dataIndex:'desc', ellipsis:true },
+              { title:'进度位置', key:'progress', width:120,
+                render:(_,__,i)=>{ const pct = Math.round(100*(config.grades.length-i)/config.grades.length); return <div style={{display:'flex',alignItems:'center',gap:8}}><div style={{flex:1,height:4,background:'#E5E7EB',borderRadius:2,overflow:'hidden'}}><div style={{width:pct+'%',height:'100%',background:'#16A34A',borderRadius:2}}/></div><span style={{fontSize:12,color:'#6B7280',minWidth:30}}>{pct}%</span></div>; },
+              },
+            ]} />
+          </div>
+          <div style={{ fontSize:11,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.5px',marginBottom:12,paddingTop:12,borderTop:'1px solid #E5E7EB' }}>
+            前台预览
+          </div>
+          <ConditionBarPreview grades={config.grades} activeIndex={2} />
         </div>
-        <div style={{ fontSize:11,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.5px',marginBottom:12,paddingTop:12,borderTop:'1px solid #E5E7EB' }}>
-          前台预览
+
+        {/* Section 2: 成色详细信息配置（类目级） */}
+        <div style={{ marginTop:28,paddingTop:20,borderTop:'2px solid #E5E7EB' }}>
+          <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6 }}>
+            <div style={{ fontSize:14,fontWeight:600,color:'#374151' }}>成色详细信息配置（类目级）</div>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setCdNewOpen(true)}>新增类目配置</Button>
+          </div>
+          <p style={{ fontSize:12,color:'#6B7280',marginBottom:14 }}>
+            每个类目独立配置 Condition 区域展示哪些成色详细信息及排序。可配置的类目范围为当前模板关联的类目（{templateCategories?.join('、')}）。
+          </p>
+          <Table rowKey="id" columns={cdColumns} dataSource={cdRules} pagination={false} styles={TABLE_STYLES} />
         </div>
-        <ConditionBarPreview grades={config.grades} activeIndex={2} />
       </div>
       <ConditionEditModal open={editOpen} config={config} onClose={() => setEditOpen(false)} />
+      <CondDetailEditModal open={cdEditOpen} rule={cdEditRule} onClose={()=>{setCdEditOpen(false);setCdEditRule(null);}} />
+      <CondDetailNewModal open={cdNewOpen} templateCategories={templateCategories} configuredCategories={cdRules.map(r=>r.scope)} onClose={()=>setCdNewOpen(false)} />
+      <DeleteConfirmModal rule={cdDelRule} scopeKey="scope" onClose={()=>setCdDelRule(null)} />
     </>
   );
 }
@@ -949,12 +1241,12 @@ function PdpConfigPage() {
             </div>
 
             <div style={{ flex:1, minWidth:0 }}>
-              {!ms[activeModule] ? (
+              {!ms[activeModule] && activeModule !== 'condition' ? (
                 <DisabledModulePanel moduleName={MODULES.find(m=>m.key===activeModule)?.name || ''} />
               ) : (
                 <>
                   {activeModule === 'trust' && <TrustPanel templateKey={t.key} />}
-                  {activeModule === 'condition' && <ConditionPanel templateKey={t.key} />}
+                  {activeModule === 'condition' && <ConditionPanel templateKey={t.key} templateCategories={t.categories} switchOff={!ms['condition']} />}
                   {activeModule === 'description' && <DescriptionPanel templateKey={t.key} templateCategories={t.categories} />}
                 </>
               )}
