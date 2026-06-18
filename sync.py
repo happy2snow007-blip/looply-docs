@@ -25,6 +25,7 @@ import json
 import shutil
 import subprocess
 import glob as globmod
+import zipfile
 from datetime import datetime
 from pathlib import Path
 
@@ -930,6 +931,82 @@ var PROTOTYPE_CONFIG = {
         f.write(output)
 
 
+def build_delivery_desc(zip_path):
+    """从交付包 zip 内容自动生成 doc-desc 描述文本。"""
+    if not os.path.isfile(zip_path):
+        return None
+
+    _ORDER = {'prd': 1, 'cms': 2, 'pc': 3, 'app': 4, 'er': 5, 'arch': 6, 'flow': 7, 'img': 99}
+    parts = []
+    has_images = False
+
+    with zipfile.ZipFile(zip_path, 'r') as zf:
+        for info in zf.infolist():
+            raw_name = info.filename
+            try:
+                raw_name = raw_name.encode('cp437').decode('utf-8')
+            except (UnicodeDecodeError, UnicodeEncodeError):
+                pass
+            basename = os.path.basename(raw_name)
+            if not basename:
+                continue
+
+            if re.search(r'PRD[- ]*[vV](.+?)\.md', basename):
+                ver = re.search(r'PRD[- ]*[vV](.+?)\.md', basename).group(1)
+                parts.append((_ORDER['prd'], f'PRD v{ver}'))
+                continue
+
+            if re.search(r'(?:CMS[^.]*)?后台原型[- ]*[vV](.+?)\.html', basename):
+                ver = re.search(r'(?:CMS[^.]*)?后台原型[- ]*[vV](.+?)\.html', basename).group(1)
+                parts.append((_ORDER['cms'], f'CMS 后台原型 v{ver}'))
+                continue
+
+            if re.search(r'-PC[- ]*[vV](.+?)\.html', basename):
+                ver = re.search(r'-PC[- ]*[vV](.+?)\.html', basename).group(1)
+                parts.append((_ORDER['pc'], f'PC 原型 v{ver}'))
+                continue
+
+            if re.search(r'-APP[- ]*[vV](.+?)\.html', basename):
+                ver = re.search(r'-APP[- ]*[vV](.+?)\.html', basename).group(1)
+                parts.append((_ORDER['app'], f'APP 原型 v{ver}'))
+                continue
+
+            if re.search(r'实体关系图[- ]*[vV](.+?)\.(?:svg|html)', basename):
+                ver = re.search(r'实体关系图[- ]*[vV](.+?)\.(?:svg|html)', basename).group(1)
+                parts.append((_ORDER['er'], f'ER图 v{ver}'))
+                continue
+
+            if re.search(r'产品架构图[- ]*[vV](.+?)\.svg', basename):
+                ver = re.search(r'产品架构图[- ]*[vV](.+?)\.svg', basename).group(1)
+                parts.append((_ORDER['arch'], f'架构图 v{ver}'))
+                continue
+
+            if re.search(r'流程图[- ]*[vV](.+?)\.svg', basename):
+                ver = re.search(r'流程图[- ]*[vV](.+?)\.svg', basename).group(1)
+                parts.append((_ORDER['flow'], f'流程图 v{ver}'))
+                continue
+
+            if basename.lower().endswith(('.png', '.jpg', '.jpeg')):
+                has_images = True
+
+    if has_images:
+        parts.append((_ORDER['img'], '图片资源'))
+
+    if not parts:
+        return None
+
+    parts.sort(key=lambda x: x[0])
+
+    date_m = re.search(r'(\d{8})', os.path.basename(zip_path))
+    if date_m:
+        d = date_m.group(1)
+        date_str = f'{d[:4]}-{d[4:6]}-{d[6:]}'
+    else:
+        date_str = datetime.now().strftime('%Y-%m-%d')
+
+    return ' + '.join(p[1] for p in parts) + f' &middot; {date_str}'
+
+
 def update_index_html(updates, all_versions, all_history=None):
     """更新 index.html：替换链接、版本号、日期、历史版本列表。"""
     index_path = os.path.join(REPO_DIR, 'index.html')
@@ -1039,6 +1116,16 @@ def update_index_html(updates, all_versions, all_history=None):
                     new_line = re.sub(r'流程图 [vV][\d.]+', f'流程图 v{flow_ver}', new_line)
             if new_line != line:
                 changed = True
+        # 交付包 doc-desc 自动生成（基于 zip 内容）
+        if current_item_start in item_map and item_map[current_item_start].get('art_type') == 'delivery' and 'doc-desc' in new_line:
+            upd = item_map[current_item_start]
+            zip_rel = upd['href_dir'] + upd['new_file']
+            zip_path = os.path.join(REPO_DIR, zip_rel)
+            desc = build_delivery_desc(zip_path)
+            if desc:
+                new_line = re.sub(r'(<div class="doc-desc">).*?(</div>)', rf'\1{desc}\2', new_line)
+                if new_line != line:
+                    changed = True
         if '</li>' in new_line and current_item_start is not None:
             current_item_start = None
         new_lines.append(new_line)
