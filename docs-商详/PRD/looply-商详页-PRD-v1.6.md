@@ -4,7 +4,7 @@
 >
 > **定位**：本文档定义商详页所有模块的数据来源、取值规则、业务逻辑和边界处理。不含端交互行为（PC/APP 各自的交互说明文档维护）。
 >
-> **数据模型基于**：商品系统 PRD v1.7 · 商品系统 ER v2.6 · Market 主数据 PRD v1.2 · Market ER v5.0 · 翻译模块 PRD v1.1 · 翻译 ER v2.1 · 库存管理 PRD v1.1 · 库存 ER v4.0 · 汇率管理 PRD v4.2
+> **数据模型基于**：商品系统 PRD v1.7 · 商品系统 ER v2.6 · Market 主数据 PRD v1.2 · Market ER v5.0 · 翻译模块 PRD v1.1 · 翻译 ER v2.1 · 库存管理 PRD v1.2 · 库存 ER v4.1 · 汇率管理 PRD v4.2
 
 ---
 
@@ -193,7 +193,8 @@ PDP 模板是商详页内容配置的顶层组织单元。一个模板定义了�
 
 | 属性 | 说明 |
 |------|------|
-| 模板名称 | 运营自定义（如"Luxury PDP"、"Electronics PDP"） |
+| 模板名称 | 运营自定义（如"Luxury PDP"、"Electronics PDP"），不允许重名，最大 50 字符 |
+| 模板描述 | 选填，用于标注模板用途（如"适用于奢侈品箱包、珠宝、腕表类目"） |
 | 关联类目 | 一个模板关联一组类目；一个类目只能属于一个模板 |
 | 模板级配置 | Certified Authentic、Condition 等级体系——同一模板下所有类目共享 |
 | 类目级配置 | Description 属性展示——模板内按类目差异化配置 |
@@ -274,7 +275,21 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 | 所属模板 | 该操作所在的 PDP 模板 |
 | 所属模块 | 模板管理 / Certified Authentic / Condition / Description / 模块管理 |
 | 操作类型 | 创建模板 / 编辑模板 / 删除模板 / 编辑配置 / 新增规则 / 编辑规则 / 删除规则 / 关闭模块 / 开启模块 |
-| 变更详情 | 具体变更内容（如"修改 Certified Authentic 标题"、"新增 Watches 类目级 Description 属性配置"） |
+| 变更详情 | 具体变更内容，示例见下表 |
+
+**操作类型与变更详情示例**
+
+| 操作类型 | 所属模块 | 变更详情示例 |
+|---------|---------|------------|
+| 创建模板 | 模板管理 | 创建「Luxury PDP」，关联 Jewelry & Accessories / Bags / Watches |
+| 编辑模板 | 模板管理 | 修改「Luxury PDP」名称为「Premium PDP」 |
+| 删除模板 | 模板管理 | 删除「Electronics PDP」 |
+| 编辑配置 | Certified Authentic | 修改 Certified Authentic 标题和描述文案 |
+| 新增规则 | Description | 新增 Watches 类目级 Description 属性配置 |
+| 编辑规则 | Condition | 修改 Bags 类目级成色详细信息配置：新增 Care Notes 字段 |
+| 删除规则 | Description | 删除 Shoes 类目级 Description 属性配置 |
+| 关闭模块 | 模块管理 | 关闭「Luxury PDP」的 Condition 模块 |
+| 开启模块 | 模块管理 | 开启「Luxury PDP」的 Condition 模块 |
 
 - 永久保留，不设滚动清理（配置变更频率低，存储成本可忽略）
 - 支持按所属模板和所属模块筛选
@@ -436,6 +451,7 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 - 汇率换算：调用汇率管理模块统一查询接口（详见汇率管理 PRD v4.2），传入 `from`（定价货币）+ `to`（用户货币），返回已含点差的平台汇率 `rate`。目标金额 = 源金额 × rate。汇率每日定时发布一次，日内固定
 - 尾差规则适配：通过尾差规则（详见商品系统 PRD 2.8.1），按三层优先级生效（货币级 > Market 级 > 系统默认），支持 .99 / .95 / .00 / 整十 / 整百等尾数策略，采用四舍五入取整
 - 用户当前货币 = 定价货币时直接展示，不做转换
+- 汇率查询失败时：回退到定价货币原价展示，价格下方附提示 "Price shown in [定价货币]"（走翻译，`resource_type='ui'`）
 - 结算货币：用户下单时使用当前看到的展示货币，不回退到定价货币
 
 **促销价展示逻辑**
@@ -444,7 +460,7 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 
 | 场景 | 现价 | 划线价 | Save |
 |------|------|-------|------|
-| 有促销价（`promotion_price < listing_price`） | promotion_price | listing_price（删除线） | listing_price - promotion_price |
+| 有促销价（`promotion_price < listing_price`） | promotion_price | max(listing_price, compare_at_price)（删除线） | 划线价 - promotion_price |
 | 无促销价，有 compare_at_price 且 > listing_price | listing_price | compare_at_price（删除线） | compare_at_price - listing_price |
 | 无促销价，无 compare_at_price | listing_price | 不展示 | 不展示 |
 
@@ -482,9 +498,9 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 |---|---|---|
 | `active` | 有库存 | Add to Cart 可点击，正常购买 |
 | `active` | 已预留 / 已售出 | Sold Out 灰色不可点击 |
-| `off_shelf` | -- | 页面显示"商品已下架"提示 |
+| `off_shelf` | -- | 商品信息正常展示，CTA 区域显示"商品已下架"提示并禁用所有按钮 |
 
-> listing_status 为两状态（active/off_shelf）。off_shelf 通过 off_shelf_reason 区分下架原因（manual/out_of_stock/blocked/item_invalid），商详页不区分下架原因，统一展示"商品已下架"。库存可售状态由库存服务统一维护，商详页调用库存服务可售库存查询接口，返回 `available_qty > 0` 即可售。
+> listing_status 为两状态（active/off_shelf）。off_shelf 通过 off_shelf_reason 区分下架原因（manual/out_of_stock/blocked/item_invalid），商详页不区分下架原因，统一展示"商品已下架"。off_shelf 时页面级行为：Gallery、品牌/标题/价格、Condition、Description、Shipping & Returns 等信息模块**正常展示**（用户可浏览商品详情做参考），仅 CTA 按钮区域替换为"This item is no longer available"提示文案 + 按钮禁用灰态。推荐区和浏览历史正常展示（引导用户发现其他商品）。收藏按钮仍可操作。库存可售状态由库存服务统一维护，商详页调用库存服务可售库存查询接口，返回 `available_qty > 0` 即可售。
 
 **数据来源与取值规则**
 
@@ -504,10 +520,12 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 
 | 场景 | 行为 |
 |------|------|
-| 正常加购（可售库存 > 购物车中该商品数量） | 飞入动效（商品图飞向购物车 icon）+ 购物车角标数量 +1 |
+| 正常加购（可售库存 > 购物车中该商品数量） | 飞入动效（商品图飞向购物车 icon）+ 购物车角标数量 +1 + 按钮文字变 "Added ✓"（PC 2 秒 / APP 1.5 秒后恢复） |
 | 超出库存（可售库存 ≤ 购物车中该商品数量） | toast "Maximum quantity reached"，不加购 |
 
 > 二手商品可售库存通常为 1，首次加购正常飞入，重复点击即命中库存上限提示。规则通用，不区分商品类型。
+>
+> **按钮防重复点击**：从飞入动效开始到 "Added ✓" 状态恢复期间，Add to Cart 按钮为禁用态（不可点击），防止重复加购触发错误提示。
 
 #### 操作时 toast 文案
 
@@ -521,7 +539,7 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 
 **边界情况**
 
-- Sold Out 时：Add to Cart 和 Buy Now 均禁用，变灰色
+- Sold Out 时：Add to Cart 和 Buy Now 均禁用，变灰色。Gallery 区收藏按钮仍可操作、收藏人数仍展示（用户可收藏售罄商品）
 
 **UI 关联**
 
@@ -625,7 +643,7 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 通过 CMS 后台的 PDP 模板 → Condition 模块配置：
 
 - **成色等级配置（模板级）**：配置该模板前台展示的等级集合（等级名称 + 等级描述），仅控制进度条和 Condition Guide 的展示内容，不影响商品录入的 grade 枚举
-- **等级数量灵活**：不同模板可配置不同数量的展示等级，无上下限约束
+- **等级数量灵活**：不同模板可配置不同数量的展示等级，最少 2 个（进度条至少需要 2 段才有对比意义），无上限约束
 - **等级排序**：按配置顺序从高到低排列，排序即展示顺序
 - **等级删除**：允许删除已被商品使用的等级。删除后，前台渲染时如果商品的 grade 在当前模板等级集合中匹配不上，进度条和等级名称不展示（静默隐藏），成色详细信息保留展示
 - **成色详细信息配置（类目级）**：模板内按类目配置，定义前台展示哪些 `product_inspection` 字段、展示名和排序。与 Description 属性配置模式一致：
@@ -649,7 +667,7 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 
 - CMS 配置的某字段在 product_inspection 中值为空时：该行整体隐藏（含展示名），不留空白
 - 当前类目未配置成色详细信息规则：整个成色详细信息区域隐藏，仅保留进度条 + Condition Guide + 徽章
-- 三个选填字段全部为空时：仅展示等级进度条 + 徽章 + 成色描述
+- CMS 配置的所有字段在 product_inspection 中均为空时：成色详细信息区域整体隐藏，仅保留进度条 + Condition Guide + 徽章
 - APP 端某段文案不足 3 行时：不截断，不显示 Read more 按钮
 - 当前商品所属类目未关联模板：不展示进度条和 Condition Guide，仅展示基本成色文本信息
 
@@ -700,7 +718,7 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 通过 CMS 后台的 PDP 模板 → Description 模块，按类目配置：
 
 - **类目级配置**：每个类目一条规则，定义前台展示名 + 绑定数据源属性 + 拖拽调整排序
-- **Size Guide**：固定模块，选择类目后自动带入属性列表，始终保留不可删除。运营可编辑前台展示名（默认 "Size"）、拖拽调整在属性列表中的位置、通过开关控制显示/隐藏。数据源为尺寸测量方法（类目级多套 SVG 模板 + 尺寸比值自动匹配 + 商品实测数据），不可更换。前台渲染时如果该商品无尺寸测量数据或 Size Guide 已关闭，链接不展示
+- **Size Guide**：固定模块，选择类目后自动带入属性列表，始终保留不可删除。运营可编辑前台展示名（默认 "Size Guide"）、拖拽调整在属性列表中的位置、通过开关控制显示/隐藏。数据源为尺寸测量方法（类目级多套 SVG 模板 + 尺寸比值自动匹配 + 商品实测数据），不可更换。前台渲染时如果该商品无尺寸测量数据或 Size Guide 已关闭，链接不展示
 - **模块开关**：关闭后前台不展示 Description 区域
 
 **展示规则**
@@ -784,9 +802,15 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 - 收藏按钮点击直接收藏/取消收藏（无需进入详情页），未登录时存入 Cookie（同 2.6 Gallery 收藏逻辑）
 - 卡片标题超 2 行截断
 
+**展示数量**
+
+- 最大展示 50 条，推荐引擎返回超过 50 条时截断
+- 最少 2 条才展示推荐区，不足 2 条时整个区域隐藏
+- APP 端水平滑动浏览
+
 **边界情况**
 
-- 推荐数据为空：整个区域隐藏
+- 推荐数据为空或不足 2 条：整个区域隐藏
 - PC 端推荐 < 6 张：隐藏 Next 按钮，卡片靠左对齐
 
 **UI 关联**
@@ -806,7 +830,7 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 
 | 页面元素 | 数据源 | 取值逻辑 |
 |---------|-------|---------|
-| 浏览记录 | `user_view_history` | 已登录：按 `viewed_at` 倒序取最近 N 条；未登录：使用浏览器 localStorage 记录 |
+| 浏览记录 | `user_view_history` | 已登录：按 `viewed_at` 倒序取最近 30 条；未登录：使用浏览器 localStorage 记录（最多保存 30 条，超出时淘汰最旧记录） |
 | 卡片字段 | 同 2.13 商品卡片字段映射 | 通用卡片结构 |
 
 **展示规则**
@@ -817,7 +841,8 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 **边界情况**
 
 - 无浏览历史：整个区域隐藏
-- 浏览记录中的商品已下架：标记 "Sold" 标签或从列表移除
+- 浏览记录中的商品售罄（active + 无库存）：标记 "Sold Out" 标签，卡片仍可点击进入商详页
+- 浏览记录中的商品已下架（off_shelf）：从列表移除
 
 **UI 关联**
 
@@ -904,6 +929,10 @@ Gallery 主图点击后的全屏图片查看器，支持左右切换浏览所有
 | 推荐引擎 | 推荐商品列表 | 待设计 | 推荐算法和输出格式未定义 |
 | 搜索服务 | Header 搜索功能 | 待设计 | 独立模块 |
 | 前台类目 | Header 导航链接 | 待设计 | 本期跳转地址写死 |
+| 购物车/订单域 | Cart 角标数量、Add to Cart / Buy Now 接口 | 设计中 | 购物车有 ER 图，无 PRD |
+| 配送模块 | Shipping & Returns 内容（后续 CMS 化） | 待设计 | 本期前端固定文案，后续配送模块就绪后升级 |
+| 营销模块 | Newsletter 订阅 | 待设计 | Footer 邮箱订阅功能 |
+| Share To | APP 端分享功能 | 已有（其他同事负责） | 详见 Share To PRD |
 
 ### 风险项
 
@@ -968,7 +997,7 @@ Gallery 主图点击后的全屏图片查看器，支持左右切换浏览所有
 | Lightbox 操作 | 键盘导航（Escape / 箭头） | 手势（滑动 / 双指缩放） |
 | 分享按钮 | 无 | 有（Header 右上角分享图标，点击打开分享半层，详见 Share To PRD） |
 | Add to Cart 反馈 | 文字变 "Added ✓"，2 秒恢复 | 文字变 "Added ✓" + 浅绿色背景，1.5 秒恢复 |
-| Add to Cart 飞入动效 | 商品图飞向右上角购物车图标 + 角标 +1 | 商品图飞向底部 Tab 购物车图标 + 角标 +1 |
+| Add to Cart 飞入动效 | 商品图飞向右上角购物车图标 + 角标 +1 | 商品图飞向 Header 右上角购物车图标 + 角标 +1 |
 | Footer 导航展示 | 链接列表直接展示 | 手风琴展开 |
 | Footer 免责声明 | 有 | 无 |
 | Sticky 底部购买栏 | 无 | 有（详见 2.8 APP Sticky 部分） |
@@ -996,14 +1025,4 @@ Gallery 主图点击后的全屏图片查看器，支持左右切换浏览所有
 
 ---
 
-## 版本记录
-
-| 版本 | 日期 | 变更说明 |
-|------|------|---------|
-| V1.0 | 2026-05-26 | 初版，定义商详页 12 个模块的数据来源、取值规则和边界处理 |
-| V1.1 | 2026-06-10 | 对齐商品系统 PRD v1.7：Condition 折叠区全面重写（成色等级 4 级、4 个文本字段替代结构化质检项、删除 CMS 配置）；listing_status 简化为两状态；鉴定信息字段扩展；尾差规则从"待设计"更新为引用商品系统 PRD 2.8.1；新增展示标题术语 |
-| V1.2 | 2026-06-10 | 全量交叉对齐商品/Market/翻译/库存/汇率五模块最新方案。**修正**：成色字段从 product 表移至 product_inspection 表；supplement_notes 替代 additional_desc；Gallery 图片从 JSON 数组改为 product_image 独立表；汇率从直查表改为调汇率模块统一接口；语言/货币列表增加 status=active 过滤和 priority 排序；新增货币符号位置 symbol_position；库存可售状态改为调用库存服务查询接口。**新增**：翻译 Fallback 四级优先策略；RTL 布局支持；收藏人数展示；度量单位本期策略说明 |
-| V1.3 | 2026-06-10 | **修正**：收藏相关数据源从直查 user_wishlist 改为调用收藏模块接口（收藏模块独立设计，对外提供查询能力）；移除 SEO 章节（SEO 为独立模块）；商品描述仅取 listing.listing_description，移除 product.description 兜底；库存可售判断改为调用库存服务可售库存查询接口，不暴露内部计算公式 |
-| V1.4 | 2026-06-11 | **新增 CMS 后台业务规则（2.3 节扩展）**：作用域唯一性约束（重复报错）；保存行为（保存即生效，无草稿态）；筛选联动规则（选择即筛选 + 品牌级联）；模块开关行为（关闭=完全隐藏，即时生效）；Size Guide 默认值策略（按类目区分默认开/关）；配置变更记录（永久保留，4 种操作类型）；操作权限（当前不限，预留扩展）；属性展示名翻译流程（自动入队列）。**完善**：继承机制补充边界（所有层级删除→不展示）。**更新**：CMS 后台原型引用改为 antd 版 |
-| V1.5 | 2026-06-17 | **对齐 Figma 设计稿 + CMS 原型 v3**。**新增**：Certified Authentic 鉴定认证模块（2.9 节，CMS 模板级配置，含标题/描述/详细说明半层弹窗）；PDP 模板概念（2.3 节重写，模板关联类目，模板级管理 Certified Authentic + Condition，类目级管理 Description）；Condition 分段进度条和 Condition Guide 弹窗（2.10 节）；成色等级前台展示从固定 4 级扩展为模板可配置展示等级集合（默认 5 级：Like New / Excellent / Very Good / Good / Fair，商品系统 grade 枚举不变）。**变更**：Description CMS 配置从「类目 > 品牌 > 系列」三级继承简化为仅按类目配置（2.11 节）；商品描述文案从独立模块合并到 Description 折叠区（属性表下方展示）；CMS 变更记录新增模板管理/模块管理操作类型。**移除**：CTA 按钮区的支付方式图标列表（Figma 设计稿已不包含，对齐删除）。**更新**：设计稿引用从 HTML 交互说明切换为 Figma 在线设计稿；CMS 后台原型引用更新为 v3。**评审修正**：Condition 模块开关增加例外说明（仅控制进度条+Guide，质检信息保留）；进度条色值删除改为以 Figma 为准；等级数量删除 3-6 限制；补充等级删除后匹配不上的处理（静默隐藏）；Size Guide 默认值简化为统一开启+前台无数据自动隐藏；变更记录筛选缩减为模板+模块 2 个维度；Certified Authentic 补充保存非空校验；Certified Authentic 编辑改为页面内直接编辑（去掉弹窗），详细说明字段改为富文本编辑器 |
-| V1.6 | 2026-06-18 | **二轮对齐 Figma PC/APP 设计稿 + CMS 原型 v3，PRD-原型交叉校验**。**命名统一**：Trust Statement 和 Certified Authentic 合并为 Certified Authentic（全局 32+ 处替换）。**变更**：Certified Authentic 徽章改为纯 CMS 驱动（移除 is_authenticated 依赖，有 CMS 配置即展示）；Condition 成色详细信息从 4 个固定字段改为 CMS 类目级配置（同 Description 模式，定义展示名+绑定数据源+排序）；翻译 Fallback 从四级简化为二级（平台默认语言→原文）；成色等级明确为商品系统固定枚举（CMS 模板仅控制前台展示，不影响商品录入）；Size Guide 数据来源从"单模板"改为"多模板+按尺寸比值自动匹配"；面包屑品牌/品类跳转本期写死 www.looply.com（依赖 collection 模块）；Gallery 图片尺寸约束改为以 Figma 设计稿为准。**新增**：非促销划线价 compare_at_price（listing 级，3 级优先：促销价 > compare_at_price > 不展示）；Cookie 未登录收藏/加购支持；Condition 成色详细信息展示名为空时只展示值的规则；同一类目数据源字段互斥（最多选一次）；Condition 模块开关关闭时类目级配置仍可编辑。**CMS 原型同步**：Condition 面板新增类目级成色详细信息配置（规则表+编辑/新增/删除弹窗+预览）；数据源 Select 加互斥；模块开关关闭时模板级置灰+类目级正常。**风险项降级**：Condition 等级 ER 扩展从"grade 字段迁移"降为"CMS 域新增展示配置表，无迁移风险" |
+> 版本变更记录已独立存放：`~/Desktop/海外业务/商详/looply-商详页系统-变更日志.md`
