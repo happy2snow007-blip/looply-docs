@@ -174,15 +174,15 @@ MODULES = {
         },
     },
     'translation': {
-        'name': '翻译管理',
+        'name': '多语言管理',
         'default_source': '$HOME/Desktop/海外业务/翻译',
-        'target': 'docs-翻译管理',
-        'keywords': ['翻译', 'translation'],
+        'target': 'docs-多语言管理',
+        'keywords': ['翻译', 'translation', '多语言'],
         'config_key': 'translation',
         'artifacts': {
             'prototype': {
                 'subdir': '原型',
-                'pattern': r'looply-翻译管理后台原型-v(.+?)\.html',
+                'pattern': r'looply-多语言管理后台原型-v(.+?)\.html',
                 'exclude': r'(backup)',
             },
             'prd': {

@@ -220,7 +220,7 @@ translation 表的 status 字段只有两个值：
 
 ## 五、功能模块
 
-### 5.1 翻译内容导航
+### 5.1 Translation 导航
 
 **功能类型**：页面型
 
@@ -272,7 +272,7 @@ translation 表的 status 字段只有两个值：
 
 **操作流程**
 
-1. 运营进入翻译内容页，默认显示"全部"标签
+1. 运营进入 Translation 页，默认显示"全部"标签
 2. 选择目标语言（如 fr 法语）
 3. 卡片显示每个资源类型在该语言下的翻译进度
 4. 点击某资源卡片 → 进入翻译详情页
@@ -283,7 +283,7 @@ translation 表的 status 字段只有两个值：
 - 域分组 Tab 后面显示该域的资源数量（如"商品域 10"）
 
 **UI 关联**
-- PC 端：`looply-翻译管理后台原型-v9-antd.html` → 翻译内容导航页
+- PC 端：`looply-多语言管理后台原型-v10-antd.html` → Translation 导航页
 
 ---
 
@@ -378,7 +378,7 @@ static_content 类型的字段，源文本区域为可编辑状态：
 | 图片上传失败 | 提示"上传失败"，保留原图 |
 
 **UI 关联**
-- PC 端：`looply-翻译管理后台原型-v9-antd.html` → 翻译详情页
+- PC 端：`looply-多语言管理后台原型-v10-antd.html` → 翻译详情页
 
 ---
 
@@ -462,7 +462,7 @@ static_content 类型的字段，源文本区域为可编辑状态：
 支持 CSV 格式导入，模板包含所有必填字段。导入后显示：成功数 / 失败数 / 失败明细。
 
 **UI 关联**
-- PC 端：`looply-翻译管理后台原型-v9-antd.html` → Key管理页
+- PC 端：`looply-多语言管理后台原型-v10-antd.html` → Key管理页
 
 ---
 
@@ -521,7 +521,7 @@ static_content 类型的字段，源文本区域为可编辑状态：
 | translated_term 最大 500 字符 | - |
 
 **UI 关联**
-- PC 端：`looply-翻译管理后台原型-v9-antd.html` → 术语表管理页
+- PC 端：`looply-多语言管理后台原型-v10-antd.html` → 术语表管理页
 
 ---
 
@@ -599,12 +599,12 @@ AI 翻译时，系统自动将术语表规则注入翻译请求：
 
 | 页面 | 设计稿 |
 |------|--------|
-| 翻译内容导航 | `looply-翻译管理后台原型-v9-antd.html` → 翻译内容导航页 |
-| 翻译详情（Master-Detail） | `looply-翻译管理后台原型-v9-antd.html` → 翻译详情页 |
-| Key 管理 | `looply-翻译管理后台原型-v9-antd.html` → Key管理页 |
-| 术语表管理 | `looply-翻译管理后台原型-v9-antd.html` → 术语表管理页 |
+| Translation 导航 | `looply-多语言管理后台原型-v10-antd.html` → Translation 导航页 |
+| 翻译详情（Master-Detail） | `looply-多语言管理后台原型-v10-antd.html` → 翻译详情页 |
+| Key 管理 | `looply-多语言管理后台原型-v10-antd.html` → Key管理页 |
+| 术语表管理 | `looply-多语言管理后台原型-v10-antd.html` → 术语表管理页 |
 
-原型文件：`~/Desktop/海外业务/翻译/原型/looply-翻译管理后台原型-v9-antd.html`
+原型文件：`~/Desktop/海外业务/翻译/原型/looply-多语言管理后台原型-v10-antd.html`
 
 ### B. 实体关系图
 
