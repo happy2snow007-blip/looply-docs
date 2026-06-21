@@ -175,7 +175,7 @@ MODULES = {
     },
     'translation': {
         'name': '多语言管理',
-        'default_source': '$HOME/Desktop/海外业务/翻译',
+        'default_source': '$HOME/Desktop/海外业务/多语言',
         'target': 'docs-多语言管理',
         'keywords': ['翻译', 'translation', '多语言'],
         'config_key': 'translation',
@@ -191,7 +191,7 @@ MODULES = {
             },
             'er': {
                 'subdir': '实体关系图',
-                'pattern': r'looply-翻译模块实体关系图-v(.+?)\.svg',
+                'pattern': r'looply-多语言模块实体关系图-v(.+?)\.svg',
             },
             'delivery': {
                 'subdir': '.',
