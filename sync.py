@@ -187,7 +187,7 @@ MODULES = {
             },
             'prd': {
                 'subdir': 'PRD',
-                'pattern': r'looply-翻译模块-PRD-v(.+?)\.md',
+                'pattern': r'looply-多语言模块-PRD-v(.+?)\.md',
             },
             'er': {
                 'subdir': '实体关系图',
