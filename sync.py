@@ -195,7 +195,7 @@ MODULES = {
             },
             'delivery': {
                 'subdir': '.',
-                'pattern': r'翻译-交付开发 V(.+?)\.zip',
+                'pattern': r'多语言-交付开发 V(.+?)\.zip',
             },
         },
     },
