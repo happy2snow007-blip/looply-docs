@@ -1,4 +1,4 @@
-# looply 翻译模块 PRD
+# looply 多语言模块 PRD
 
 > 版本：V2.0  
 > 日期：2026-06-21  
@@ -109,7 +109,7 @@ translation 表的 status 字段只有两个值：
 
 ### 2.4 数据模型概览
 
-本 PRD 数据模型依据翻译模块实体关系图 v2.2，包含 6 张表：
+本 PRD 数据模型依据多语言模块实体关系图 v2.2，包含 6 张表：
 
 | 实体 | 说明 | 归属 |
 |------|------|------|
@@ -120,7 +120,7 @@ translation 表的 status 字段只有两个值：
 | glossary_translation | 术语翻译 | 翻译模块规则表 |
 | translatable_field_config | 可翻译字段配置 | 翻译模块规则表 |
 
-详细字段定义见：`~/Desktop/海外业务/翻译/实体关系图/looply-翻译模块实体关系图-v2.2.svg`
+详细字段定义见：`~/Desktop/海外业务/多语言/实体关系图/looply-多语言模块实体关系图-v2.2.svg`
 
 ---
 
@@ -604,11 +604,11 @@ AI 翻译时，系统自动将术语表规则注入翻译请求：
 | Key 管理 | `looply-多语言管理后台原型-v10-antd.html` → Key管理页 |
 | 术语表管理 | `looply-多语言管理后台原型-v10-antd.html` → 术语表管理页 |
 
-原型文件：`~/Desktop/海外业务/翻译/原型/looply-多语言管理后台原型-v10-antd.html`
+原型文件：`~/Desktop/海外业务/多语言/原型/looply-多语言管理后台原型-v10-antd.html`
 
 ### B. 实体关系图
 
-`~/Desktop/海外业务/翻译/实体关系图/looply-翻译模块实体关系图-v2.2.svg`
+`~/Desktop/海外业务/多语言/实体关系图/looply-多语言模块实体关系图-v2.2.svg`
 
 ### C. 版本历史
 
