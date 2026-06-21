@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Looply · 多语言管理后台原型 v8</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937;font-size:14px}
+.header{height:60px;background:#FFFFFF;color:#1F2937;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid #E5E7EB}
+.logo{font-size:18px;font-weight:700;letter-spacing:1px;display:flex;align-items:center}
+.header-divider{width:1px;height:20px;background:#E5E7EB;margin:0 16px}
+.system-label{font-size:14px;font-weight:500;color:#6B7280;letter-spacing:0.3px}
+.breadcrumb{margin-left:auto;color:#9CA3AF;font-size:13px;font-weight:400}
+.container{display:flex;height:calc(100vh - 60px)}
+.sidebar{width:220px;background:#FFFFFF;overflow:auto;flex-shrink:0;box-shadow:3px 0 12px rgba(0,0,0,0.06);padding:8px 0}
+.main{flex:1;overflow:auto;padding:28px}
+.menu-group{margin-bottom:0}
+.menu-parent{display:flex;align-items:center;padding:12px 16px;color:#374151;cursor:pointer;font-size:14px;font-weight:500;transition:background .15s;user-select:none;border-left:3px solid transparent;outline:none}
+.menu-parent:hover{background:rgba(0,0,0,.04)}
+.menu-parent .mi{width:18px;height:18px;margin-right:10px;flex-shrink:0;opacity:.55}
+.menu-parent .arrow{margin-left:auto;width:16px;height:16px;transition:transform .2s;opacity:.4;flex-shrink:0}
+.menu-group.open>.menu-parent .arrow{transform:rotate(90deg)}
+.menu-parent.active-parent{color:#7C3AED;font-weight:600;border-left-color:#7C3AED}
+.menu-parent.active-parent .mi{opacity:1}
+.menu-children{max-height:0;overflow:hidden;transition:max-height .3s cubic-bezier(.4,0,.2,1)}
+.menu-group.open>.menu-children{max-height:none}
+.menu-child{display:flex;align-items:center;padding:10px 16px 10px 44px;color:#4B5563;cursor:pointer;font-size:13px;transition:all .15s;border-left:3px solid transparent;outline:none}
+.menu-child:hover{color:#374151;background:rgba(0,0,0,.03)}
+.menu-child.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.1),transparent);border-left-color:#7C3AED;font-weight:600}
+.menu-child .ci{width:15px;height:15px;margin-right:8px;flex-shrink:0;opacity:.45}
+.menu-child.active .ci{opacity:.8}
+@media(prefers-reduced-motion:reduce){.menu-children,.menu-parent .arrow,.menu-child,.menu-parent{transition:none !important}}
+.page{display:none}.page.active{display:block}
+.card{background:#fff;border-radius:16px;box-shadow:0 10px 24px rgba(16,24,40,.06);padding:28px}
+.page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}
+.page-title{font-size:20px;font-weight:700;margin-bottom:6px}
+.page-desc{color:#6B7280;font-size:13px;max-width:760px}
+.head-actions{display:flex;gap:10px;flex-wrap:wrap}
+.toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.toolbar .input,.toolbar select{height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff}
+.input{height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff;font-size:13px;outline:none;transition:border-color .15s}
+.input:focus{border-color:#7C3AED}
+.dialog-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:999;align-items:center;justify-content:center}
+.dialog{background:#fff;border-radius:16px;padding:28px;width:560px;box-shadow:0 20px 60px rgba(0,0,0,.15);max-height:90vh;overflow-y:auto}
+.dialog-title{font-size:18px;font-weight:700;margin-bottom:20px;color:#1F2937}
+.dialog-form{display:grid;grid-template-columns:90px 1fr;gap:14px 16px;align-items:center}
+.dialog-form .label{font-size:13px;color:#6B7280;text-align:right}
+.dialog-form select{height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;font-size:13px;background:#fff;outline:none;width:100%}
+.dialog-form select:focus{border-color:#7C3AED}
+.dialog-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid #F3F4F6}
+.dialog-section{margin-top:16px;padding:16px;background:#F9FAFB;border-radius:10px;border:1px solid #E5E7EB}
+.dialog-section-title{font-size:13px;font-weight:600;color:#374151;margin-bottom:12px}
+.lang-grid{display:grid;grid-template-columns:90px 1fr;gap:10px 12px;align-items:center}
+.lang-grid .label{font-size:12px;color:#6B7280;text-align:right}
+.btn{height:34px;padding:0 14px;border:1px solid #D1D5DB;background:#fff;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:13px}
+.btn.primary{background:#7C3AED;border-color:#7C3AED;color:#fff}
+.btn.danger{background:#DC2626;border-color:#DC2626;color:#fff}
+.btn.sm{height:28px;padding:0 10px;font-size:12px}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi .item{background:#FAF5FF;border:1px solid #DDD6FE;border-radius:14px;padding:14px}
+.kpi .num{font-size:24px;font-weight:700;color:#7C3AED;margin-bottom:4px}
+.muted{color:#6B7280;font-size:12px}
+.table-wrap{border:1px solid #E5E7EB;border-radius:14px;overflow-x:auto;background:#fff}
+table{width:100%;border-collapse:collapse;min-width:800px}
+th{background:#FFFFFF;padding:10px 12px;text-align:left;font-size:12px;color:#6B7280;border-bottom:1px solid #E5E7EB;text-transform:uppercase;letter-spacing:.02em}
+td{padding:11px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;vertical-align:top}
+tr:hover{background:#FAF5FF}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;margin-right:4px}
+.tag.on{background:#F0FDF4;color:#16A34A}.tag.pending{background:#FFFBEB;color:#D97706}.tag.off{background:#F3F4F6;color:#6B7280}.tag.warn{background:#FFF1F2;color:#E11D48}.tag.sale{background:#EFF6FF;color:#2563EB}.tag.req{background:#FEF2F2;color:#DC2626}
+.section-title{font-size:14px;font-weight:700;margin-bottom:10px;color:#7C3AED}
+.progress-bar{height:8px;background:#E5E7EB;border-radius:4px;overflow:hidden;margin-top:6px}
+.progress-bar .fill{height:100%;background:#7C3AED;border-radius:4px}
+.detail-grid{display:grid;grid-template-columns:120px 1fr;gap:10px 16px;font-size:13px}
+.detail-grid .dl{color:#6B7280}.detail-grid .dv{color:#1F2937}
+.pagination{display:flex;align-items:center;justify-content:center;padding:12px 16px;font-size:13px;color:#6B7280;border-top:1px solid #F3F4F6;gap:24px}
+.pagination .divider{width:1px;height:20px;background:#E5E7EB}
+.pagination .page-nums{display:flex;gap:4px;align-items:center}
+.pagination .page-num{min-width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;font-size:13px;background:transparent;border:none}
+.pagination .page-num.active{background:#7C3AED;color:#fff;font-weight:600}
+.pagination .page-num.arrow{border:1px solid #E5E7EB;background:#fff}
+.pagination .page-num.disabled{opacity:.35;cursor:default}
+.op-log{margin-top:24px}
+.op-log-title{font-size:14px;font-weight:700;color:#7C3AED;margin-bottom:12px}
+.op-time{color:#6B7280;font-size:12px}.op-user{color:#374151}.op-type{font-weight:500}.op-detail{color:#4B5563}
+.breadcrumb-nav{display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:13px;color:#6B7280}
+.breadcrumb-nav a{color:#7C3AED;text-decoration:none;cursor:pointer}
+.breadcrumb-nav a:hover{text-decoration:underline}
+.breadcrumb-nav .sep{color:#D1D5DB}
+.tab-bar{display:flex;gap:0;border-bottom:1px solid #E5E7EB;margin-bottom:18px}
+.tab-item{padding:10px 18px;cursor:pointer;border-bottom:2px solid transparent;color:#6B7280;font-size:13px;font-weight:400;transition:all .15s}
+.tab-item.active{border-bottom-color:#7C3AED;color:#7C3AED;font-weight:600}
+.tab-item:hover{color:#374151}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.form-grid{display:grid;grid-template-columns:150px 1fr;gap:12px 16px;align-items:center}
+.label{color:#6B7280;font-size:13px}
+.field{min-height:36px;border:1px solid #D1D5DB;border-radius:8px;background:#fff;padding:8px 12px;display:flex;align-items:center}
+.empty-state{display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center}
+.empty-state .empty-icon{width:48px;height:48px;color:#9CA3AF;margin-bottom:16px}
+.empty-state .empty-title{font-size:16px;font-weight:600;color:#1F2937;margin-bottom:8px}
+.empty-state .empty-desc{font-size:13px;color:#6B7280;margin-bottom:24px;max-width:360px}
+.list-data-view{}
+.empty-state-toggle{margin-top:12px;display:flex;gap:8px;justify-content:center}
+
+/* ══════════ v8 资源类型导航卡片 ══════════ */
+.domain-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.domain-card{border:1px solid #E5E7EB;border-radius:12px;overflow:hidden;transition:box-shadow .15s}
+.domain-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.06)}
+.domain-card-head{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid #F3F4F6}
+.domain-card-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.domain-card-icon svg{width:15px;height:15px}
+.domain-card-icon.catalog{background:#EFF6FF;color:#2563EB}
+.domain-card-icon.page{background:#F3EEFF;color:#7C3AED}
+.domain-card-icon.content{background:#FFFBEB;color:#D97706}
+.domain-card-icon.system{background:#F3F4F6;color:#6B7280}
+.domain-card-title{font-size:13px;font-weight:600;color:#1F2937}
+.domain-card-body{padding:0}
+.domain-item{display:flex;align-items:center;padding:9px 14px;cursor:pointer;border-bottom:1px solid #F3F4F6;transition:background .1s}
+.domain-item:last-child{border-bottom:none}
+.domain-item:hover{background:#FAF5FF}
+.domain-item-name{flex:1;font-size:13px;color:#374151}
+.domain-item-arrow{font-size:15px;color:#D1D5DB;font-weight:300}
+
+/* ══════════ v8 新增：Master-Detail 分栏 ══════════ */
+.master-wrap{display:flex;border:1px solid #E5E7EB;border-radius:14px;overflow:hidden;background:#fff;height:calc(100vh - 280px);min-height:500px}
+.master-left{width:300px;border-right:1px solid #E5E7EB;display:flex;flex-direction:column;flex-shrink:0;background:#FAFAFA}
+.master-left-head{padding:12px 14px;border-bottom:1px solid #E5E7EB;background:#fff}
+.master-left-head .input{width:100%;height:32px;font-size:12px}
+.master-left-list{flex:1;overflow-y:auto}
+.res-item{display:flex;align-items:center;padding:12px 14px;cursor:pointer;border-bottom:1px solid #F3F4F6;transition:background .1s;border-left:3px solid transparent}
+.res-item:hover{background:#FAF5FF}
+.res-item.active{background:linear-gradient(90deg,rgba(124,58,237,.08),transparent);border-left-color:#7C3AED}
+.res-item .res-id{font-size:13px;font-weight:600;color:#1F2937}
+.res-item .res-name{font-size:12px;color:#6B7280;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+.res-item .res-info{flex:1;min-width:0}
+.res-item .res-progress{font-size:11px;color:#9CA3AF;white-space:nowrap;margin-left:8px;display:flex;align-items:center;gap:6px}
+.res-item .res-progress .mini-bar{width:40px;height:4px;background:#E5E7EB;border-radius:2px;overflow:hidden}
+.res-item .res-progress .mini-bar .fill{height:100%;background:#7C3AED;border-radius:2px}
+.master-right{flex:1;overflow-y:auto;padding:24px}
+.master-right-empty{display:flex;align-items:center;justify-content:center;height:100%;color:#9CA3AF;font-size:14px}
+
+/* 翻译字段卡片 */
+.field-card{border:1px solid #E5E7EB;border-radius:12px;padding:16px;margin-bottom:12px}
+.field-card-head{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.field-card-name{font-size:13px;font-weight:600;color:#1F2937}
+.field-card-key{font-family:Menlo,Monaco,Consolas,monospace;font-size:11px;color:#9CA3AF}
+.field-card-body{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.field-card-col{min-height:60px}
+.field-card-col-label{font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px}
+.field-card-col-text{font-size:13px;color:#1F2937;line-height:1.6;padding:8px 12px;background:#F9FAFB;border-radius:8px;min-height:40px}
+.field-card-col-text.editable{background:#fff;border:1px solid #D1D5DB;cursor:text}
+.field-card-col-text.editable:hover{border-color:#7C3AED}
+.field-card-col-text.empty{color:#D1D5DB;font-style:italic}
+.field-card-actions{display:flex;gap:8px;margin-top:12px;justify-content:flex-end}
+
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo"><img src="logo-new.png" height="28" alt="Looply"></div>
+  <div class="header-divider"></div>
+  <div class="system-label">多语言管理</div>
+  <div class="breadcrumb">翻译内容</div>
+</div>
+<div class="container">
+  <div class="sidebar"><div class="menu-group open">
+<div class="menu-parent active-parent" tabindex="0" role="button" onclick="toggleGroup(this)"><svg class="mi" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h7M5.5 2v2M4 4c.5 2.5 2 4.5 4 6"/><path d="M7 10l-2 4"/><path d="M10 8l4 8M11.5 12h5"/></svg><span>多语言管理</span><svg class="arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4L10 8L6 12"/></svg></div>
+<div class="menu-children" role="group">
+<div class="menu-child active" tabindex="0" data-page="translation-nav"><svg class="ci" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><line x1="3" y1="4" x2="12" y2="4"/><line x1="3" y1="7.5" x2="12" y2="7.5"/><line x1="3" y1="11" x2="12" y2="11"/></svg><span>翻译内容</span></div>
+<div class="menu-child" tabindex="0" data-page="key-management"><svg class="ci" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.5l3 3M11 4L6.5 8.5M3 12l1-3.5L9.5 3"/></svg><span>Key管理</span></div>
+<div class="menu-child" tabindex="0" data-page="glossary-list"><svg class="ci" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2h9a1 1 0 011 1v9a1 1 0 01-1 1H3"/><path d="M3 2v11"/><path d="M6 5h4M6 7.5h3"/></svg><span>术语表</span></div>
+</div></div></div>
+  <div class="main">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- PAGE: 翻译内容 - 资源类型导航 (v8 NEW) -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div class="page active" id="page-translation-nav"><div class="card">
+      <div class="page-head" style="margin-bottom:12px"><div><div class="page-title">翻译内容</div><div class="page-desc">选择资源类型，查看和管理多语言翻译</div></div></div>
+
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <select style="height:34px;border:1px solid #DDD6FE;border-radius:8px;padding:0 12px;font-size:13px;font-weight:600;color:#7C3AED;background:#fff"><option selected>法语 (fr)</option><option>德语 (de)</option><option>西班牙语 (es)</option><option>意大利语 (it)</option></select>
+        <span style="font-size:12px;color:#6B7280">en &rarr; fr</span>
+      </div>
+
+      <div class="domain-grid">
+        <!-- 商品域 -->
+        <div class="domain-card">
+          <div class="domain-card-head">
+            <div class="domain-card-icon catalog"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5l7-3 7 3-7 3z"/><path d="M2 5v7l7 3V8"/><path d="M16 5v7l-7 3V8"/></svg></div>
+            <span class="domain-card-title">商品域</span>
+          </div>
+          <div class="domain-card-body">
+            <div class="domain-item" onclick="openResourceType('product','商品')"><span class="domain-item-name">商品</span><span class="domain-item-arrow">&rsaquo;</span></div>
+            <div class="domain-item" onclick="openResourceType('category','类目')"><span class="domain-item-name">类目</span><span class="domain-item-arrow">&rsaquo;</span></div>
+            <div class="domain-item" onclick="openResourceType('brand','品牌')"><span class="domain-item-name">品牌</span><span class="domain-item-arrow">&rsaquo;</span></div>
+            <div class="domain-item" onclick="openResourceType('model','型号')"><span class="domain-item-name">型号</span><span class="domain-item-arrow">&rsaquo;</span></div>
+            <div class="domain-item" onclick="openResourceType('attribute','属性/规格')"><span class="domain-item-name">属性/规格</span><span class="domain-item-arrow">&rsaquo;</span></div>
+          </div>
+        </div>
+
+        <!-- 前端页面 -->
+        <div class="domain-card">
+          <div class="domain-card-head">
+            <div class="domain-card-icon page"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="14" height="14" rx="2"/><path d="M2 6h14"/><path d="M6 6v10"/></svg></div>
+            <span class="domain-card-title">前端页面</span>
+          </div>
+          <div class="domain-card-body">
+            <div class="domain-item" onclick="openResourceType('page-home','首页')"><span class="domain-item-name">首页</span><span class="domain-item-arrow">&rsaquo;</span></div>
+            <div class="domain-item" onclick="openResourceType('page-collection','Collection')"><span class="domain-item-name">Collection</span><span class="domain-item-arrow">&rsaquo;</span></div>
+            <div class="domain-item" onclick="openResourceType('page-pdp','商详页')"><span class="domain-item-name">商详页</span><span class="domain-item-arrow">&rsaquo;</span></div>
+            <div class="domain-item" onclick="openResourceType('page-cart','购物车')"><span class="domain-item-name">购物车</span><span class="domain-item-arrow">&rsaquo;</span></div>
+            <div class="domain-item" onclick="openResourceType('page-checkout','结账页')"><span class="domain-item-name">结账页</span><span class="domain-item-arrow">&rsaquo;</span></div>
+            <div class="domain-item" onclick="openResourceType('page-policy','协议页面')"><span class="domain-item-name">协议页面</span><span class="domain-item-arrow">&rsaquo;</span></div>
+            <div class="domain-item" onclick="openResourceType('page-nav','导航栏')"><span class="domain-item-name">导航栏</span><span class="domain-item-arrow">&rsaquo;</span></div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- PAGE: Master-Detail 翻译分栏 (v8 NEW) -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div class="page" id="page-translation-master"><div class="card" style="padding:20px">
+      <div class="breadcrumb-nav" style="margin-bottom:12px">
+        <a onclick="navigateTo('translation-nav','翻译内容')">翻译内容</a>
+        <span class="sep">/</span>
+        <span id="master-type-label">商品</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px;font-weight:700" id="master-page-title">商品翻译</span>
+          <span style="font-size:12px;color:#6B7280">en &rarr; fr</span>
+        </div>
+        <select style="height:32px;border:1px solid #DDD6FE;border-radius:8px;padding:0 10px;font-size:13px;font-weight:600;color:#7C3AED;background:#fff"><option selected>法语 (fr)</option><option>德语 (de)</option><option>西班牙语 (es)</option></select>
+      </div>
+      <div class="master-wrap">
+        <div class="master-left">
+          <div class="master-left-head"><input class="input" placeholder="搜索 ID 或名称..." style="width:100%;height:32px;font-size:12px"></div>
+          <div class="master-left-list" id="master-resource-list"></div>
+          <div id="master-footer" style="padding:10px 14px;border-top:1px solid #E5E7EB;font-size:12px;color:#9CA3AF;background:#fff;text-align:center"></div>
+        </div>
+        <div class="master-right" id="master-detail-panel"></div>
+      </div>
+    </div></div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 以下页面保持 v7 原有内容不变 -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+
+    <!-- PAGE: Key管理 -->
+    <div class="page" id="page-key-management"><div class="card">
+      <div class="page-head"><div><div class="page-title">Key管理</div><div class="page-desc">注册和管理可翻译字段（Key），只有注册的字段才会进入翻译流程</div></div><div class="head-actions"><button class="btn primary" onclick="showDialog('register-key')">注册Key</button><button class="btn" onclick="showDialog('batch-import')">批量导入</button></div></div>
+      <div class="kpi"><div class="item"><div class="num">23</div><div class="muted">总Key数</div></div><div class="item"><div class="num">20</div><div class="muted">已激活</div></div><div class="item"><div class="num">2</div><div class="muted">未激活</div></div><div class="item"><div class="num">1</div><div class="muted">已废弃</div></div></div>
+      <div class="toolbar"><input class="input" placeholder="搜索 Key 名称"><select><option>全部类型</option><option>业务字段</option><option>页面文案</option></select><select><option>全部状态</option><option>已激活</option><option>未激活</option><option>已废弃</option></select><button class="btn">查询</button></div>
+      <div class="table-wrap"><table><thead><tr><th>Key</th><th>Key类型</th><th>来源/归属</th><th>资源类型</th><th>字段</th><th>状态</th><th>操作</th></tr></thead><tbody>
+        <tr><td><code>product.title</code></td><td><span class="tag on">业务字段</span></td><td>商品中心</td><td>product（商品）</td><td>title（标题）</td><td><span class="tag on">已激活</span></td><td><button class="btn" onclick="showDialog('edit-key')">编辑</button></td></tr>
+        <tr><td><code>product.description</code></td><td><span class="tag on">业务字段</span></td><td>商品中心</td><td>product（商品）</td><td>description（描述）</td><td><span class="tag on">已激活</span></td><td><button class="btn" onclick="showDialog('edit-key')">编辑</button></td></tr>
+        <tr><td><code>product.short_description</code></td><td><span class="tag on">业务字段</span></td><td>商品中心</td><td>product（商品）</td><td>short_description（短描述）</td><td><span class="tag on">已激活</span></td><td><button class="btn" onclick="showDialog('edit-key')">编辑</button></td></tr>
+        <tr><td><code>category.name</code></td><td><span class="tag on">业务字段</span></td><td>类目中心</td><td>category（类目）</td><td>name（名称）</td><td><span class="tag on">已激活</span></td><td><button class="btn" onclick="showDialog('edit-key')">编辑</button></td></tr>
+        <tr><td><code>home.hero.title</code></td><td><span class="tag sale">页面文案</span></td><td>首页</td><td><span style="color:#D1D5DB">&mdash;</span></td><td><span style="color:#D1D5DB">&mdash;</span></td><td><span class="tag on">已激活</span></td><td><button class="btn" onclick="showDialog('edit-key')">编辑</button></td></tr>
+        <tr><td><code>cart.header.count</code></td><td><span class="tag sale">页面文案</span></td><td>购物车</td><td><span style="color:#D1D5DB">&mdash;</span></td><td><span style="color:#D1D5DB">&mdash;</span></td><td><span class="tag on">已激活</span></td><td><button class="btn" onclick="showDialog('edit-key')">编辑</button></td></tr>
+        <tr><td><code>checkout.shipping.continue</code></td><td><span class="tag sale">页面文案</span></td><td>结账页</td><td><span style="color:#D1D5DB">&mdash;</span></td><td><span style="color:#D1D5DB">&mdash;</span></td><td><span class="tag on">已激活</span></td><td><button class="btn" onclick="showDialog('edit-key')">编辑</button></td></tr>
+      </tbody></table></div>
+      <div class="pagination"><div class="pag-section"><span>共 23 条，每页</span><select><option>10</option><option>20</option><option>50</option></select><span>条</span></div><div class="divider"></div><div class="page-nums"><span class="page-num arrow">&lt;</span><span class="page-num active">1</span><span class="page-num">2</span><span class="page-num">3</span><span class="page-num arrow">&gt;</span></div><div class="divider"></div><span>第 1/3 页</span></div>
+    </div></div>
+
+    <!-- PAGE: 术语表列表 -->
+    <div class="page" id="page-glossary-list"><div class="card">
+      <div class="page-head"><div><div class="page-title">术语表</div><div class="page-desc">管理专业术语和品牌名称的标准翻译，支持多语言扩展</div></div><div class="head-actions"><button class="btn primary" onclick="showDialog('add-term')">添加术语</button><button class="btn" onclick="showDialog('import-term')">导入术语</button></div></div>
+      <div class="kpi"><div class="item"><div class="num">112</div><div class="muted">总术语数</div></div><div class="item"><div class="num">34</div><div class="muted">禁译词</div></div><div class="item"><div class="num">112</div><div class="muted">强制术语</div></div></div>
+      <div class="toolbar"><input class="input" placeholder="搜索术语"><select><option>全部规则</option><option>禁译词</option><option>强制术语</option></select><select><option>全部语言</option><option>全部已翻译</option><option>部分未翻译</option><option>均未翻译</option></select><button class="btn">查询</button></div>
+      <div class="list-data-view"><div class="table-wrap"><table><thead><tr><th>源词（英文）</th><th>规则</th><th>已翻译语言</th><th>更新时间</th><th>备注</th><th>操作</th></tr></thead><tbody>
+        <tr><td><b>Rolex</b></td><td><span class="tag req">禁译词</span></td><td><span style="color:#6B7280;font-size:12px">&mdash;</span> <span style="font-size:11px;color:#6B7280">自动锁定</span></td><td>2026-05-10</td><td>品牌名</td><td><button class="btn" onclick="navigateTo('glossary-detail','术语详情')">详情</button> <button class="btn" style="border-color:#DC2626;color:#DC2626">删除</button></td></tr>
+        <tr><td><b>Handbag</b></td><td><span class="tag pending">强制术语</span></td><td><span style="color:#16A34A;font-weight:500">5/5 个语言</span></td><td>2026-05-08</td><td>品类名</td><td><button class="btn" onclick="navigateTo('glossary-detail','术语详情')">详情</button> <button class="btn" style="border-color:#DC2626;color:#DC2626">删除</button></td></tr>
+        <tr><td><b>Leather</b></td><td><span class="tag pending">强制术语</span></td><td><span style="color:#D97706;font-weight:500">3/5 个语言</span></td><td>2026-05-07</td><td>材质术语</td><td><button class="btn" onclick="navigateTo('glossary-detail','术语详情')">详情</button> <button class="btn" style="border-color:#DC2626;color:#DC2626">删除</button></td></tr>
+      </tbody></table></div><div class="pagination"><div class="pag-section"><span>共 112 条，每页</span><select><option>10</option><option>20</option><option>50</option></select><span>条</span></div><div class="divider"></div><div class="page-nums"><span class="page-num arrow">&lt;</span><span class="page-num active">1</span><span class="page-num">2</span><span class="page-num">...</span><span class="page-num">12</span><span class="page-num arrow">&gt;</span></div><div class="divider"></div><span>第 1/12 页</span></div></div>
+    </div></div>
+
+    <!-- PAGE: 术语详情 -->
+    <div class="page" id="page-glossary-detail"><div class="card">
+      <div class="page-head"><div><div class="page-title">术语详情 &middot; Handbag</div><div class="page-desc">查看和管理该术语在各目标语言中的翻译</div></div><div class="head-actions"><button class="btn" onclick="navigateTo('glossary-list','术语表')">返回列表</button><button class="btn" onclick="showDialog('edit-term')">编辑源词</button><button class="btn primary">保存修改</button></div></div>
+      <div style="display:grid;grid-template-columns:120px 1fr;gap:10px 16px;margin-bottom:24px;font-size:13px">
+        <div style="color:#6B7280">源词</div><div style="font-weight:600">Handbag</div>
+        <div style="color:#6B7280">规则</div><div><span class="tag pending">强制术语</span></div>
+        <div style="color:#6B7280">使用场景</div><div>品类名，翻译时强制匹配</div>
+        <div style="color:#6B7280">创建时间</div><div>2026-04-15 10:00</div>
+      </div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:12px">各语言翻译</div>
+      <div class="table-wrap"><table><thead><tr><th>目标语言</th><th>语言代码</th><th>翻译</th><th>状态</th><th>更新时间</th><th>操作</th></tr></thead><tbody>
+        <tr><td>法语</td><td>fr</td><td><b>Sac &agrave; main</b></td><td><span class="tag on">已翻译</span></td><td>2026-05-08</td><td><button class="btn">编辑</button></td></tr>
+        <tr><td>德语</td><td>de</td><td><b>Handtasche</b></td><td><span class="tag on">已翻译</span></td><td>2026-05-07</td><td><button class="btn">编辑</button></td></tr>
+        <tr><td>西班牙语</td><td>es</td><td><b>Bolso de mano</b></td><td><span class="tag on">已翻译</span></td><td>2026-05-06</td><td><button class="btn">编辑</button></td></tr>
+      </tbody></table></div>
+    </div></div>
+
+  </div>
+</div>
+
+<!-- Dialogs (same as v7) -->
+<div id="dialog-add-term" class="dialog-overlay"><div class="dialog"><div class="dialog-title">添加术语</div><div class="dialog-form"><div class="label">源词</div><input class="input" placeholder="输入英文源词" style="width:100%"><div class="label">规则</div><select id="add-term-rule" onchange="toggleTermLangSection()"><option>请选择规则</option><option>禁译词</option><option>强制术语</option></select><div class="label">备注</div><input class="input" placeholder="可选" style="width:100%"></div><div id="add-term-no-translate-hint" style="display:none;margin-top:16px;padding:14px 16px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;font-size:13px;color:#6B7280"><span style="font-weight:500;color:#7C3AED">禁译词说明：</span>保存后系统将自动在所有目标语言中保留源词原文。</div><div class="dialog-section" id="add-term-lang-section"><div class="dialog-section-title">各语言翻译</div><div class="lang-grid"><div class="label">法语 (fr)</div><input class="input" placeholder="翻译" style="width:100%"><div class="label">德语 (de)</div><input class="input" placeholder="翻译" style="width:100%"><div class="label">西班牙语 (es)</div><input class="input" placeholder="翻译" style="width:100%"></div></div><div class="dialog-actions"><button class="btn" onclick="closeDialog('add-term')">取消</button><button class="btn primary" onclick="closeDialog('add-term')">保存</button></div></div></div>
+<div id="dialog-import-term" class="dialog-overlay"><div class="dialog"><div class="dialog-title">导入术语</div><div style="padding:36px 20px;border:2px dashed #DDD6FE;border-radius:12px;text-align:center;margin-bottom:16px;background:#FEFCFF"><div style="font-size:14px;font-weight:600;color:#1F2937;margin-bottom:4px">点击或拖拽上传文件</div><div style="font-size:12px;color:#6B7280">支持 .xlsx、.csv</div></div><div class="dialog-actions"><button class="btn" onclick="closeDialog('import-term')">取消</button><button class="btn primary" onclick="closeDialog('import-term')">开始导入</button></div></div></div>
+<div id="dialog-register-key" class="dialog-overlay"><div class="dialog"><div class="dialog-title">注册Key</div><div class="dialog-form"><div class="label">Key类型</div><select id="reg-key-type" onchange="toggleKeyTypeFields()"><option value="business">业务字段</option><option value="self">页面文案</option></select><div id="reg-key-business-fields" style="display:contents"><div class="label">来源模块</div><select><option>商品中心</option><option>类目中心</option><option>品牌中心</option></select><div class="label">实体类型</div><input class="input" placeholder="如 product" style="width:100%"><div class="label">字段名</div><input class="input" placeholder="如 title" style="width:100%"><div class="label">Key名称</div><div><input class="input" value="product.title" style="width:100%;background:#F3F4F6" readonly><div style="font-size:11px;color:#9CA3AF;margin-top:4px">自动生成：实体类型.字段名</div></div></div><div id="reg-key-self-fields" style="display:none"><div class="label">归属页面</div><select><option>首页</option><option>Collection</option><option>商详页</option><option>购物车</option><option>结账页</option><option>协议页面</option><option>导航栏</option></select><div class="label">Key名称</div><div><input class="input" placeholder="如 hero.title, header.count" style="width:100%"><div style="font-size:11px;color:#9CA3AF;margin-top:4px">完整Key = 页面前缀 + 名称，如 home.hero.title</div></div><div class="label">源文本（英文）</div><input class="input" placeholder="输入英文原文" style="width:100%"></div><div class="label">备注</div><input class="input" placeholder="选填" style="width:100%"></div><div class="dialog-actions"><button class="btn" onclick="closeDialog('register-key')">取消</button><button class="btn primary" onclick="closeDialog('register-key')">确认注册</button></div></div></div>
+<div id="dialog-batch-import" class="dialog-overlay"><div class="dialog"><div class="dialog-title">批量导入Key</div><div style="margin-bottom:16px"><a href="#" style="font-size:13px;color:#7C3AED;text-decoration:none;display:inline-flex;align-items:center;gap:4px" onclick="event.preventDefault();alert('模板已下载（原型演示）')"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>下载导入模板（.xlsx）</a></div><div class="dialog-form"><div class="label">导入方式</div><select><option>Excel文件 (.xlsx)</option><option>CSV文件</option><option>JSON文件</option></select><div class="label">文件</div><div style="width:100%"><input type="file" style="font-size:13px"></div></div><div style="margin-top:14px;padding:12px 14px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;font-size:12px;color:#6B7280;line-height:1.7"><div style="font-weight:600;color:#374151;margin-bottom:4px">模板说明</div>必填列：Key名称、Key类型（业务字段/页面文案）<br>选填列：来源/归属、实体类型、字段名、源文本、备注</div><div class="dialog-actions"><button class="btn" onclick="closeDialog('batch-import')">取消</button><button class="btn primary" onclick="closeDialog('batch-import')">开始导入</button></div></div></div>
+<div id="dialog-edit-key" class="dialog-overlay"><div class="dialog"><div class="dialog-title">编辑Key</div><div class="dialog-form"><div class="label">Key名称</div><input class="input" value="product.title" style="width:100%;background:#F3F4F6" readonly><div class="label">来源</div><select><option selected>商品中心</option><option>类目中心</option></select><div class="label">状态</div><select><option selected>已激活</option><option>未激活</option><option>已废弃</option></select><div class="label">备注</div><input class="input" placeholder="选填" style="width:100%"></div><div class="dialog-actions"><button class="btn" onclick="closeDialog('edit-key')">取消</button><button class="btn primary" onclick="closeDialog('edit-key')">保存</button></div></div></div>
+<div id="dialog-edit-term" class="dialog-overlay"><div class="dialog"><div class="dialog-title">编辑术语</div><div class="dialog-form"><div class="label">源词</div><input class="input" value="Handbag" style="width:100%"><div class="label">规则</div><select><option>禁译词</option><option selected>强制术语</option></select><div class="label">备注</div><input class="input" value="品类名，翻译时强制匹配" style="width:100%"></div><div class="dialog-actions"><button class="btn" onclick="closeDialog('edit-term')">取消</button><button class="btn primary" onclick="closeDialog('edit-term')">保存</button></div></div></div>
+
+<script>
+var RD = {
+  product:{label:'商品',items:[
+    {id:'P10023',name:'Vintage Leather Handbag',d:2,t:5},{id:'P10045',name:'Rolex Submariner 2020 Watch',d:1,t:5},
+    {id:'P10067',name:'Chanel Classic Flap Bag',d:5,t:5},{id:'P10089',name:'Louis Vuitton Neverfull MM',d:0,t:5},
+    {id:'P10102',name:'Hermès Birkin 30',d:4,t:5},{id:'P10118',name:'Gucci Dionysus Mini',d:2,t:5}],
+    fields:{'P10023':[
+      {n:'商品标题',k:'product.title',s:'Vintage Leather Handbag',r:'Sac à main en cuir vintage',st:'translated'},
+      {n:'商品描述',k:'product.description',s:'Beautiful vintage leather handbag in excellent condition. Features gold-tone hardware, adjustable shoulder strap, and spacious interior with three compartments.',r:'Magnifique sac à main en cuir vintage en excellent état. Quincaillerie dorée, bandoulière réglable et intérieur spacieux avec plusieurs poches.',st:'stale'},
+      {n:'短描述',k:'product.short_description',s:'Premium vintage leather handbag, excellent condition, gold hardware.',r:'Sac à main vintage haut de gamme, excellent état, quincaillerie dorée.',st:'translated'},
+      {n:'成色说明',k:'product.condition_note',s:'Minor scratches on hardware. Interior clean. Strap shows light wear.',r:'',st:'untranslated'},
+      {n:'材质',k:'product.material',s:'Genuine leather, suede lining',r:'',st:'untranslated'}]}},
+  category:{label:'类目',items:[
+    {id:'CAT-001',name:"Women's Handbags",d:2,t:2},{id:'CAT-002',name:'Watches',d:1,t:2},
+    {id:'CAT-003',name:'Jewelry',d:0,t:2},{id:'CAT-004',name:'Shoes',d:2,t:2},{id:'CAT-005',name:'Clothing',d:1,t:2}],
+    fields:{'CAT-001':[
+      {n:'类目名称',k:'category.name',s:"Women's Handbags",r:'Sacs à main femme',st:'translated'},
+      {n:'类目描述',k:'category.description',s:'Curated collection of pre-owned designer handbags for women.',r:'Collection de sacs à main de créateurs d\'occasion pour femme.',st:'translated'}]}},
+  brand:{label:'品牌',items:[
+    {id:'BRD-001',name:'Louis Vuitton',d:1,t:2},{id:'BRD-002',name:'Rolex',d:0,t:2},
+    {id:'BRD-003',name:'Chanel',d:2,t:2},{id:'BRD-004',name:'Hermès',d:1,t:2},{id:'BRD-005',name:'Gucci',d:0,t:2}],
+    fields:{'BRD-001':[
+      {n:'品牌展示名',k:'brand.display_name',s:'Louis Vuitton',r:'Louis Vuitton',st:'translated'},
+      {n:'品牌描述',k:'brand.description',s:'Founded in 1854, Louis Vuitton is a French luxury fashion house renowned for leather goods, trunks, and ready-to-wear.',r:'Fondée en 1854, Louis Vuitton est une maison de mode française de luxe renommée pour ses articles en cuir, ses malles et son prêt-à-porter.',st:'translated'}]}},
+  model:{label:'型号',items:[
+    {id:'MOD-001',name:'Submariner Date',d:1,t:2},{id:'MOD-002',name:'Neverfull MM',d:2,t:2},
+    {id:'MOD-003',name:'Classic Flap',d:0,t:2},{id:'MOD-004',name:'Birkin 30',d:1,t:2},{id:'MOD-005',name:'Dionysus Mini',d:0,t:2}],
+    fields:{'MOD-001':[
+      {n:'型号名称',k:'model.name',s:'Submariner Date',r:'Submariner Date',st:'translated'},
+      {n:'型号描述',k:'model.description',s:'The Rolex Submariner Date is a classic diving watch with date function, available in 41mm Oystersteel.',r:'',st:'untranslated'}]}},
+  attribute:{label:'属性/规格',items:[
+    {id:'ATTR-001',name:'Case Diameter (表径)',d:2,t:2},{id:'ATTR-002',name:'Bag Size (包身尺寸)',d:1,t:2},
+    {id:'ATTR-003',name:'Strap Length (肩带长度)',d:0,t:2},{id:'ATTR-004',name:'Material (材质)',d:2,t:2},{id:'ATTR-005',name:'Movement (机芯)',d:1,t:2}],
+    fields:{'ATTR-001':[
+      {n:'属性名称',k:'attribute.name',s:'Case Diameter',r:'Diamètre du boîtier',st:'translated'},
+      {n:'属性值',k:'attribute.values',s:'36mm / 38mm / 40mm / 41mm',r:'36mm / 38mm / 40mm / 41mm',st:'translated'}]}},
+  'page-home':{label:'首页',items:[
+    {id:'Banner 横幅',name:'首屏大图区域',d:4,t:4},{id:'精选商品',name:'Featured Products 推荐区',d:2,t:3},
+    {id:'类目导航',name:'Category Grid 网格区',d:1,t:2},{id:'信任标识',name:'Trust Badges 认证区',d:0,t:4},{id:'Newsletter',name:'邮件订阅区',d:1,t:4}],
+    fields:{'Banner 横幅':[
+      {n:'主标题',k:'home.banner.title',s:'Discover Pre-Loved Luxury',r:'Découvrez le luxe de seconde main',st:'translated'},
+      {n:'副标题',k:'home.banner.subtitle',s:'Authenticated designer items at accessible prices',r:'Articles de créateurs authentifiés à prix accessibles',st:'translated'},
+      {n:'按钮文案',k:'home.banner.cta',s:'Shop Now',r:'Acheter maintenant',st:'translated'},
+      {n:'图片描述',k:'home.banner.alt',s:'Curated luxury handbags and watches collection',r:'Collection de sacs à main et montres de luxe',st:'translated'}],
+    '精选商品':[
+      {n:'区块标题',k:'home.featured.title',s:'Featured Products',r:'Produits en vedette',st:'translated'},
+      {n:'副标题',k:'home.featured.subtitle',s:'Hand-picked by our experts',r:'Sélectionnés par nos experts',st:'translated'},
+      {n:'查看全部',k:'home.featured.view_all',s:'View All',r:'',st:'untranslated'}],
+    '信任标识':[
+      {n:'认证标识',k:'home.trust.auth',s:'100% Authenticated',r:'',st:'untranslated'},
+      {n:'退货标识',k:'home.trust.returns',s:'Free Returns',r:'',st:'untranslated'},
+      {n:'支付标识',k:'home.trust.payment',s:'Secure Payment',r:'',st:'untranslated'},
+      {n:'质检标识',k:'home.trust.inspect',s:'Expert Inspection',r:'',st:'untranslated'}]}},
+  'page-collection':{label:'Collection',items:[
+    {id:'页面头部',name:'标题与结果统计',d:2,t:2},{id:'空状态',name:'无结果提示页',d:0,t:3},
+    {id:'排序筛选',name:'Sort & Filter 工具栏',d:2,t:3},{id:'商品卡片',name:'Product Card 组件',d:2,t:3}],
+    fields:{'页面头部':[
+      {n:'页面标题',k:'collection.header.title',s:'All Products',r:'Tous les produits',st:'translated'},
+      {n:'结果描述',k:'collection.header.result',s:'Showing {count} results',r:'Affichage de {count} résultats',st:'translated'}],
+    '空状态':[
+      {n:'空状态标题',k:'collection.empty.title',s:'No products found',r:'',st:'untranslated'},
+      {n:'空状态描述',k:'collection.empty.desc',s:'Try adjusting your filters or search terms',r:'',st:'untranslated'},
+      {n:'清除按钮',k:'collection.empty.cta',s:'Clear Filters',r:'',st:'untranslated'}]}},
+  'page-pdp':{label:'商详页',items:[
+    {id:'商品信息',name:'Product Info 基础区',d:3,t:4},{id:'成色报告',name:'Condition Report 质检区',d:2,t:3},
+    {id:'物流退货',name:'Shipping & Returns',d:1,t:3},{id:'正品认证',name:'Authenticity 认证区',d:0,t:2},{id:'相关推荐',name:'Related Products',d:1,t:2}],
+    fields:{'商品信息':[
+      {n:'区块标题',k:'pdp.info.section_title',s:'Product Details',r:'Détails du produit',st:'translated'},
+      {n:'成色标签',k:'pdp.info.condition_label',s:'Condition',r:'État',st:'translated'},
+      {n:'加入购物车',k:'pdp.info.add_to_cart',s:'Add to Cart',r:'Ajouter au panier',st:'translated'},
+      {n:'立即购买',k:'pdp.info.buy_now',s:'Buy Now',r:'',st:'untranslated'}],
+    '成色报告':[
+      {n:'区块标题',k:'pdp.condition.title',s:'Condition Report',r:'Rapport d\'état',st:'translated'},
+      {n:'整体评级',k:'pdp.condition.grade',s:'Overall Grade',r:'Note globale',st:'translated'},
+      {n:'详细说明',k:'pdp.condition.detail',s:'Detailed Notes',r:'',st:'untranslated'}]}},
+  'page-cart':{label:'购物车',items:[
+    {id:'页面头部',name:'Cart Header 标题区',d:2,t:2},{id:'空购物车',name:'Empty Cart 提示页',d:0,t:3},
+    {id:'订单摘要',name:'Cart Summary 结算区',d:2,t:4},{id:'商品行',name:'Cart Item 商品项',d:1,t:2}],
+    fields:{'页面头部':[
+      {n:'页面标题',k:'cart.header.title',s:'Shopping Cart',r:'Panier',st:'translated'},
+      {n:'商品数提示',k:'cart.header.count',s:'{count} items in your cart',r:'{count} articles dans votre panier',st:'translated'}],
+    '空购物车':[
+      {n:'空状态标题',k:'cart.empty.title',s:'Your cart is empty',r:'',st:'untranslated'},
+      {n:'空状态描述',k:'cart.empty.desc',s:'Looks like you haven\'t added anything yet',r:'',st:'untranslated'},
+      {n:'继续购物',k:'cart.empty.cta',s:'Continue Shopping',r:'',st:'untranslated'}]}},
+  'page-checkout':{label:'结账页',items:[
+    {id:'配送地址',name:'Shipping Step 步骤一',d:3,t:4},{id:'支付方式',name:'Payment Step 步骤二',d:2,t:4},
+    {id:'订单确认',name:'Review Step 步骤三',d:1,t:3},{id:'下单成功',name:'Order Confirmation 结果页',d:0,t:3}],
+    fields:{'配送地址':[
+      {n:'步骤标题',k:'checkout.shipping.title',s:'Shipping Address',r:'Adresse de livraison',st:'translated'},
+      {n:'姓名标签',k:'checkout.shipping.name_label',s:'Full Name',r:'Nom complet',st:'translated'},
+      {n:'地址标签',k:'checkout.shipping.address_label',s:'Street Address',r:'Adresse',st:'translated'},
+      {n:'继续按钮',k:'checkout.shipping.continue',s:'Continue to Payment',r:'',st:'untranslated'}],
+    '下单成功':[
+      {n:'成功标题',k:'checkout.confirm.title',s:'Order Confirmed!',r:'',st:'untranslated'},
+      {n:'感谢文案',k:'checkout.confirm.thanks',s:'Thank you for your purchase',r:'',st:'untranslated'},
+      {n:'继续购物',k:'checkout.confirm.cta',s:'Continue Shopping',r:'',st:'untranslated'}]}},
+  'page-policy':{label:'协议页面',items:[
+    {id:'服务条款',name:'Terms of Service',d:2,t:2},{id:'隐私政策',name:'Privacy Policy',d:1,t:2},
+    {id:'退货政策',name:'Return Policy',d:0,t:2},{id:'Cookie政策',name:'Cookie Policy',d:2,t:2}],
+    fields:{'服务条款':[
+      {n:'协议标题',k:'policy.tos.title',s:'Terms of Service',r:"Conditions d'utilisation",st:'translated'},
+      {n:'协议内容',k:'policy.tos.content',s:'Welcome to Looply. These Terms of Service govern your access to and use of our platform...',r:'Bienvenue sur Looply. Ces Conditions d\'utilisation régissent votre accès et utilisation de notre plateforme...',st:'translated'}],
+    '退货政策':[
+      {n:'协议标题',k:'policy.return.title',s:'Return Policy',r:'',st:'untranslated'},
+      {n:'协议内容',k:'policy.return.content',s:'We accept returns within 14 days of delivery for items in original condition...',r:'',st:'untranslated'}]}},
+  'page-nav':{label:'导航栏',items:[
+    {id:'顶部导航',name:'Header Menu 主菜单',d:4,t:5},{id:'底部链接',name:'Footer Links 页脚',d:2,t:4},{id:'移动端菜单',name:'Mobile Menu 手机导航',d:3,t:5}],
+    fields:{'顶部导航':[
+      {n:'首页',k:'nav.header.home',s:'Home',r:'Accueil',st:'translated'},
+      {n:'商品',k:'nav.header.shop',s:'Shop',r:'Boutique',st:'translated'},
+      {n:'类目',k:'nav.header.categories',s:'Categories',r:'Catégories',st:'translated'},
+      {n:'关于我们',k:'nav.header.about',s:'About Us',r:'À propos',st:'translated'},
+      {n:'联系我们',k:'nav.header.contact',s:'Contact',r:'',st:'untranslated'}],
+    '底部链接':[
+      {n:'关于我们',k:'nav.footer.about',s:'About Looply',r:'À propos de Looply',st:'translated'},
+      {n:'帮助中心',k:'nav.footer.help',s:'Help Center',r:'Centre d\'aide',st:'translated'},
+      {n:'联系方式',k:'nav.footer.contact',s:'Contact Us',r:'',st:'untranslated'},
+      {n:'招聘信息',k:'nav.footer.careers',s:'Careers',r:'',st:'untranslated'}]}}
+};
+var SM={translated:{c:'on',t:'已翻译'},stale:{c:'pending',t:'待更新'},untranslated:{c:'off',t:'未翻译'}};
+var curType=null;
+function openResourceType(type,label){
+  curType=type;
+  document.getElementById('master-type-label').textContent=label;
+  document.getElementById('master-page-title').textContent=label+'翻译';
+  renderLeft(type);
+  navigateTo('translation-master','翻译内容 / '+label);
+}
+function renderLeft(type){
+  var d=RD[type];if(!d)return;
+  var list=document.getElementById('master-resource-list'),h='';
+  d.items.forEach(function(it,i){
+    var p=Math.round(it.d/it.t*100),dc=it.d===it.t?'color:#16A34A':'';
+    h+='<div class="res-item'+(i===0?' active':'')+'" onclick="selItem(\''+type+'\','+i+',this)">';
+    h+='<div class="res-info"><div class="res-id">'+it.id+'</div><div class="res-name">'+it.name+'</div></div>';
+    h+='<div class="res-progress"><div class="mini-bar"><div class="fill" style="width:'+p+'%"></div></div><span style="'+dc+'">'+it.d+'/'+it.t+'</span></div></div>';
+  });
+  list.innerHTML=h;
+  document.getElementById('master-footer').textContent='共 '+d.items.length+' 项';
+  renderDetail(type,0);
+}
+function selItem(type,idx,el){
+  document.querySelectorAll('.res-item').forEach(function(i){i.classList.remove('active');});
+  el.classList.add('active');
+  renderDetail(type,idx);
+}
+function renderDetail(type,idx){
+  var d=RD[type];if(!d)return;
+  var it=d.items[idx],fs=d.fields[it.id],panel=document.getElementById('master-detail-panel');
+  if(!fs){panel.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9CA3AF;font-size:13px">该项暂无翻译字段数据（原型演示）</div>';return;}
+  var p=Math.round(it.d/it.t*100),h='';
+  h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><span style="font-weight:600;font-size:15px">'+it.id+' · '+it.name+'</span>';
+  h+='<div style="margin-left:auto;display:flex;align-items:center;gap:8px"><div class="progress-bar" style="width:80px;margin:0"><div class="fill" style="width:'+p+'%"></div></div>';
+  h+='<span style="font-size:12px;font-weight:600;color:'+(it.d===it.t?'#16A34A':'#7C3AED')+'">'+it.d+'/'+it.t+'</span></div></div>';
+  if(it.d<it.t){h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:18px"><button class="btn primary sm">一键 AI 翻译未完成字段</button><div style="margin-left:auto"><button class="btn primary sm">保存</button></div></div>';}
+  else{h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:18px"><span style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;font-size:13px;color:#16A34A;font-weight:500">&#10003; 全部翻译已完成</span><div style="margin-left:auto"><button class="btn primary sm">保存</button></div></div>';}
+  fs.forEach(function(f){
+    var st=SM[f.st]||SM.untranslated,isStale=f.st==='stale';
+    h+='<div class="field-card"'+(isStale?' style="border-color:#F59E0B"':'')+'><div class="field-card-head"><span class="field-card-name">'+f.n+'</span><span class="field-card-key">'+f.k+'</span><span class="tag '+st.c+'" style="margin-left:auto">'+st.t+'</span></div>';
+    if(isStale){h+='<div style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;margin-bottom:12px;font-size:12px;color:#92400E"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#D97706" stroke-width="1.5" stroke-linecap="round"><path d="M8 1.5L1 14h14L8 1.5z"/><path d="M8 6v3.5"/><circle cx="8" cy="12" r=".5" fill="#D97706"/></svg>源文本已变更，当前译文可能与最新内容不一致</div>';}
+    h+='<div class="field-card-body"><div class="field-card-col"><div class="field-card-col-label">源文本 (EN)</div><div class="field-card-col-text">'+f.s+'</div></div>';
+    if(isStale){h+='<div class="field-card-col"><div class="field-card-col-label">翻译 (FR) <span style="color:#D97706;font-weight:400">· 旧译文</span></div><div class="field-card-col-text editable" style="border-color:#F59E0B;background:#FFFBEB">'+f.r+'</div></div>';}
+    else{h+=f.r?'<div class="field-card-col"><div class="field-card-col-label">翻译 (FR)</div><div class="field-card-col-text editable">'+f.r+'</div></div>':'<div class="field-card-col"><div class="field-card-col-label">翻译 (FR)</div><div class="field-card-col-text editable empty">点击输入翻译或使用 AI 翻译</div></div>';}
+    h+='</div><div class="field-card-actions">';
+    h+='<button class="btn sm'+(f.st==='untranslated'||isStale?' primary':'')+'">AI 翻译</button>';
+    h+='</div></div>';
+  });
+  panel.innerHTML=h;
+}
+function navigateTo(pageId,breadcrumbText){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('page-'+pageId).classList.add('active');
+  document.querySelectorAll('.menu-child').forEach(function(m){m.classList.remove('active');});
+  var mi=document.querySelector('[data-page="'+pageId+'"]');
+  if(mi)mi.classList.add('active');
+  if(!mi){var ni=document.querySelector('[data-page="translation-nav"]');if(ni&&pageId==='translation-master')ni.classList.add('active');}
+  if(breadcrumbText)document.querySelector('.breadcrumb').textContent=breadcrumbText;
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('.menu-child').forEach(function(item){
+  item.addEventListener('click',function(){navigateTo(this.getAttribute('data-page'),this.querySelector('span').textContent);});
+});
+function toggleGroup(el){el.parentElement.classList.toggle('open');}
+function switchTab(el,tabId){
+  el.parentElement.querySelectorAll('.tab-item').forEach(function(t){t.classList.remove('active');});el.classList.add('active');
+  var c=el.parentElement.parentElement;c.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active');});
+  var p=c.querySelector('#tab-'+tabId);if(p)p.classList.add('active');
+}
+function toggleKeyTypeFields(){var t=document.getElementById('reg-key-type').value,b=document.getElementById('reg-key-business-fields'),s=document.getElementById('reg-key-self-fields');if(t==='self'){b.style.display='none';s.style.display='contents';}else{b.style.display='contents';s.style.display='none';}}
+function toggleTermLangSection(){var r=document.getElementById('add-term-rule').value,ls=document.getElementById('add-term-lang-section'),h=document.getElementById('add-term-no-translate-hint');if(r==='禁译词'){ls.style.display='none';h.style.display='block';}else{ls.style.display='';h.style.display='none';}}
+function showDialog(id){var el=document.getElementById('dialog-'+id);if(el){el.style.display='flex';el.addEventListener('click',function(e){if(e.target===el)closeDialog(id);},{once:true});}}
+function closeDialog(id){var el=document.getElementById('dialog-'+id);if(el)el.style.display='none';}
+document.addEventListener('DOMContentLoaded',function(){});
+</script>
+</body>
+</html>

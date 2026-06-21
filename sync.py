@@ -193,6 +193,10 @@ MODULES = {
                 'subdir': '实体关系图',
                 'pattern': r'looply-翻译模块实体关系图-v(.+?)\.svg',
             },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'翻译-交付开发 V(.+?)\.zip',
+            },
         },
     },
     'inventory': {
