@@ -57,9 +57,10 @@ looply 作为面向全球市场的二手电商平台，需要将商品信息、�
 ### 1.5 多语言策略
 
 - **语言标识**：使用 ISO 639-1 语言代码（如 en、fr、de、es、ja）
-- **源语言**：不固定为英文。每个商家有自己的默认内容语言（merchant.default_content_language），不同资源的源语言可能不同
-- **目标语言**：由 Market 模块管理的已开通语言决定
-- **统一读取**：前端通过 resource_id + field_name + language_code 查询翻译服务即可获取任何语言的内容，无需区分源语言还是目标语言
+- **源语言（本期）**：所有资源的 source_language_code 硬编码为 `en`（英语）。本期不依赖商家模块，统一以英语作为源语言
+- **源语言（后续）**：需结合商家模块和平台多 Market 运营视角重新设计，不仅是读取商家默认语言，还需考虑多 Market 场景下源语言的确定策略。具体方案待商家模块设计时统一规划
+- **目标语言**：取 status = active 或 planning 的 Market 下已开通语言（market_language.status = active），去重后作为目标语言列表。suspended 状态的 Market 语言不参与新翻译触发（已有翻译记录保留不删，Market 恢复时自动可用）
+- **统一读取**：前端通过 resource_type + resource_id + field_name + language_code 查询翻译服务即可获取任何语言的内容，无需区分源语言还是目标语言
 - **RTL 支持**：language 表标记是否从右到左（rtl），前端渲染时据此调整布局方向
 
 ---
@@ -176,7 +177,7 @@ product 表（只存结构化数据）:
 | resource_type | 是 | 资源类型标识，如 product |
 | resource_id | 是 | 资源实例 ID |
 | field_name | 是 | 字段标识，如 title |
-| source_language_code | 是 | 源语言代码（取自商家 default_content_language 或用户当前选择） |
+| source_language_code | 是 | 源语言代码（本期硬编码 `en`，后续方案见 §3.8） |
 | translated_value | 是 | 文本内容或图片 CDN URL |
 
 **写入时机**：
@@ -227,7 +228,8 @@ product 表（只存结构化数据）:
 每个业务资源需在业务表中保留 `source_language_code` 字段：
 
 - 记录该资源的原始录入语言
-- 取值来源：创建资源时取商家的 default_content_language
+- **本期**：硬编码为 `en`（英语），所有资源统一以英语作为源语言
+- **后续**：源语言确定策略需结合商家模块和多 Market 运营视角重新设计，具体方案待商家模块设计时统一规划
 - 该字段属于结构化数据（不随语言变化），存业务表
 
 ---
@@ -271,10 +273,14 @@ product 表（只存结构化数据）:
 1. 源语言记录被编辑保存（来自业务后台或翻译后台）
 2. 系统计算新的 source_hash
 3. 新 hash ≠ 旧 hash → 将同一 resource_type + resource_id + field_name 下所有**目标语言**记录的 status 更新为 outdated
-4. 触发自动重新翻译
-5. 翻译完成后 status 更新为 translated，source_hash 更新为当前源的 hash
+4. **按 translation_source 分流处理**：
+   - translation_source = **ai** → 自动触发 AI 重新翻译，完成后覆盖写入（status=translated，translation_source=ai）
+   - translation_source = **manual** → **不自动覆盖**，仅标记 outdated，保留运营手动精修的译文，等待运营在翻译详情页手动确认更新
+5. AI 重译完成后 source_hash 更新为当前源的 hash
 
 **hash 相同**：源内容未实际变更（如编辑后又改回原文），不触发任何操作。
+
+**设计考量**：人工精修的译文成本高于 AI 翻译，自动覆盖会导致运营反复精修。按来源区分后，运营可以基于旧译文微调适配新源内容，而非从零翻译。
 
 ### 4.4 首次翻译触发
 
@@ -299,6 +305,20 @@ product 表（只存结构化数据）:
 1. translation 表中有对应语言记录且 status=translated → 返回译文
 2. translation 表中有对应语言记录且 status=outdated → 返回旧译文（带标记，提示可能过期）
 3. 无翻译记录 → 返回源语言版本（从 translation 表取源语言记录）
+
+### 4.7 人工与 AI 翻译冲突处理
+
+当运营在翻译详情页手动编辑译文时，可能存在 AI 翻译正在进行中的情况。冲突处理规则：
+
+**人工优先原则**：运营手动保存的译文优先级高于 AI 自动翻译结果。
+
+处理流程：
+1. 运营手动保存译文 → 立即写入 translation 表（translation_source=manual，status=translated），记录 updated_at
+2. 若此前已触发的 AI 翻译结果随后返回 → 系统检查该记录的 updated_at 是否晚于 AI 任务触发时间
+3. updated_at > AI 触发时间 → 说明运营已手动更新，**丢弃 AI 结果**，不覆盖
+4. updated_at ≤ AI 触发时间 → 正常写入 AI 结果
+
+**前端无感知**：AI 翻译进行中状态由后端管理，前端不感知也不展示。冲突判定完全在后端通过 updated_at 时间戳静默处理。
 
 ---
 
@@ -326,6 +346,8 @@ product 表（只存结构化数据）:
 返回结构：按 resource_id + field_name 组织的内容 map。
 
 ### 5.3 多源语言处理
+
+> 本期所有资源 source_language_code 统一为 en（见 §1.5/§3.8），本节描述系统架构如何支持未来多源语言场景。
 
 不同商家的商品可能有不同源语言（如日本商家源语言为 ja，美国商家源语言为 en）。
 
@@ -453,6 +475,20 @@ product 表（只存结构化数据）:
 | 上传按钮 | 上传目标语言图片，获取 CDN URL 写入 translated_value |
 | 状态标签 | 同文本字段 |
 
+**字段翻译行结构（富文本字段）**
+
+当 field_type = rich_text 时，翻译行使用富文本编辑器代替普通 TextArea：
+
+| 元素 | 说明 |
+|------|------|
+| 字段标签 | field_label + "富文本"标签（紫色 Tag 标记） |
+| 源文本编辑器 | 富文本编辑器，带工具栏（加粗/斜体/下划线/标题/列表），渲染 HTML 格式内容 |
+| 译文编辑器 | 同源文本编辑器，支持格式化编辑。无译文时显示占位提示 |
+| AI翻译按钮 | 同文本字段，AI 翻译保留 HTML 格式标签 |
+| 状态标签 | 同文本字段 |
+
+典型使用场景：商品描述（product.description）、服务条款正文（legal.tos.content）、隐私政策正文（legal.privacy.content）等包含格式化内容的长文本字段。
+
 **源文本编辑规则**
 
 所有字段（不区分 key_type）的源文本区域均为可编辑状态：
@@ -543,49 +579,39 @@ product 表（只存结构化数据）:
 | entity_field | 业务字段 | 来自业务实体的字段（如 product.title、brand.name） |
 | static_content | 页面文案 | 页面文案/法律文档/通知模板等（如 page-home.hero_title） |
 
-**注册 Key（弹窗） — 分模式表单**
+**注册 Key（弹窗）**
 
-首选 Key 类型，根据选择展示不同表单：
+弹窗 Key 类型下拉中，"业务字段"选项置灰不可选（标注"通过 API 自动注册"）。业务字段由各业务系统通过翻译服务 API 自动注册（见 §3.3），后台不支持手动新增。弹窗仅支持注册页面文案类型的 Key。
 
-**模式一：业务字段（entity_field）**
-
-| 字段 | 必填 | 说明 |
-|------|------|------|
-| key_type | 是 | 固定：业务字段 |
-| source_system | 是 | 来源模块（商品中心 / 类目中心 / 品牌中心 等） |
-| resource_type | 是 | 实体类型标识，如 product |
-| resource_label | 是 | 实体类型显示名，如"商品" |
-| field_name | 是 | 字段标识，如 title |
-| field_label | 是 | 字段显示名，如"商品标题" |
-| field_type | 是 | 下拉：text / image / rich_text |
-| Key 名称（自动） | — | 自动拼接：resource_type.field_name（只读展示） |
-
-**模式二：页面文案（static_content）**
+**页面文案（static_content）表单**
 
 | 字段 | 必填 | 说明 |
 |------|------|------|
-| key_type | 是 | 固定：页面文案 |
+| key_type | 是 | 固定：页面文案（业务字段选项置灰） |
 | source_system | 是 | 归属页面（首页 / 商详页 / 购物车 / 结账页 等） |
 | field_name | 是 | Key 名称，如 hero.title（完整 Key = 页面前缀 + 名称） |
 | field_label | 是 | 字段显示名，如"Banner 标题" |
 | field_type | 是 | 下拉：text / image / rich_text |
 | 源文本 | 是 | 输入源语言原文（文本）或上传源图片（图片） |
+| 备注 | 否 | 选填，说明该 Key 的用途或注意事项 |
 
-**resource_type 自动映射**：模式二中 resource_type 由"归属页面"选择器自动生成，映射关系如下：
+**resource_type 自动映射**：页面文案模式中 resource_type 由"归属页面"选择器自动生成，映射关系如下：
 
 | 归属页面 | resource_type |
 |---------|--------------|
-| 首页 | page-home |
 | 商详页 | page-pdp |
+| 登录注册 | page-auth |
+| 首页 | page-home |
+| Collection | page-collection |
 | 购物车 | page-cart |
 | 结账页 | page-checkout |
-| 支付成功页 | page-order-success |
+| 订单中心 | page-orders |
 | 用户中心 | page-account |
+| 搜索 | page-search |
+| 导航栏 | page-nav |
 | 帮助 / 错误页 | page-help |
-| 服务条款 | legal-tos |
-| 隐私政策 | legal-privacy |
 
-新增页面时由运营在系统配置中维护映射关系。
+§6.1 中的其他资源类型（支付成功页、法律文档类、通知模板类等）通过批量导入注册，后续按需扩展下拉选项。
 
 **校验规则**
 
@@ -659,6 +685,24 @@ product 表（只存结构化数据）:
 | source_term 最大 200 字符 | - |
 | translated_term 最大 500 字符 | - |
 
+**导入术语（弹窗）**
+
+支持 xlsx / CSV 格式批量导入术语。
+
+模板字段：
+
+| 列 | 必填 | 说明 |
+|----|------|------|
+| source_term | 是 | 源术语 |
+| source_language_code | 是 | 源语言代码（如 en） |
+| rule_type | 是 | 规则类型：do_not_translate / mandatory |
+| context | 否 | 使用场景说明 |
+| 各目标语言列（如 fr / de / es） | 否 | 强制术语的各语言译法，禁译词留空即可 |
+
+导入结果展示：成功数 / 失败数 / 失败明细（行号 + 失败原因）。
+
+重复处理：source_language_code + source_term 联合唯一，重复记录跳过并计入失败明细。
+
 **UI 关联**
 - PC 端：`looply-多语言管理后台原型-v11-antd.html` → 术语列表页
 
@@ -670,18 +714,19 @@ product 表（只存结构化数据）:
 
 **功能描述**
 
-展示选中术语概念的详细信息和各目标语言译法，支持编辑源词信息和管理各语言翻译。
+展示选中术语概念的详细信息和各目标语言译法，支持编辑源词信息和管理各语言翻译。页面内容根据规则类型（强制术语 / 禁译词）差异化展示。
 
 **页面元素**
 
-| 元素 | 说明 |
-|------|------|
-| 返回列表按钮 | 返回术语列表页 |
-| 编辑源词按钮 | 打开编辑弹窗，修改源词/规则/备注 |
-| 保存修改按钮 | 保存所有译法修改 |
-| 源词信息区 | 源词、规则类型、使用场景、创建时间 |
-| 各语言翻译表格 | 列见下表 |
-| 操作日志 | 展示该术语的变更历史 |
+| 元素 | 强制术语（mandatory） | 禁译词（do_not_translate） |
+|------|------|------|
+| 返回列表按钮 | ✅ | ✅ |
+| 编辑源词按钮 | ✅ | ✅ |
+| 保存修改按钮 | ✅ | 不展示（无需保存） |
+| 源词信息区 | 源词、规则类型、使用场景、创建时间 | 同左 |
+| 保留原文提示 | 不展示 | Alert 提示："该术语为禁译词，系统自动在所有目标语言中保留源词原文，无需人工翻译" |
+| 各语言翻译表格 | 列见下表，译法可编辑 | 列同下表，各语言翻译值均为源词原文，编辑按钮禁用 |
+| 操作日志 | ✅ | ✅ |
 
 **各语言翻译表格列**
 
@@ -689,10 +734,10 @@ product 表（只存结构化数据）:
 |----|------|
 | 目标语言 | 语言名称 |
 | 语言代码 | ISO 639-1 代码 |
-| 翻译 | 标准译法（加粗显示） |
+| 翻译 | 标准译法（加粗显示）。禁译词时各语言均显示源词原文 |
 | 状态 | 已翻译 / 未翻译 |
 | 更新时间 | 最后修改时间 |
-| 操作 | 编辑 |
+| 操作 | 编辑（禁译词时按钮禁用） |
 
 **UI 关联**
 - PC 端：`looply-多语言管理后台原型-v11-antd.html` → 术语详情页
