@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Looply · 多语言管理后台原型 v11 (antd)</title>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/dayjs@1.11.21/dayjs.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/antd@6.4.3/dist/antd.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/@ant-design/icons@6.2.1/dist/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.28.4/babel.min.js"></script>
+<style>
+/* 基础:加载占位、平台字体 */
+html,body,#root{height:100%;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937}
+#root::before{content:'正在加载 antd 原型……';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#9CA3AF;font-size:14px}
+#root:not(:empty)::before{display:none}
+
+/* KPI 卡片 */
+.lp-kpi{background:linear-gradient(180deg,#FEFCFF 0%,#F3EEFF 100%);border:1px solid #DDD6FE;border-radius:14px;padding:14px 16px}
+.lp-kpi .num{font-size:24px;font-weight:700;color:#7C3AED;line-height:1;margin-bottom:6px;font-variant-numeric:tabular-nums}
+.lp-kpi .label{font-size:12px;color:#6B7280}
+
+/* 紧凑分页器 */
+.lp-pagination{display:flex;align-items:center;justify-content:center;gap:24px;padding:12px 16px;font-size:13px;color:#6B7280}
+.lp-pagination .divider{width:1px;height:20px;background:#E5E7EB}
+
+/* 字段提示:虚线下划线 */
+.lp-tip-trigger{cursor:help;border-bottom:1px dashed #9CA3AF;padding-bottom:1px}
+
+/* 紫色提示条 */
+.lp-note{padding:14px;border-radius:10px;background:#F3EEFF;border:1px solid #DDD6FE;color:#6D28D9;font-size:12px;line-height:1.8}
+.lp-note-sm{padding:10px 14px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:8px;font-size:12px;color:#6D28D9}
+
+/* 区块小节标题 */
+.lp-section-purple{font-size:14px;font-weight:700;color:#7C3AED;margin:0 0 12px}
+.lp-section{font-size:15px;font-weight:600;color:#1F2937;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #E5E7EB}
+.lp-oplog-title{font-size:14px;font-weight:700;color:#7C3AED;margin:24px 0 12px}
+
+/* 空态 */
+.lp-empty{display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center}
+.lp-empty .icon{font-size:48px;margin-bottom:16px;color:#9CA3AF}
+.lp-empty .icon.err{color:#DC2626}
+.lp-empty .title{font-size:16px;font-weight:600;color:#1F2937;margin-bottom:8px}
+.lp-empty .desc{font-size:13px;color:#6B7280;margin-bottom:24px;max-width:360px}
+
+/* 表单字段行 */
+.lp-form-row{display:flex;gap:16px;margin-bottom:12px;align-items:flex-start}
+.lp-form-row:first-of-type{margin-top:8px}
+.lp-form-row .lp-form-label{width:96px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0;padding-top:7px}
+.lp-form-row .lp-form-label .req{color:#DC2626;margin-right:4px}
+.lp-form-row .lp-form-control{flex:1;min-width:0}
+.lp-helper{font-size:12px;color:#9CA3AF;margin:-4px 0 12px 112px}
+
+/* 详情 detail grid */
+.lp-detail{display:grid;grid-template-columns:120px 1fr;gap:10px 16px;font-size:13px;margin-bottom:24px}
+.lp-detail .dl{color:#6B7280}
+.lp-detail .dv{color:#1F2937}
+
+/* Code 样式 */
+.lp-code{font-family:Menlo,Monaco,Consolas,monospace;font-size:12px;color:#374151;background:#F3F4F6;padding:1px 6px;border-radius:4px}
+
+/* ── Translation导航页:KPI + 筛选Tab + 卡片网格 ── */
+.lp-nav-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
+.lp-nav-title{font-size:20px;font-weight:700;color:#1F2937;margin-bottom:4px}
+.lp-nav-subtitle{font-size:13px;color:#6B7280}
+.lp-nav-actions{display:flex;align-items:center;gap:10px}
+.lp-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.lp-kpi-card{background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:16px 18px;transition:box-shadow .18s}
+.lp-kpi-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.06)}
+.lp-kpi-num{font-size:24px;font-weight:700;color:#1F2937;margin-bottom:2px}
+.lp-kpi-label{font-size:12px;color:#6B7280}
+.lp-kpi-sub{font-size:11px;color:#9CA3AF;margin-top:2px}
+.lp-filter-bar{display:flex;align-items:center;gap:0;margin-bottom:18px;border-bottom:1px solid #E5E7EB}
+.lp-filter-tab{padding:10px 16px;font-size:13px;font-weight:500;color:#6B7280;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.lp-filter-tab:hover{color:#374151}
+.lp-filter-tab.active{color:#7C3AED;border-bottom-color:#7C3AED}
+.lp-filter-tab .tab-count{margin-left:4px;font-size:11px;opacity:.7}
+.lp-view-toggle{margin-left:auto;display:flex;gap:4px;padding-bottom:8px}
+.lp-card-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.lp-res-card{background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:14px 16px;cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1)}
+.lp-res-card:hover{border-color:#D4B5FF;box-shadow:0 6px 16px rgba(124,58,237,.08);transform:translateY(-2px)}
+.lp-res-card.placeholder{border-style:dashed;opacity:.75}
+.lp-res-card.placeholder:hover{transform:none;box-shadow:none;border-color:#D1D5DB}
+.lp-res-card-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.lp-res-card-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.lp-res-card-name{font-size:14px;font-weight:600;color:#1F2937}
+.lp-res-card-badge{font-size:10px;padding:2px 8px;border-radius:10px;white-space:nowrap;font-weight:500;margin-left:auto}
+.lp-res-card-entity{font-size:11px;font-family:Menlo,Monaco,Consolas,monospace;color:#9CA3AF;background:#F3F4F6;padding:1px 6px;border-radius:4px;margin-bottom:8px;display:inline-block}
+.lp-res-card-desc{font-size:12px;color:#6B7280;margin-bottom:10px;line-height:1.4;min-height:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lp-res-card-progress{margin-bottom:8px}
+.lp-res-card-progress-text{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#6B7280;margin-bottom:5px}
+.lp-res-card-progress-pct{font-weight:600;color:#7C3AED}
+.lp-res-card-fields{border-top:1px solid #F3F4F6;padding-top:10px;margin-bottom:10px}
+.lp-res-card-fields-title{font-size:11px;color:#9CA3AF;margin-bottom:6px}
+.lp-res-card-field-item{font-size:12px;color:#374151;padding:2px 0;display:flex;align-items:center;gap:5px}
+.lp-res-card-field-item .check-icon{color:#16A34A;font-size:11px}
+.lp-res-card-footer{display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid #F3F4F6}
+.lp-res-card-footer span{font-size:12px;color:#7C3AED;font-weight:500}
+.lp-res-card-footer .arrow{font-size:11px;color:#7C3AED;transition:transform .15s}
+.lp-res-card:hover .lp-res-card-footer .arrow{transform:translateX(3px)}
+.lp-bottom-bar{display:flex;align-items:center;gap:16px;margin-top:24px;padding:14px 18px;background:#FAFAFB;border-radius:12px;border:1px solid #F3F4F6}
+.lp-bottom-bar-item{font-size:12px;color:#6B7280;display:flex;align-items:center;gap:6px}
+.lp-bottom-bar-item .dot{width:7px;height:7px;border-radius:50%}
+.ph-badge{font-size:11px;padding:1px 7px;border-radius:10px;background:#F3F4F6;color:#9CA3AF;white-space:nowrap}
+.ready-badge{font-size:11px;padding:1px 7px;border-radius:10px;background:#F0FDF4;color:#16A34A;white-space:nowrap}
+.partial-badge{font-size:11px;padding:1px 7px;border-radius:10px;background:#FFF7ED;color:#EA580C;white-space:nowrap}
+
+/* ── 翻译主从分栏页 ── */
+.master-wrap{display:flex;gap:0;height:600px;border:1px solid #E5E7EB;border-radius:14px;overflow:hidden}
+.master-left{width:300px;flex-shrink:0;border-right:1px solid #E5E7EB;display:flex;flex-direction:column;background:#fff}
+.master-left-head{padding:12px;border-bottom:1px solid #F3F4F6}
+.master-left-list{flex:1;overflow-y:auto}
+.master-left-foot{padding:10px 14px;border-top:1px solid #E5E7EB;font-size:12px;color:#9CA3AF;text-align:center}
+.res-item{padding:11px 14px;border-bottom:1px solid #F3F4F6;cursor:pointer;transition:background .15s;border-left:3px solid transparent}
+.res-item:hover{background:#FAF5FF}
+.res-item.active{background:#F3EEFF;border-left-color:#7C3AED}
+.res-item .res-id{font-size:11px;color:#9CA3AF;font-family:Menlo,Monaco,Consolas,monospace;margin-bottom:3px}
+.res-item .res-name{font-size:13px;color:#1F2937;font-weight:500;margin-bottom:7px;line-height:1.3}
+.master-right{flex:1;overflow-y:auto;padding:18px;background:#FAFAFB}
+.field-card{border:1px solid #E5E7EB;border-radius:12px;padding:14px;margin-bottom:14px;background:#fff}
+.field-card.outdated{border-color:#F59E0B}
+.field-card-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.field-card-name{font-size:13px;font-weight:600;color:#1F2937}
+.field-card-key{font-size:11px;color:#9CA3AF;font-family:Menlo,Monaco,Consolas,monospace}
+.field-card-body{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field-col-label{font-size:11px;color:#6B7280;margin-bottom:6px}
+.field-src{font-size:13px;color:#374151;line-height:1.6;background:#F9FAFB;border:1px solid #F3F4F6;border-radius:8px;padding:8px 10px;min-height:38px}
+
+/* 键盘焦点态 + 减弱动效(a11y 硬性) */
+:focus-visible{outline:none;box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState } = React;
+const {
+  ConfigProvider, Layout, Menu, Card, Button, Input, Select, Table, Tag, Tooltip,
+  Progress, Modal, Alert, Space, Upload, Breadcrumb, InputNumber, DatePicker
+} = antd;
+const {
+  TranslationOutlined, UnorderedListOutlined, KeyOutlined, BookOutlined, SearchOutlined,
+  ReloadOutlined, PlusOutlined, ImportOutlined, DownloadOutlined, InboxOutlined,
+  ExclamationCircleOutlined, RightOutlined, ShoppingOutlined, FileTextOutlined,
+  ThunderboltOutlined, WarningOutlined, CheckCircleOutlined, EllipsisOutlined,
+  LayoutOutlined, BellOutlined, SafetyCertificateOutlined,
+  SkinOutlined, TagOutlined, CrownOutlined, AppstoreOutlined, BgColorsOutlined,
+  StarOutlined, ShareAltOutlined, DashboardOutlined, HomeOutlined, ShopOutlined,
+  ShoppingCartOutlined, CreditCardOutlined, UserOutlined, QuestionCircleOutlined,
+  FileProtectOutlined, MailOutlined, MessageOutlined, LockOutlined, FilterOutlined,
+  GlobalOutlined, CaretUpOutlined, CaretDownOutlined, CheckOutlined, DatabaseOutlined,
+  CompassOutlined, AimOutlined, GoldOutlined, UploadOutlined
+} = icons;
+
+const LOGO_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPAAAABOCAYAAAAelZuXAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAeGVYSWZNTQAqAAAACAAEARoABQAAAAEAAAA+ARsABQAAAAEAAABGASgAAwAAAAEAAgAAh2kABAAAAAEAAABOAAAAAAAAAMAAAAABAAAAwAAAAAEAA6ABAAMAAAABAAEAAKACAAQAAAABAAAA8KADAAQAAAABAAAATgAAAACtWPvQAAAACXBIWXMAAB2HAAAdhwGP5fFlAAAxNklEQVR4Ae19CdQcxXXu7e5ZpF/6te/7iiTEIiGhjUUIJLEIMNvDYOwEG44dO4nDW0+S85z38nKcnJO8vCTYTuLAcRLb4LAaAcISYDYhISRACC1o3/Vr35f/n+ntfV/19Pw9M909M9Iv9IvTdaR/Zrqrbt26Vbfq1q17b2kuklyUqYC2q4n6xj+a+oc/hR/eG+/FRdnGBOmEAvEUSMW/bm9vHSDkim2JOJYm+RZXTp1wpeWUiGU5kklr0qFRk85ddUllXDHQOt0gMxvtrSEJPgkF2oQCFxUDW6bIyYO2fL7clQ0rRJo2a3LqqEg+p4tr62BWkWxHR7r0sWXQaFfGTtNk9FWGdOoCFk63Cb0SIAkF2hUFtPYtQivhWBwsvCeP2LLkRVOWv6rL4d2Yd1xDDDCsxsUVonMxIS/z27YLhral3whTZtyrydW3pqWhs468jmgaPksKFUsnXxIKXFQUaPcMbFuWbP7ElhcfF9mzNiNpA8xHuSHItGEkV7zviGNqYoOjR16dl7u/r8uQcWkwNgtXAxAGNHmWUKB9UaCdMjD3umA8y5UVC015/v9CTD6RFSNbJ/ECuiwr50pj37x87X+6cumMrOg660hW4jopmmRvZxRopwzsQgy2ZMVvHPnVDyEjmynR2mC37uRdyXbNyyN/5colU9IQpbkKk4mTlFDg4qRAOx29rmz+2Jbn/gZEbSPmZffoGU1ajmflV3+pyeE9Np4kYjTpkqSLlwLtkoGPNIF5/xrHRKeybbLyBrvHyIgc2pGRl/8Jx1HQaicpocDFTIF2xsA843Xkzacd2bMpjaMfTwtdjcA0RfH/V8vL9+kOmqz+rS5bPk04uBZ6JXnaLwXaGQM7snujKSte1iQLcbeaiOszLbeyeuG//yyW5Mibz6Vk2SsOGN+GaUhtE0UszORlQoELQIE2UA21HdY8v33/OZEzJ1IwyCBbkYnDExlVg8lkp66udOvrIL9I82mRo3uxzz1lqBVZ6ajCi0s6pcmmj3Q5hfPlxp7tbB6LwDl5nFCgnALtiIFdObTLltXv65LOwrKqHNPAb8W8riOjJuflpq9rMmicAbFYJAcG3vaZJW/+3Jada2l6pYHJAwUDX6nVPnFIlz1bHBnbM/Ai+ZpQ4CKiQDtaerAvXezIyUOGKEOpCCKSeXHCJKOuzsk3/tyAuaShbJ+zYPouPQy58oaMPPRnglXZVKtwBBj12MobcnAnv0ZweVzh5F1CgXZAgXbDwDTaWPM+97JVUMLpT+ceefnKH4Fhe9KOkv9Zxi/nSr9hhoy/1qlJy3zyMJk3br3H6yQlFGinFPBH/QVH78heW5o2GJJKRTMTPR9t25Ep81w4K6QLbBdcPfmd/3XsjamZjoblN9h2qufx8yafCQXaGwUuOAP77LNzvS1njgMdLqiRCdrpRlsm30a0sb8trrrBAoToyGEos6qKxsjSsZOPQRBG8j2hwMVBgQvOwB6ZHNmxBmwHD6M4pqPhxZCxtvQfHs+cZ+AjvHONJqk4F0LwLUMBdO1LDAgvSQkFLj4KXHAG9ljHlb1bcWhUBRsH4u6oyVikU2EZuZLi6AkfqxZbcmCHofyDo7qEuTMNjvQZRAz4K0kJBS4+CoRxwhfeilyzK0f3Yecagw0Z0zAcGTqeDBeWkUzoyCHYOL/17xCv3bA8rU3DKZR07eNI78HJ6ttKleTbxUaBdnAO7MrpYwKDCjjox/OcNHRzpO9Qf8UsZTyG2WnabMmLf8fVPCtphNeJTOB1iuNjpjjS0IVyNpk/Jn8koORFQoELS4F2wMBg3uMu4luBgWJ4CBaP0qmbSGOPIJeT8Ww5jfI7PhdZ9KQmW1emJa3MMKMJy9U808GSK29khUF40WWSNwkF2iMF2gUDn8EKbOU1FYQuikg87ekMBk7Bm4iiMtXVLaddOXbAkdXvOfL+85ocacrgfcwsUACuDEGmWDLyimT1LZAk+bhIKdAuGPgEGNix9FgG5qrZubuNRTqFQHaunDhsybZVjqx4XWTHSgMsnS4wd3xP0N463WDLtffpkunI1bc6w8dDTN4mFLhwFGgHDKzJycPwCKpyhMRtqoEodps+cRAjS+TzZZrshuGHg4iUBva79EaqljgJuFjKr7jBgqVWO2h6NYST9wkFqlCgHYxiFxEnC8HZY5BNQ3Te8ZkOZwVbjh/wTCgZKpYO+rUkxbyIVDlgdF7mftNzmEhW31ool+RpzxSoi4Fpr5w7A7UP+MdAZEeGdKW3D936il4/xS9sNpc8T8frOsiI7xRhHTCSA6UUNceWiX3sPqygcWdIBIXixw+jQsdbcfmo1uStvHBw6G/KvO+K9B/BZtewZNdaQZIvocAFokBdDHzsQF4+fsNV8ZWznbCHzGrQ+IKh0w4YmnGY6b6nOFo1xwW3UvlEZmV4VwZmt1rgt9vsQAFFv19dzhyzZdsa3KSgbKDjmUoZetQiKweISeZF1HfpDp/hW7/jyOXXUXHl18OX/vdAoeRrQoGLhAJ1MfDerSIv/b0u2SysnFCSV5cYYDw95YB58YlVVNO5GtNOGSssuNeFxYS32mK/CkUVV13bNOCUwAwQnWFwQcYnvLZOXO114NN7sC2zv2XLFAR3L2XYhHnbmuYJvC+WAnWwDe4hOgrGpYUTlkIexfA/IrVihSsFw0dMRfYofClK1/jNWxUETO+xuidmq0Jt8McXmTO4ZmXQWFPmPIxY0NO5WSYiCuHC9zaoLAGRUOACUqCU82IR0bAHtXBcU4iuXs6UgbKFV4EnUV+rK6+iSoY99xjXlRSuVOkMJ4Xx19pyw4Oa9BnCZiZHRmE0S55d3BSog4GxAh/GGlY7d34xlMGCqhgXnxTnG7rhYrMxtlw9TxCdA/7FGS71SUoo8OWkQF0MfOJo+1nFfKblfGJkbOmEa0X7jbTlsutduXKWIV17EVf+T1JCgS8vBWpmYDLMiYNQVl0gnvDEY+y7C4qpLBzxqVnuN9KVoZe6MnicLgNHG9IARlaJW932Ji18ecdR0rILRIGaGdjOC5wGqGW+AJiCe+lK2Km74O5fV3oNduHUj9hXIzTpO1yk14CgqEzORWp3sr6HVvI3oUBbUqBmBm6Bz+7p49hv4mjIgVFGcXErfOFHgXXi8UMmlc/nM0wI1XiNBiTjrrHksmt1RJvUpOdATbr1wXGWsmUmoOCsUsQsHo/kbUKBLwEFamZg03QQDdICq+DaT5tnuhRnaVGFs14wtOuScfC/wJg+bcicikFxHsuXNPgw4PjLa1N0/D99DGfDJqDG8B1LXjXXlUlzcUthSUa+iSnoI5F8JhT4klKgZgbu2GDInN91lCml1eKKift28zgEtsDYLgw0LFhakZEdxcjYqCKRtTTI3MroA0c7Biy2qBXOdIDvUJZGHrb85glDmsHAUYl73xTK9RpEJi9n1vLfUVCS5wkFvpwUqJmBO3TSZPLcDJjOE6GVeSREWwe2yQ4sqqhcYpgaMlxQpCXPUfGlw3JDwxcdV5rQjpqWW0f3OrLgn8HkcQsp3nXojMu5e3w5OyBpVUKBc6FAzQzsi6pcBWlFpSypanCej0PuyH7eYwSmjllIOSl06u7i9gVmiuP0uJq+qHc+fvxk8hvmP/eeen/9Z/j0vxbzB/O19Xe/Mv+zHD6f+8nH3/9dz2cU/CAM5AnN5tfrv+Qnk//c+1X1r188MmPVDIGS9eJQD2xW48Pn99rbWQcDE3DbpoM7sZ+G6K0XjLvCoHNl797PLTjf10uUMIjn+5nfEd42gwH78s30vPI6hduJTAdXsg0anEEK7YkVQdoSXw83OpnkgFPujCMmThcoQdGGnY4p2Y7Aq4ETNPE9W3rz1keeWtiAHb49oiSXwYV0HSHZ+Yk6FYZWsvIoh+0YF4kUHGZIL4ySuvDBBk2BbT7JNgaUrn5l6hNwAbYTFoeq3nCsHSBPHbMgaYa3yQdtwDegU1caENVOP+Z0oU9ieClR21AfWuknfQsyuB63Y2fPQOmCMvC+7eBOJx4FMnCvQXSQIDmiOqK0kRfuF+3FHTmwS+RwkyvH9+ty4ogjzZAybGU0DsaAPwXPsLv04K2KrvQYAFNPHIt16RlPh3Ntkw23zSP7bDmwEzc47ocL50EwGCKh5JuBGwYOAwpSL9HQ1YERDCZNaPt7DQbtB8LrrIM/YGsfkIS5+HkHkVO4farE3obuZMwUWsvpiCQqCAPM8EgaLpyDp9oZKkdBK5CkI871u/UGrfrZCGhoqNOHSl1IJXw1LWiOfPp2Xl10R7qXJ04iWdjLz304BYYof1v5m8zz2Xt52bUuo/qxMgfGKMZrpqMtNz3EbR8b3jpBheX3nnFkI67belOWv4oxHhXdEeR3LEum3qnJsPEXmIE5mx3cjubFyc+q+a70HUYiYA/ttbYd/UVvqaThJghbtq9BgPrViI65BfG59upYgTQxW6ixp5a+kBON0GHymYbU0dAFxij9HOkPY5Rhl5voFB2eUz6zMH/wu1e+9r9ehWaOdy5jcKxFsPt1Ivu3Y1I5pGFSofTDkwQgxKz44GpEc9QODZ7OofcQmKWOE4TyRTjfcZz1/R7wP6OwgU4EDLzyTU32bQ0PlcRV8fQJC5OILZtXanJgOyOzaJAKoBCFbkXhBHwYnL8DJrxuCAHcf6QjIya4MvJKTuqkDfGIwsV7t2GZyMeLGMChElcVKBHbs1kPYKKoysDeKs0lZNkrYDhGkAmrmqjjec8Bllx3b8jMVYEGie9Ja4tfcHE3dgqWhWGAybyYWPuLXHd/6/vzO+1XINv6gOLbwT0gSlwbMerpqth3iN9ZbGz7Ss2nbNn4kcja90W2fqqp+4lNhPkhNyirNdCajFEkOZpAkZVXoTafEjm0G1FGENtr3VJXhl/h4qzbkkuuZgC/c++afdssWbsU4Yc+wKSykRMKrm0Fw1Ka8XEqsawDbtzSnMLKfPKIyN4tumxYDmu3EbiC9WpbLsU5/NBLqYwstia+Myhq4j9XpfJkQGTfvsrAf8Q3w42UCi/AJV7FhHJ5TDKk1THEDd+5zlH4jJzoysTZFlZwMGaGdOK4CMOJ6xqew4MuDAc1qRLHsKJFJIJfNLliZkaWL7Bky8dgtJDQxQRF3/elLzroSweSTLBBQVj+d+LuqMl/7Tvw9mOHoI/4NJgUXIijk27VYMTUKk7UOUp8sAqcEnO4h+JMTmKwbkaNTGPfEkxhou+xg+i4g2UdFiyE79gSQYTiEZIPz/8sy/iF/vRpALFvlyMfLYSY9lsdKwhWWuz3VLSSVvpWYoYmqFbgj5q7MGgZD+zIboi2TQ6uhMGKuQHOGLdZiBwSBFRr23EBHFaw9R9aEMdc2bQiJSdx1q6jHjVZxo2nAm5kcG/x1yR/xsAEY8jezZAw1sKn+jYT9uZprIrMVAUn7u0JMySbhj32SURYof2AmkSIV0g+VZ5UJLHAiEeaNDCzq2KAH8WWYPItekAyYMbwFIaD6smwOsNBqKedu2kIiCiyC7SwbdolVGY2cNLStDGFld+Sm77hIA8zhWQsFM0hyMUSMPzpY1kvMCOylud20Kd9h5oydR4IFejDOhiYzXWwj3Jl1wZHmjYJxEQYYsDBId+MwYvZIQXEO3TGHgqufH2HQyy8lJ+cJUn9UpR2rXMRkQMXc9NNNyK5WKl6DHKwVwwO5IjMX+hjR9YusWTBT7lKZdSMy0HIPVvdqdBZvHCcA/TgLl3eeUrHim7J3EdNmTSbtAv0WJUKmk858vrPLPnw1RQui2NmRDsJWSmqgCm+5orIm2zMnIHVD3HJ1kDaWGrKHb+PvukX03lFCNFfuJKXjorovOoNMpM5uFg0bUzL/MexZfnclLu/nyoojaqUb5PXmky4ISUbl1tYZTm2QZzyRvA3BsRvf6HLqEk2tkZxA8OVT96wsQhgX03RuRwWcYYkoum23PyoQF/CsUBe9DLGQIYmUWXzCuzcYMrqt13ZvAozYFMKxz/oVIgKQossCv0F2YdnvSlApTN9516ODLwEotd0R8ZNNbCa+pULwugAOoMDxCTuUfoNpXY0rFUxBSteYf+3IQ/mEBl+WQoDjxlYd71wSRFGxLTk1/+gyaEdnFiqbANUiRr/AB2ukjxb378tLa/+GJZv6LiJNxJXRO4EztFDnhpcR157Ii/LXs5I/rR3UXrYClEjNiXZSCkNQdAYCumzt6lVt+Te/2JK194cQvXSsQR03T+4olFrTv3CyoWaNHYz5XbEOvPuzDr/uKTAtNf9J0PWvMtLBdj/lXVibsJtIyl579mcDP4BQk6lOBG3JmrJKSifwiS75AX0OYyhwhRtLMFQVKOm2IFwUK31RTKwVwECyR00ZenLLpiX4gv2I2q19QCovz4sb2wDE0850gLR6yRW5wM7RDavsGTlOFuuuhlIYB9FcYgzuRLp/PKtbSt+c7BxGTSGPwk8JmOxRPSXT15HDOkFKYghtgyf4MiEGw0ZPMYnavxEoqByEwWRcM8mW17+EZh3G0iHjmsrBglizrmQouXRPYa8+o9gkp6mjLiSSrxoOlBD+s4zliybD+YF7RVtg0DP9XuB/IRrISTS6nexvekCJn4MxxodfTqeayVeeU7cbGlsG0B4GgPxQoAPfq1DCYibNrAyqsHVNmhEQPEIMWBkCvvRnLz9S4aTCmk/slEiW/MeQiF/asvYyaV5NIoRGE8r37Rk1+cMURXdt6msLTc8oEO6rRynZQxMIPxPdnFl22pTFv2bLjs+TUnzaTzBysDBRXExNgF51UwMQjuHvd2+NPY7EL0/p8LHkhGXu1gN00A6FgrOAHGR9xhCUtDiM8e8pbnntpU6jnXS0oxztqaNjqyH0uiquZbMuNvfQ6HdSpKIqAuPm0+58tq/OGDirBpctTCvsliDRjaYVAww1Z98Hl4fYbs4TjiwIwNRPScP/xArTffSQeDBpIbIlc+x5333KaN25sUA4tk0j1K8PufaXrgdQ9mth+PFOtn/DuzhP3pN4MJpyfX3+XmrDQyWDkse7Xm0lMaNkZ0guREilW7504UopKoKvx4fhif9nD6ekrd+acqoq+AX3oU4lOfz87fdJ5nzmrs1iL62nDwIvlBdU1oveeXMiZQs/o8cxryNc/8AbuhgHjEueRFlQEsNW4PKRO00IstcZ8nYKaygcryUsRDZ1lva131gy4Kf6NK0Na2WdyKjwshW1hL9BDhxIBI1G/vZo/uxsV+gyfolthJ/wlD2gbkQzbv1d2TAKCIel9MvEf157ICL80+6HGLggUmbsULt2cQbETVchGbJvN+jbzEbSBhRdWny8eu2fP5+CpZj1VZez8mDm5CeA2wZOAptgV6AoI9Debd3E84+sdflbBi3ypB2BmSxLR9nZen8vNz8cDkDe8zHu6F++6+Mrx1+ZFNOGZ4Jp2GPPhhSUZ9hrtra8FTg0G5N9kBbzYvWq11RQya2cIb8zlOuXDLZkn7DOJQqB1h53ZW/MeIwNrS0JRNmOQiDhCOY/gCOSeTYPgfbFUdWvQXjjmYojMpGq4JFGmGPv2ONAU0+lH+3nA0OlVhVf+IiVJMuU++wZSEm9TQJEjJ0uJ1c/2FK1mPbdcVMb8vlw6YCdO8mtgsFQ8qSnDxTnvkADX/K+96DUkESwtmCJX/+45rsB/MSctwg85Gp9qkYGcDzLZhVwThKMxeGdAGQBTFq0Bjso7tWoFitqor3u7HicjZnO3w8KKKePo491BvEyZL7/ht8jWOMKY4fdmTxc9weQNypolPjytYJ+7JpX3ExIBEdpCcZxtu/mjkbxh6arP3AguiHOGOHcCWMamI4MThx8hx52a/hkTUb16Gq809/kLKMhj0pjjVWYWLBih06EAIUsUHYYRNsueYrmgqCQG0y917UoOdgQLFvu6hjknWLsSpUmbHJUAd3ZuSDl0y5648w8RPZOhMn1FTWlLmPWDJpThp9QMWQB8Qai3NfnPkOGW/Laz+xsH1L+6qWklrYpzy6W/kGYbTNeC2pIOIHRedpdziY2E05srND6LggSajkXfyMjYkOZ+w402YnHcWdXh/Mx1fogYh/WOIJz4Q5loyayAHn93lpzgruOIJZ75WfOLJ/C06+qSWMAF4KpvZfRZV6LFwi68qYqRgU1AZEIF9rrdtxm4NlpSUbaK1iZDA093Nr34V42iMvdz9GjW35TOfhsvY9U/ZtwgAKwKisHysv1P3d+lpy5x9yZTKU2Ft6bqrDn5mGCGCgSyyZ/6OcHISYrDTYEcTWsNc7uCcln2K/NOdhn3Aenrzg7YNXOLGklNFDJU6tT2iiOPFmS27+lq4srLIhe9deA6F4HKXBoMSUd3+FoRZlsACwGB3YBmnYx1GpYwNmOe1a6476RnpNv8+Ra+9OQ5NcSlxOej1guDAFZ5/NMPjg9sXgSheSeAKyYy0nRMYAL4UTkr0NHnn90LN/WmbclZOX/wF7YaUYrQTNvt2CLdxn71mF0MbUx1hYIDnpVuZXTzDsOjRaMhNGG54lnN/vpflLqEFb1Hf+A4HWV2EKPA/Mq6omHuG4tGKG1behOw7qJ/voVSvQWrT8m23hkHwt7h4O0RQyrxIFoQFcscAAgVFxRfLOVVe+hVWKOoAIJlPFUDyFa0vnfRf3L81MqdWklHk94ATRqbsml85Iy1e+r8F8kfa10W3kGw0r1WfvUIlIGD5dRJ0Z716P9nnCEl+GJorNoydTW4vQQ9iWhDEvC1LDSmuwGx8yZDLOfLkvjUxAjG05us+AmOhNdJF5Q15QWdW9H/bQ9+uxx0BU3ky7S8eRJKKihnURYUPkPoUtxL7txCMG5xA8zuUR+3fKrSnpj8mYMc/DEmlk5Q157zkXehQbR7GOLHsVYwmTY9RwMmF6e8UsSEs4NYljGDUSuO/lKrcTtpgrFvBR9LIehiDpxc5oK7qZIMTw8QidM4jItw7W0LojH7JN3HPC/nc795LqZ+gfzoItJ9PyztMQtU9AZ48jG2/VZ3Zo3/dZ4jEJesIDyxcViXgz8MCEWSnMmpxaoyvF2qWYZdy0NPZR0KZioolOFHMxODFjH9hZOoI3rsDxERQ9cZMiFejZzhBTv+WfI0bj5eGgwR7akNm/A2lhcAzTIDMHIPew62GyqPRh0Y2oeIOTKAxQz9e74mXgAaqAPbSmRFBH2ZRXdgKlAUpTR/aQPixRmScAsg2/wo4dtLruPlaJuiOIoGOfvnttBjeb2LL8NegbdkTs6RUYV23BZt5baRRVjnigJwH4FQehY7GsB56WF/B/c1BYcOrXgHS20US0DhOrD2bsvBM5E/llq31quiMT51INz444lwSN8WY6GKBBSrMaDYv72p1rMrLhQzIS6/XrhtJpKw3/ASP4uBwUxksWIs80GJpnG2ogYKE8bXSn3qFL554452XVYQn1smo6RezewIHpDU5qkLevxc/C+7CifEYt/KhJsCGe4IuW1Qc3YdOEdcJsSCBm6aRRXk8K0k3TZriGQpyvJ3Gs9xmGqUxtk+JKsvU68uKWD7VK8HdZKjxi2CefPmU5ztNPEt+WCTfBzPQyrMI41gqbO9REhza8+7Qhy+eDeWOOIE1M5hOwEAwcm/Z7OhJ31aOcvU4cwVHEMkjxZJoCMaJKURzr1M2ScdNcGXEVDc1pUaVBZQ5TwPWWrP/As70FC6q9nbfC1zio0ak8VjNhXuYt6UTG/x+FUdRzGJ5AIZeD1rmBpn9R+41CDSYig3z6FhQHN2G4FNGlBpuTUryGl6vJ4NHQ7I5lJVUIWIIuAvMN1ZTBy0asYt4F5iUZvB8ASQbfv6P1nQnDjSN7Sa9q9fFmCjpQsFHMWy0/cnDEQQNz6XQbkgk6JY430WSOn5NQ9HUMOatsxbjsG2DyYjyvn2M6p1BMdYnKzzLhbXCVTMr3zM3P858oTTXCxPL6r9ryFI5KC2dKFRUTtUO7PZE4as7iIt4Nx2jX3gvlHqQuL4W3le/8KVmdjR6BoqSaIpFyfv+RltzyqAPtIE3YODAoy0ORgspHwdD8qjkuTA2xor8K17rtZG4gEo1DAcnCB/Jp0My99QsdbmV5iCawu41QoZcWrPzFA7HRkyAC327JuiW0HorecxA/aoOpCDl1jO5+PjwqRjC4sAeNSyR8n6FQ+ysmictZ+Y6SRr/hOs6mK9+VPsFEC48dn5gtuCmy5QSmX7+fSzMXf/GYpf9IZqqSsViCX7y8vQbDgg6eOmfg4OCddZZkUj84MM0WmG6erI9hCI+GPn57KiH7TyiauLJ/J9uOTmI1/BqSGhr9l/XhEgKqjkcerS67LiUjJlmyCQsh/ZjLE+nE0w/1pvK1yk5PrEm34fh0uMfo5TDKfxcYGBZGWzDAsQKlO5Rnaf1Nh+NGiMp3PwZx7Kq0clogk/i4UK2expFJY09HevQ1ZPREW5a+YkF7moK9cPUZtlgTWnp0X0re/oUGgw9LZsMgvM8QammY/Nq8X9F/PbxGT8xIP7rFjTFl4RPs1EKTwwqiH44d4BmtDQb28XWwVWAH+QMjrKD3ttVUND5vJQQoshqrt4uMauaYjwPaCyzI83XMePgdUR6vODGFWfFU4lH5JIPxkIGYDwvKqBq8QkCJTi31JEpa21br8J22cV5O/CPagOenjsETaYUn0UXVQUf6XgP8gU9YpMsXlyh93PBVGEBB6hMHjSPHlqWQR8UcVNB1H2Aq46Jat4/e1AECHYYnTPwqwwB2UNLc4sglU3FkoWaYVuYtYqE6wYCIrcN3Mw1naZjcdYKWFcjVnNBuruh0dljxclqe/O8w+H4Th2Jq4HLw1pqwH0WEiZ44spn1NUOGX4njJFi2RCUS1wKDHFCKED8XzyWBfGVf+BnUJ8u2IPqDl6pkLi2JX9RO+mVLXpb84J4xneGg9LqN2x215akiHVBqajldHX5JZYUfDF6Yo64jrklAjJNLrYPOr4dljsKufsFPq+yzMXgW/cxuPXYJwYX+x43QIwwczZchGfxKz/Pn+BmGXHmjhYmW/VTfBGJB1zDzAbrPcvGorQ0FBubMTg6L7mQeYxAfAuf+UNlyxiLIUCaWLHoSpmYwVqhLeiORUR0HjQs568D2rDz7Vyl54f9ZEGeJo0+cWgjk5aFWmBEm6KIYn+hUXkq8Lr1RZ5Vy1GRzf8rD96qZyxAgY+7bAlcF9ltMoi6hC6QbP3VA6JsOnWOUX4WMxInwveR/+lCiPpkPPtu7EVHkBL6WkqS0ELKmspaK5lH6Iv4X+5fi/co30nAOYfQOLuGst/X/GTj9v/LPNoxFaN+NBSMCD14UT3/qxh7FIR1f+Xl5y9OClLpQr2MX9EuViTWIAifZATBLnXIbt3lsQ0RDg4XwvShPenu36Mb7JGWHKm5UYltUfsyomBEXPmnBSgXGDzjDiSJ8GT5lP70OY90t8K5Z8jxN5kyZ9XUYrsMsjcbsgSaUlfV/elICz7gP78KKVYUunJiyHVqZhFD6DEE5hMWNq0sx8PYUtMSODL+8Cif6qKlP7O22UfkXryRjVril4yy0tQEZShcDUH5rzPyI7DT9XL3YhWhG7yaWrwU/jwZrFnNyx7EYxOioxIHa2BOWbDhOqTsBHdrYL/11Snass2C5lpcBI73Je98OuC5Cd7F7bRrSX/wYYiSRybeiXLUOrhvBegtoMmRsBpJqXt5/FnG/EL+qlkR33OvvBw1D7d2jIRQZmG5hnrY4ukL6ldIu9dp7TZj0FezdSmCTobCCNdNqxpL3n4NSDIOFFta1zigl4AqoKOYHCBpS7FqXlWd+aCrzQWrqRiLEipd8vMPrYmyk7TgmMiiCcmb0s5dUiMEObXoX5SLX+mLgSGixuzuSP4VnEeX4mOex78EjiGebnsFHRGYF2sfbkfdesGFplAVurXVWfoMZHnyth4wpnTSHXgaPFzBnJGJ4Q7hbPoI/7woTbp3kxLj8Pl7UP5iychG2EOj3qHYTTypeBo2CNIAJpd6kSuAPTTl3I9ZUE8L/8GiNzyk5OFiU6doQB9nCicXoqTwVoZ4krm31Ynd2+TmZ3wALqlVvmZI7AeKXdlkFUOoOhowzofxFK+tc6YqgOetxFotL1BoebcrIs3/pYqWhuMNViWW8/wzUvvWznPz7D2z4QRqe1leRPo78cTUG3hXaxppaTqehGMvIv/2pJj//s5x8+m4Oxxj+HpllmIsriAXNKByv51vy0t/zBgg0gPhEoYNiHcEkfbFnDqZu/XTMqp5niAc7+LbwHUXokL3qbQM2rsQlfkvi47gSe/sVsMohk8X1nQWQ/UbY0hvSQDCNnUIlE+Sv2ITIGjn4F/+jDocSv8/8z2BBrx+JGyfhl38MhwJ4cFUbgC6Cx42djrKlqAUBV/3OCY8KUSpSWzARNuO/lUfMcVSuJsMo2GhGtosptzzCAHXAgU240Ak49IUWeertcNqB+WocUqpZOkwmH2R0TM7gUQ0Nb1RxBR6ImZ1KABos0Fm6AhDgKtDggc2fZOTJP2bsJgtKAxAQLmBnjhkQgaiB0+EVA7AAoVbeuFFJnJCP+xcVNaIG3BU4lOG+8eSRNPZP8EJ5H/avA3Hh2QhT3ZvUsRMjLUKjjMG6eyOiZmxOqeiLbEAcOmQSKrq69SuSRY0HnrNOvhnn5PB28Zzqw4lJ9B0rBUaBLIMIZNPvgphfnCLLyyCAGUKuzH/cEDPCSL9YAm2liHXlbIYUJW0xOakzHYpraRznWYjHRQVXsUTJF7aZq8Kez7Py9P/JyT3/1S4L18PsqKQweE4cgm3vT7Cyvwu3SVQXRzOgBXtlBG2YEdnQElzifqh6gmMg+D2sIFC2QOfbHrFlJE4bVIpDNgzGOT1rpVkJGGwvdfyfcTeMNhbYyrsrahxw9e07zFGmtyUwavyhRirR6NZLV7ayK2DmxaMDvzPL4ZA+jOF0fK8hH78Kh2Ss2mR4ikBUg3M/RObyaB/XA7CpwRFIl95ws4LN54evYCCfhhUYpaBC6fK6i78BVinV8MDFmXELIhnu3wwl0hY8xzhSExDwcKDKV/h427nYgcgBzAACV8zi3U2teHvCmybjr/fsXfdvhqircCxiU/oFRc/AP3X+j+EGCH/qaYhtNRCBAxoY0RH/qA1u2uTK8oWufAYngOZTNaxw0Cf0GmjJZHjrqP1rET3Py+maezTZuoozPZmo+LIEL9VveL0Jron/+ic5mXIn6H4dL4tD2FiIrDxhoH8qg9gthZcMxVmuiPH8AKkEpo2T4MLXrXfE7FGCRRv+QHNNaH5u+h36I6chPZ7NBOINVM8bjFxQb8LAwvirJBJxcdUd1Q2dsLjB+yxKimGtWRw/1WO9F8RSMbDqcmz+p90pyuPFdTOVOAVKeUwMIREG+Mp0LPgO3+M7vZBZNdyUW78Ns8kbUzAAgQvjjxH2ZnumMIEEgIZ9LYxTf7gq7TKpQWblHpepgEgt+DCSYM8h9EktiNkehOLfzl0Muenrtjz9vymuKrIV3xW/oFrWTF0Co2Iw3MuGDxhi1IH2GCMOL08eQcjZJvjcwrzTVntx7pfjB58FF8CZX6NPMXELJso4NhR6hiyDT+6mD3E2X3XyhQvgjqwsomb3BZzXw/uI24YcfHuP7UWcswOUCDwaxNMNEx6Yvg+8lq7FBKJBDBQXE0yB9EEs2/o7JaV0R1PmPWwjUgW8zKCNJ9Xrrhy4OpD+Nq0EDZQBSI2Yqqq8aDENkZZnnPqRsRZ6EN5ZpsBI1BDRICWXzzLlE6wO1HDGpfjOjSvpEZp7g9nfdCCaegx7OVaD3ghgt+CneVn7DmdU1B9YCeMg8l0JPvGoh4KyIT7c+CAC8vWJ2IcA5kTYu65BsLmVC3m1KbsnvCLFkGgmJRUGTz8Dv+MifnjuH2Wp0sUXlWixhjzOrcfOgI31HeiqkOqoJKRy6/bviPzLRhuxyqidr4TlP2F1lJBMeMccgRRFU0waglCiYc/wHVMMWuq9kmzAtLd8G0EL4FKnkAvBT2UO/UPJjUYyHOgw4S3wfrgiFUgBP0oJtDumzfGc3wVdpmXOeuUiStxbt2D78swPMevHz6GlLSCNEKvsuz9ypGE02x6eCqQMf9lGTwMMjHUFvrC3PIrwoavzcmI/9j/RuJ199aAVz4dn3GfKzd9MY7VV1FA2wDyE/9oPdFmCIOdv/xLWP0ezSiN59pXVVjLfQtetvEy7HVrzqJELNHkf8Z2/D9/cnaY0rc/g7DMGPgazGs8oR6bwGYMl1PMaBju1q72G5uWex/Qqllo6YkKl5bbvmvLi32Al5G0XMQNSNRH1F3EqMK/CrQa8mI8B42dBIpk0JwtGrLEQCxYSRe+r5sDw4hI6xCMa5w6cXiBIHSEF4Xk4OhAzYXcPx/6r5opcPlOHRENbYR/a2X0qOmA8njkZQ6wo0JCaaJl4oVMJA6NLodww5K7H8vLUX+TEbvFiP7UNkmgsmReeFtfcj7Ck3+N1FqXiKiNaNsJPdtZXYVOKIGWLftYim5bjHBkKm7igX+eCHy1mhoxrQUQJhsQtI0cQsOptA1KCIQ/+SV5+/r/yysCE15EUWDKYu/U7RmS9w5v56enVdUBeHvxTXfqN5EiNr4cSy/Q7MvC8ysuiJ7AuY/+vQT/hrWjhA1Q1qRXTKt8KgxXMngfzTrkT259HPXPaKgVDX1MP16W3ARE4BeMFKNg2Q+EId9ZDuxDNEdFTLDBHBkd+jbiCps8wBiCEPfeIFFZcXk8LXBQ69VI2BJWz6J8qXRFSyfl7VDZiuZfRlJFEy2kcvfwdzrFwZBOrtKkRN2rbjAxErm9CVH0ohRWlfPr0O4PueILz3bQ8/BearFiIYG3PWnJ4J/CAdFvd9axGhJCNK+/wy/PyAJikz2CQIp5HFGAO+iGXGvKNP7fk2b9uUS6ItR7W14oZw8P2HWXK/f8D25qJEDDDTgUqgDFyg+BOnpQy/Vz4BOOOIVxPG+qWoPDFqo0rQ+635fbfg7ls1/CJoQK1sAeYCDijkyHZ3wylMxpB6RiAgcpHry9onYaVFpMTY3S1bg3OhuvCkLj4n5UxMBuE2RuB2KfDR7V7H1ue/9scLH2wTwUB48SyKFLQBtqEP+rA0Tm54w90GTedF0Ox8+K5hWFIGnsaMvOrmFBudGXpSzloqlO4ugTB6WDZxeONupc2IolqOZloBi6JusMCTiloUAN7VOapkjiohl2Wlm//rS2v/lNOPloAv01E6a8WFSMWLPCiUsjVLIS9MRGSJy29+hMv0qn2xBhXZOL+I/Py0uPou81gYsyV6tSpdjCBnESMNwbiitc+ptz2HVum384bBM6BeQPQ/a+kHYMWeFpd/yltz7wIlf6T5LOUAhUMTJUCEzt87FRDvve4IMJ8Tlb8BkceCJGZgrpezYRetlJo/i+IR7zew8YhYVdMAlPvtKHqR3C3XlSwxBX0AfifmEwQELtnf0dufSQrU+ZBwfa6jUj2cDjYSkMRGECQmSmJx40njEGKbPRjpknkEChBbnjIkzToCll/8sz6uvdx5YE/zsj4a2xFo51rMOCw/1SB6OPwCVYIvHgODuyk/xhKJ9gbzoZugM4iilS1AvKBgiZghvEzsgidA1/eZ0zc0oDzfdijU8yuSisfDGmGyZeKowwCNkyeC6XjNwwYkxBOvTj5QKt9+m1uzUcFV5KiKVDBwK1Zvc6me9Y9/xnhM+fZ8tEiU9Ytg6sfjkEsHDVw2HGUcZx5ey38woqRgYH9AAzG8dfjjHB2Csco3p0vXn5VqK4/LEdDj76DM9A+wtn5Hle2IFDdelzxse0zuP9hVTZhucNz5fJEfFLYM3Xtixv2oASZcKOOS7HS6l7a+iaTcshei+kkP2GWLpdMwQVlSyz56Dc5mGwaMI30zqCpFOMhPkVv1X78oWKGBhAaLJiyMHofNgl3/MCM7nKcNfOuWrrFUctb2ZpyHKJ/0068B8Kz3vm9DCyCeIdTC4KMw6EcUSR5By+mPWyXPLyKFQEn4sWWEYducG0bB0uvybiPZ+g4iuNAvA6kGJ2TRvphQgQnBtoNnO/E+vkf83zbJXYkFqKiEjAGMsckgz1EGTnynX93dAyYyFcxDMwy6C384yo1FPeRDkSY17kPI/ToNmhht2JfugeH1CdTyuopk7Wlc3dRSh6aZdJ/Nw1Dbs7WHLwFaN6XOv+qWbgAg5ryRjjbXwHn6fHTGbITeOAo5MBuE5ZXOpQ4dOWy1F6+AUqprrjntvdA3HUL88jGbh3U6tS6l6oTkZLsZDBv9SY8nhNPnmOAmW3lwbNjLSLur/diLdOXlQ7v7HfSia6WvQYgZMoYF/dHGbDEofhNX9dCI8lc/teSOuv54Y1Y7oEHjNRl3rdTcKm0EffZhsWcjf5DoPt9XrB6G4HFdRzp0LupK2JP0TJoyHhd3VzR2J3RLtHWuhiAjO5C+daCscPtTmVjqMVWsbIVDSvf19PS8LykNiJlDsrL4Etxbxe3gG2ZNBM6B7IP6wmHTd1Fv5HN0KBzMQzPw8mlz0junToBTv3SIJxvaplH/JYTWc7SmKMxe/pWV34jOOhoBaVWHJyTeQjV1fMKfn1/vNWKIrJLvICisiAiEAwiroA+TvFydn21huf26EOScnWhjyotxRzoAEysRky0+uH+ngzBTiXze/tcvg/vZFXwnP8QN+CF/azCS/Ufj/SIK89kqSgCTvhk/3m4sczZ4OXdq5WHPXXkbfYATceSFPQt5yZrRBHGay815oyr3dbJxdjqgG0OY1tFjStKMvkzJmiAPJEzIGmPiR0hfs+GDnUycBwZ/M6Oy3O+37UHHIJtjMMn+C74PVi+rb8H66n3e724BOHXW7at8rcHHNqqLeFw2pCBwytIniYUSChw/ihwvuXb84d5AjmhQEIB+f+BPuHI66QPAgAAAABJRU5ErkJggg==";
+
+/* ════════════════ 主题 token ════════════════ */
+const looplyTheme = {
+  token: {
+    colorPrimary: '#7C3AED', colorInfo: '#7C3AED', colorBgLayout: '#F9FAFB',
+    colorBgContainer: '#FFFFFF', colorText: '#1F2937', colorTextSecondary: '#374151',
+    colorTextTertiary: '#4B5563', colorTextDescription: '#6B7280', colorTextPlaceholder: '#9CA3AF',
+    colorBorder: '#E5E7EB', colorBorderSecondary: '#F3F4F6', colorSuccess: '#16A34A',
+    colorWarning: '#D97706', colorError: '#DC2626', borderRadius: 8, borderRadiusLG: 14,
+    borderRadiusSM: 6, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: 14, controlHeight: 34, controlHeightSM: 28,
+  },
+  components: {
+    Layout: { headerBg: '#FFFFFF', headerHeight: 60, headerPadding: '0 24px', siderBg: '#FFFFFF', bodyBg: '#F9FAFB' },
+    Menu: {
+      itemBg: 'transparent', subMenuItemBg: 'transparent', itemHoverBg: 'rgba(0,0,0,.03)',
+      itemSelectedBg: '#F3EEFF', itemSelectedColor: '#7C3AED', itemBorderRadius: 0,
+      itemMarginInline: 0, itemMarginBlock: 0, itemHeight: 40, subMenuItemBorderRadius: 0,
+    },
+    Card: { borderRadiusLG: 16, paddingLG: 28 },
+    Table: {
+      headerBg: '#FFFFFF', headerColor: '#6B7280', rowHoverBg: '#FAF5FF', borderColor: '#E5E7EB',
+      headerSplitColor: 'transparent', cellFontSize: 13, cellFontSizeMD: 13, cellFontSizeSM: 13,
+      cellPaddingBlock: 11, cellPaddingInline: 12, cellPaddingBlockMD: 11, cellPaddingInlineMD: 12,
+      cellPaddingBlockSM: 9, cellPaddingInlineSM: 12, headerBorderRadius: 0,
+    },
+    Tag: { defaultBg: '#F3F4F6', defaultColor: '#6B7280' },
+    Tabs: { itemSelectedColor: '#7C3AED', itemHoverColor: '#374151', inkBarColor: '#7C3AED' },
+    Steps: { colorPrimary: '#7C3AED' },
+    Button: { controlHeight: 34, paddingInline: 14, fontSize: 13 },
+    Input: { controlHeight: 34, paddingInline: 12 },
+    Select: { controlHeight: 34 },
+    DatePicker: { controlHeight: 34 },
+    Modal: { borderRadiusLG: 16, paddingContentHorizontalLG: 28 },
+  },
+};
+
+const CARD_STYLE = { boxShadow: '0 10px 24px rgba(16,24,40,.06)', marginBottom: 20 };
+const TABLE_STYLES = { root: { borderRadius: 14, border: '1px solid #E5E7EB', overflow: 'hidden' } };
+const SIDER_STYLE = { boxShadow: '3px 0 12px rgba(0,0,0,0.06)', padding: '8px 0', overflowY: 'auto', height: '100%' };
+
+const TAG_COLORS = {
+  on: {bg:'#F0FDF4',color:'#16A34A'}, sale: {bg:'#EFF6FF',color:'#2563EB'},
+  pending: {bg:'#FFFBEB',color:'#D97706'}, off: {bg:'#F3F4F6',color:'#6B7280'},
+  req: {bg:'#FEF2F2',color:'#DC2626'}, warn: {bg:'#FFF1F2',color:'#E11D48'},
+  desc: {bg:'#F0FDF4',color:'#16A34A'}, enum: {bg:'#FFFBEB',color:'#D97706'},
+  opt: {bg:'#F3F4F6',color:'#6B7280'},
+};
+
+/* 目标语言选项(全局共用) */
+const LANG_OPTS = [
+  { value:'fr', label:'法语 (fr)' }, { value:'de', label:'德语 (de)' },
+  { value:'es', label:'西班牙语 (es)' }, { value:'it', label:'意大利语 (it)' },
+];
+
+/* Translation导航页:资源域(5 大域) */
+/* status: ready=已有产品方案, partial=有UI无PRD, placeholder=待设计 */
+const DOMAINS = [
+  { title:'商品域', desc:'业务实体字段,随商品目录增长', icon:<ShoppingOutlined />, color:'#7C3AED', items:[
+    { type:'listing', name:'渠道商品', status:'ready' },
+    { type:'product', name:'实物商品', status:'ready' },
+    { type:'spu', name:'标品 SPU', status:'ready' },
+    { type:'sku', name:'标品 SKU', status:'ready' },
+    { type:'category', name:'类目', status:'ready' },
+    { type:'brand', name:'品牌', status:'ready' },
+    { type:'series', name:'系列', status:'ready' },
+    { type:'attribute', name:'属性', status:'ready' },
+    { type:'attribute_option', name:'属性选项', status:'ready' },
+    { type:'enum', name:'成色等级', status:'ready' },
+  ]},
+  { title:'前端页面', desc:'页面 UI 文案 + CMS 配置 + 法律协议', icon:<LayoutOutlined />, color:'#2563EB', items:[
+    { type:'page-auth', name:'登录注册', status:'ready' },
+    { type:'page-home', name:'首页', status:'partial' },
+    { type:'page-collection', name:'Collection', status:'placeholder' },
+    { type:'page-pdp', name:'商详页', status:'ready' },
+    { type:'page-cart', name:'购物车', status:'partial' },
+    { type:'page-checkout', name:'结账页', status:'partial' },
+    { type:'page-order-success', name:'支付成功页', status:'placeholder' },
+    { type:'page-orders', name:'订单中心', status:'placeholder' },
+    { type:'page-account', name:'用户中心', status:'placeholder' },
+    { type:'page-search', name:'搜索', status:'placeholder' },
+    { type:'page-nav', name:'导航栏', status:'placeholder' },
+    { type:'page-help', name:'帮助 / 错误页', status:'placeholder' },
+    { type:'legal-tos', name:'服务条款', status:'ready' },
+    { type:'legal-privacy', name:'隐私政策', status:'ready' },
+    { type:'legal-return', name:'退货政策', status:'placeholder' },
+    { type:'legal-cookie', name:'Cookie 政策', status:'placeholder' },
+  ]},
+  { title:'通知模板', desc:'邮件、站内信、Push', icon:<BellOutlined />, color:'#0891B2', items:[
+    { type:'notif-email', name:'邮件模板', status:'placeholder' },
+    { type:'notif-message', name:'站内消息', status:'placeholder' },
+  ]},
+
+];
+
+/* 资源卡片元数据:图标 + 描述 + 分类标签 */
+const CATEGORY_BADGES = {
+  dict: { label:'商品域', bg:'#F3EEFF', color:'#7C3AED' },
+  page: { label:'前端页面', bg:'#EFF6FF', color:'#2563EB' },
+  system: { label:'通知模板', bg:'#ECFDF5', color:'#0891B2' },
+};
+const RES_META = {
+  product:             { icon:<SkinOutlined />,          iconBg:'#F3EEFF', iconColor:'#7C3AED', desc:'商品标题、描述、质检信息等字段翻译',   cat:'dict', entity:'product' },
+  category:            { icon:<AppstoreOutlined />,      iconBg:'#F3EEFF', iconColor:'#7C3AED', desc:'商品类目名称翻译',                     cat:'dict', entity:'category' },
+  brand:               { icon:<CrownOutlined />,         iconBg:'#F3EEFF', iconColor:'#7C3AED', desc:'品牌名称、简介、故事翻译',             cat:'dict', entity:'brand' },
+  series:              { icon:<GoldOutlined />,           iconBg:'#F3EEFF', iconColor:'#7C3AED', desc:'品牌系列名称及说明翻译',               cat:'dict', entity:'series' },
+  spu:                 { icon:<DatabaseOutlined />,       iconBg:'#F3EEFF', iconColor:'#7C3AED', desc:'标品 SPU 名称翻译',                    cat:'dict', entity:'spu' },
+  sku:                 { icon:<DatabaseOutlined />,       iconBg:'#F3EEFF', iconColor:'#7C3AED', desc:'标品 SKU 变体名称翻译',                cat:'dict', entity:'sku' },
+  attribute:           { icon:<BgColorsOutlined />,       iconBg:'#F3EEFF', iconColor:'#7C3AED', desc:'商品属性名称翻译',                     cat:'dict', entity:'attribute_def' },
+  attribute_option:    { icon:<StarOutlined />,           iconBg:'#F3EEFF', iconColor:'#7C3AED', desc:'属性枚举选项值翻译',                   cat:'dict', entity:'attribute_option' },
+  'enum':              { icon:<DashboardOutlined />,      iconBg:'#F3EEFF', iconColor:'#7C3AED', desc:'成色等级枚举文案翻译',                 cat:'dict', entity:'condition_grade' },
+  listing:             { icon:<ShareAltOutlined />,       iconBg:'#F3EEFF', iconColor:'#7C3AED', desc:'渠道标题、描述、SEO 信息翻译',         cat:'dict', entity:'listing' },
+  'page-auth':         { icon:<LockOutlined />,           iconBg:'#EFF6FF', iconColor:'#2563EB', desc:'登录注册页面提示及错误文案',           cat:'page' },
+  'page-home':         { icon:<HomeOutlined />,           iconBg:'#EFF6FF', iconColor:'#2563EB', desc:'首页 Banner、标语等文案',              cat:'page' },
+  'page-collection':   { icon:<ShopOutlined />,           iconBg:'#EFF6FF', iconColor:'#2563EB', desc:'Collection 页面标题及筛选文案',        cat:'page' },
+  'page-pdp':          { icon:<FileTextOutlined />,       iconBg:'#EFF6FF', iconColor:'#2563EB', desc:'商品详情页 CMS 模板文案',              cat:'page' },
+  'page-cart':         { icon:<ShoppingCartOutlined />,   iconBg:'#EFF6FF', iconColor:'#2563EB', desc:'购物车页面文案及提示信息',             cat:'page' },
+  'page-checkout':     { icon:<CreditCardOutlined />,     iconBg:'#EFF6FF', iconColor:'#2563EB', desc:'结账页表单标签及按钮文案',             cat:'page' },
+  'page-order-success':{ icon:<CheckCircleOutlined />,    iconBg:'#EFF6FF', iconColor:'#2563EB', desc:'支付成功页提示文案',                   cat:'page' },
+  'page-orders':       { icon:<UnorderedListOutlined />,  iconBg:'#EFF6FF', iconColor:'#2563EB', desc:'订单列表页状态及操作文案',             cat:'page' },
+  'page-account':      { icon:<UserOutlined />,           iconBg:'#EFF6FF', iconColor:'#2563EB', desc:'用户中心页面文案',                     cat:'page' },
+  'page-search':       { icon:<SearchOutlined />,         iconBg:'#EFF6FF', iconColor:'#2563EB', desc:'搜索页面文案及筛选标签',               cat:'page' },
+  'page-nav':          { icon:<AppstoreOutlined />,       iconBg:'#EFF6FF', iconColor:'#2563EB', desc:'全局导航栏菜单文案',                   cat:'page' },
+  'page-help':         { icon:<QuestionCircleOutlined />, iconBg:'#EFF6FF', iconColor:'#2563EB', desc:'帮助中心及错误页面文案',               cat:'page' },
+  'legal-tos':         { icon:<FileProtectOutlined />,    iconBg:'#EFF6FF', iconColor:'#2563EB', desc:'服务条款全文翻译',                     cat:'page' },
+  'legal-privacy':     { icon:<SafetyCertificateOutlined />, iconBg:'#EFF6FF', iconColor:'#2563EB', desc:'隐私政策全文翻译',               cat:'page' },
+  'legal-return':      { icon:<FileProtectOutlined />,    iconBg:'#EFF6FF', iconColor:'#2563EB', desc:'退货政策全文翻译',                     cat:'page' },
+  'legal-cookie':      { icon:<FileProtectOutlined />,    iconBg:'#EFF6FF', iconColor:'#2563EB', desc:'Cookie 政策全文翻译',                  cat:'page' },
+  'notif-email':       { icon:<MailOutlined />,           iconBg:'#ECFDF5', iconColor:'#0891B2', desc:'邮件通知模板标题及正文翻译',           cat:'system', entity:'email_template' },
+  'notif-message':     { icon:<MessageOutlined />,        iconBg:'#ECFDF5', iconColor:'#0891B2', desc:'站内消息模板翻译',                     cat:'system', entity:'message_template' },
+};
+
+/* ════════════════ 翻译主从数据(RD)════════════════ */
+/* _ph:true 标记占位类型,MasterDetailPage 展示"方案设计中"提示 */
+const RD = {
+  product:{label:'实物商品',items:[
+    {id:'P10023',name:'Vintage Leather Handbag',d:3,t:6},{id:'P10045',name:'Rolex Submariner 2020 Watch',d:3,t:6},
+    {id:'P10067',name:'Chanel Classic Flap Bag',d:4,t:6},{id:'P10089',name:'Louis Vuitton Neverfull MM',d:0,t:6},
+    {id:'P10102',name:'Hermès Birkin 30',d:4,t:6},{id:'P10118',name:'Gucci Dionysus Mini',d:2,t:6}],
+    fields:{'P10023':[
+      {n:'商品标题',k:'product.title',s:'Vintage Leather Handbag',r:'Sac à main en cuir vintage',st:'translated'},
+      {n:'商品描述',k:'product.description',s:'<p><b>Beautiful vintage leather handbag</b> in excellent condition.</p><ul><li>Genuine Italian leather</li><li>Gold-tone hardware</li><li>Adjustable shoulder strap</li></ul><p>Perfect for everyday use or special occasions.</p>',r:'<p><b>Magnifique sac à main en cuir vintage</b> en excellent état.</p><ul><li>Cuir italien véritable</li><li>Quincaillerie dorée</li><li>Bandoulière réglable</li></ul><p>Parfait pour un usage quotidien ou les occasions spéciales.</p>',st:'outdated',type:'rich_text'},
+      {n:'成色概述',k:'product.condition_summary',s:'Overall excellent condition with minimal signs of use.',r:'État général excellent avec des signes minimes d\'utilisation.',st:'translated'},
+      {n:'外观描述',k:'product.appearance_desc',s:'Minor scratches on hardware, clean interior.',r:'Légères rayures sur la quincaillerie, intérieur propre.',st:'translated'},
+      {n:'配件信息',k:'product.accessories_info',s:'Includes dust bag and authenticity card.',r:'',st:'untranslated'},
+      {n:'补充说明',k:'product.supplement_notes',s:'Original receipt available upon request.',r:'',st:'untranslated'}]}},
+  category:{label:'类目',items:[
+    {id:'CAT-001',name:"Women's Handbags",d:1,t:1},{id:'CAT-002',name:'Watches',d:1,t:1},
+    {id:'CAT-003',name:'Jewelry',d:0,t:1},{id:'CAT-004',name:'Shoes',d:1,t:1},{id:'CAT-005',name:'Clothing',d:1,t:1}],
+    fields:{'CAT-001':[
+      {n:'类目名称',k:'category.category_name',s:"Women's Handbags",r:'Sacs à main femme',st:'translated'}]}},
+  brand:{label:'品牌',items:[
+    {id:'BRD-001',name:'Louis Vuitton',d:2,t:3},{id:'BRD-002',name:'Rolex',d:0,t:3},
+    {id:'BRD-003',name:'Chanel',d:3,t:3},{id:'BRD-004',name:'Hermès',d:1,t:3},{id:'BRD-005',name:'Gucci',d:0,t:3}],
+    fields:{'BRD-001':[
+      {n:'品牌名称',k:'brand.brand_name',s:'Louis Vuitton',r:'Louis Vuitton',st:'translated'},
+      {n:'品牌简介',k:'brand.introduction',s:'French luxury fashion house and leather goods company.',r:'Maison de luxe française et maroquinerie.',st:'translated'},
+      {n:'品牌故事',k:'brand.description',s:'Founded in 1854, Louis Vuitton is one of the world\'s leading international fashion houses.',r:'',st:'untranslated'}]}},
+  series:{label:'系列',items:[
+    {id:'SER-001',name:'Birkin',d:2,t:3},{id:'SER-002',name:'Submariner',d:1,t:3},
+    {id:'SER-003',name:'Classic Flap',d:0,t:3},{id:'SER-004',name:'Neverfull',d:2,t:3}],
+    fields:{'SER-001':[
+      {n:'系列名称',k:'series.series_name',s:'Birkin',r:'Birkin',st:'translated'},
+      {n:'别名',k:'series.alias',s:'Birkin Bag',r:'Sac Birkin',st:'translated'},
+      {n:'系列说明',k:'series.description',s:'Created in 1984, the Birkin is one of the most iconic luxury handbags.',r:'',st:'untranslated'}]}},
+  spu:{label:'标品 SPU',items:[
+    {id:'SPU-001',name:'Hermès Birkin 25',d:2,t:2},{id:'SPU-002',name:'Rolex Submariner Date 41mm',d:1,t:2},
+    {id:'SPU-003',name:'Chanel Classic Flap Medium',d:0,t:2}],
+    fields:{'SPU-001':[
+      {n:'标品名称',k:'spu.spu_name',s:'Hermès Birkin 25',r:'Hermès Birkin 25',st:'translated'},
+      {n:'标品描述',k:'spu.description',s:'The Birkin 25 in Togo leather with palladium hardware.',r:'Le Birkin 25 en cuir Togo avec quincaillerie palladium.',st:'translated'}]}},
+  sku:{label:'标品 SKU',items:[
+    {id:'SKU-001',name:'Birkin 25 · Togo Noir · PHW',d:1,t:1},{id:'SKU-002',name:'Birkin 25 · Epsom Gold · GHW',d:0,t:1},
+    {id:'SKU-003',name:'Submariner 41mm · Black Dial',d:1,t:1}],
+    fields:{'SKU-001':[
+      {n:'SKU名称',k:'sku.sku_name',s:'Birkin 25 Togo Noir Palladium Hardware',r:'Birkin 25 Togo Noir Quincaillerie Palladium',st:'translated'}]}},
+  attribute:{label:'属性',items:[
+    {id:'ATTR-001',name:'Case Diameter',d:1,t:1},{id:'ATTR-002',name:'Bag Size',d:1,t:1},
+    {id:'ATTR-003',name:'Material',d:1,t:1},{id:'ATTR-004',name:'Color',d:1,t:1}],
+    fields:{'ATTR-001':[
+      {n:'属性名称',k:'attribute.attribute_name',s:'Case Diameter',r:'Diamètre du boîtier',st:'translated'}]}},
+  attribute_option:{label:'属性选项',items:[
+    {id:'OPT-001',name:'Black',d:1,t:1},{id:'OPT-002',name:'Togo Leather',d:1,t:1},
+    {id:'OPT-003',name:'Gold Hardware',d:0,t:1},{id:'OPT-004',name:'Canvas',d:1,t:1}],
+    fields:{'OPT-001':[
+      {n:'选项值',k:'attribute_option.option_value',s:'Black',r:'Noir',st:'translated'}]}},
+  enum:{label:'成色等级',items:[
+    {id:'Like New',name:'几乎全新',d:1,t:1},{id:'Excellent',name:'优秀',d:1,t:1},
+    {id:'Very Good',name:'非常好',d:0,t:1},{id:'Good',name:'良好',d:0,t:1},{id:'Fair',name:'一般',d:0,t:1}],
+    fields:{'Like New':[
+      {n:'等级名称',k:'enum.condition_grade',s:'Like New',r:'Comme neuf',st:'translated'}]}},
+  listing:{label:'渠道商品',items:[
+    {id:'LST-001',name:'Birkin 30 · 线上自营',d:2,t:4},{id:'LST-002',name:'Submariner · Amazon',d:0,t:4}],
+    fields:{'LST-001':[
+      {n:'渠道标题',k:'listing.listing_title',s:'Hermès Birkin 30 Togo Gold Hardware',r:'Hermès Birkin 30 Togo Quincaillerie Or',st:'translated'},
+      {n:'渠道描述',k:'listing.listing_description',s:'Authentic pre-owned Hermès Birkin 30 in excellent condition.',r:'Hermès Birkin 30 d\'occasion authentique en excellent état.',st:'translated'},
+      {n:'SEO标题',k:'listing.seo_title',s:'Pre-owned Hermès Birkin 30 | Looply',r:'',st:'untranslated'},
+      {n:'Meta描述',k:'listing.meta_description',s:'Shop authentic pre-owned Hermès Birkin 30 in excellent condition on Looply.',r:'',st:'untranslated'}]}},
+  /* ── 前端页面(已有方案) ── */
+  'page-auth':{label:'登录注册',items:[
+    {id:'登录表单',name:'Sign In 页面',d:3,t:5},{id:'注册表单',name:'Sign Up 页面',d:2,t:5},
+    {id:'忘记密码',name:'Forgot Password',d:1,t:3},{id:'验证码页',name:'Verify Code',d:0,t:3},
+    {id:'错误消息',name:'Error Messages ×14',d:0,t:14}],
+    fields:{'登录表单':[
+      {n:'页面标题',k:'auth.login.title',s:'Sign in to Looply',r:'Connectez-vous à Looply',st:'translated'},
+      {n:'邮箱标签',k:'auth.login.email_label',s:'Email address',r:'Adresse e-mail',st:'translated'},
+      {n:'密码标签',k:'auth.login.password_label',s:'Password',r:'Mot de passe',st:'translated'},
+      {n:'登录按钮',k:'auth.login.submit',s:'Sign In',r:'',st:'untranslated'},
+      {n:'忘记密码',k:'auth.login.forgot',s:'Forgot password?',r:'',st:'untranslated'}],
+    '错误消息':[
+      {n:'邮箱格式错误',k:'auth.error.invalid_email',s:'Please enter a valid email address',r:'',st:'untranslated'},
+      {n:'邮箱已注册',k:'auth.error.email_exists',s:'This email is already registered',r:'',st:'untranslated'},
+      {n:'请求过多',k:'auth.error.too_many',s:'Too many attempts, please try again later',r:'',st:'untranslated'},
+      {n:'验证码错误',k:'auth.error.wrong_code',s:'Wrong code, Please Try again',r:'',st:'untranslated'},
+      {n:'验证码过期',k:'auth.error.code_expired',s:'Code has expired. Please request a new one.',r:'',st:'untranslated'},
+      {n:'密码错误',k:'auth.error.wrong_password',s:'Incorrect email or password',r:'',st:'untranslated'},
+      {n:'账号锁定',k:'auth.error.account_locked',s:'Account locked. Too many failed attempts. Please try again in 30 minutes.',r:'',st:'untranslated'},
+      {n:'账号停用',k:'auth.error.account_suspended',s:'Your account has been suspended. Please contact support@looply.com for assistance.',r:'',st:'untranslated'},
+      {n:'网络异常',k:'auth.error.network',s:'Network error, please try again',r:'',st:'untranslated'},
+      {n:'系统异常',k:'auth.error.server',s:'Something went wrong, please try again later',r:'',st:'untranslated'},
+      {n:'会话过期',k:'auth.error.session_expired',s:'Session expired, please try again',r:'',st:'untranslated'},
+      {n:'三方登录不可用',k:'auth.error.oauth_unavailable',s:'{Provider} sign-in is temporarily unavailable',r:'',st:'untranslated'},
+      {n:'请求频率限制',k:'auth.error.rate_limit',s:'Too many requests. Please try again later.',r:'',st:'untranslated'},
+      {n:'验证码尝试过多',k:'auth.error.code_attempts',s:'Too many failed attempts. Please request a new code.',r:'',st:'untranslated'}]}},
+  /* ── 前端页面(占位) ── */
+  'page-orders':{_ph:true,label:'订单中心',items:[]},
+  'page-account':{_ph:true,label:'用户中心',items:[]},
+  'page-search':{_ph:true,label:'搜索',items:[]},
+  'page-help':{_ph:true,label:'帮助 / 错误页',items:[]},
+  /* ── 通知模板(占位) ── */
+  'notif-email':{_ph:true,label:'邮件模板',items:[]},
+  'notif-message':{_ph:true,label:'站内消息',items:[]},
+  /* ── 法律文档 ── */
+  'legal-tos':{label:'服务条款',items:[
+    {id:'ToS 正文',name:'Terms of Service',d:0,t:2}],
+    fields:{'ToS 正文':[
+      {n:'协议标题',k:'legal.tos.title',s:'Terms of Service',r:'',st:'untranslated'},
+      {n:'协议内容',k:'legal.tos.content',s:'<h2>1. Acceptance of Terms</h2><p>Welcome to Looply. By accessing or using our platform, you agree to be bound by these Terms of Service.</p><h2>2. User Accounts</h2><p>You must be at least <b>18 years old</b> to create an account. You are responsible for maintaining the confidentiality of your login credentials.</p><h2>3. Prohibited Conduct</h2><ul><li>Listing counterfeit goods</li><li>Misrepresenting item condition</li><li>Engaging in fraudulent transactions</li></ul>',r:'',st:'untranslated',type:'rich_text'}]}},
+  'legal-privacy':{label:'隐私政策',items:[
+    {id:'Privacy 正文',name:'Privacy Policy',d:0,t:2}],
+    fields:{'Privacy 正文':[
+      {n:'协议标题',k:'legal.privacy.title',s:'Privacy Policy',r:'',st:'untranslated'},
+      {n:'协议内容',k:'legal.privacy.content',s:'<h2>1. Information We Collect</h2><p>Looply collects information you provide directly, including:</p><ul><li>Name, email address, and phone number</li><li>Payment and shipping information</li><li>Product listings and transaction history</li></ul><h2>2. How We Use Your Information</h2><p>We use your personal information to <b>provide, maintain, and improve</b> our services.</p>',r:'',st:'untranslated',type:'rich_text'}]}},
+  'legal-return':{_ph:true,label:'退货政策',items:[]},
+  'legal-cookie':{_ph:true,label:'Cookie 政策',items:[]},
+  'page-home':{label:'首页',items:[
+    {id:'Hero Banner',name:'Hero Banner 主视觉区',d:3,t:4},{id:'品类入口',name:'Category Entry 品类导航',d:1,t:3},
+    {id:'促销横幅',name:'Promo Banner 促销横幅',d:1,t:2},{id:'页面文案',name:'Page Copy 标语文案',d:2,t:3}],
+    fields:{'Hero Banner':[
+      {n:'Banner 标语',k:'home.hero.headline',s:'Pre-Loved Luxury, Perfectly Priced',r:'Luxe de seconde main, parfaitement tarifé',st:'translated',type:'text'},
+      {n:'Banner 副标题',k:'home.hero.subline',s:'Authenticated designer pieces at up to 70% off retail',r:'Pièces de créateurs authentifiées jusqu\'à -70%',st:'translated',type:'text'},
+      {n:'Banner 图片(EN)',k:'home.hero.image',s:'https://cdn.looply.com/banner/hero-en.jpg',r:'https://cdn.looply.com/banner/hero-fr.jpg',st:'translated',type:'image'},
+      {n:'Banner CTA',k:'home.hero.cta',s:'Shop Now',r:'Acheter maintenant',st:'translated',type:'text'}],
+    '品类入口':[
+      {n:'区块标题',k:'home.category.title',s:'Shop by Category',r:'Acheter par catégorie',st:'translated',type:'text'},
+      {n:'品类导航图(EN)',k:'home.category.nav_image',s:'https://cdn.looply.com/home/category-nav-en.jpg',r:'https://cdn.looply.com/home/category-nav-fr.jpg',st:'translated',type:'image'},
+      {n:'查看全部',k:'home.category.view_all',s:'View All Categories',r:'',st:'untranslated',type:'text'}],
+    '促销横幅':[
+      {n:'促销横幅图(EN)',k:'home.promo.banner_image',s:'https://cdn.looply.com/home/promo-summer-en.jpg',r:'',st:'untranslated',type:'image'},
+      {n:'促销文案',k:'home.promo.text',s:'Summer Sale: Extra 20% Off Select Items',r:'',st:'untranslated',type:'text'}]}},
+  'page-collection':{_ph:true,label:'Collection',items:[]},
+  'page-pdp':{label:'商详页',items:[
+    {id:'商品信息',name:'Product Info 基础区',d:3,t:4},{id:'成色报告',name:'Condition Report 质检区',d:2,t:3},
+    {id:'物流退货',name:'Shipping & Returns',d:1,t:3},{id:'正品认证',name:'Authenticity 认证区',d:0,t:2},{id:'相关推荐',name:'Related Products',d:1,t:2},
+    {id:'TPL-luxury',name:'CMS · 奢侈品通用模板',d:3,t:5},{id:'TPL-watch',name:'CMS · 腕表专用模板',d:1,t:5},
+    {id:'CNT-auth',name:'CMS · Certified Authentic',d:1,t:2},{id:'CNT-shipping',name:'CMS · Shipping & Returns',d:0,t:2}],
+    fields:{'商品信息':[
+      {n:'区块标题',k:'pdp.info.section_title',s:'Product Details',r:'Détails du produit',st:'translated'},
+      {n:'成色标签',k:'pdp.info.condition_label',s:'Condition',r:'État',st:'translated'},
+      {n:'加入购物车',k:'pdp.info.add_to_cart',s:'Add to Cart',r:'Ajouter au panier',st:'translated'},
+      {n:'立即购买',k:'pdp.info.buy_now',s:'Buy Now',r:'',st:'untranslated'}],
+    '成色报告':[
+      {n:'区块标题',k:'pdp.condition.title',s:'Condition Report',r:"Rapport d'état",st:'translated'},
+      {n:'整体评级',k:'pdp.condition.grade',s:'Overall Grade',r:'Note globale',st:'translated'},
+      {n:'详细说明',k:'pdp.condition.detail',s:'Detailed Notes',r:'',st:'untranslated'}],
+    'TPL-luxury':[
+      {n:'认证标题',k:'pdp_template.auth_title',s:'Confidence in Every Find',r:'Confiance dans chaque trouvaille',st:'translated'},
+      {n:'认证描述',k:'pdp_template.auth_desc',s:'Each luxury piece is carefully reviewed for authenticity, condition, and listing accuracy.',r:'Chaque pièce de luxe est soigneusement examinée pour son authenticité, son état et la précision de son annonce.',st:'translated'},
+      {n:'认证详情',k:'pdp_template.auth_detail',s:'Our authentication process includes visual inspection, material testing, and serial number verification.',r:'Notre processus comprend une inspection visuelle, des tests de matériaux et une vérification du numéro de série.',st:'translated'},
+      {n:'等级名-Like New',k:'pdp_template.grade_name_1',s:'Like New',r:'',st:'untranslated'},
+      {n:'等级描述-Like New',k:'pdp_template.grade_desc_1',s:'Item shows no visible signs of wear and appears unused.',r:'',st:'untranslated'}],
+    'CNT-auth':[
+      {n:'区块标题',k:'content.title',s:'Why Buy With Looply',r:'Pourquoi acheter avec Looply',st:'translated'},
+      {n:'区块正文',k:'content.body',s:'Every item sold on Looply goes through a rigorous multi-step authentication process...',r:'',st:'untranslated'}]}},
+  'page-cart':{label:'购物车',items:[
+    {id:'页面头部',name:'Cart Header 标题区',d:2,t:2},{id:'空购物车',name:'Empty Cart 提示页',d:0,t:3},
+    {id:'订单摘要',name:'Cart Summary 结算区',d:2,t:4},{id:'商品行',name:'Cart Item 商品项',d:1,t:2}],
+    fields:{'页面头部':[
+      {n:'页面标题',k:'cart.header.title',s:'Shopping Cart',r:'Panier',st:'translated'},
+      {n:'商品数提示',k:'cart.header.count',s:'{count} items in your cart',r:'{count} articles dans votre panier',st:'translated'}],
+    '空购物车':[
+      {n:'空状态标题',k:'cart.empty.title',s:'Your cart is empty',r:'',st:'untranslated'},
+      {n:'空状态描述',k:'cart.empty.desc',s:"Looks like you haven't added anything yet",r:'',st:'untranslated'},
+      {n:'继续购物',k:'cart.empty.cta',s:'Continue Shopping',r:'',st:'untranslated'}]}},
+  'page-checkout':{label:'结账页',items:[
+    {id:'配送地址',name:'Shipping Step 步骤一',d:3,t:4},{id:'支付方式',name:'Payment Step 步骤二',d:2,t:4},
+    {id:'订单确认',name:'Review Step 步骤三',d:1,t:3},{id:'下单成功',name:'Order Confirmation 结果页',d:0,t:3}],
+    fields:{'配送地址':[
+      {n:'步骤标题',k:'checkout.shipping.title',s:'Shipping Address',r:'Adresse de livraison',st:'translated'},
+      {n:'姓名标签',k:'checkout.shipping.name_label',s:'Full Name',r:'Nom complet',st:'translated'},
+      {n:'地址标签',k:'checkout.shipping.address_label',s:'Street Address',r:'Adresse',st:'translated'},
+      {n:'继续按钮',k:'checkout.shipping.continue',s:'Continue to Payment',r:'',st:'untranslated'}],
+    '下单成功':[
+      {n:'成功标题',k:'checkout.confirm.title',s:'Order Confirmed!',r:'',st:'untranslated'},
+      {n:'感谢文案',k:'checkout.confirm.thanks',s:'Thank you for your purchase',r:'',st:'untranslated'},
+      {n:'继续购物',k:'checkout.confirm.cta',s:'Continue Shopping',r:'',st:'untranslated'}]}},
+  'page-nav':{_ph:true,label:'导航栏',items:[]},
+  'page-order-success':{_ph:true,label:'支付成功页',items:[]}
+};
+const STATUS_MAP = { translated:{variant:'on',text:'已翻译'}, outdated:{variant:'pending',text:'待更新'}, untranslated:{variant:'off',text:'未翻译'} };
+
+/* ════════════════ 业务组件 ════════════════ */
+function Kpi({ num, label, numStyle }) {
+  return (
+    <div className="lp-kpi">
+      <div className="label" style={{ marginBottom: 6 }}>{label}</div>
+      <div className="num" style={numStyle}>{num}</div>
+    </div>
+  );
+}
+
+function StatusTag({ variant, children }) {
+  const c = TAG_COLORS[variant] || TAG_COLORS.off;
+  return (
+    <Tag bordered={false} style={{ background:c.bg, color:c.color, borderRadius:999, padding:'2px 8px',
+      fontSize:12, lineHeight:'18px', marginInlineEnd:4 }}>{children}</Tag>
+  );
+}
+
+function TipText({ label, tip }) {
+  return (
+    <Tooltip title={<div style={{ whiteSpace:'pre-line', lineHeight:1.6 }}>{tip}</div>} color="#fff"
+      styles={{ body: { color:'#374151', fontSize:12, padding:'10px 14px' } }}>
+      <span className="lp-tip-trigger">{label}</span>
+    </Tooltip>
+  );
+}
+
+function CompactPagination({ total, current=1, pageSize=10, totalPages }) {
+  const tp = totalPages || Math.ceil(total / pageSize) || 1;
+  const pages = React.useMemo(() => {
+    const out = [{ k:'prev', label:'<', disabled:current===1, arrow:true }];
+    if (tp <= 6) for (let i=1; i<=tp; i++) out.push({ k:i, label:i });
+    else { out.push({k:1,label:1}); out.push({k:2,label:2}); out.push({k:3,label:3}); out.push({k:'gap',label:'…',disabled:true}); out.push({k:tp,label:tp}); }
+    out.push({ k:'next', label:'>', disabled:current===tp, arrow:true });
+    return out;
+  }, [current, tp]);
+  return (
+    <div className="lp-pagination">
+      <span>共 {total.toLocaleString()} 条,每页{' '}
+        <Select size="small" value={pageSize} style={{ width:72, marginInline:4 }}
+          options={[{value:10,label:10},{value:20,label:20},{value:50,label:50}]} />{' '}条</span>
+      <div className="divider" />
+      <Space size={2}>
+        {pages.map(p => (
+          <span key={p.k} style={{
+            minWidth:32, height:32, display:'inline-flex', alignItems:'center', justifyContent:'center',
+            borderRadius:8, fontSize:13, cursor:p.disabled?'default':'pointer',
+            background:p.k===current?'#7C3AED':(p.arrow?'#fff':'transparent'),
+            color:p.k===current?'#fff':'#374151', border:p.arrow?'1px solid #E5E7EB':'none',
+            fontWeight:p.k===current?600:400, opacity:p.disabled?0.35:1,
+          }}>{p.label}</span>
+        ))}
+      </Space>
+      <div className="divider" />
+      <span>第 {current}/{tp} 页</span>
+    </div>
+  );
+}
+
+function EmptyZero({ entity, cta, onCta }) {
+  return <div className="lp-empty"><InboxOutlined className="icon" />
+    <div className="title">暂无{entity}</div>
+    <div className="desc">点击下方按钮创建第一个{entity}</div>
+    {cta && <Button type="primary" onClick={onCta}>{cta}</Button>}
+  </div>;
+}
+function EmptyNoMatch({ onClear }) {
+  return <div className="lp-empty"><SearchOutlined className="icon" />
+    <div className="title">未找到匹配结果</div>
+    <div className="desc">请尝试调整搜索关键词或筛选条件</div>
+    <Button onClick={onClear}>清除筛选条件</Button>
+  </div>;
+}
+function EmptyError({ onRetry }) {
+  return <div className="lp-empty"><ExclamationCircleOutlined className="icon err" />
+    <div className="title">加载失败</div>
+    <div className="desc">网络异常,请检查网络连接后重试</div>
+    <Button type="primary" onClick={onRetry}>重试</Button>
+  </div>;
+}
+function EmptyStateSwitcher({ mode, setMode }) {
+  return (
+    <div style={{ marginTop:12, display:'flex', gap:8, justifyContent:'center' }}>
+      {[['data','正常数据'],['zero','零数据态'],['no-match','无匹配态'],['error','异常态']].map(([k, label]) =>
+        <Button key={k} type={mode===k?'primary':'default'} onClick={() => setMode(k)}>{label}</Button>
+      )}
+    </div>
+  );
+}
+
+function FormRow({ label, required, children, helper }) {
+  return (
+    <>
+      <div className="lp-form-row">
+        <div className="lp-form-label">{required && <span className="req">*</span>}{label}</div>
+        <div className="lp-form-control">{children}</div>
+      </div>
+      {helper && <div className="lp-helper">{helper}</div>}
+    </>
+  );
+}
+
+const DEFAULT_OPLOG = [
+  { i:1, at:'2026-05-08 15:20', who:'张运营', type:'编辑', detail:'更新法语译文:Sac à main' },
+  { i:2, at:'2026-04-15 10:00', who:'王管理', type:'创建', detail:'创建术语 Handbag' },
+];
+function OpLog({ types, data, total }) {
+  return (
+    <>
+      <div className="lp-oplog-title">操作记录</div>
+      <Space size={8} wrap style={{ marginBottom:12 }}>
+        <Select size="small" defaultValue="" style={{ width:130 }} options={[
+          { value:'', label:'全部操作类型' },
+          ...(types || ['创建','编辑','启用','停用']).map(x => ({ value:x, label:x })),
+        ]} />
+        <Select size="small" defaultValue="" style={{ width:130 }} options={[
+          { value:'', label:'全部操作人' }, { value:'a', label:'张运营' }, { value:'b', label:'王管理' },
+        ]} />
+        <DatePicker.RangePicker size="small" placeholder={['开始日期','结束日期']} />
+        <Button size="small" icon={<SearchOutlined />}>查询</Button>
+      </Space>
+      <Table size="small" rowKey="i" pagination={false} styles={TABLE_STYLES}
+        columns={[
+          { title:'操作时间', dataIndex:'at' },
+          { title:'操作人', dataIndex:'who' },
+          { title:'操作类型', dataIndex:'type', render:v => <StatusTag variant={v==='编辑'?'pending':'on'}>{v}</StatusTag> },
+          { title:'操作详情', dataIndex:'detail' },
+        ]} dataSource={data || DEFAULT_OPLOG} />
+      <CompactPagination total={total || (data?data.length:DEFAULT_OPLOG.length)} pageSize={10} />
+    </>
+  );
+}
+
+/* ListPage 模板(列表页统一壳:标题 + KPI + 筛选 + 表格 + 4 空态) */
+function ListPage({ title, desc, headActions, kpis, filters, columns, data, total, entity, onCreate, scrollX }) {
+  const [mode, setMode] = useState('data');
+  return (
+    <Card style={CARD_STYLE}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:16, marginBottom:18 }}>
+        <div>
+          <div style={{ fontSize:20, fontWeight:700, marginBottom:6 }}>{title}</div>
+          {desc && <div style={{ color:'#6B7280', fontSize:13 }}>{desc}</div>}
+        </div>
+        <div>{headActions}</div>
+      </div>
+      {kpis && (
+        <div style={{ display:'grid', gridTemplateColumns:`repeat(${kpis.length},1fr)`, gap:12, marginBottom:18 }}>
+          {kpis.map((k, i) => <Kpi key={i} num={k.num} label={k.label} />)}
+        </div>
+      )}
+      {filters && <Space size={12} wrap style={{ marginBottom:16 }}>{filters}</Space>}
+      {mode === 'data' && (
+        <>
+          <Table rowKey={r => r.id || r.code || r.key} columns={columns} dataSource={data}
+            pagination={false} styles={TABLE_STYLES} scroll={scrollX ? { x: scrollX } : undefined} />
+          <CompactPagination total={total || data.length} pageSize={10} />
+        </>
+      )}
+      {mode==='zero' && <EmptyZero entity={entity} cta={onCreate?`新增${entity}`:null} onCta={onCreate} />}
+      {mode==='no-match' && <EmptyNoMatch onClear={() => setMode('data')} />}
+      {mode==='error' && <EmptyError onRetry={() => setMode('data')} />}
+      <EmptyStateSwitcher mode={mode} setMode={setMode} />
+    </Card>
+  );
+}
+
+function PlaceholderModule({ name }) {
+  return <Card style={CARD_STYLE}><div style={{ padding:40, textAlign:'center', color:'#9CA3AF' }}>占位:{name}(待填充)</div></Card>;
+}
+
+/* ════════════════ 页面组件(以下由分批 Edit 填充)════════════════ */
+function TranslationNavPage({ targetLang, setTargetLang, openResource }) {
+  const [filterCat, setFilterCat] = useState('dict');
+  const [searchText, setSearchText] = useState('');
+
+  const allItems = DOMAINS.flatMap(d => d.items.map(it => ({ ...it, domain: d.title })));
+  const totalCount = allItems.length;
+
+  const getProgress = (type) => {
+    const rd = RD[type];
+    if (!rd || rd._ph) return { done:0, total:0 };
+    const done = rd.items.reduce((s, it) => s + it.d, 0);
+    const total = rd.items.reduce((s, it) => s + it.t, 0);
+    return { done, total };
+  };
+  const getItemCount = (type) => {
+    const rd = RD[type];
+    if (!rd || rd._ph) return 0;
+    return rd.items.length;
+  };
+
+  const totalDone = allItems.reduce((s, it) => { const p = getProgress(it.type); return s + p.done; }, 0);
+  const totalFields = allItems.reduce((s, it) => { const p = getProgress(it.type); return s + p.total; }, 0);
+  const doneResources = allItems.filter(it => { const p = getProgress(it.type); return p.total > 0 && p.done === p.total; }).length;
+  const pendingResources = totalCount - doneResources;
+
+  const catCounts = { dict:0, page:0, system:0 };
+  allItems.forEach(it => { const m = RES_META[it.type]; if (m) catCounts[m.cat]++; });
+
+  const filteredItems = allItems.filter(it => {
+    const m = RES_META[it.type];
+    if (filterCat !== 'all' && m && m.cat !== filterCat) return false;
+    if (searchText.trim()) {
+      const q = searchText.toLowerCase();
+      return it.name.toLowerCase().includes(q) || (m && m.desc.toLowerCase().includes(q));
+    }
+    return true;
+  });
+
+  return (
+    <Card style={CARD_STYLE} styles={{ body:{ padding:'24px 28px' } }}>
+      {/* Header */}
+      <div className="lp-nav-header">
+        <div>
+          <div className="lp-nav-title">Translation</div>
+          <div className="lp-nav-subtitle">管理所有可翻译资源,跟踪多语言翻译进度</div>
+        </div>
+        <div className="lp-nav-actions">
+          <Input prefix={<SearchOutlined style={{ color:'#9CA3AF' }} />} allowClear
+            placeholder="搜索资源名称..."
+            style={{ width:200 }} value={searchText} onChange={e => setSearchText(e.target.value)} />
+          <Select value={targetLang} onChange={setTargetLang} style={{ width:140 }}
+            prefix={<GlobalOutlined />} options={LANG_OPTS} />
+        </div>
+      </div>
+
+      {/* Filter Tabs */}
+      <div className="lp-filter-bar">
+        <span className={'lp-filter-tab' + (filterCat==='dict' ? ' active' : '')} onClick={() => setFilterCat('dict')}>
+          商品域<span className="tab-count">({catCounts.dict})</span>
+        </span>
+        <span className={'lp-filter-tab' + (filterCat==='page' ? ' active' : '')} onClick={() => setFilterCat('page')}>
+          前端页面<span className="tab-count">({catCounts.page})</span>
+        </span>
+        <span className={'lp-filter-tab' + (filterCat==='system' ? ' active' : '')} onClick={() => setFilterCat('system')}>
+          通知模板<span className="tab-count">({catCounts.system})</span>
+        </span>
+      </div>
+
+      {/* Card Grid */}
+      <div className="lp-card-grid">
+        {filteredItems.map(it => {
+          const meta = RES_META[it.type] || {};
+          const badge = CATEGORY_BADGES[meta.cat] || CATEGORY_BADGES.dict;
+          const prog = getProgress(it.type);
+          const itemCount = getItemCount(it.type);
+          const pct = prog.total > 0 ? Math.round(prog.done / prog.total * 100) : 0;
+          const isPh = it.status === 'placeholder';
+          return (
+            <div key={it.type} className={'lp-res-card' + (isPh ? ' placeholder' : '')} onClick={() => openResource(it.type)}>
+              <div className="lp-res-card-head">
+                <div className="lp-res-card-icon" style={{ background: meta.iconBg || '#F3F4F6', color: meta.iconColor || '#6B7280' }}>
+                  {meta.icon || <FileTextOutlined />}
+                </div>
+                <span className="lp-res-card-name">{it.name}</span>
+                <span className="lp-res-card-badge" style={{ background: badge.bg, color: badge.color }}>{badge.label}</span>
+              </div>
+              {meta.entity && <div><span className="lp-res-card-entity">{meta.entity}</span></div>}
+              <div className="lp-res-card-desc">{meta.desc || '待设计'}</div>
+
+              {/* Arrow */}
+              <div style={{ textAlign:'right', marginTop:4 }}>
+                <RightOutlined style={{ fontSize:11, color:'#7C3AED', opacity:.6 }} className="arrow" />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Bottom Bar */}
+      <div className="lp-bottom-bar">
+        <div className="lp-bottom-bar-item">
+          <GlobalOutlined style={{ color:'#7C3AED' }} />
+          <span>当前语言: en → {targetLang}</span>
+        </div>
+        <div className="lp-bottom-bar-item">
+          <div className="dot" style={{ background:'#16A34A' }} />
+          <span>翻译进度: {totalFields > 0 ? Math.round(totalDone/totalFields*100) : 0}%</span>
+        </div>
+        <div className="lp-bottom-bar-item">
+          <div className="dot" style={{ background:'#7C3AED' }} />
+          <span>自动翻译: 就绪</span>
+        </div>
+        <div className="lp-bottom-bar-item" style={{ marginLeft:'auto', cursor:'pointer', color:'#7C3AED' }}
+          onClick={() => {}}>
+          查看翻译任务 <RightOutlined style={{ fontSize:10 }} />
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function MasterDetailPage({ resType, targetLang, setTargetLang, go }) {
+  const d = RD[resType] || { label:'', items:[], fields:{} };
+  const isPlaceholder = d._ph;
+  const [sel, setSel] = useState(0);
+  const [search, setSearch] = useState('');
+  const langCode = targetLang.toUpperCase();
+  const items = d.items;
+  const cur = items[sel] || items[0];
+  const fields = cur ? (d.fields?.[cur.id] || null) : null;
+  const curPct = cur ? Math.round(cur.d / cur.t * 100) : 0;
+
+  const filtered = items
+    .map((it, i) => ({ it, i }))
+    .filter(({ it }) => {
+      const q = search.trim().toLowerCase();
+      return !q || it.id.toLowerCase().includes(q) || it.name.toLowerCase().includes(q);
+    });
+
+  return (
+    <Card style={CARD_STYLE} styles={{ body:{ padding:20 } }}>
+      <Breadcrumb style={{ marginBottom:12 }} items={[
+        { title: <a onClick={() => go('page-translation-nav')}>Translation</a> },
+        { title: d.label },
+      ]} />
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+        <Space align="center" size={10}>
+          <span style={{ fontSize:18, fontWeight:700 }}>{d.label}翻译</span>
+          {isPlaceholder && <span className="ph-badge" style={{ fontSize:12, padding:'2px 10px' }}>占位 · 待设计</span>}
+          <span style={{ fontSize:12, color:'#6B7280' }}>en → {targetLang}</span>
+        </Space>
+        <Select value={targetLang} onChange={setTargetLang} style={{ width:150 }} options={LANG_OPTS} />
+      </div>
+
+      {isPlaceholder ? (
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+          height:400, border:'2px dashed #E5E7EB', borderRadius:14, background:'#FAFAFA' }}>
+          <InboxOutlined style={{ fontSize:48, color:'#D1D5DB', marginBottom:16 }} />
+          <div style={{ fontSize:16, fontWeight:600, color:'#6B7280', marginBottom:8 }}>该模块产品方案设计中</div>
+          <div style={{ fontSize:13, color:'#9CA3AF', maxWidth:360, textAlign:'center', lineHeight:1.8 }}>
+            翻译内容将在产品方案完成后补充。当前为占位,方便整体规划翻译覆盖范围。
+          </div>
+        </div>
+      ) : (
+        <div className="master-wrap">
+          <div className="master-left">
+            <div className="master-left-head">
+              <Input value={search} onChange={e => setSearch(e.target.value)} allowClear
+                prefix={<SearchOutlined style={{ color:'#9CA3AF' }} />} placeholder="搜索 ID 或名称…" />
+            </div>
+            <div className="master-left-list">
+              {filtered.map(({ it, i }) => {
+                const p = Math.round(it.d / it.t * 100);
+                const done = it.d === it.t;
+                return (
+                  <div key={it.id} className={'res-item' + (i === sel ? ' active' : '')} onClick={() => setSel(i)}>
+                    <div className="res-id">{it.id}</div>
+                    <div className="res-name">{it.name}</div>
+                    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                      <div style={{ flex:1 }}>
+                        <Progress percent={p} showInfo={false} size="small"
+                          strokeColor={done ? '#16A34A' : '#7C3AED'} trailColor="#E5E7EB" />
+                      </div>
+                      <span style={{ fontSize:11, fontWeight:500, whiteSpace:'nowrap', color: done ? '#16A34A' : '#6B7280' }}>{it.d}/{it.t}</span>
+                    </div>
+                  </div>
+                );
+              })}
+              {filtered.length === 0 && <div style={{ padding:'40px 14px', textAlign:'center', color:'#9CA3AF', fontSize:12 }}>未找到匹配项</div>}
+            </div>
+            <div className="master-left-foot">共 {items.length} 项</div>
+          </div>
+
+          <div className="master-right">
+            {!cur ? (
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'#9CA3AF', fontSize:13 }}>请选择左侧资源</div>
+            ) : !fields ? (
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'#9CA3AF', fontSize:13 }}>该项暂无翻译字段数据(原型演示)</div>
+            ) : (
+              <>
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
+                  <span style={{ fontWeight:600, fontSize:15 }}>{cur.id} · {cur.name}</span>
+                  <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8 }}>
+                    <div style={{ width:90 }}>
+                      <Progress percent={curPct} showInfo={false} size="small"
+                        strokeColor={cur.d === cur.t ? '#16A34A' : '#7C3AED'} trailColor="#E5E7EB" />
+                    </div>
+                    <span style={{ fontSize:12, fontWeight:600, color: cur.d === cur.t ? '#16A34A' : '#7C3AED' }}>{cur.d}/{cur.t}</span>
+                  </div>
+                </div>
+
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:18 }}>
+                  {cur.d < cur.t
+                    ? <Button type="primary" icon={<ThunderboltOutlined />}>一键 AI 翻译未完成字段</Button>
+                    : <Tag icon={<CheckCircleOutlined />} color="success" style={{ borderRadius:8, padding:'4px 12px' }}>全部翻译已完成</Tag>}
+                  <Button type="primary" style={{ marginLeft:'auto' }}>保存</Button>
+                </div>
+
+                {fields.map(f => {
+                  const st = STATUS_MAP[f.st] || STATUS_MAP.untranslated;
+                  const isStale = f.st === 'outdated';
+                  return (
+                    <div key={f.k} className={'field-card' + (isStale ? ' outdated' : '')}>
+                      <div className="field-card-head">
+                        <span className="field-card-name">{f.n}</span>
+                        <span className="field-card-key">{f.k}</span>
+                        <span style={{ marginLeft:'auto' }}><StatusTag variant={st.variant}>{st.text}</StatusTag></span>
+                      </div>
+                      {isStale && <Alert type="warning" showIcon style={{ marginBottom:12 }}
+                        message="源文本已变更,当前译文可能与最新内容不一致" />}
+                      <div className="field-card-body">
+                        {f.type === 'image' ? (<>
+                          <div>
+                            <div className="field-col-label">源图片 (EN)</div>
+                            <div style={{ marginTop:4, padding:8, background:'#F9FAFB', borderRadius:8, border:'1px solid #E5E7EB', position:'relative' }}>
+                              <img src={f.s} alt="source" style={{ maxWidth:'100%', maxHeight:120, borderRadius:6, display:'block' }}
+                                onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='block'; }} />
+                              <div style={{ display:'none', color:'#6B7280', fontSize:12 }}>{f.s}</div>
+                              <Button size="small" icon={<UploadOutlined />} style={{ position:'absolute', top:8, right:8 }}>替换</Button>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="field-col-label">翻译图片 ({langCode}){isStale && <span style={{ color:'#D97706' }}> · 旧版本</span>}</div>
+                            {f.r ? (
+                              <div style={{ marginTop:4, padding:8, background: isStale ? '#FFFBEB' : '#F9FAFB', borderRadius:8, border: isStale ? '1px solid #F59E0B' : '1px solid #E5E7EB' }}>
+                                <img src={f.r} alt="translated" style={{ maxWidth:'100%', maxHeight:120, borderRadius:6, display:'block' }}
+                                  onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='block'; }} />
+                                <div style={{ display:'none', color:'#6B7280', fontSize:12 }}>{f.r}</div>
+                              </div>
+                            ) : (
+                              <div style={{ marginTop:4, padding:20, background:'#F9FAFB', borderRadius:8, border:'1px dashed #D1D5DB', textAlign:'center', color:'#9CA3AF', fontSize:13 }}>
+                                <UploadOutlined style={{ fontSize:20, marginBottom:4, display:'block' }} />点击上传翻译图片
+                              </div>
+                            )}
+                          </div>
+                        </>) : f.type === 'rich_text' ? (<>
+                          <div>
+                            <div className="field-col-label">源文本 (EN) <Tag color="purple" style={{ marginLeft:4, fontSize:11 }}>富文本</Tag></div>
+                            <div style={{ marginTop:4, border:'1px solid #E5E7EB', borderRadius:8, overflow:'hidden' }}>
+                              <div style={{ display:'flex', gap:2, padding:'6px 10px', background:'#F3F4F6', borderBottom:'1px solid #E5E7EB' }}>
+                                <Button size="small" type="text" style={{ fontWeight:700, minWidth:28 }}>B</Button>
+                                <Button size="small" type="text" style={{ fontStyle:'italic', minWidth:28 }}>I</Button>
+                                <Button size="small" type="text" style={{ textDecoration:'underline', minWidth:28 }}>U</Button>
+                                <div style={{ width:1, background:'#D1D5DB', margin:'2px 4px' }} />
+                                <Button size="small" type="text">H1</Button>
+                                <Button size="small" type="text">H2</Button>
+                                <div style={{ width:1, background:'#D1D5DB', margin:'2px 4px' }} />
+                                <Button size="small" type="text">UL</Button>
+                                <Button size="small" type="text">OL</Button>
+                              </div>
+                              <div style={{ padding:'12px 14px', minHeight:80, fontSize:13, lineHeight:1.7 }}
+                                dangerouslySetInnerHTML={{ __html: f.s }} />
+                            </div>
+                          </div>
+                          <div>
+                            <div className="field-col-label">翻译 ({langCode}) <Tag color="purple" style={{ marginLeft:4, fontSize:11 }}>富文本</Tag>{isStale && <span style={{ color:'#D97706' }}> · 旧译文</span>}</div>
+                            <div style={{ marginTop:4, border: isStale ? '1px solid #F59E0B' : '1px solid #E5E7EB', borderRadius:8, overflow:'hidden', background: isStale ? '#FFFBEB' : undefined }}>
+                              <div style={{ display:'flex', gap:2, padding:'6px 10px', background: isStale ? '#FEF3C7' : '#F3F4F6', borderBottom: isStale ? '1px solid #F59E0B' : '1px solid #E5E7EB' }}>
+                                <Button size="small" type="text" style={{ fontWeight:700, minWidth:28 }}>B</Button>
+                                <Button size="small" type="text" style={{ fontStyle:'italic', minWidth:28 }}>I</Button>
+                                <Button size="small" type="text" style={{ textDecoration:'underline', minWidth:28 }}>U</Button>
+                                <div style={{ width:1, background:'#D1D5DB', margin:'2px 4px' }} />
+                                <Button size="small" type="text">H1</Button>
+                                <Button size="small" type="text">H2</Button>
+                                <div style={{ width:1, background:'#D1D5DB', margin:'2px 4px' }} />
+                                <Button size="small" type="text">UL</Button>
+                                <Button size="small" type="text">OL</Button>
+                              </div>
+                              {f.r ? (
+                                <div style={{ padding:'12px 14px', minHeight:80, fontSize:13, lineHeight:1.7 }}
+                                  dangerouslySetInnerHTML={{ __html: f.r }} />
+                              ) : (
+                                <div style={{ padding:'12px 14px', minHeight:80, color:'#9CA3AF', fontSize:13 }}>点击输入翻译或使用 AI 翻译</div>
+                              )}
+                            </div>
+                          </div>
+                        </>) : (<>
+                          <div>
+                            <div className="field-col-label">源文本 (EN)</div>
+                            <Input.TextArea defaultValue={f.s} autoSize={{ minRows:1 }} />
+                          </div>
+                          <div>
+                            <div className="field-col-label">翻译 ({langCode}){isStale && <span style={{ color:'#D97706' }}> · 旧译文</span>}</div>
+                            <Input.TextArea defaultValue={f.r} autoSize={{ minRows:1 }}
+                              placeholder="点击输入翻译或使用 AI 翻译"
+                              style={isStale ? { borderColor:'#F59E0B', background:'#FFFBEB' } : undefined} />
+                          </div>
+                        </>)}
+                      </div>
+                      <div style={{ display:'flex', justifyContent:'flex-end', marginTop:12, gap:8 }}>
+                        {f.type === 'image' ? (
+                          <Button size="small" icon={<UploadOutlined />}
+                            type={f.st === 'untranslated' ? 'primary' : 'default'}>上传图片</Button>
+                        ) : (
+                          <Button size="small" icon={<ThunderboltOutlined />}
+                            type={(f.st === 'untranslated' || isStale) ? 'primary' : 'default'}>AI 翻译</Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function KeyManagementPage({ openDialog }) {
+  const data = [
+    { key:'product.title', type:'业务字段', fieldType:'text', src:'商品中心', res:'product(商品)', field:'title(标题)', status:'已激活' },
+    { key:'product.description', type:'业务字段', fieldType:'rich_text', src:'商品中心', res:'product(商品)', field:'description(描述)', status:'已激活' },
+    { key:'product.short_description', type:'业务字段', fieldType:'text', src:'商品中心', res:'product(商品)', field:'short_description(短描述)', status:'已激活' },
+    { key:'category.name', type:'业务字段', fieldType:'text', src:'类目中心', res:'category(类目)', field:'name(名称)', status:'已激活' },
+    { key:'home.hero.image', type:'页面文案', fieldType:'image', src:'首页', res:'', field:'', status:'已激活' },
+    { key:'home.hero.title', type:'页面文案', fieldType:'text', src:'首页', res:'', field:'', status:'已激活' },
+    { key:'cart.header.count', type:'页面文案', fieldType:'text', src:'购物车', res:'', field:'', status:'已激活' },
+  ];
+  const columns = [
+    { title:'Key', dataIndex:'key', width:220, render:v => <code className="lp-code">{v}</code> },
+    { title:'Key类型', dataIndex:'type', width:100, render:v => <StatusTag variant={v==='业务字段'?'on':'sale'}>{v}</StatusTag> },
+    { title:'字段类型', dataIndex:'fieldType', width:100, render:v => <Tag>{v}</Tag> },
+    { title:'来源/归属', dataIndex:'src', width:110 },
+    { title:'资源类型', dataIndex:'res', width:140, render:v => v || '—' },
+    { title:'字段', dataIndex:'field', width:160, render:v => v || '—' },
+    { title:'状态', dataIndex:'status', width:90, render:v => <StatusTag variant="on">{v}</StatusTag> },
+    { title:'操作', key:'op', width:90, fixed:'right', render:() => <Button size="small" onClick={() => openDialog('edit-key')}>编辑</Button> },
+  ];
+  const filters = [
+    <Input key="s" prefix={<SearchOutlined style={{ color:'#9CA3AF' }} />} allowClear placeholder="搜索 Key 名称" style={{ width:220 }} />,
+    <Select key="t" defaultValue="" style={{ width:140 }} options={[{ value:'', label:'全部类型' },{ value:'b', label:'业务字段' },{ value:'p', label:'页面文案' }]} />,
+    <Select key="st" defaultValue="" style={{ width:140 }} options={[{ value:'', label:'全部状态' },{ value:'1', label:'已激活' },{ value:'2', label:'未激活' },{ value:'3', label:'已废弃' }]} />,
+    <Button key="q" type="primary" icon={<SearchOutlined />}>查询</Button>,
+  ];
+  const headActions = (
+    <Space>
+      <Button type="primary" icon={<PlusOutlined />} onClick={() => openDialog('register-key')}>注册Key</Button>
+      <Button icon={<ImportOutlined />} onClick={() => openDialog('batch-import')}>批量导入</Button>
+    </Space>
+  );
+  return <ListPage title="Key管理" desc="注册和管理可翻译字段(Key),只有注册的字段才会进入翻译流程"
+    headActions={headActions}
+    kpis={[{ num:23, label:'总Key数' },{ num:20, label:'已激活' },{ num:2, label:'未激活' },{ num:1, label:'已废弃' }]}
+    filters={filters} columns={columns} data={data} total={23} entity="Key" scrollX="max-content" />;
+}
+
+function GlossaryListPage({ go, openDialog }) {
+  const data = [
+    { id:'Rolex', word:'Rolex', rule:'禁译词', lang:{ locked:true }, updated:'2026-05-10', note:'品牌名' },
+    { id:'Handbag', word:'Handbag', rule:'强制术语', lang:{ done:5, total:5 }, updated:'2026-05-08', note:'品类名' },
+    { id:'Leather', word:'Leather', rule:'强制术语', lang:{ done:3, total:5 }, updated:'2026-05-07', note:'材质术语' },
+  ];
+  const columns = [
+    { title:'源词(英文)', dataIndex:'word', render:v => <b>{v}</b> },
+    { title:'规则', dataIndex:'rule', render:v => <StatusTag variant={v==='禁译词'?'req':'pending'}>{v}</StatusTag> },
+    { title:'已翻译语言', dataIndex:'lang', render:v => v.locked
+        ? <span><span style={{ color:'#9CA3AF' }}>—</span> <span style={{ fontSize:11, color:'#9CA3AF' }}>自动锁定</span></span>
+        : <span style={{ color: v.done===v.total ? '#16A34A' : '#D97706', fontWeight:500 }}>{v.done}/{v.total} 个语言</span> },
+    { title:'更新时间', dataIndex:'updated' },
+    { title:'备注', dataIndex:'note' },
+    { title:'操作', key:'op', render:() => (
+      <Space size={6}>
+        <Button size="small" onClick={() => go('page-glossary-detail')}>详情</Button>
+        <Button size="small" danger>删除</Button>
+      </Space>
+    ) },
+  ];
+  const filters = [
+    <Input key="s" prefix={<SearchOutlined style={{ color:'#9CA3AF' }} />} allowClear placeholder="搜索术语" style={{ width:220 }} />,
+    <Select key="r" defaultValue="" style={{ width:140 }} options={[{ value:'', label:'全部规则' },{ value:'1', label:'禁译词' },{ value:'2', label:'强制术语' }]} />,
+    <Select key="l" defaultValue="" style={{ width:150 }} options={[{ value:'', label:'全部语言' },{ value:'1', label:'全部已翻译' },{ value:'2', label:'部分未翻译' },{ value:'3', label:'均未翻译' }]} />,
+    <Button key="q" type="primary" icon={<SearchOutlined />}>查询</Button>,
+  ];
+  const headActions = (
+    <Space>
+      <Button type="primary" icon={<PlusOutlined />} onClick={() => openDialog('add-term')}>添加术语</Button>
+      <Button icon={<ImportOutlined />} onClick={() => openDialog('import-term')}>导入术语</Button>
+    </Space>
+  );
+  return <ListPage title="术语表" desc="管理专业术语和品牌名称的标准翻译,支持多语言扩展"
+    headActions={headActions}
+    kpis={[{ num:112, label:'总术语数' },{ num:34, label:'禁译词' },{ num:112, label:'强制术语' }]}
+    filters={filters} columns={columns} data={data} total={112} entity="术语" />;
+}
+
+function GlossaryDetailPage({ go, openDialog }) {
+  const langs = [
+    { id:'fr', lang:'法语', code:'fr', tr:'Rolex', status:'已翻译', updated:'2026-05-08' },
+    { id:'de', lang:'德语', code:'de', tr:'Rolex', status:'已翻译', updated:'2026-05-07' },
+    { id:'es', lang:'西班牙语', code:'es', tr:'Rolex', status:'已翻译', updated:'2026-05-06' },
+  ];
+  const columns = [
+    { title:'目标语言', dataIndex:'lang' },
+    { title:'语言代码', dataIndex:'code', render:v => <code className="lp-code">{v}</code> },
+    { title:'翻译', dataIndex:'tr', render:v => <b>{v}</b> },
+    { title:'状态', dataIndex:'status', render:v => <StatusTag variant="on">{v}</StatusTag> },
+    { title:'更新时间', dataIndex:'updated' },
+    { title:'操作', key:'op', render:() => <Button size="small" disabled>编辑</Button> },
+  ];
+  return (
+    <Card style={CARD_STYLE}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:16, marginBottom:18 }}>
+        <div>
+          <div style={{ fontSize:20, fontWeight:700, marginBottom:6 }}>术语详情 · Rolex</div>
+          <div style={{ color:'#6B7280', fontSize:13 }}>禁译词在所有目标语言中保留原文</div>
+        </div>
+        <Space>
+          <Button onClick={() => go('page-glossary-list')}>返回列表</Button>
+          <Button onClick={() => openDialog('edit-term')}>编辑源词</Button>
+        </Space>
+      </div>
+      <div className="lp-detail">
+        <div className="dl">源词</div><div className="dv" style={{ fontWeight:600 }}>Rolex</div>
+        <div className="dl">规则</div><div className="dv"><StatusTag variant="req">禁译词</StatusTag></div>
+        <div className="dl">使用场景</div><div className="dv">品牌名，所有语言保留原文不翻译</div>
+        <div className="dl">创建时间</div><div className="dv">2026-04-15 10:00</div>
+      </div>
+      <h4 className="lp-section">各语言翻译</h4>
+      <Alert type="info" showIcon style={{ marginBottom:16 }}
+        message="禁译词 — 保留原文"
+        description="该术语为禁译词，系统自动在所有目标语言中保留源词原文，无需人工翻译。如需改为可翻译术语，请点击「编辑源词」修改规则类型。" />
+      <Table rowKey="id" columns={columns} dataSource={langs} pagination={false} styles={TABLE_STYLES} />
+      <OpLog types={['创建','编辑']} />
+    </Card>
+  );
+}
+
+function AddTermModal({ open, onClose }) {
+  const [rule, setRule] = useState('');
+  const isNoTranslate = rule === '禁译词';
+  return (
+    <Modal title="添加术语" open={open} onCancel={onClose} closable={false} maskClosable={false} centered width={540}
+      footer={[<Button key="c" onClick={onClose}>取消</Button>, <Button key="s" type="primary" onClick={onClose}>保存</Button>]}>
+      <FormRow label="源词" required><Input placeholder="输入源术语" /></FormRow>
+      <FormRow label="源语言" required>
+        <Select style={{ width:'100%' }} defaultValue="en"
+          options={[{ value:'en', label:'英语 (en)' },{ value:'ja', label:'日语 (ja)' },{ value:'fr', label:'法语 (fr)' },{ value:'de', label:'德语 (de)' },{ value:'es', label:'西班牙语 (es)' }]} />
+      </FormRow>
+      <FormRow label="规则" required>
+        <Select value={rule || undefined} onChange={setRule} style={{ width:'100%' }} placeholder="请选择规则"
+          options={[{ value:'禁译词', label:'禁译词' },{ value:'强制术语', label:'强制术语' }]} />
+      </FormRow>
+      <FormRow label="备注"><Input placeholder="可选" /></FormRow>
+      {isNoTranslate
+        ? <Alert type="info" showIcon style={{ marginTop:8 }} message="禁译词说明"
+            description="保存后系统将自动在所有目标语言中保留源词原文。" />
+        : <div style={{ marginTop:8 }}>
+            <h4 className="lp-section-purple">各语言翻译</h4>
+            <FormRow label="法语 (fr)"><Input placeholder="翻译" /></FormRow>
+            <FormRow label="德语 (de)"><Input placeholder="翻译" /></FormRow>
+            <FormRow label="西班牙语 (es)"><Input placeholder="翻译" /></FormRow>
+          </div>}
+    </Modal>
+  );
+}
+
+function ImportTermModal({ open, onClose }) {
+  return (
+    <Modal title="导入术语" open={open} onCancel={onClose} closable={false} maskClosable={false} centered width={480}
+      footer={[<Button key="c" onClick={onClose}>取消</Button>, <Button key="s" type="primary" onClick={onClose}>开始导入</Button>]}>
+      <Upload.Dragger name="file" multiple={false} accept=".xlsx,.csv" beforeUpload={() => false}>
+        <p className="ant-upload-drag-icon"><InboxOutlined style={{ color:'#7C3AED' }} /></p>
+        <p className="ant-upload-text">点击或拖拽文件到此处上传</p>
+        <p className="ant-upload-hint">支持 .xlsx、.csv</p>
+      </Upload.Dragger>
+    </Modal>
+  );
+}
+
+function RegisterKeyModal({ open, onClose }) {
+  return (
+    <Modal title="注册Key" open={open} onCancel={onClose} closable={false} maskClosable={false} centered width={540}
+      footer={[<Button key="c" onClick={onClose}>取消</Button>, <Button key="s" type="primary" onClick={onClose}>确认注册</Button>]}>
+      <FormRow label="Key类型" required>
+        <Select value="self" style={{ width:'100%' }}
+          options={[{ value:'business', label:'业务字段（通过API自动注册）', disabled:true },{ value:'self', label:'页面文案' }]} />
+      </FormRow>
+      <FormRow label="归属页面" required>
+        <Select style={{ width:'100%' }} defaultValue="商详页"
+          options={['商详页','登录注册','首页','Collection','购物车','结账页','订单中心','用户中心','搜索','导航栏','帮助 / 错误页'].map(p => ({ value:p, label:p }))} />
+      </FormRow>
+      <FormRow label="Key名称" required helper={'完整Key = 页面前缀 + 名称，如 home.hero.title'}>
+        <Input placeholder="如 hero.title, header.count" />
+      </FormRow>
+      <FormRow label="字段显示名" required><Input placeholder="如 Banner 标题" /></FormRow>
+      <FormRow label="字段类型" required>
+        <Select style={{ width:'100%' }} defaultValue="text"
+          options={[{ value:'text', label:'text (文本)' },{ value:'image', label:'image (图片)' },{ value:'rich_text', label:'rich_text (富文本)' }]} />
+      </FormRow>
+      <FormRow label="源文本" required><Input placeholder="输入源语言原文" /></FormRow>
+      <FormRow label="备注"><Input placeholder="选填" /></FormRow>
+    </Modal>
+  );
+}
+
+function BatchImportModal({ open, onClose }) {
+  return (
+    <Modal title="批量导入Key" open={open} onCancel={onClose} closable={false} maskClosable={false} centered width={540}
+      footer={[<Button key="c" onClick={onClose}>取消</Button>, <Button key="s" type="primary" onClick={onClose}>开始导入</Button>]}>
+      <div style={{ marginBottom:8 }}>
+        <Button type="link" icon={<DownloadOutlined />} style={{ padding:0 }}>下载导入模板(.xlsx)</Button>
+      </div>
+      <FormRow label="导入方式">
+        <Select style={{ width:'100%' }} defaultValue="xlsx"
+          options={[{ value:'xlsx', label:'Excel文件 (.xlsx)' },{ value:'csv', label:'CSV文件' },{ value:'json', label:'JSON文件' }]} />
+      </FormRow>
+      <FormRow label="文件">
+        <Upload beforeUpload={() => false} maxCount={1}><Button icon={<ImportOutlined />}>选择文件</Button></Upload>
+      </FormRow>
+      <Alert type="info" showIcon style={{ marginTop:8 }} message="模板说明"
+        description={<div style={{ fontSize:12, lineHeight:1.7 }}>必填列:Key名称、Key类型(业务字段/页面文案)<br />选填列:来源/归属、实体类型、字段名、源文本、备注</div>} />
+    </Modal>
+  );
+}
+
+function EditKeyModal({ open, onClose }) {
+  return (
+    <Modal title="编辑Key" open={open} onCancel={onClose} closable={false} maskClosable={false} centered width={480}
+      footer={[<Button key="c" onClick={onClose}>取消</Button>, <Button key="s" type="primary" onClick={onClose}>保存</Button>]}>
+      <FormRow label="Key名称"><Input value="product.title" disabled /></FormRow>
+      <FormRow label="字段显示名" required><Input defaultValue="商品标题" /></FormRow>
+      <FormRow label="字段类型" required>
+        <Select style={{ width:'100%' }} defaultValue="text"
+          options={[{ value:'text', label:'text (文本)' },{ value:'image', label:'image (图片)' },{ value:'rich_text', label:'rich_text (富文本)' }]} />
+      </FormRow>
+      <FormRow label="来源" required>
+        <Select style={{ width:'100%' }} defaultValue="商品中心"
+          options={[{ value:'商品中心', label:'商品中心' },{ value:'类目中心', label:'类目中心' }]} />
+      </FormRow>
+      <FormRow label="状态" required>
+        <Select style={{ width:'100%' }} defaultValue="已激活"
+          options={[{ value:'已激活', label:'已激活' },{ value:'未激活', label:'未激活' },{ value:'已废弃', label:'已废弃' }]} />
+      </FormRow>
+      <FormRow label="备注"><Input placeholder="选填" /></FormRow>
+    </Modal>
+  );
+}
+
+function EditTermModal({ open, onClose }) {
+  return (
+    <Modal title="编辑术语" open={open} onCancel={onClose} closable={false} maskClosable={false} centered width={480}
+      footer={[<Button key="c" onClick={onClose}>取消</Button>, <Button key="s" type="primary" onClick={onClose}>保存</Button>]}>
+      <FormRow label="源词" required><Input defaultValue="Handbag" /></FormRow>
+      <FormRow label="规则" required>
+        <Select style={{ width:'100%' }} defaultValue="强制术语"
+          options={[{ value:'禁译词', label:'禁译词' },{ value:'强制术语', label:'强制术语' }]} />
+      </FormRow>
+      <FormRow label="备注"><Input defaultValue="品类名,翻译时强制匹配" /></FormRow>
+    </Modal>
+  );
+}
+
+function Dialogs({ dialog, closeDialog }) {
+  return (
+    <>
+      <AddTermModal open={dialog === 'add-term'} onClose={closeDialog} />
+      <ImportTermModal open={dialog === 'import-term'} onClose={closeDialog} />
+      <RegisterKeyModal open={dialog === 'register-key'} onClose={closeDialog} />
+      <BatchImportModal open={dialog === 'batch-import'} onClose={closeDialog} />
+      <EditKeyModal open={dialog === 'edit-key'} onClose={closeDialog} />
+      <EditTermModal open={dialog === 'edit-term'} onClose={closeDialog} />
+    </>
+  );
+}
+
+/* ════════════════ App ════════════════ */
+const PAGE_TITLE = {
+  'page-translation-nav':'Translation', 'page-key-management':'Key管理', 'page-glossary-list':'术语表',
+};
+const ACTIVE_KEY = {
+  'page-translation-nav':'translation-nav', 'page-translation-master':'translation-nav',
+  'page-key-management':'key-management', 'page-glossary-list':'glossary-list', 'page-glossary-detail':'glossary-list',
+};
+const MENU_TO_PAGE = {
+  'translation-nav':'page-translation-nav', 'key-management':'page-key-management', 'glossary-list':'page-glossary-list',
+};
+
+function App() {
+  const [currentPage, setCurrentPage] = useState('page-translation-nav');
+  const [resType, setResType] = useState('product');
+  const [targetLang, setTargetLang] = useState('fr');
+  const [dialog, setDialog] = useState(null);
+
+  const go = (p) => { setCurrentPage(p); window.scrollTo(0, 0); };
+  const openResource = (type) => { setResType(type); go('page-translation-master'); };
+  const openDialog = (k) => setDialog(k);
+  const closeDialog = () => setDialog(null);
+
+  const activeKey = ACTIVE_KEY[currentPage];
+  const subLabel = (text, key) => <span style={{ fontWeight: activeKey === key ? 600 : 400 }}>{text}</span>;
+  const menuItems = [
+    { key:'lang', icon:<TranslationOutlined />, label:'多语言管理', children:[
+      { key:'translation-nav', icon:<UnorderedListOutlined />, label: subLabel('Translation','translation-nav') },
+      { key:'key-management', icon:<KeyOutlined />, label: subLabel('Key管理','key-management') },
+      { key:'glossary-list', icon:<BookOutlined />, label: subLabel('术语表','glossary-list') },
+    ]},
+  ];
+
+  let breadcrumb = PAGE_TITLE[currentPage] || '';
+  if (currentPage === 'page-translation-master') breadcrumb = 'Translation / ' + (RD[resType] ? RD[resType].label : '');
+  if (currentPage === 'page-glossary-detail') breadcrumb = '术语表 / 术语详情';
+
+  return (
+    <ConfigProvider theme={looplyTheme}>
+      <Layout style={{ height: '100vh' }}>
+        <Layout.Header style={{ borderBottom:'1px solid #E5E7EB', display:'flex', alignItems:'center' }}>
+          <img src={LOGO_SRC} alt="Looply" style={{ height: 32, display:'block' }} />
+          <div style={{ width:1, height:20, background:'#E5E7EB', margin:'0 16px' }} />
+          <span style={{ fontSize:14, fontWeight:500, color:'#6B7280' }}>多语言管理后台</span>
+          <span style={{ marginLeft:'auto', color:'#9CA3AF', fontSize:13 }}>{breadcrumb}</span>
+        </Layout.Header>
+        <Layout>
+          <Layout.Sider width={220} theme="light" style={SIDER_STYLE}>
+            <Menu mode="inline" items={menuItems} selectedKeys={[activeKey]} defaultOpenKeys={['lang']}
+              style={{ borderInlineEnd:'none' }}
+              onClick={({ key }) => { if (MENU_TO_PAGE[key]) go(MENU_TO_PAGE[key]); }} />
+          </Layout.Sider>
+          <Layout.Content style={{ padding:28, overflow:'auto' }}>
+            {currentPage==='page-translation-nav' && <TranslationNavPage targetLang={targetLang} setTargetLang={setTargetLang} openResource={openResource} />}
+            {currentPage==='page-translation-master' && <MasterDetailPage resType={resType} targetLang={targetLang} setTargetLang={setTargetLang} go={go} />}
+            {currentPage==='page-key-management' && <KeyManagementPage openDialog={openDialog} />}
+            {currentPage==='page-glossary-list' && <GlossaryListPage go={go} openDialog={openDialog} />}
+            {currentPage==='page-glossary-detail' && <GlossaryDetailPage go={go} openDialog={openDialog} />}
+            <Dialogs dialog={dialog} closeDialog={closeDialog} />
+          </Layout.Content>
+        </Layout>
+      </Layout>
+    </ConfigProvider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
