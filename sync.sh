@@ -156,18 +156,31 @@ sync_files() {
             [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/"
         done
 
-        # 交付包 - zip
-        for f in "$SOURCE_DIR"/*交付开发*.zip; do
-            [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/"
-        done
-
-        # 核心差异汇总 - md（交付包内）
-        for delivery_dir in "$SOURCE_DIR"/交付开发*; do
-            if [ -d "$delivery_dir" ]; then
-                for f in "$delivery_dir"/*核心差异*.md; do
-                    [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/"
-                done
+        # 交付包 - 自动从文件夹打 zip 并同步
+        for delivery_dir in "$SOURCE_DIR"/*交付开发*; do
+            [ -d "$delivery_dir" ] || continue
+            DIRNAME=$(basename "$delivery_dir")
+            ZIP_PATH="$REPO_DIR/$TARGET/$DIRNAME.zip"
+            # 检查文件夹内任一文件是否比 zip 更新
+            NEED_REZIP=false
+            if [ ! -f "$ZIP_PATH" ]; then
+                NEED_REZIP=true
+            else
+                while IFS= read -r -d '' f; do
+                    if [ "$f" -nt "$ZIP_PATH" ]; then
+                        NEED_REZIP=true
+                        break
+                    fi
+                done < <(find "$delivery_dir" -type f -print0)
             fi
+            if [ "$NEED_REZIP" = true ]; then
+                echo -e "  ${GREEN}打包${NC}: $DIRNAME.zip"
+                (cd "$SOURCE_DIR" && zip -r -q "$ZIP_PATH" "$DIRNAME/")
+            fi
+            # 核心差异汇总 - md
+            for f in "$delivery_dir"/*核心差异*.md; do
+                [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/"
+            done
         done
     done
 
