@@ -1,8 +1,8 @@
 # Looply 地址库管理模块 PRD
 
-**文档版本**：v1.6
+**文档版本**：v1.5
 **创建日期**：2026-05-09
-**更新日期**：2026-06-25
+**更新日期**：2026-06-11
 **产品负责人**：产品团队
 **目标上线**：MVP 阶段
 **原型版本**：地址库管理后台原型 v5.1-antd
@@ -231,7 +231,6 @@ Looply 是面向美国市场的跨境二手奢侈品电商平台。地址库管�
 - 表单提交时前后端双重校验（前端即时反馈，后端安全兜底）
 - 编辑模式下回填已有数据，address_line1 不再触发 Autocomplete（除非用户清空重新输入）
 - 每用户最多 20 条地址，达到上限时新增入口置灰并提示
-- **浏览器原生自动填充支持**：每个输入框需标注标准 HTML `autocomplete` 属性，让 Chrome/Safari 等浏览器的原生地址填充正常工作（详见 2.1.8）。其中 address_line1 因挂载 Google Autocomplete，需主动关闭原生填充以避免两个下拉叠加打架
 
 **异常处理**：
 
@@ -422,7 +421,7 @@ Looply 是面向美国市场的跨境二手奢侈品电商平台。地址库管�
 | state_province | 是 | 2 | 大写英文字母 | 提交 | 提交 |
 | postal_code | 是 | 5-10 | 数字、连字符 | 失焦 | 提交 |
 
-> 单字段格式校验全部通过后，追加一步 **State↔ZIP 交叉硬校验**：以 postal_code 反查邮编映射表（postal_code_mapping），确认其对应的 state_code 与用户所选 state_province 一致，不一致则返回 "This ZIP Code does not match the selected state"。该校验仅对手动输入地址生效，Autocomplete 选中填充的地址豁免；被浏览器原生自动填充进来的字段（见 2.1.8）按"手动输入"处理，正常触发本校验；邮编映射表导入期间降级为不校验、允许通过。前后端均执行（前端失焦/提交时即时反馈，后端提交时兜底）。
+> 单字段格式校验全部通过后，追加一步 **State↔ZIP 交叉硬校验**：以 postal_code 反查邮编映射表（postal_code_mapping），确认其对应的 state_code 与用户所选 state_province 一致，不一致则返回 "This ZIP Code does not match the selected state"。该校验仅对手动输入地址生效，Autocomplete 选中填充的地址豁免；邮编映射表导入期间降级为不校验、允许通过。前后端均执行（前端失焦/提交时即时反馈，后端提交时兜底）。
 
 安全性考虑：
 - 字符集白名单限制，不允许 HTML 标签字符（防 XSS）
@@ -561,57 +560,6 @@ Looply 是面向美国市场的跨境二手奢侈品电商平台。地址库管�
 **UI 关联**：
 - PC 端：结算页-交互稿-v1.pen（待补充配送限制校验页面）
 - APP 端：移动端-交互稿-v1.pen（待补充）
-
-
-#### 2.1.8 浏览器原生自动填充（机制型）
-
-**功能描述**：让浏览器内置的地址自动填充能力（Chrome Autofill、Safari AutoFill 等）在地址表单上正常工作。这是浏览器自带能力，**不调用任何 API、无后端成本**，本质是给表单输入框标注正确的 HTML 语义属性，让浏览器识别每个字段的含义并回填用户在浏览器中已保存的地址。与 Google Places Autocomplete（2.1.5，应用自建补全）是两套独立机制，需明确区分、协同共存。
-
-**与 Google Autocomplete 的区别**：
-
-| 维度 | 浏览器原生自动填充（本节） | Google Places Autocomplete（2.1.5） |
-|------|--------------------------|-----------------------------------|
-| 实现方 | 浏览器内置，前端只需标注属性 | 应用集成 Google Places API |
-| 数据源 | 用户在浏览器中保存的地址 | Google 地点库 |
-| 触发与展示 | 聚焦/输入时浏览器弹原生下拉 | 输入 3+ 字符后应用弹候选半屏弹窗 |
-| 成本 | 零 | 计费（见 3.6） |
-| 覆盖字段 | 姓名、电话、city、state、zip 等全部字段 | 主要服务 address_line1 街道补全 |
-
-**实现要点 —— 字段属性映射**：
-
-前端为每个输入框标注标准 `autocomplete` 属性。姓名已拆分为 first/last，使用拆分语义值，不得使用合并的 `name`：
-
-| 表单字段 | `autocomplete` 值 | 说明 |
-|----------|-------------------|------|
-| first_name | `given-name` | 名（拆分语义，禁用 `name` 避免整全名灌入单框） |
-| last_name | `family-name` | 姓 |
-| phone | `tel` | 电话 |
-| address_line1 | `off` | **关闭原生填充**，让位给 Google Autocomplete，避免两个下拉叠加（详见下方防冲突） |
-| address_line2 | `address-line2` | 公寓/套房号 |
-| city | `address-level2` | 城市 |
-| state | `address-level1` | 州 |
-| postal_code | `postal-code` | 邮编 |
-| 国家（如展示） | `country` | 国家代码 |
-
-**防冲突策略（与 Google Autocomplete 协同）**：
-
-两者都挂在 address_line1 同一输入框上时会打架（浏览器原生下拉 + 应用候选弹窗同时弹出，用户分不清点哪个，且原生填整套地址可能与 Google 选中结果冲突）。处置原则是**分字段处理，而非二选一**：
-
-1. **address_line1 关闭原生填充**：设 `autocomplete="off"`（Google Places 官方文档建议做法）。若个别浏览器版本仍弹原生下拉，可改用 Chrome 不识别的占位值（如 `autocomplete="new-password"`）强制压制。
-2. **其余字段保留原生填充**：姓名、电话、city、state、zip 照常标注标准属性，让浏览器原生填充正常工作。
-3. 用户从 Google 候选选中地址后，应用回填 city/state/zip 等结构化字段，与原生填充结果以**用户最终可见输入为准**。
-
-**billing 地址区分**：同页同时存在收货与账单地址时，账单字段加 `section-billing` 前缀（如 `autocomplete="section-billing given-name"`），避免浏览器把收货人与账单人混填。
-
-**校验口径**：被浏览器原生填充进来的字段，既非 Google Autocomplete 选中、也非纯手敲，按现有规则归入"手动输入"分支，正常触发 State↔ZIP 交叉硬校验（浏览器保存的地址通常合法，一般可通过）。详见 2.1.4 校验说明。
-
-**异常处理**：
-
-| 异常场景 | 处理方式 |
-|----------|----------|
-| 浏览器未保存任何地址 | 无原生下拉弹出，不影响手动输入与 Google Autocomplete |
-| 个别浏览器忽略 address_line1 的 `off` 仍弹原生下拉 | 改用浏览器不识别的占位值强制压制 |
-| 原生填充字段与 Google 选中结果不一致 | 以用户最终可见输入为准，不做额外拦截 |
 
 
 ---
@@ -962,7 +910,7 @@ MVP 阶段不依赖：Address Validation API、USPS 邮编数据库、Loqate。
 
 ### 4.1 MVP 范围总结
 
-- **C端**：美国地址表单 + Google Autocomplete + 浏览器原生自动填充（属性标注）+ 地址簿 CRUD + 基础格式校验 + State↔ZIP 硬校验 + 结算页配送限制校验 + 前端 i18n（en-US / es-US）
+- **C端**：美国地址表单 + Google Autocomplete + 地址簿 CRUD + 基础格式校验 + State↔ZIP 硬校验 + 结算页配送限制校验 + 前端 i18n（en-US / es-US）
 - **后台**：国家地址配置（前端展示字段统一管理）+ 行政区划管理（只读 + 批量导入）+ 配送限制管理（固定规则 + 自定义规则）+ 国家邮编管理（只读 + 批量导入）
 - **数据设计**：超集字段设计 + place_id 存储预留 + verified 字段预留 + 后端校验规则表 + 配送限制规则表 + 邮编映射表
 

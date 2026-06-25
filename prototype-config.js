@@ -15,5 +15,5 @@ var PROTOTYPE_CONFIG = {
   'logistics':    'docs-物流管理/原型/looply-物流管理后台原型-v5.10-antd.html',
   'social_share': 'docs-社媒分享管理/原型/looply-社媒分享管理-antd-原型-v1.2.html',
   'subscription': 'docs-订阅管理/原型/looply-订阅管理-antd-原型-v2.html',
-  '地址库管理':        'docs-地址库管理/原型/looply-地址库管理后台原型-v5-antd.html',
+  '地址库管理':        'docs-地址库管理/原型/looply-地址库管理后台原型-v5.1-antd.html',
 };
