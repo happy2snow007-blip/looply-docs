@@ -352,7 +352,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 ---
 
-## 三、需求详细描述
+## 三、C端需求详细描述
 
 ### 3.1 结算页（Checkout Page）
 
