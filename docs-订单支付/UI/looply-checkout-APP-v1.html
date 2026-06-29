@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>looply APP Checkout</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0f172a;color:#e2e8f0;line-height:1.6}
+
+/* Page header */
+.page-header{padding:32px 40px 24px;max-width:1200px;margin:0 auto}
+.page-header h1{font-size:22px;font-weight:700;color:#fff;margin-bottom:4px}
+.page-header .meta{font-size:13px;color:#94a3b8}
+
+/* Layout */
+.layout{display:flex;gap:32px;max-width:1200px;margin:0 auto;padding:0 40px 60px;align-items:flex-start}
+
+/* Phone column */
+.phone-col{flex-shrink:0;position:sticky;top:24px}
+.phone{width:375px;background:#fff;border-radius:32px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.5);border:8px solid #1e293b;position:relative}
+.phone-screen{height:780px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;scrollbar-width:thin}
+.phone-screen::-webkit-scrollbar{width:4px}
+.phone-screen::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px}
+
+/* Annotation column */
+.anno-col{flex:1;min-width:0;padding:0 0 60px}
+
+/* Module card */
+.module{background:#1e293b;border:1px solid #334155;border-radius:12px;margin-bottom:16px;overflow:hidden;transition:all .2s}
+.module:hover{border-color:#6432FC}
+.module-header{display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;user-select:none}
+.module-num{width:28px;height:28px;border-radius:8px;background:#6432FC;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.module-title{font-size:14px;font-weight:700;color:#f1f5f9;flex:1}
+.module-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px}
+.badge-core{background:#dcfce7;color:#166534}
+.badge-info{background:#e0e7ff;color:#3730a3}
+.badge-nav{background:#f1f5f9;color:#475569}
+.badge-action{background:#fef3c7;color:#92400e}
+.module-chevron{color:#64748b;font-size:14px;transition:transform .2s}
+.module.open .module-chevron{transform:rotate(180deg)}
+.module-body{display:none;border-top:1px solid #293548;padding:16px 18px}
+.module.open .module-body{display:block}
+
+/* Interaction row */
+.ix{margin-bottom:14px}
+.ix:last-child{margin-bottom:0}
+.ix-label{font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.ix-label .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.dot-tap{background:#3b82f6}
+.dot-state{background:#f59e0b}
+.dot-gesture{background:#6432FC}
+.dot-edge{background:#ef4444}
+.ix-content{font-size:13px;color:#cbd5e1;line-height:1.7}
+.ix-content strong{color:#f1f5f9;font-weight:600}
+.ix-content code{background:#293548;padding:1px 5px;border-radius:3px;font-size:11px;color:#94a3b8;font-family:"SF Mono","Fira Code",monospace}
+.ix-sub{margin-top:4px;padding-left:12px;border-left:2px solid #293548;font-size:12px;color:#94a3b8;line-height:1.6}
+
+/* Legend */
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:20px;padding:12px 16px;background:#1e293b;border-radius:8px;border:1px solid #334155}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:#94a3b8;font-weight:500}
+
+/* Section divider */
+.section-divider{text-align:center;padding:16px 0;font-size:11px;color:#475569;font-weight:600;letter-spacing:1px;text-transform:uppercase}
+
+/* ===== Phone inner styles ===== */
+.ph-statusbar{height:50px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#1a1a1a;background:#fff;position:sticky;top:0;z-index:50}
+.ph-header{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 4px;background:#fff;border-bottom:1px solid #e5e7eb;position:sticky;top:50px;z-index:50}
+.ph-header .back{width:38px;height:38px;display:flex;align-items:center;justify-content:center}
+.ph-header .back svg{width:20px;height:20px;color:#1a1a1a;fill:none;stroke:currentColor;stroke-width:1.5}
+.ph-header .title{font-size:16px;font-weight:700;color:#1a1a1a}
+.ph-header .secure{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:500;color:#059669;padding-right:8px}
+.ph-header .secure svg{width:14px;height:14px;stroke:#059669;fill:none}
+
+/* Section header */
+.ph-section{padding:16px 16px 0}
+.ph-section-title{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.ph-step{width:22px;height:22px;border-radius:50%;background:#6432FC;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.ph-step-label{font-size:14px;font-weight:700;color:#1a1a1a}
+.ph-step-action{margin-left:auto;font-size:12px;font-weight:600;color:#6432FC}
+
+/* Address card */
+.ph-addr{border:1.5px solid #e5e7eb;border-radius:10px;padding:12px 14px;margin-bottom:8px;position:relative}
+.ph-addr.active{border-color:#6432FC;background:#faf5ff}
+.ph-addr-default{position:absolute;top:-7px;left:10px;background:#6432FC;color:#fff;font-size:8px;font-weight:700;padding:1px 6px;border-radius:8px;letter-spacing:.3px}
+.ph-addr-check{position:absolute;top:12px;right:12px;width:18px;height:18px;border-radius:50%;background:#6432FC;display:flex;align-items:center;justify-content:center}
+.ph-addr-check svg{width:10px;height:10px;color:#fff}
+.ph-addr-name{font-size:13px;font-weight:600;color:#1a1a1a}
+.ph-addr-detail{font-size:12px;color:#6b7280;margin-top:2px;line-height:1.4}
+.ph-addr-phone{font-size:12px;color:#6b7280;margin-top:2px}
+.ph-addr-actions{display:flex;gap:16px;margin-top:8px;margin-bottom:4px}
+.ph-addr-actions a{font-size:12px;font-weight:600;color:#6432FC;text-decoration:none}
+
+/* Separator */
+.ph-sep{height:8px;background:#f8f9fb}
+
+/* Order item */
+.ph-order-item{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid #f3f4f6}
+.ph-order-item:last-child{border-bottom:none}
+.ph-order-img{width:60px;height:60px;background:#f8f9fb;border-radius:6px;overflow:hidden;flex-shrink:0}
+.ph-order-img img{width:100%;height:100%;object-fit:cover}
+.ph-order-info{flex:1;min-width:0}
+.ph-order-brand{font-size:9px;font-weight:700;color:#6b7280;letter-spacing:.6px;text-transform:uppercase}
+.ph-order-name{font-size:12px;font-weight:500;color:#1a1a1a;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ph-order-cond{display:inline-flex;padding:1px 6px;border-radius:10px;font-size:9px;font-weight:600;margin-top:3px}
+.ph-order-price{font-size:14px;font-weight:700;color:#1a1a1a;flex-shrink:0}
+.cond-likenew{background:#ecfdf5;color:#059669}
+.cond-verygood{background:#eff6ff;color:#2563eb}
+.cond-good{background:#fff7ed;color:#ea580c}
+
+/* Payment options */
+.ph-pay-option{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #f3f4f6;cursor:pointer}
+.ph-pay-option:last-child{border-bottom:none}
+.ph-pay-radio{width:18px;height:18px;border:2px solid #d1d5db;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.ph-pay-option.active .ph-pay-radio{border-color:#6432FC}
+.ph-pay-option.active .ph-pay-radio::after{content:'';width:9px;height:9px;border-radius:50%;background:#6432FC}
+.ph-pay-icon{width:36px;height:22px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;flex-shrink:0}
+.ph-pay-label{font-size:13px;font-weight:600;color:#1a1a1a;flex:1}
+.ph-pay-desc{font-size:11px;color:#6b7280}
+
+/* CC inline form */
+.ph-cc-form{padding:12px 16px;background:#f8f9fb;border-bottom:1px solid #e5e7eb}
+.ph-cc-icons{display:flex;gap:3px;margin-bottom:8px}
+.ph-cc-icon{height:18px;padding:1px 5px;border-radius:2px;font-size:7px;font-weight:700;display:flex;align-items:center;justify-content:center;min-width:28px}
+.ph-cc-input{width:100%;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:13px;color:#1a1a1a;background:#fff;margin-bottom:8px;outline:none;font-family:inherit}
+.ph-cc-input:focus{border-color:#6432FC}
+.ph-cc-input::placeholder{color:#9ca3af}
+.ph-cc-row{display:flex;gap:8px}
+.ph-cc-row .ph-cc-input{flex:1}
+
+/* Redirect notice */
+.ph-redirect{padding:12px 16px;background:#f8f9fb;font-size:12px;color:#6b7280;display:none;align-items:center;gap:6px;border-bottom:1px solid #e5e7eb}
+.ph-redirect svg{width:14px;height:14px;flex-shrink:0}
+
+/* Order summary */
+.ph-summary{padding:16px}
+.ph-summary-row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;color:#374151}
+.ph-summary-row .label{color:#6b7280}
+.ph-summary-free{color:#059669;font-weight:600}
+.ph-summary-divider{height:1px;background:#e5e7eb;margin:8px 0}
+.ph-summary-total{display:flex;justify-content:space-between;font-size:16px;font-weight:700;padding:4px 0;color:#1a1a1a}
+
+/* Place order button */
+.ph-place-order{padding:16px 16px 8px}
+.ph-place-order-btn{width:100%;padding:14px;background:#6432FC;color:#fff;border:none;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer}
+.ph-place-order-btn:disabled{background:#d1d5db}
+.ph-place-order-note{text-align:center;font-size:10px;color:#9ca3af;margin-top:8px;line-height:1.5;padding-bottom:8px}
+.ph-place-order-note a{color:#6432FC;text-decoration:underline}
+
+/* Accepted payments */
+.ph-payments{display:flex;justify-content:center;gap:4px;padding:0 16px 16px}
+.ph-pay-badge{height:18px;padding:1px 5px;background:#f3f4f6;border-radius:2px;font-size:7px;font-weight:700;color:#6b7280;display:flex;align-items:center;justify-content:center;min-width:28px}
+
+/* Home indicator */
+.ph-home-indicator{height:34px;background:#fff;display:flex;align-items:center;justify-content:center}
+.ph-home-indicator div{width:134px;height:5px;background:#1a1a1a;border-radius:3px;opacity:.2}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+<h1>Checkout — APP</h1>
+<div class="meta">looply mobile checkout &middot; v1.0</div>
+</div>
+
+<div class="layout">
+<!-- Phone -->
+<div class="phone-col">
+<div class="phone">
+<div class="phone-screen" id="phoneScreen">
+
+<!-- Status Bar -->
+<div class="ph-statusbar">9:41</div>
+
+<!-- Header -->
+<div class="ph-header">
+<a class="back" href="../../购物车/UI/looply-购物车-APP-v1.html"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></a>
+<div class="title">Checkout</div>
+<div class="secure"><svg viewBox="0 0 24 24" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Secure</div>
+</div>
+
+<!-- 1. Shipping Address -->
+<div class="ph-section">
+<div class="ph-section-title">
+<div class="ph-step">1</div>
+<div class="ph-step-label">Shipping Address</div>
+<a class="ph-step-action" href="#">Manage</a>
+</div>
+
+<div class="ph-addr active" onclick="mSelectAddr(this)">
+<div class="ph-addr-default">DEFAULT</div>
+<div class="ph-addr-check"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6l3 3 5-5"/></svg></div>
+<div class="ph-addr-name">John Doe</div>
+<div class="ph-addr-detail">123 Main Street, Apt 4B<br>New York, NY 10001</div>
+<div class="ph-addr-phone">(212) 555-0147</div>
+</div>
+
+<div class="ph-addr" onclick="mSelectAddr(this)">
+<div class="ph-addr-name">John Doe</div>
+<div class="ph-addr-detail">456 Oak Avenue, Suite 200<br>Los Angeles, CA 90001</div>
+</div>
+
+<div class="ph-addr-actions">
+<a href="#" onclick="mToggleNewAddr(event)">+ Add New Address</a>
+</div>
+
+<!-- New address form (hidden) -->
+<div id="mAddrForm" style="display:none;padding:12px 0">
+<input class="ph-cc-input" placeholder="First Name *">
+<input class="ph-cc-input" placeholder="Last Name *">
+<input class="ph-cc-input" placeholder="Street Address *">
+<input class="ph-cc-input" placeholder="Apt, suite, unit (optional)">
+<div class="ph-cc-row">
+<input class="ph-cc-input" placeholder="City *" style="flex:2">
+<input class="ph-cc-input" placeholder="State *">
+</div>
+<div class="ph-cc-row">
+<input class="ph-cc-input" placeholder="ZIP Code *">
+<input class="ph-cc-input" placeholder="Phone *">
+</div>
+<div style="display:flex;gap:8px;margin-top:4px">
+<button style="flex:1;padding:10px;background:#6432FC;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer" onclick="mSaveAddr()">Save</button>
+<button style="flex:1;padding:10px;background:#fff;color:#6b7280;border:1.5px solid #e5e7eb;border-radius:6px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer" onclick="mCancelAddr()">Cancel</button>
+</div>
+</div>
+</div>
+
+<div class="ph-sep"></div>
+
+<!-- 2. Review Items -->
+<div class="ph-section">
+<div class="ph-section-title">
+<div class="ph-step">2</div>
+<div class="ph-step-label">Review Items</div>
+<a class="ph-step-action" href="../../购物车/UI/looply-购物车-APP-v1.html">Edit Cart</a>
+</div>
+</div>
+
+<div class="ph-order-item">
+<div class="ph-order-img">
+<img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/001_cd443847-229b-45ca-bf86-122d7b8af10e.png?v=1778472154&width=200" alt="">
+</div>
+<div class="ph-order-info">
+<div class="ph-order-brand">LOUIS VUITTON</div>
+<div class="ph-order-name">Silver Tone Metal Silver Necklace</div>
+<div class="ph-order-cond cond-verygood">Very Good</div>
+</div>
+<div class="ph-order-price">$652.00</div>
+</div>
+
+<div class="ph-order-item">
+<div class="ph-order-img">
+<img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/002_695d5fdf-4436-4f02-9788-f23ac7a8f904.png?v=1778472157&width=200" alt="">
+</div>
+<div class="ph-order-info">
+<div class="ph-order-brand">CHANEL</div>
+<div class="ph-order-name">Classic Flap Medium Lambskin Black Crossbody Bag</div>
+<div class="ph-order-cond cond-likenew">Like New</div>
+</div>
+<div class="ph-order-price">$976.00</div>
+</div>
+
+<div class="ph-sep"></div>
+
+<!-- 3. Payment Method -->
+<div class="ph-section">
+<div class="ph-section-title">
+<div class="ph-step">3</div>
+<div class="ph-step-label">Payment Method</div>
+</div>
+</div>
+
+<div class="ph-pay-option active" onclick="mSelectPay(this,'cc')">
+<div class="ph-pay-radio"></div>
+<div class="ph-pay-icon" style="background:#1A1F71;color:#fff">CARD</div>
+<div class="ph-pay-label">Credit / Debit Card</div>
+<div class="ph-pay-desc">Visa, MC, Amex</div>
+</div>
+
+<!-- CC Form -->
+<div class="ph-cc-form" id="mCCForm">
+<div class="ph-cc-icons">
+<span class="ph-cc-icon" style="background:#1A1F71;color:#fff">VISA</span>
+<span class="ph-cc-icon" style="background:#EB001B;color:#fff">MC</span>
+<span class="ph-cc-icon" style="background:#006FCF;color:#fff">AMEX</span>
+<span class="ph-cc-icon" style="background:#FF6600;color:#fff">DISC</span>
+</div>
+<input class="ph-cc-input" placeholder="Card Number" maxlength="19">
+<div class="ph-cc-row">
+<input class="ph-cc-input" placeholder="MM / YY" maxlength="7">
+<input class="ph-cc-input" placeholder="CVV" maxlength="4">
+</div>
+<input class="ph-cc-input" placeholder="Name on Card" style="margin-bottom:0">
+</div>
+
+<div class="ph-pay-option" onclick="mSelectPay(this,'paypal')">
+<div class="ph-pay-radio"></div>
+<div class="ph-pay-icon" style="background:#003087;color:#fff">PayPal</div>
+<div class="ph-pay-label">PayPal</div>
+<div class="ph-pay-desc">Redirect</div>
+</div>
+
+<div class="ph-redirect" id="mPaypalNotice">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+You'll be redirected to PayPal to complete payment.
+</div>
+
+<div class="ph-pay-option" onclick="mSelectPay(this,'klarna')">
+<div class="ph-pay-radio"></div>
+<div class="ph-pay-icon" style="background:#FFB3C7;color:#1a1a1a">K</div>
+<div class="ph-pay-label">Klarna</div>
+<div class="ph-pay-desc">Pay later</div>
+</div>
+
+<div class="ph-redirect" id="mKlarnaNotice">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+You'll be redirected to Klarna to choose a payment plan.
+</div>
+
+<div class="ph-sep"></div>
+
+<!-- Order Summary -->
+<div class="ph-summary">
+<div class="ph-summary-row"><span class="label">Subtotal (2 items)</span><span>$1,628.00</span></div>
+<div class="ph-summary-row"><span class="label">Shipping</span><span class="ph-summary-free">Free</span></div>
+<div class="ph-summary-row"><span class="label">Estimated Tax</span><span>$65.12</span></div>
+<div class="ph-summary-divider"></div>
+<div class="ph-summary-total"><span>Total</span><span>$1,693.12</span></div>
+</div>
+
+<!-- Place Order -->
+<div class="ph-place-order">
+<button class="ph-place-order-btn" onclick="mPlaceOrder()">Place Order</button>
+<div class="ph-place-order-note">By placing your order, you agree to looply's<br><a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></div>
+</div>
+
+<div class="ph-payments">
+<span class="ph-pay-badge">VISA</span>
+<span class="ph-pay-badge">MC</span>
+<span class="ph-pay-badge">AMEX</span>
+<span class="ph-pay-badge">PayPal</span>
+<span class="ph-pay-badge">Klarna</span>
+</div>
+
+<!-- Home indicator -->
+<div class="ph-home-indicator"><div></div></div>
+
+</div>
+</div>
+</div>
+
+<!-- Annotations -->
+<div class="anno-col">
+
+<div class="legend">
+<div class="legend-item"><div class="dot dot-tap"></div> Tap</div>
+<div class="legend-item"><div class="dot dot-gesture"></div> Gesture</div>
+<div class="legend-item"><div class="dot dot-state"></div> State</div>
+<div class="legend-item"><div class="dot dot-edge"></div> Edge Case</div>
+</div>
+
+<!-- Module 1: Header -->
+<div class="module open">
+<div class="module-header" onclick="toggleModule(this)">
+<div class="module-num">1</div>
+<div class="module-title">Checkout Header</div>
+<span class="module-badge badge-nav">Nav</span>
+<span class="module-chevron">&#9660;</span>
+</div>
+<div class="module-body">
+<div class="ix">
+<div class="ix-label"><div class="dot dot-tap"></div> Back Button</div>
+<div class="ix-content">Tap <strong>&lt; back arrow</strong> returns to Shopping Cart page. If entered from PDP single-item checkout, returns to PDP.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-state"></div> Secure Badge</div>
+<div class="ix-content">Green <strong>"Secure"</strong> badge with lock icon signals SSL-encrypted checkout. Simplified header without search/cart icons to reduce distractions.</div>
+</div>
+</div>
+</div>
+
+<!-- Module 2: Shipping Address -->
+<div class="module open">
+<div class="module-header" onclick="toggleModule(this)">
+<div class="module-num">2</div>
+<div class="module-title">Shipping Address</div>
+<span class="module-badge badge-core">Core</span>
+<span class="module-chevron">&#9660;</span>
+</div>
+<div class="module-body">
+<div class="ix">
+<div class="ix-label"><div class="dot dot-tap"></div> Address Selection</div>
+<div class="ix-content">Tap any saved address to select it. Active address shows <strong>purple border</strong> + <strong>check mark</strong>. Default address is pre-selected on page load.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-tap"></div> Add New Address</div>
+<div class="ix-content">Tap <strong>"+ Add New Address"</strong> expands inline form with fields: First/Last Name, Street, Apt, City, State, ZIP, Phone. <strong>"Manage"</strong> link navigates to address management page.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-state"></div> US Format</div>
+<div class="ix-content">Address format follows US standard: Street + City + State abbreviation + ZIP code. State uses dropdown picker on mobile. Phone follows <code>(xxx) xxx-xxxx</code> pattern.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-edge"></div> No Saved Address</div>
+<div class="ix-content">If user has no saved addresses, the form expands automatically. "Place Order" is disabled until a valid address is saved.</div>
+</div>
+</div>
+</div>
+
+<!-- Module 3: Review Items -->
+<div class="module open">
+<div class="module-header" onclick="toggleModule(this)">
+<div class="module-num">3</div>
+<div class="module-title">Review Items</div>
+<span class="module-badge badge-info">Info</span>
+<span class="module-chevron">&#9660;</span>
+</div>
+<div class="module-body">
+<div class="ix">
+<div class="ix-label"><div class="dot dot-state"></div> Read-Only Display</div>
+<div class="ix-content">Items shown in compact read-only format with image, brand, name, condition badge, and price. No quantity selector (secondhand items are unique, qty=1).</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-tap"></div> Edit Cart</div>
+<div class="ix-content">Tap <strong>"Edit Cart"</strong> returns to Shopping Cart. Changes in cart are reflected when user returns to checkout.</div>
+</div>
+</div>
+</div>
+
+<!-- Module 4: Payment Method -->
+<div class="module open">
+<div class="module-header" onclick="toggleModule(this)">
+<div class="module-num">4</div>
+<div class="module-title">Payment Method</div>
+<span class="module-badge badge-core">Core</span>
+<span class="module-chevron">&#9660;</span>
+</div>
+<div class="module-body">
+<div class="ix">
+<div class="ix-label"><div class="dot dot-tap"></div> Method Selection</div>
+<div class="ix-content">Radio-style selection between <strong>Credit Card</strong> (inline form), <strong>PayPal</strong> (redirect), and <strong>Klarna</strong> (redirect). Credit Card is pre-selected by default.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-state"></div> Credit Card Form</div>
+<div class="ix-content">Inline form shows when CC is selected: Card Number, Expiry (MM/YY), CVV, Name on Card. Card icons (Visa/MC/Amex/Discover) shown above inputs. Input fields stack vertically for mobile.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-state"></div> Redirect Notice</div>
+<div class="ix-content">Selecting PayPal or Klarna shows redirect notice below the option: <strong>"You'll be redirected to [provider]..."</strong> CC form hides when other method is selected.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-edge"></div> Payment Providers</div>
+<div class="ix-content">CC processed via <strong>Airwallex</strong>. PayPal via <strong>PayPal SDK</strong>. Klarna via <strong>Klarna Payments API</strong>. All PCI-compliant, card data never touches our server.</div>
+</div>
+</div>
+</div>
+
+<!-- Module 5: Order Summary -->
+<div class="module open">
+<div class="module-header" onclick="toggleModule(this)">
+<div class="module-num">5</div>
+<div class="module-title">Order Summary & Place Order</div>
+<span class="module-badge badge-core">Core</span>
+<span class="module-chevron">&#9660;</span>
+</div>
+<div class="module-body">
+<div class="ix">
+<div class="ix-label"><div class="dot dot-state"></div> Price Breakdown</div>
+<div class="ix-content">Shows <strong>Subtotal</strong> (N items), <strong>Shipping</strong> (Free for most orders), <strong>Estimated Tax</strong> (~4% simplified rate), and <strong>Total</strong>. Tax calculated based on shipping address state.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-tap"></div> Place Order</div>
+<div class="ix-content">Tap <strong>"Place Order"</strong> submits the order. For CC: processes payment immediately. For PayPal/Klarna: redirects to provider. Button shows <strong>"Processing..."</strong> state during submission.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-state"></div> Terms Agreement</div>
+<div class="ix-content">Text below button: "By placing your order, you agree to..." with links to Terms of Service and Privacy Policy. Implied consent model (standard in US e-commerce).</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-edge"></div> Payment Failure</div>
+<div class="ix-content">If payment fails, inline error message appears above the button: <strong>"Payment failed. Please check your card details."</strong> Order is not created. User can retry.</div>
+</div>
+</div>
+</div>
+
+<!-- Module 6: Entry Points -->
+<div class="module">
+<div class="module-header" onclick="toggleModule(this)">
+<div class="module-num">6</div>
+<div class="module-title">Entry Points & Navigation</div>
+<span class="module-badge badge-nav">Nav</span>
+<span class="module-chevron">&#9660;</span>
+</div>
+<div class="module-body">
+<div class="ix">
+<div class="ix-label"><div class="dot dot-tap"></div> From Cart</div>
+<div class="ix-content">Cart Checkout button brings selected items into checkout. Back button returns to cart.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-tap"></div> From PDP</div>
+<div class="ix-content">PDP "Buy Now" button brings single item directly to checkout. Back button returns to PDP. Cart is not affected.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-edge"></div> Login Required</div>
+<div class="ix-content">Checkout requires authentication. If user is guest, redirect to Login first, then return to Checkout after successful auth. Cart contents preserved via local storage.</div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<script>
+function toggleModule(el) {
+  el.closest('.module').classList.toggle('open');
+}
+
+// Address selection
+function mSelectAddr(el) {
+  document.querySelectorAll('.ph-addr').forEach(a => {
+    a.classList.remove('active');
+    const check = a.querySelector('.ph-addr-check');
+    if (check) check.style.display = 'none';
+  });
+  el.classList.add('active');
+  let check = el.querySelector('.ph-addr-check');
+  if (!check) {
+    check = document.createElement('div');
+    check.className = 'ph-addr-check';
+    check.innerHTML = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6l3 3 5-5"/></svg>';
+    el.appendChild(check);
+  }
+  check.style.display = 'flex';
+}
+
+// New address form
+function mToggleNewAddr(e) {
+  e.preventDefault();
+  const form = document.getElementById('mAddrForm');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+function mSaveAddr() {
+  document.getElementById('mAddrForm').style.display = 'none';
+}
+function mCancelAddr() {
+  document.getElementById('mAddrForm').style.display = 'none';
+}
+
+// Payment selection
+function mSelectPay(el, method) {
+  document.querySelectorAll('.ph-pay-option').forEach(o => o.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('mCCForm').style.display = method === 'cc' ? 'block' : 'none';
+  document.getElementById('mPaypalNotice').style.display = method === 'paypal' ? 'flex' : 'none';
+  document.getElementById('mKlarnaNotice').style.display = method === 'klarna' ? 'flex' : 'none';
+}
+
+// Place order
+function mPlaceOrder() {
+  const btn = document.querySelector('.ph-place-order-btn');
+  btn.disabled = true;
+  btn.textContent = 'Processing...';
+  setTimeout(() => {
+    alert('Order placed successfully! Order #LPY-240604-001\n\nThis would redirect to the Order Success page.');
+    btn.disabled = false;
+    btn.textContent = 'Place Order';
+  }, 1500);
+}
+</script>
+
+</body>
+</html>

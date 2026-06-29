@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>looply APP Checkout</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0f172a;color:#e2e8f0;line-height:1.6}
+.page-header{padding:32px 40px 24px;max-width:1200px;margin:0 auto}
+.page-header h1{font-size:22px;font-weight:700;color:#fff;margin-bottom:4px}
+.page-header .meta{font-size:13px;color:#94a3b8}
+.layout{display:flex;gap:32px;max-width:1200px;margin:0 auto;padding:0 40px 60px;align-items:flex-start}
+.phone-col{flex-shrink:0;position:sticky;top:24px}
+.phone{width:375px;background:#fff;border-radius:32px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.5);border:8px solid #1e293b;position:relative}
+.phone-screen{height:780px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;scrollbar-width:thin}
+.phone-screen::-webkit-scrollbar{width:4px}
+.phone-screen::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px}
+.anno-col{flex:1;min-width:0;padding:0 0 60px}
+.module{background:#1e293b;border:1px solid #334155;border-radius:12px;margin-bottom:16px;overflow:hidden;transition:all .2s}
+.module:hover{border-color:#6432FC}
+.module-header{display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;user-select:none}
+.module-num{width:28px;height:28px;border-radius:8px;background:#6432FC;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.module-title{font-size:14px;font-weight:700;color:#f1f5f9;flex:1}
+.module-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px}
+.badge-core{background:#dcfce7;color:#166534}.badge-info{background:#e0e7ff;color:#3730a3}.badge-nav{background:#f1f5f9;color:#475569}
+.module-chevron{color:#64748b;font-size:14px;transition:transform .2s}
+.module.open .module-chevron{transform:rotate(180deg)}
+.module-body{display:none;border-top:1px solid #293548;padding:16px 18px}
+.module.open .module-body{display:block}
+.ix{margin-bottom:14px}.ix:last-child{margin-bottom:0}
+.ix-label{font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.ix-label .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.dot-tap{background:#3b82f6}.dot-state{background:#f59e0b}.dot-gesture{background:#6432FC}.dot-edge{background:#ef4444}
+.ix-content{font-size:13px;color:#cbd5e1;line-height:1.7}
+.ix-content strong{color:#f1f5f9;font-weight:600}
+.ix-content code{background:#293548;padding:1px 5px;border-radius:3px;font-size:11px;color:#94a3b8;font-family:"SF Mono","Fira Code",monospace}
+.ix-sub{margin-top:4px;padding-left:12px;border-left:2px solid #293548;font-size:12px;color:#94a3b8;line-height:1.6}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:20px;padding:12px 16px;background:#1e293b;border-radius:8px;border:1px solid #334155}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:#94a3b8;font-weight:500}
+.section-divider{text-align:center;padding:16px 0;font-size:11px;color:#475569;font-weight:600;letter-spacing:1px;text-transform:uppercase}
+
+/* Phone inner */
+.ph-statusbar{height:50px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#1a1a1a;background:#fff;position:sticky;top:0;z-index:50}
+.ph-header{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 4px;background:#fff;border-bottom:1px solid #e5e7eb;position:sticky;top:50px;z-index:50}
+.ph-header .back{width:38px;height:38px;display:flex;align-items:center;justify-content:center}
+.ph-header .back svg{width:20px;height:20px;color:#1a1a1a;fill:none;stroke:currentColor;stroke-width:1.5}
+.ph-header .title{font-size:16px;font-weight:700;color:#1a1a1a}
+.ph-header .secure{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:500;color:#059669;padding-right:8px}
+.ph-header .secure svg{width:14px;height:14px;stroke:#059669;fill:none}
+.ph-section{padding:16px 16px 0}
+.ph-section-title{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.ph-step{width:22px;height:22px;border-radius:50%;background:#6432FC;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.ph-step-label{font-size:14px;font-weight:700;color:#1a1a1a}
+.ph-step-action{margin-left:auto;font-size:12px;font-weight:600;color:#6432FC}
+.ph-sep{height:8px;background:#f8f9fb}
+
+/* Address */
+.ph-addr-view{display:none}.ph-addr-view.active{display:block}
+.ph-addr-card{background:#f5f6f8;border-radius:10px;padding:12px 14px;margin:0 16px}
+.ph-addr-card__name{font-size:13px;font-weight:600;color:#1a1a1a}
+.ph-addr-card__detail{font-size:12px;color:#6b7280;margin-top:2px;line-height:1.4}
+.ph-addr-card__phone{font-size:12px;color:#6b7280;margin-top:2px}
+.ph-addr-empty{background:#f5f6f8;border-radius:10px;padding:20px 14px;margin:0 16px;text-align:center}
+.ph-addr-empty__text{font-size:13px;color:#6b7280;margin-bottom:10px}
+.ph-addr-empty__btn{width:100%;padding:11px;background:#6432FC;color:#fff;font-size:13px;font-weight:600;border:none;border-radius:8px;cursor:pointer;font-family:inherit}
+.ph-addr-sel{padding:0 16px}
+.ph-addr-sel-item{display:flex;align-items:flex-start;gap:10px;border:1.5px solid #e5e7eb;border-radius:8px;padding:11px 12px;margin-bottom:8px;cursor:pointer}
+.ph-addr-sel-item.active{border-color:#6432FC;background:#faf5ff}
+.ph-addr-sel-radio{width:18px;height:18px;border:2px solid #d1d5db;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.ph-addr-sel-item.active .ph-addr-sel-radio{border-color:#6432FC}
+.ph-addr-sel-item.active .ph-addr-sel-radio::after{content:'';width:9px;height:9px;border-radius:50%;background:#6432FC}
+.ph-addr-sel-info{flex:1;min-width:0}
+.ph-addr-sel-name{font-size:12px;font-weight:600;color:#1a1a1a}
+.ph-addr-sel-detail{font-size:11px;color:#6b7280;margin-top:2px;line-height:1.4}
+.ph-addr-sel-edit{font-size:12px;font-weight:600;color:#6432FC;flex-shrink:0}
+.ph-addr-sel-add{display:block;width:100%;padding:10px;background:#fff;color:#1a1a1a;font-size:12px;font-weight:500;border:1.5px solid #e5e7eb;border-radius:8px;text-align:center;cursor:pointer;font-family:inherit}
+.ph-addr-form{padding:0 16px}
+.ph-addr-back{display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:600;color:#6432FC;margin-bottom:10px;text-decoration:none}
+.ph-addr-form-title{font-size:14px;font-weight:700;color:#1a1a1a;margin-bottom:10px}
+.ph-input{width:100%;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:13px;color:#1a1a1a;background:#fff;margin-bottom:8px;outline:none;font-family:inherit}
+.ph-input:focus{border-color:#6432FC}
+.ph-input::placeholder{color:#9ca3af}
+.ph-row{display:flex;gap:8px}
+.ph-row .ph-input{flex:1}
+.ph-phone-group{display:flex;gap:0;margin-bottom:8px}
+.ph-phone-prefix{display:flex;align-items:center;gap:3px;padding:10px 8px;border:1.5px solid #e5e7eb;border-right:none;border-radius:6px 0 0 6px;background:#f9fafb;font-size:11px;font-weight:500;color:#1a1a1a;flex-shrink:0}
+.ph-phone-number{flex:1;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:0 6px 6px 0;font-size:13px;color:#1a1a1a;outline:none;font-family:inherit;background:#fff}
+.ph-phone-number:focus{border-color:#6432FC}
+.ph-phone-number::placeholder{color:#9ca3af}
+.ph-btn-row{display:flex;gap:8px;margin-top:4px}
+.ph-btn-primary{flex:1;padding:10px;background:#6432FC;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer}
+.ph-btn-secondary{flex:1;padding:10px;background:#fff;color:#6b7280;border:1.5px solid #e5e7eb;border-radius:6px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer}
+.ph-addr-invalid-banner{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;margin:0 16px 8px;font-size:11px;color:#991b1b;line-height:1.4}
+.ph-addr-card-invalid{background:#f5f6f8;border:2px solid #dc2626;border-radius:10px;padding:12px 14px;margin:0 16px}
+.ph-addr-card-invalid__edit{display:inline-block;margin-top:6px;font-size:12px;font-weight:600;color:#6432FC;text-decoration:none}
+.ph-addr-restrict{margin:8px 16px 0;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px}
+.ph-addr-restrict__title{font-size:12px;font-weight:600;color:#dc2626;margin-bottom:4px}
+.ph-addr-restrict__desc{font-size:11px;color:#374151;line-height:1.5;margin-bottom:10px}
+.ph-addr-restrict__actions{display:flex;gap:8px}
+.ph-addr-restrict__btn{padding:8px 14px;font-size:12px;font-weight:600;border-radius:6px;cursor:pointer;font-family:inherit}
+.ph-addr-restrict__btn.primary{background:#6432FC;color:#fff;border:none}
+.ph-addr-restrict__btn.secondary{background:#fff;color:#374151;border:1.5px solid #e5e7eb}
+
+/* Shipping method */
+.ph-ship-option{display:flex;align-items:center;gap:10px;padding:12px 16px;border:1.5px solid #6432FC;border-radius:8px;margin:0 16px;background:#faf5ff}
+.ph-ship-radio{width:18px;height:18px;border:2px solid #6432FC;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ph-ship-radio::after{content:'';width:9px;height:9px;border-radius:50%;background:#6432FC}
+.ph-ship-icon{width:36px;height:22px;background:#4D148C;border-radius:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ph-ship-icon svg{width:26px;height:12px;fill:#FF6600}
+.ph-ship-info{flex:1;min-width:0}
+.ph-ship-label{font-size:12px;font-weight:600;color:#1a1a1a}
+.ph-ship-eta{font-size:10px;color:#6b7280;margin-top:1px}
+.ph-ship-price{font-size:12px;font-weight:600;color:#059669;flex-shrink:0}
+
+/* Order item */
+.ph-order-item{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid #f3f4f6}
+.ph-order-item:last-child{border-bottom:none}
+.ph-order-img{width:60px;height:60px;background:#f8f9fb;border-radius:6px;overflow:hidden;flex-shrink:0}
+.ph-order-img img{width:100%;height:100%;object-fit:cover}
+.ph-order-info{flex:1;min-width:0}
+.ph-order-brand{font-size:9px;font-weight:700;color:#6b7280;letter-spacing:.6px;text-transform:uppercase}
+.ph-order-name{font-size:12px;font-weight:500;color:#1a1a1a;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ph-order-cond{display:inline-flex;padding:1px 6px;border-radius:10px;font-size:9px;font-weight:600;margin-top:3px}
+.ph-order-price{font-size:14px;font-weight:700;color:#1a1a1a;flex-shrink:0}
+.cond-likenew{background:#ecfdf5;color:#059669}.cond-verygood{background:#eff6ff;color:#2563eb}.cond-good{background:#fff7ed;color:#ea580c}
+
+/* Payment */
+.ph-pay-option{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #f3f4f6;cursor:pointer}
+.ph-pay-option:last-child{border-bottom:none}
+.ph-pay-radio{width:18px;height:18px;border:2px solid #d1d5db;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.ph-pay-option.active .ph-pay-radio{border-color:#6432FC}
+.ph-pay-option.active .ph-pay-radio::after{content:'';width:9px;height:9px;border-radius:50%;background:#6432FC}
+.ph-pay-icon{width:36px;height:22px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;flex-shrink:0}
+.ph-pay-label{font-size:13px;font-weight:600;color:#1a1a1a;flex:1}
+.ph-pay-desc{font-size:11px;color:#6b7280}
+.ph-cc-form{padding:12px 16px;background:#f8f9fb;border-bottom:1px solid #e5e7eb}
+.ph-cc-icons{display:flex;gap:3px;margin-bottom:8px}
+.ph-cc-icon{height:18px;padding:1px 5px;border-radius:2px;font-size:7px;font-weight:700;display:flex;align-items:center;justify-content:center;min-width:28px}
+.ph-redirect{padding:12px 16px;background:#f8f9fb;font-size:12px;color:#6b7280;display:none;align-items:center;gap:6px;border-bottom:1px solid #e5e7eb}
+.ph-redirect svg{width:14px;height:14px;flex-shrink:0}
+
+/* Express Checkout */
+.ph-express{padding:14px 16px;border-bottom:1px solid #e5e7eb}
+.ph-express__title{font-size:11px;color:#6b7280;text-align:center;margin-bottom:10px;font-weight:500}
+.ph-express__buttons{display:flex;flex-direction:column;gap:8px}
+.ph-express-btn{height:40px;border-radius:8px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;font-family:inherit;gap:6px}
+.ph-express-btn--paypal{background:#FFC439;color:#003087}
+.ph-express-btn--gpay{background:#000;color:#fff}
+.ph-express-btn--apple{background:#000;color:#fff}
+.ph-express-btn svg{width:16px;height:16px}
+.ph-express-divider{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:10px;color:#9CA3AF}
+.ph-express-divider::before,.ph-express-divider::after{content:'';flex:1;height:1px;background:#E5E7EB}
+
+/* Billing */
+.ph-billing-toggle{display:flex;align-items:center;gap:8px;padding:12px 16px;font-size:12px;color:#374151;cursor:pointer;user-select:none;border-bottom:1px solid #f3f4f6}
+.ph-billing-toggle input{accent-color:#6432FC;width:15px;height:15px;cursor:pointer}
+.ph-billing-form{padding:12px 16px;border-bottom:1px solid #e5e7eb;display:none}
+.ph-billing-form.active{display:block}
+.ph-billing-addr-list{display:flex;flex-direction:column;gap:6px;margin-bottom:0}
+.ph-billing-addr{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:#f8f9fb;border:1px solid #e5e7eb;border-radius:8px;cursor:pointer;transition:border-color .2s}
+.ph-billing-addr.active{border-color:#7C3AED;background:#FAF5FF}
+.ph-billing-addr input[type="radio"]{margin-top:2px;accent-color:#7C3AED;width:14px;height:14px}
+.ph-billing-addr-info{font-size:11px;color:#374151;line-height:1.5}
+.ph-billing-addr-info strong{font-weight:600;color:#1A1A1A}
+.ph-billing-new{margin-top:10px;padding:12px;background:#f8f9fb;border-radius:8px;border:1px solid #e5e7eb;display:none}
+.ph-billing-new.active{display:block}
+
+.ph-summary{padding:16px}
+.ph-summary-row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;color:#374151}
+.ph-summary-row .label{color:#6b7280}
+.ph-summary-free{color:#059669;font-weight:600}
+.ph-summary-divider{height:1px;background:#e5e7eb;margin:8px 0}
+.ph-summary-total{display:flex;justify-content:space-between;font-size:16px;font-weight:700;padding:4px 0;color:#1a1a1a}
+.ph-place-order{padding:16px 16px 8px}
+.ph-place-order-btn{width:100%;padding:14px;background:#6432FC;color:#fff;border:none;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer}
+.ph-place-order-btn:disabled{background:#d1d5db}
+.ph-place-order-note{text-align:center;font-size:10px;color:#9ca3af;margin-top:8px;line-height:1.5;padding-bottom:8px}
+.ph-place-order-note a{color:#6432FC;text-decoration:underline}
+.ph-payments{display:flex;justify-content:center;gap:4px;padding:0 16px 16px}
+.ph-pay-badge{height:18px;padding:1px 5px;background:#f3f4f6;border-radius:2px;font-size:7px;font-weight:700;color:#6b7280;display:flex;align-items:center;justify-content:center;min-width:28px}
+.ph-home-indicator{height:34px;background:#fff;display:flex;align-items:center;justify-content:center}
+.ph-home-indicator div{width:134px;height:5px;background:#1a1a1a;border-radius:3px;opacity:.2}
+</style>
+</head>
+<body>
+<div class="page-header"><h1>Checkout &mdash; APP</h1><div class="meta">looply mobile checkout &middot; V4.0 &middot; 2026-06-12</div></div>
+
+<div class="layout">
+<div class="phone-col"><div class="phone"><div class="phone-screen" id="phoneScreen">
+
+<div class="ph-statusbar">9:41</div>
+<div class="ph-header">
+<a class="back" href="../../购物车/UI/looply-购物车-APP-v2.html"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></a>
+<div class="title">Checkout</div>
+<div class="secure"><svg viewBox="0 0 24 24" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Secure</div>
+</div>
+
+<!-- Express Checkout -->
+<div class="ph-express">
+<div class="ph-express__title">Express checkout</div>
+<div class="ph-express__buttons">
+<button class="ph-express-btn ph-express-btn--paypal"><svg viewBox="0 0 24 24"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 2.23A.774.774 0 0 1 5.709 1.6h7.254c2.412 0 4.13.613 5.105 1.822.457.566.748 1.184.868 1.84.127.694.085 1.527-.125 2.477l-.006.03v.454l.354.2c.3.155.54.336.725.547.31.354.51.801.593 1.325.085.54.055 1.18-.09 1.903-.166.83-.435 1.554-.799 2.147a4.42 4.42 0 0 1-1.265 1.33c-.498.336-1.09.584-1.76.735-.648.147-1.39.22-2.203.22h-.523a1.578 1.578 0 0 0-1.557 1.33l-.04.208-.667 4.222-.03.15a.158.158 0 0 1-.157.134H7.076Z" fill="#003087"/><path d="M18.27 7.98c-.014.09-.03.18-.048.272-.626 3.214-2.77 4.325-5.506 4.325h-1.393a.677.677 0 0 0-.669.573l-.713 4.52-.202 1.28a.356.356 0 0 0 .352.41h2.467a.594.594 0 0 0 .587-.501l.024-.126.464-2.948.03-.162a.594.594 0 0 1 .587-.502h.37c2.392 0 4.265-.972 4.813-3.784.228-1.174.11-2.155-.494-2.844a2.358 2.358 0 0 0-.668-.513Z" fill="#0070E0"/></svg>PayPal</button>
+<button class="ph-express-btn ph-express-btn--gpay"><svg viewBox="0 0 24 24"><path d="M12.24 10.285V14.4h6.806c-.275 1.765-2.056 5.174-6.806 5.174-4.095 0-7.44-3.389-7.44-7.574s3.345-7.574 7.44-7.574c2.33 0 3.891.993 4.785 1.849l3.254-3.138C18.189 1.186 15.479 0 12.24 0c-6.635 0-12 5.365-12 12s5.365 12 12 12c6.926 0 11.52-4.869 11.52-11.726 0-.788-.085-1.39-.189-1.989H12.24Z" fill="#fff"/></svg>Google Pay</button>
+<button class="ph-express-btn ph-express-btn--apple"><svg viewBox="0 0 24 24"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09ZM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25Z" fill="#fff"/></svg>Apple Pay</button>
+</div>
+<div class="ph-express-divider">OR</div>
+</div>
+
+<!-- Contact -->
+<div class="ph-section">
+<div class="ph-section-title"><div class="ph-step-label">Contact</div></div>
+</div>
+<div style="padding:0 16px 12px"><input class="ph-input" type="email" id="mContactEmail" placeholder="your@email.com" value="john.smith@gmail.com" style="margin-bottom:4px"><div style="font-size:10px;color:#9CA3AF">Order confirmation and updates sent to this email.</div></div>
+<div class="ph-sep"></div>
+
+<!-- 1. Shipping Address -->
+<div class="ph-section">
+<div class="ph-section-title"><div class="ph-step-label">Delivery</div><a class="ph-step-action" href="#" id="mAddrAction" onclick="mAddrShowSelect(event)">Change</a></div>
+</div>
+<div class="ph-addr-view active" id="mAddrDefault">
+<div class="ph-addr-card"><div class="ph-addr-card__name">John Smith</div><div class="ph-addr-card__detail">1600 Amphitheatre Pkwy, Apt 4B<br>Mountain View, CA 94043</div><div class="ph-addr-card__phone">+1 (650) 253-0000</div></div>
+</div>
+<div class="ph-addr-view" id="mAddrEmpty">
+<div class="ph-addr-empty"><div class="ph-addr-empty__text">No delivery address on file.</div><button class="ph-addr-empty__btn" onclick="mAddrShowForm('add')">+ Add Delivery Address</button></div>
+</div>
+<div class="ph-addr-view" id="mAddrSelect">
+<div class="ph-addr-sel">
+<div class="ph-addr-sel-item active" onclick="mAddrPick(this)"><div class="ph-addr-sel-radio"></div><div class="ph-addr-sel-info"><div class="ph-addr-sel-name">John Smith</div><div class="ph-addr-sel-detail">1600 Amphitheatre Pkwy, Apt 4B<br>Mountain View, CA 94043</div></div><a href="#" class="ph-addr-sel-edit" onclick="event.stopPropagation();mAddrShowForm('edit')">Edit</a></div>
+<div class="ph-addr-sel-item" onclick="mAddrPick(this)"><div class="ph-addr-sel-radio"></div><div class="ph-addr-sel-info"><div class="ph-addr-sel-name">Jane Doe</div><div class="ph-addr-sel-detail">350 5th Ave, Suite 3300<br>New York, NY 10118</div></div><a href="#" class="ph-addr-sel-edit" onclick="event.stopPropagation();mAddrShowForm('edit')">Edit</a></div>
+<button class="ph-addr-sel-add" onclick="mAddrShowForm('add')">+ Add New Address</button>
+</div>
+</div>
+<div class="ph-addr-view" id="mAddrAdd">
+<div class="ph-addr-form">
+<a href="#" class="ph-addr-back" onclick="event.preventDefault();mAddrSwitch('mAddrSelect')">&larr; Back to addresses</a>
+<div class="ph-addr-form-title">Add New Address</div>
+<input class="ph-input" placeholder="First Name *"><input class="ph-input" placeholder="Last Name *"><input class="ph-input" placeholder="Street Address *"><input class="ph-input" placeholder="Apt, suite, unit (optional)">
+<div class="ph-row"><input class="ph-input" placeholder="City *" style="flex:2"><input class="ph-input" placeholder="State *"></div>
+<input class="ph-input" placeholder="ZIP Code *">
+<div class="ph-phone-group"><span class="ph-phone-prefix">&#127482;&#127480; +1</span><input class="ph-phone-number" placeholder="650-253-0000"></div>
+<div class="ph-btn-row"><button class="ph-btn-primary" onclick="mAddrSwitch('mAddrDefault')">Save Address</button><button class="ph-btn-secondary" onclick="mAddrSwitch('mAddrSelect')">Cancel</button></div>
+</div>
+</div>
+<div class="ph-addr-view" id="mAddrEdit">
+<div class="ph-addr-form">
+<a href="#" class="ph-addr-back" onclick="event.preventDefault();mAddrSwitch('mAddrSelect')">&larr; Back to addresses</a>
+<div class="ph-addr-form-title">Edit Address</div>
+<input class="ph-input" value="John"><input class="ph-input" value="Smith"><input class="ph-input" value="1600 Amphitheatre Pkwy"><input class="ph-input" value="Apt 4B">
+<div class="ph-row"><input class="ph-input" value="Mountain View" style="flex:2"><input class="ph-input" value="CA"></div>
+<input class="ph-input" value="94043">
+<div class="ph-phone-group"><span class="ph-phone-prefix">&#127482;&#127480; +1</span><input class="ph-phone-number" value="650-253-0000"></div>
+<div class="ph-btn-row"><button class="ph-btn-primary" onclick="mAddrSwitch('mAddrDefault')">Save Changes</button><button class="ph-btn-secondary" onclick="mAddrSwitch('mAddrSelect')">Cancel</button></div>
+</div>
+</div>
+<div class="ph-addr-view" id="mAddrInvalid">
+<div class="ph-addr-invalid-banner">This address needs to be updated to meet current requirements. Please edit to continue.</div>
+<div class="ph-addr-card-invalid"><div class="ph-addr-card__name">John Smith</div><div class="ph-addr-card__detail">1600 Amphitheatre Pkwy, Apt 4B<br>Mountain View, CA 94043</div><div class="ph-addr-card__phone">+1 (650) 253-0000</div><a href="#" class="ph-addr-card-invalid__edit" onclick="mAddrShowForm('edit')">Edit address</a></div>
+</div>
+<div class="ph-addr-view" id="mAddrRestrict">
+<div class="ph-addr-card"><div class="ph-addr-card__name">John Smith</div><div class="ph-addr-card__detail">PO Box 1234<br>Mountain View, CA 94043</div><div class="ph-addr-card__phone">+1 (650) 253-0000</div></div>
+<div class="ph-addr-restrict"><div class="ph-addr-restrict__title">Items in this order can't be delivered to this address.</div><div class="ph-addr-restrict__desc">PO Box addresses are not supported for these items.</div><div class="ph-addr-restrict__actions"><button class="ph-addr-restrict__btn primary" onclick="mAddrShowSelect(event)">Change Address</button><button class="ph-addr-restrict__btn secondary">Browse Other Products</button></div></div>
+</div>
+
+<div class="ph-sep"></div>
+
+<!-- 2. Shipping Method -->
+<div class="ph-section">
+<div class="ph-section-title"><div class="ph-step-label">Shipping</div></div>
+</div>
+<div class="ph-ship-option">
+<div class="ph-ship-radio"></div>
+<div class="ph-ship-icon"><svg viewBox="0 0 120 40"><text x="8" y="28" font-size="22" font-weight="900" fill="#FF6600" font-family="Arial,sans-serif">FedEx</text></svg></div>
+<div class="ph-ship-info"><div class="ph-ship-label">Standard FedEx Shipping</div><div class="ph-ship-eta">Est. 5&ndash;10 business days</div></div>
+<div class="ph-ship-price">Free</div>
+</div>
+
+<div class="ph-sep"></div>
+
+<!-- 3. Review Items -->
+<div class="ph-section">
+<div class="ph-section-title"><div class="ph-step-label">Review Items</div></div>
+</div>
+<div class="ph-order-item"><div class="ph-order-img"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/001_cd443847-229b-45ca-bf86-122d7b8af10e.png?v=1778472154&width=200" alt=""></div><div class="ph-order-info"><div class="ph-order-brand">LOUIS VUITTON</div><div class="ph-order-name">Silver Tone Metal Silver Necklace</div><div class="ph-order-cond cond-verygood">Very Good</div></div><div class="ph-order-price">$652.00</div></div>
+<div class="ph-order-item"><div class="ph-order-img"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/002_695d5fdf-4436-4f02-9788-f23ac7a8f904.png?v=1778472157&width=200" alt=""></div><div class="ph-order-info"><div class="ph-order-brand">CHANEL</div><div class="ph-order-name">Classic Flap Medium Lambskin Black Crossbody Bag</div><div class="ph-order-cond cond-likenew">Like New</div></div><div class="ph-order-price">$976.00</div></div>
+
+<div class="ph-sep"></div>
+
+<!-- 4. Payment Method -->
+<div class="ph-section">
+<div class="ph-section-title"><div class="ph-step-label">Payment</div></div>
+</div>
+<!-- Credit Card -->
+<div class="ph-pay-option active" onclick="mSelectPay(this,'cc')"><div class="ph-pay-radio"></div><div class="ph-pay-icon" style="background:#1A1F71;color:#fff">CARD</div><div class="ph-pay-label">Credit / Debit Card</div><div class="ph-pay-desc">Visa, MC, Amex</div></div>
+<div class="ph-cc-form" id="mCCForm">
+<div class="ph-cc-icons"><span class="ph-cc-icon" style="background:#1A1F71;color:#fff">VISA</span><span class="ph-cc-icon" style="background:#EB001B;color:#fff">MC</span><span class="ph-cc-icon" style="background:#006FCF;color:#fff">AMEX</span><span class="ph-cc-icon" style="background:#FF6600;color:#fff">DISC</span></div>
+<input class="ph-input" placeholder="Card Number" maxlength="19">
+<div class="ph-row"><input class="ph-input" placeholder="MM / YY" maxlength="7"><input class="ph-input" placeholder="Security code" maxlength="4"></div>
+<input class="ph-input" placeholder="Name on Card" style="margin-bottom:0">
+</div>
+
+<!-- PayPal -->
+<div class="ph-pay-option" onclick="mSelectPay(this,'paypal')"><div class="ph-pay-radio"></div><div class="ph-pay-icon" style="background:#003087;color:#fff">PayPal</div><div class="ph-pay-label">PayPal</div><div class="ph-pay-desc">Redirect</div></div>
+<div class="ph-redirect" id="mPaypalNotice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>You'll be redirected to PayPal to complete payment.</div>
+
+<!-- Klarna -->
+<div class="ph-pay-option" onclick="mSelectPay(this,'klarna')"><div class="ph-pay-radio"></div><div class="ph-pay-icon" style="background:#FFB3C7;color:#1a1a1a">K</div><div class="ph-pay-label">Klarna</div><div class="ph-pay-desc">Pay later</div></div>
+<div class="ph-redirect" id="mKlarnaNotice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>You'll be redirected to Klarna to choose a payment plan.</div>
+
+<!-- Billing Address (all methods) -->
+<div style="border-top:1px solid #f3f4f6">
+<label class="ph-billing-toggle" id="mBillingLabel">
+<input type="checkbox" checked onchange="mToggleBilling(this)"> Billing address same as shipping
+</label>
+<div class="ph-billing-form" id="mBillingForm">
+<!-- Saved address list -->
+<div class="ph-billing-addr-list" id="mBillingAddrList">
+<label class="ph-billing-addr active" onclick="mSelectBillingAddr(this,'s1')"><input type="radio" name="mBillingAddr" value="s1" checked><div class="ph-billing-addr-info"><strong>Emily Johnson</strong><br>456 Oak Avenue, Apt 12<br>Los Angeles, CA 90001</div></label>
+<label class="ph-billing-addr" onclick="mSelectBillingAddr(this,'s2')"><input type="radio" name="mBillingAddr" value="s2"><div class="ph-billing-addr-info"><strong>Emily Johnson</strong><br>789 Pine Street<br>San Francisco, CA 94102</div></label>
+<label class="ph-billing-addr" onclick="mSelectBillingAddr(this,'new')"><input type="radio" name="mBillingAddr" value="new"><div class="ph-billing-addr-info"><strong>+ Use a different address</strong></div></label>
+</div>
+<!-- New address form -->
+<div class="ph-billing-new" id="mBillingNewForm">
+<input class="ph-input" placeholder="First Name *"><input class="ph-input" placeholder="Last Name *"><input class="ph-input" placeholder="Street Address *"><input class="ph-input" placeholder="Apt, suite, unit (optional)">
+<div class="ph-row"><input class="ph-input" placeholder="City *" style="flex:2"><input class="ph-input" placeholder="State *"></div>
+<input class="ph-input" placeholder="ZIP Code *" style="margin-bottom:0">
+</div>
+</div>
+</div>
+
+<div class="ph-sep"></div>
+
+<div class="ph-summary">
+<div class="ph-summary-row"><span class="label">Subtotal (2 items)</span><span>$1,628.00</span></div>
+<div class="ph-summary-row"><span class="label">Shipping</span><span class="ph-summary-free">Free</span></div>
+<div class="ph-summary-divider"></div>
+<div class="ph-summary-total"><span>Total</span><span>$1,628.00</span></div>
+</div>
+<div class="ph-place-order">
+<button class="ph-place-order-btn" onclick="mPlaceOrder()">Place Order</button>
+<div class="ph-place-order-note">By placing your order, you agree to looply's<br><a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></div>
+</div>
+<div class="ph-payments"><span class="ph-pay-badge">VISA</span><span class="ph-pay-badge">MC</span><span class="ph-pay-badge">AMEX</span><span class="ph-pay-badge">PayPal</span><span class="ph-pay-badge">Klarna</span></div>
+<div class="ph-home-indicator"><div></div></div>
+
+</div></div></div>
+
+<!-- Annotations -->
+<div class="anno-col">
+<div class="legend"><div class="legend-item"><div class="dot dot-tap"></div> Tap</div><div class="legend-item"><div class="dot dot-gesture"></div> Gesture</div><div class="legend-item"><div class="dot dot-state"></div> State</div><div class="legend-item"><div class="dot dot-edge"></div> Edge Case</div></div>
+
+<!-- M1 -->
+<div class="module open"><div class="module-header" onclick="toggleModule(this)"><div class="module-num">1</div><div class="module-title">Header & 库存校验</div><span class="module-badge badge-core">Core</span><span class="module-chevron">&#9660;</span></div>
+<div class="module-body">
+<div class="ix"><div class="ix-label"><div class="dot dot-state"></div> Simplified Header</div><div class="ix-content">Back arrow + "Checkout" + "Secure" badge. No search/cart icons.</div></div>
+<div class="ix"><div class="ix-label"><div class="dot dot-edge"></div> Stock Validation</div><div class="ix-content">Entry check + Place Order check. Sold-out items trigger modal.</div></div>
+</div></div>
+
+<!-- M2 -->
+<div class="module open"><div class="module-header" onclick="toggleModule(this)"><div class="module-num">2</div><div class="module-title">Delivery (7 states)</div><span class="module-badge badge-core">Core</span><span class="module-chevron">&#9660;</span></div>
+<div class="module-body">
+<div class="ix"><div class="ix-label"><div class="dot dot-state"></div> A. Default</div><div class="ix-content">Single card + <strong>"Change"</strong>.</div></div>
+<div class="ix"><div class="ix-label"><div class="dot dot-state"></div> B. Empty</div><div class="ix-content">"No delivery address on file." + <strong>"+ Add Delivery Address"</strong>.</div></div>
+<div class="ix"><div class="ix-label"><div class="dot dot-tap"></div> C. Selection</div><div class="ix-content">Radio list + Edit per row + "+ Add New Address". <strong>"Cancel"</strong> returns to A.</div></div>
+<div class="ix"><div class="ix-label"><div class="dot dot-tap"></div> D/E. Add/Edit Form</div><div class="ix-content">"&larr; Back to addresses". Phone with &#127482;&#127480; +1. Edit pre-fills data.</div></div>
+<div class="ix"><div class="ix-label"><div class="dot dot-edge"></div> F. Validation Error</div><div class="ix-content">Pink banner + red border + "Edit address".</div></div>
+<div class="ix"><div class="ix-label"><div class="dot dot-edge"></div> G. PO Box Restriction</div><div class="ix-content">Red warning + "Change Address" / "Browse Other Products". Place Order disabled.</div></div>
+</div></div>
+
+<!-- M3: Shipping -->
+<div class="module open"><div class="module-header" onclick="toggleModule(this)"><div class="module-num">3</div><div class="module-title">Shipping</div><span class="module-badge badge-core">Core</span><span class="module-chevron">&#9660;</span></div>
+<div class="module-body">
+<div class="ix"><div class="ix-label"><div class="dot dot-state"></div> Single Option</div><div class="ix-content"><strong>Standard FedEx Shipping</strong>, Est. 5&ndash;10 business days, <strong>Free</strong>. Pre-selected radio. Expandable to multi-tier later.</div></div>
+<div class="ix"><div class="ix-label"><div class="dot dot-edge"></div> Address Dependency</div><div class="ix-content">Shipping options may change with address. Current single-tier Free unaffected.</div></div>
+</div></div>
+
+<!-- M4 -->
+<div class="module"><div class="module-header" onclick="toggleModule(this)"><div class="module-num">4</div><div class="module-title">Review Items</div><span class="module-badge badge-info">Info</span><span class="module-chevron">&#9660;</span></div>
+<div class="module-body">
+<div class="ix"><div class="ix-label"><div class="dot dot-state"></div> Read-Only</div><div class="ix-content">Image, brand, name, condition badge, price. No qty selector.</div></div>
+</div></div>
+
+<!-- M5: Payment -->
+<div class="module open"><div class="module-header" onclick="toggleModule(this)"><div class="module-num">5</div><div class="module-title">Payment Payment & Billing Address Billing</div><span class="module-badge badge-core">Core</span><span class="module-chevron">&#9660;</span></div>
+<div class="module-body">
+<div class="ix"><div class="ix-label"><div class="dot dot-tap"></div> Method Selection</div><div class="ix-content">Radio: <strong>Credit Card</strong> (inline form, Airwallex) / <strong>PayPal</strong> / <strong>Klarna</strong>.</div></div>
+<div class="ix"><div class="ix-label"><div class="dot dot-state"></div> Billing Address</div><div class="ix-content">Checkbox <strong>"Billing address same as shipping"</strong> (default checked). Uncheck expands billing form: First/Last name, Street, Apt, City, State, ZIP. No Phone. For credit card <strong>AVS verification</strong>.</div></div>
+<div class="ix"><div class="ix-label"><div class="dot dot-state"></div> All Methods</div><div class="ix-content">Billing Address shown for <strong>all payment methods</strong> (CC, PayPal, Klarna). Required for risk control and reconciliation.</div></div>
+</div></div>
+
+<!-- M6 -->
+<div class="module open"><div class="module-header" onclick="toggleModule(this)"><div class="module-num">6</div><div class="module-title">Summary & Place Order</div><span class="module-badge badge-core">Core</span><span class="module-chevron">&#9660;</span></div>
+<div class="module-body">
+<div class="ix"><div class="ix-label"><div class="dot dot-state"></div> Price Breakdown</div><div class="ix-content">Subtotal + Shipping (Free) = Total. No Estimated Tax this phase.</div></div>
+<div class="ix"><div class="ix-label"><div class="dot dot-tap"></div> Place Order</div><div class="ix-content">"Processing..." on tap. Disabled: no address / no payment / CC incomplete / delivery restriction.</div></div>
+</div></div>
+
+<!-- M7 -->
+<div class="module"><div class="module-header" onclick="toggleModule(this)"><div class="module-num">7</div><div class="module-title">Entry & Navigation</div><span class="module-badge badge-nav">Nav</span><span class="module-chevron">&#9660;</span></div>
+<div class="module-body">
+<div class="ix"><div class="ix-label"><div class="dot dot-tap"></div> From Cart / PDP</div><div class="ix-content">Cart Checkout or PDP Buy Now. Login required.</div></div>
+</div></div>
+
+</div></div>
+
+<script>
+function toggleModule(el){el.closest('.module').classList.toggle('open');}
+function mAddrSwitch(v){
+  document.querySelectorAll('.ph-addr-view').forEach(e=>e.classList.remove('active'));
+  document.getElementById(v).classList.add('active');
+  const l=document.getElementById('mAddrAction');
+  if(v==='mAddrSelect'){l.textContent='Cancel';l.onclick=e=>{e.preventDefault();mAddrSwitch('mAddrDefault');};l.style.display='';}
+  else if(v==='mAddrDefault'){l.textContent='Change';l.onclick=e=>{e.preventDefault();mAddrSwitch('mAddrSelect');};l.style.display='';}
+  else if(v==='mAddrEmpty'){l.style.display='none';}
+  else{l.style.display='none';}
+}
+function mAddrShowSelect(e){e.preventDefault();mAddrSwitch('mAddrSelect');}
+function mAddrShowForm(t){mAddrSwitch(t==='edit'?'mAddrEdit':'mAddrAdd');}
+function mAddrPick(el){document.querySelectorAll('.ph-addr-sel-item').forEach(i=>i.classList.remove('active'));el.classList.add('active');}
+
+function mSelectPay(el,m){
+  document.querySelectorAll('.ph-pay-option').forEach(o=>o.classList.remove('active'));el.classList.add('active');
+  document.getElementById('mCCForm').style.display=m==='cc'?'block':'none';
+  document.getElementById('mPaypalNotice').style.display=m==='paypal'?'flex':'none';
+  document.getElementById('mKlarnaNotice').style.display=m==='klarna'?'flex':'none';
+}
+function mToggleBilling(cb){
+  var f=document.getElementById('mBillingForm');
+  f.classList.toggle('active',!cb.checked);
+  if(cb.checked){document.getElementById('mBillingNewForm').classList.remove('active');}
+}
+function mSelectBillingAddr(el,v){
+  document.querySelectorAll('.ph-billing-addr').forEach(function(i){i.classList.remove('active');});
+  el.classList.add('active');
+  document.getElementById('mBillingNewForm').classList.toggle('active',v==='new');
+}
+function mPlaceOrder(){
+  const b=document.querySelector('.ph-place-order-btn');b.disabled=true;b.textContent='Processing...';
+  setTimeout(()=>{alert('Order placed! #LPY-260612-001');b.disabled=false;b.textContent='Place Order';},1500);
+}
+</script>
+</body></html>

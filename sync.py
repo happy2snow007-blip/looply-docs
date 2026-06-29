@@ -370,6 +370,32 @@ MODULES = {
             },
         },
     },
+    'order': {
+        'name': '订单支付',
+        'default_source': '$HOME/Desktop/海外业务/订单',
+        'target': 'docs-订单支付',
+        'keywords': ['订单', 'order', '支付'],
+        'config_key': 'order',
+        'artifacts': {
+            'prototype': {
+                'subdir': '原型',
+                'pattern': r'looply-订单管理后台原型-v(.+?)\.html',
+                'exclude': r'(backup|对比|report)',
+            },
+            'prd': {
+                'subdir': 'PRD',
+                'pattern': r'looply-订单支付-PRD-v(.+?)\.md',
+            },
+            'er': {
+                'subdir': '实体关系图',
+                'pattern': r'looply-订单模块实体关系图-v(.+?)\.svg',
+            },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'订单支付-交付开发 V(.+?)\.zip',
+            },
+        },
+    },
     'social_share': {
         'name': '社媒分享管理',
         'default_source': '$HOME/Desktop/社媒分享',

@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>looply - 订单模块状态设计说明 v5.1</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f6fa; color: #2d3436; line-height: 1.7; }
+
+/* Header */
+.header { background: linear-gradient(135deg, #2d3436 0%, #636e72 100%); color: #fff; padding: 48px 0 40px; }
+.header-inner { max-width: 960px; margin: 0 auto; padding: 0 32px; }
+.header h1 { font-size: 28px; font-weight: 700; letter-spacing: 0.5px; }
+.header .subtitle { font-size: 14px; color: #b2bec3; margin-top: 8px; }
+.header .meta-row { display: flex; gap: 24px; margin-top: 16px; font-size: 13px; color: #dfe6e9; }
+.header .meta-row span { display: flex; align-items: center; gap: 6px; }
+
+/* Container */
+.container { max-width: 960px; margin: 0 auto; padding: 32px; }
+
+/* TOC */
+.toc { background: #fff; border-radius: 12px; padding: 24px 32px; margin-bottom: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.toc h2 { font-size: 16px; color: #636e72; margin-bottom: 12px; }
+.toc ol { padding-left: 20px; }
+.toc li { margin-bottom: 6px; }
+.toc a { color: #4A90D9; text-decoration: none; font-size: 14px; }
+.toc a:hover { text-decoration: underline; }
+
+/* Section */
+.section { background: #fff; border-radius: 12px; padding: 32px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.section h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; padding-bottom: 12px; border-bottom: 2px solid #f0f0f0; }
+.section h3 { font-size: 16px; font-weight: 600; margin: 24px 0 12px; color: #2d3436; }
+.section p { font-size: 14px; color: #636e72; margin-bottom: 12px; }
+
+/* Layer colors */
+.layer-checkout { border-left: 4px solid #388E3C; }
+.layer-checkout h2 { color: #388E3C; }
+.layer-order { border-left: 4px solid #4A90D9; }
+.layer-order h2 { color: #4A90D9; }
+.layer-package { border-left: 4px solid #E8833A; }
+.layer-package h2 { color: #E8833A; }
+.layer-refund { border-left: 4px solid #C0392B; }
+.layer-refund h2 { color: #C0392B; }
+.layer-payment { border-left: 4px solid #5E35B1; }
+.layer-payment h2 { color: #5E35B1; }
+
+/* Design principle highlight */
+.principle { background: #f8f9fc; border-radius: 8px; padding: 20px 24px; margin: 16px 0; }
+.principle-title { font-size: 14px; font-weight: 700; color: #2d3436; margin-bottom: 8px; }
+.principle-body { font-size: 13px; color: #636e72; }
+
+/* Dimension cards */
+.dim-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 20px 0; }
+.dim-card { border-radius: 10px; padding: 20px; text-align: center; }
+.dim-card.lifecycle { background: #EBF3FB; border: 2px solid #4A90D9; }
+.dim-card.fulfillment { background: #FDF2E9; border: 2px solid #E8833A; }
+.dim-card.refund { background: #FDECEB; border: 2px solid #C0392B; }
+.dim-card .dim-label { font-size: 12px; font-weight: 600; color: #636e72; text-transform: uppercase; letter-spacing: 1px; }
+.dim-card .dim-field { font-size: 15px; font-weight: 700; margin: 6px 0; }
+.dim-card.lifecycle .dim-field { color: #4A90D9; }
+.dim-card.fulfillment .dim-field { color: #E8833A; }
+.dim-card.refund .dim-field { color: #C0392B; }
+.dim-card .dim-values { font-size: 12px; color: #636e72; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 14px; }
+th { background: #f8f9fc; text-align: left; padding: 10px 14px; font-weight: 600; color: #636e72; font-size: 13px; border-bottom: 2px solid #e0e0e0; }
+td { padding: 10px 14px; border-bottom: 1px solid #f0f0f0; }
+tr:last-child td { border-bottom: none; }
+.enum-val { font-family: "SF Mono", "Fira Code", monospace; font-size: 13px; color: #e17055; background: #ffeef0; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+.note-row { background: #f8f9fc; }
+.note-row td { font-size: 13px; color: #636e72; font-style: italic; padding: 8px 14px; }
+
+/* Flow diagrams */
+.flow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 16px 0; padding: 16px 20px; background: #f8f9fc; border-radius: 8px; }
+.flow-node { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.flow-arrow { color: #b2bec3; font-size: 18px; font-weight: 300; }
+.flow-branch { color: #b2bec3; font-size: 12px; margin: 0 4px; }
+
+/* Node colors per status */
+.n-pending { background: #fff3e0; color: #e65100; }
+.n-converted { background: #e8f5e9; color: #2e7d32; }
+.n-paid { background: #e3f2fd; color: #1565c0; }
+.n-shipped { background: #f3e5f5; color: #6a1b9a; }
+.n-completed { background: #e8f5e9; color: #2e7d32; }
+.n-cancelled { background: #fce4ec; color: #c62828; }
+.n-unfulfilled { background: #f5f5f5; color: #757575; }
+.n-partial-fulfill { background: #fff8e1; color: #f57f17; }
+.n-fulfilled { background: #e8f5e9; color: #2e7d32; }
+.n-none { background: #f5f5f5; color: #757575; }
+.n-partial-refund { background: #fff8e1; color: #f57f17; }
+.n-full-refund { background: #fce4ec; color: #c62828; }
+.n-processing { background: #e3f2fd; color: #1565c0; }
+.n-rejected { background: #fce4ec; color: #c62828; }
+.n-refunding { background: #fff8e1; color: #f57f17; }
+.n-refunded { background: #fce4ec; color: #c62828; }
+.n-received { background: #e0f2f1; color: #00695c; }
+.n-succeeded { background: #e8f5e9; color: #2e7d32; }
+.n-failed { background: #fce4ec; color: #c62828; }
+.n-closed { background: #f5f5f5; color: #757575; }
+.n-unreconciled { background: #f5f5f5; color: #757575; }
+.n-reconciled { background: #e8f5e9; color: #2e7d32; }
+.n-discrepant { background: #fff8e1; color: #f57f17; }
+
+/* Scenario matrix */
+.matrix { overflow-x: auto; }
+.matrix table { min-width: 700px; }
+.matrix th { font-size: 12px; text-align: center; }
+.matrix td { text-align: center; font-size: 13px; }
+.matrix td:first-child { text-align: left; font-weight: 600; font-size: 13px; }
+
+/* Field badge */
+.field-badge { display: inline-block; font-family: "SF Mono", "Fira Code", monospace; font-size: 12px; background: #e3f2fd; color: #1565c0; padding: 2px 8px; border-radius: 4px; margin-right: 4px; }
+.field-badge.new { background: #fff3e0; color: #e65100; }
+
+/* Callout */
+.callout { background: #e3f2fd; border-radius: 8px; padding: 14px 18px; margin: 12px 0; font-size: 13px; color: #1565c0; }
+.callout.warn { background: #fff8e1; color: #f57f17; }
+.callout strong { font-weight: 600; }
+
+/* Summary stats */
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 20px 0; }
+.stat-card { background: #f8f9fc; border-radius: 10px; padding: 20px; text-align: center; }
+.stat-num { font-size: 32px; font-weight: 700; color: #2d3436; }
+.stat-label { font-size: 13px; color: #636e72; margin-top: 4px; }
+
+/* Footer */
+.footer { text-align: center; padding: 32px; font-size: 12px; color: #b2bec3; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-inner">
+    <h1>looply - 订单模块状态设计说明</h1>
+    <div class="subtitle">实体关系图 v5.1 配套文档 - 全部状态字段、枚举值、流转规则与设计原理</div>
+    <div class="meta-row">
+      <span>版本 v5.1</span>
+      <span>2026-06-24</span>
+      <span>12 个状态字段</span>
+      <span>35 个枚举值</span>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- TOC -->
+<div class="toc">
+  <h2>目录</h2>
+  <ol>
+    <li><a href="#overview">设计概览 - 三维度状态模型</a></li>
+    <li><a href="#checkout">结算会话层 - checkout_session</a></li>
+    <li><a href="#order-core">订单核心层 - parent_order / order / order_item</a></li>
+    <li><a href="#package">包裹层 - order_package</a></li>
+    <li><a href="#refund">退款层 - refund</a></li>
+    <li><a href="#payment">支付层 - payment_order / payment_transaction</a></li>
+    <li><a href="#scenarios">场景组合矩阵</a></li>
+    <li><a href="#rules">设计规则与约束</a></li>
+  </ol>
+</div>
+
+<!-- 1. Overview -->
+<div class="section" id="overview">
+  <h2>1. 设计概览</h2>
+  <p>订单模块采用<strong>三维度状态模型</strong>，将订单状态拆分为三个独立维度，各自流转互不耦合，避免状态爆炸。</p>
+
+  <div class="dim-grid">
+    <div class="dim-card lifecycle">
+      <div class="dim-label">维度一</div>
+      <div class="dim-field">order_status</div>
+      <div class="dim-values">生命周期：订单在哪个阶段</div>
+    </div>
+    <div class="dim-card fulfillment">
+      <div class="dim-label">维度二</div>
+      <div class="dim-field">fulfillment_status</div>
+      <div class="dim-values">发货维度：发了多少</div>
+    </div>
+    <div class="dim-card refund">
+      <div class="dim-label">维度三</div>
+      <div class="dim-field">refund_status</div>
+      <div class="dim-values">退款维度：退了多少</div>
+    </div>
+  </div>
+
+  <div class="principle">
+    <div class="principle-title">为什么不用单字段？</div>
+    <div class="principle-body">
+      如果把「部分发货」「部分退款」塞进 order_status，就会出现 <code>paid_partially_shipped_partially_refunded</code> 这种组合爆炸。三个维度各管各的，查询时组合读：订单列表主状态读 order_status，需要「部分发货」标签读 fulfillment_status，需要「有退款」标记读 refund_status。
+    </div>
+  </div>
+
+  <div class="principle">
+    <div class="principle-title">订单从 Paid 开始，无 Pending Payment</div>
+    <div class="principle-body">
+      欧美用户心智中，My Orders 里全是已付款的真实订单。支付前的状态由 checkout_session 承载（选地址、选配送、填信息），支付成功那一刻才创建订单。这也避免了二手一物一件场景下的库存锁定问题。
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-num">12</div>
+      <div class="stat-label">状态字段</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">35</div>
+      <div class="stat-label">枚举值</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">5</div>
+      <div class="stat-label">业务层级</div>
+    </div>
+  </div>
+</div>
+
+<!-- 2. Checkout -->
+<div class="section layer-checkout" id="checkout">
+  <h2>2. 结算会话层</h2>
+
+  <h3><span class="field-badge">checkout_session.checkout_status</span> 2 个值</h3>
+  <table>
+    <tr><th>枚举值</th><th>中文</th><th>说明</th></tr>
+    <tr><td><span class="enum-val">pending</span></td><td>待转化</td><td>用户在结算流程中（选地址、选配送、确认订单）</td></tr>
+    <tr><td><span class="enum-val">converted</span></td><td>已转化</td><td>支付成功，已创建 parent_order + order</td></tr>
+  </table>
+
+  <div class="flow">
+    <div class="flow-node n-pending">pending</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-branch">支付成功</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-converted">converted</div>
+  </div>
+
+  <div class="callout">
+    <strong>弃单判定</strong>：不设独立 expired 状态。<code>checkout_status = pending</code> 且 <code>expired_at &lt; now()</code> 即为弃单。弃单恢复通过 <code>recovery_token</code> 生成恢复链接，用户点击后新建会话（不复用原会话，因二手商品可能已售出）。
+  </div>
+
+  <p>checkout_session 记录用户在结算过程中已填写的信息，支持中途离开后恢复：</p>
+  <table>
+    <tr><th>数据项</th><th>存储字段</th><th>说明</th></tr>
+    <tr><td>选了哪些商品</td><td><code>checkout_session_item</code></td><td>快照商品和价格</td></tr>
+    <tr><td>收货地址</td><td><code>address_id</code></td><td>引用地址模块</td></tr>
+    <tr><td>配送方式</td><td><code>shipping_method</code></td><td><span class="field-badge new">v5.0 新增</span></td></tr>
+    <tr><td>运费</td><td><code>shipping_fee</code></td><td><span class="field-badge new">v5.0 新增</span></td></tr>
+  </table>
+</div>
+
+<!-- 3. Order Core -->
+<div class="section layer-order" id="order-core">
+  <h2>3. 订单核心层</h2>
+
+  <!-- parent_order -->
+  <h3>parent_order — 无状态字段</h3>
+
+  <p>父订单是「一次支付」的聚合层：买家一次结算、一笔支付，按商家拆分为多个子订单。不设 payment_status 字段——父订单在支付成功后才创建，出生即已支付；退款进度从 refund 表实时聚合（SUM(refund_amount) vs total_amount），无需冗余状态。</p>
+
+  <p>通过 <span class="field-badge">payment_ref_no</span> 引用支付模块的交易单号，作为订单系统与支付系统的唯一桥梁（退款、对账、查询支付详情）。</p>
+
+  <!-- order.order_status -->
+  <h3 style="margin-top: 32px"><span class="field-badge">order.order_status</span> 4 个值 - 生命周期维度</h3>
+  <table>
+    <tr><th>枚举值</th><th>中文</th><th>说明</th></tr>
+    <tr><td><span class="enum-val">paid</span></td><td>已付款</td><td>支付成功，订单创建，待发货</td></tr>
+    <tr><td><span class="enum-val">shipped</span></td><td>已发货</td><td>至少一个包裹已发出</td></tr>
+    <tr><td><span class="enum-val">completed</span></td><td>交易完成</td><td>所有包裹签收，交易结清</td></tr>
+    <tr><td><span class="enum-val">cancelled</span></td><td>已取消</td><td>发货前取消（伴随退款）</td></tr>
+  </table>
+
+  <div class="flow">
+    <div class="flow-node n-paid">paid</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-shipped">shipped</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-completed">completed</div>
+  </div>
+  <div class="flow">
+    <div class="flow-node n-paid">paid</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-branch">发货前取消</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-cancelled">cancelled</div>
+  </div>
+
+  <div class="callout">
+    <strong>无 Pending Payment</strong>：订单在支付成功后才创建，起始状态即 paid。支付前由 checkout_session 承载。<br>
+    <strong>无 Delivered</strong>：签收即完成。所有包裹签收（package_status = received）直接触发订单 completed。签收记录保留在包裹层。
+  </div>
+
+  <!-- order.fulfillment_status -->
+  <h3 style="margin-top: 32px"><span class="field-badge new">order.fulfillment_status</span> 3 个值 - 发货维度 <span class="field-badge new">v5.0 新增</span></h3>
+  <table>
+    <tr><th>枚举值</th><th>中文</th><th>说明</th></tr>
+    <tr><td><span class="enum-val">unfulfilled</span></td><td>未发货</td><td>无包裹发出</td></tr>
+    <tr><td><span class="enum-val">partially_fulfilled</span></td><td>部分发货</td><td>部分包裹已发出，还有未发的</td></tr>
+    <tr><td><span class="enum-val">fulfilled</span></td><td>全部发货</td><td>所有包裹已发出</td></tr>
+  </table>
+
+  <div class="flow">
+    <div class="flow-node n-unfulfilled">unfulfilled</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-branch">首个包裹发出</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-partial-fulfill">partially_fulfilled</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-branch">全部包裹发出</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-fulfilled">fulfilled</div>
+  </div>
+
+  <p>由 order_package 状态聚合而来。解决「一个订单部分发货」的展示问题，不需要在 order_status 里加 partially_shipped。</p>
+
+  <!-- order.refund_status -->
+  <h3 style="margin-top: 32px"><span class="field-badge new">order.refund_status</span> 3 个值 - 退款维度 <span class="field-badge new">v5.0 新增</span></h3>
+  <table>
+    <tr><th>枚举值</th><th>中文</th><th>说明</th></tr>
+    <tr><td><span class="enum-val">none</span></td><td>无退款</td><td>未发生退款</td></tr>
+    <tr><td><span class="enum-val">partial</span></td><td>部分退款</td><td>部分商品已退款</td></tr>
+    <tr><td><span class="enum-val">full</span></td><td>全额退款</td><td>全部商品已退款</td></tr>
+  </table>
+
+  <div class="flow">
+    <div class="flow-node n-none">none</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-branch">部分商品退款完成</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-partial-refund">partial</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-branch">全部退款完成</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-full-refund">full</div>
+  </div>
+
+  <div class="callout">
+    <strong>全额退款后 order_status 不变</strong>：order_status 保持 completed，通过 refund_status = full 体现退款事实。生命周期和退款维度互不干扰。
+  </div>
+
+  <!-- order_item 双维度状态 (v5.1) -->
+  <h3 style="margin-top: 32px"><span class="field-badge new">order_item.fulfillment_status</span> 3 个值 - 发货维度 <span class="field-badge new">v5.1 拆分</span></h3>
+  <table>
+    <tr><th>枚举值</th><th>中文</th><th>说明</th></tr>
+    <tr><td><span class="enum-val">pending</span></td><td>待发货</td><td>等待商家发货</td></tr>
+    <tr><td><span class="enum-val">shipped</span></td><td>已发货</td><td>已随包裹发出</td></tr>
+    <tr><td><span class="enum-val">received</span></td><td>已签收</td><td>买家已签收</td></tr>
+  </table>
+
+  <div class="flow">
+    <div class="flow-node n-pending">pending</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-shipped">shipped</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-received">received</div>
+  </div>
+
+  <h3 style="margin-top: 24px"><span class="field-badge new">order_item.refund_status</span> 3 个值 - 退款维度 <span class="field-badge new">v5.1 拆分</span></h3>
+  <table>
+    <tr><th>枚举值</th><th>中文</th><th>说明</th></tr>
+    <tr><td><span class="enum-val">none</span></td><td>无退款</td><td>未发生退款</td></tr>
+    <tr><td><span class="enum-val">refunding</span></td><td>退款中</td><td>退款审批通过，该商品不得发货</td></tr>
+    <tr><td><span class="enum-val">refunded</span></td><td>已退款</td><td>退款到账</td></tr>
+  </table>
+
+  <div class="flow">
+    <div class="flow-node n-none">none</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-refunding">refunding</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-refunded">refunded</div>
+  </div>
+
+  <div class="principle">
+    <div class="principle-title">为什么拆成两个字段？（v5.1 变更）</div>
+    <div class="principle-body">
+      与订单级三维度模型保持一致：发货和退款是两个独立维度，各自流转互不耦合。旧设计用单个 item_status 字段混合了发货进度和退款进度，导致「已发货但正在退款」无法表达（item_status 只能取一个值）。拆分后，fulfillment_status = shipped + refund_status = refunding 可以自然组合。
+    </div>
+  </div>
+
+  <p>商品级双维度状态分别跟踪发货进度和退款进度。退款审批通过后 refund_status 变为 refunding，发货时校验 refund_status = none 才允许发货，防止退款中的商品被误发。</p>
+</div>
+
+<!-- 4. Package -->
+<div class="section layer-package" id="package">
+  <h2>4. 包裹层</h2>
+
+  <h3><span class="field-badge">order_package.package_status</span> 3 个值</h3>
+  <table>
+    <tr><th>枚举值</th><th>中文</th><th>说明</th></tr>
+    <tr><td><span class="enum-val">pending</span></td><td>待发货</td><td>包裹已创建，未发出</td></tr>
+    <tr><td><span class="enum-val">shipped</span></td><td>已发货</td><td>已交付承运商</td></tr>
+    <tr><td><span class="enum-val">received</span></td><td>已签收</td><td>买家已签收</td></tr>
+  </table>
+
+  <div class="flow">
+    <div class="flow-node n-pending">pending</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-shipped">shipped</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-received">received</div>
+  </div>
+
+  <div class="callout">
+    <strong>聚合规则</strong>：package_status 的变化会向上聚合到 order 的两个维度 &mdash; 首个包裹 shipped 触发 fulfillment_status = partially_fulfilled 和 order_status = shipped；全部包裹 received 触发 order_status = completed。
+  </div>
+</div>
+
+<!-- 5. Refund -->
+<div class="section layer-refund" id="refund">
+  <h2>5. 退款层</h2>
+
+  <h3><span class="field-badge">refund.refund_status</span> 4 个值</h3>
+  <table>
+    <tr><th>枚举值</th><th>中文</th><th>说明</th></tr>
+    <tr><td><span class="enum-val">pending</span></td><td>待处理</td><td>退款申请已提交</td></tr>
+    <tr><td><span class="enum-val">processing</span></td><td>处理中</td><td>运营已受理，退款执行中</td></tr>
+    <tr><td><span class="enum-val">completed</span></td><td>已完成</td><td>退款到账</td></tr>
+    <tr><td><span class="enum-val">rejected</span></td><td>已拒绝</td><td>退款被驳回</td></tr>
+  </table>
+
+  <div class="flow">
+    <div class="flow-node n-pending">pending</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-processing">processing</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-completed">completed</div>
+  </div>
+  <div class="flow">
+    <div class="flow-node n-pending">pending</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-processing">processing</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-rejected">rejected</div>
+  </div>
+
+  <h3 style="margin-top: 24px"><span class="field-badge">refund.refund_type</span> 1 个值（预留扩展）</h3>
+  <table>
+    <tr><th>枚举值</th><th>中文</th><th>说明</th></tr>
+    <tr><td><span class="enum-val">pre_shipment</span></td><td>发货前退款</td><td>前期仅支持此类型</td></tr>
+    <tr class="note-row"><td colspan="3">后续扩展：return_refund（退货退款）等</td></tr>
+  </table>
+
+  <h3><span class="field-badge">refund.request_channel</span> 1 个值（预留扩展）</h3>
+  <table>
+    <tr><th>枚举值</th><th>中文</th><th>说明</th></tr>
+    <tr><td><span class="enum-val">email</span></td><td>邮件</td><td>买家通过邮件申请</td></tr>
+    <tr class="note-row"><td colspan="3">后续扩展：app / web（自助申请）</td></tr>
+  </table>
+
+  <h3><span class="field-badge">refund.operator_type</span> 2 个值</h3>
+  <table>
+    <tr><th>枚举值</th><th>中文</th><th>说明</th></tr>
+    <tr><td><span class="enum-val">admin</span></td><td>运营人员</td><td>后台人工操作</td></tr>
+    <tr><td><span class="enum-val">system</span></td><td>系统自动</td><td>系统自动处理（如订单取消自动退款）</td></tr>
+  </table>
+</div>
+
+<!-- 6. Payment -->
+<div class="section layer-payment" id="payment">
+  <h2>6. 支付层</h2>
+
+  <h3><span class="field-badge">payment_order.status</span> 4 个值</h3>
+  <table>
+    <tr><th>枚举值</th><th>中文</th><th>说明</th></tr>
+    <tr><td><span class="enum-val">pending</span></td><td>待支付</td><td>用户跳转支付网关，等待支付结果</td></tr>
+    <tr><td><span class="enum-val">succeeded</span></td><td>成功</td><td>支付回调确认成功，触发创建 parent_order + order</td></tr>
+    <tr><td><span class="enum-val">failed</span></td><td>失败</td><td>支付网关返回失败（余额不足、风控拒绝等）</td></tr>
+    <tr><td><span class="enum-val">closed</span></td><td>超时关闭</td><td>超过 expired_at 未完成支付</td></tr>
+  </table>
+
+  <div class="flow">
+    <div class="flow-node n-pending">pending</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-branch">回调成功</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-succeeded">succeeded</div>
+  </div>
+  <div class="flow">
+    <div class="flow-node n-pending">pending</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-branch">回调失败</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-failed">failed</div>
+  </div>
+  <div class="flow">
+    <div class="flow-node n-pending">pending</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-branch">超时</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-closed">closed</div>
+  </div>
+
+  <div class="callout">
+    <strong>与 checkout_session 的关系</strong>：用户点击「去支付」→ 创建 payment_order(pending) + 跳转支付网关。支付成功 → payment_order(succeeded) + checkout_session(converted) + 创建订单。支付失败 → payment_order(failed)，checkout_session 保持 pending，用户可重试（创建新的 payment_order）。
+  </div>
+
+  <h3 style="margin-top: 32px"><span class="field-badge">payment_transaction.transaction_type</span> 2 个值</h3>
+  <table>
+    <tr><th>枚举值</th><th>中文</th><th>说明</th></tr>
+    <tr><td><span class="enum-val">payment</span></td><td>收款</td><td>买家付款，资金流入</td></tr>
+    <tr><td><span class="enum-val">refund</span></td><td>退款</td><td>退款给买家，资金流出，关联 refund_id</td></tr>
+  </table>
+
+  <h3 style="margin-top: 24px"><span class="field-badge">payment_transaction.status</span> 3 个值</h3>
+  <table>
+    <tr><th>枚举值</th><th>中文</th><th>说明</th></tr>
+    <tr><td><span class="enum-val">pending</span></td><td>处理中</td><td>已发起，等待渠道确认</td></tr>
+    <tr><td><span class="enum-val">succeeded</span></td><td>成功</td><td>渠道确认资金到账/退出</td></tr>
+    <tr><td><span class="enum-val">failed</span></td><td>失败</td><td>渠道返回失败</td></tr>
+  </table>
+
+  <div class="flow">
+    <div class="flow-node n-pending">pending</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-succeeded">succeeded</div>
+    <div class="flow-branch" style="margin-left: 16px">或</div>
+    <div class="flow-node n-failed">failed</div>
+  </div>
+
+  <h3 style="margin-top: 24px"><span class="field-badge">payment_transaction.reconciliation_status</span> 3 个值</h3>
+  <table>
+    <tr><th>枚举值</th><th>中文</th><th>说明</th></tr>
+    <tr><td><span class="enum-val">unreconciled</span></td><td>未对账</td><td>等待与渠道结算报告匹配</td></tr>
+    <tr><td><span class="enum-val">reconciled</span></td><td>已对账</td><td>金额、手续费全部匹配</td></tr>
+    <tr><td><span class="enum-val">discrepant</span></td><td>差异待处理</td><td>金额或手续费有差异，需人工处理</td></tr>
+  </table>
+
+  <div class="flow">
+    <div class="flow-node n-unreconciled">unreconciled</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-branch">匹配成功</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-reconciled">reconciled</div>
+  </div>
+  <div class="flow">
+    <div class="flow-node n-unreconciled">unreconciled</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-branch">发现差异</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-discrepant">discrepant</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-branch">人工处理后</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-reconciled">reconciled</div>
+  </div>
+
+  <div class="principle">
+    <div class="principle-title">对账匹配逻辑</div>
+    <div class="principle-body">
+      渠道结算报告每一行包含 Transaction ID / Gross / Fee / Net。匹配流程：按 <code>channel_transaction_id</code> 找到对应的 payment_transaction 记录 → 比对 amount = gross、channel_fee = fee、net_amount = net → 全匹配标记 reconciled，有差异标记 discrepant 进人工队列。
+    </div>
+  </div>
+</div>
+
+<!-- 7. Scenarios -->
+<div class="section" id="scenarios">
+  <h2>7. 场景组合矩阵</h2>
+  <p>以下展示典型业务场景下三个维度的状态组合，体现各维度独立流转：</p>
+
+  <div class="matrix">
+    <table>
+      <tr>
+        <th style="text-align:left; min-width:200px">业务场景</th>
+        <th>order_status</th>
+        <th>fulfillment_status</th>
+        <th>refund_status</th>
+      </tr>
+      <tr>
+        <td>刚付款，待发货</td>
+        <td><span class="enum-val">paid</span></td>
+        <td><span class="enum-val">unfulfilled</span></td>
+        <td><span class="enum-val">none</span></td>
+      </tr>
+      <tr>
+        <td>发了一个包裹，还有没发的</td>
+        <td><span class="enum-val">shipped</span></td>
+        <td><span class="enum-val">partially_fulfilled</span></td>
+        <td><span class="enum-val">none</span></td>
+      </tr>
+      <tr>
+        <td>全部发出，等待签收</td>
+        <td><span class="enum-val">shipped</span></td>
+        <td><span class="enum-val">fulfilled</span></td>
+        <td><span class="enum-val">none</span></td>
+      </tr>
+      <tr>
+        <td>全部签收，交易完成</td>
+        <td><span class="enum-val">completed</span></td>
+        <td><span class="enum-val">fulfilled</span></td>
+        <td><span class="enum-val">none</span></td>
+      </tr>
+      <tr>
+        <td>交易完成后，退了一件</td>
+        <td><span class="enum-val">completed</span></td>
+        <td><span class="enum-val">fulfilled</span></td>
+        <td><span class="enum-val">partial</span></td>
+      </tr>
+      <tr>
+        <td>交易完成后，全部退款</td>
+        <td><span class="enum-val">completed</span></td>
+        <td><span class="enum-val">fulfilled</span></td>
+        <td><span class="enum-val">full</span></td>
+      </tr>
+      <tr>
+        <td>发货前取消</td>
+        <td><span class="enum-val">cancelled</span></td>
+        <td><span class="enum-val">unfulfilled</span></td>
+        <td><span class="enum-val">full</span></td>
+      </tr>
+      <tr>
+        <td>部分发货 + 部分退款（未发的退了）</td>
+        <td><span class="enum-val">shipped</span></td>
+        <td><span class="enum-val">partially_fulfilled</span></td>
+        <td><span class="enum-val">partial</span></td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<!-- 7. Rules -->
+<div class="section" id="rules">
+  <h2>8. 设计规则与约束</h2>
+
+  <h3>状态流转规则</h3>
+  <table>
+    <tr><th style="min-width:160px">规则</th><th>说明</th></tr>
+    <tr><td>订单起始状态</td><td>订单在支付成功后创建，起始 order_status = paid，fulfillment_status = unfulfilled，refund_status = none</td></tr>
+    <tr><td>shipped 触发条件</td><td>首个 order_package.package_status 变为 shipped 时，order_status 从 paid 变为 shipped</td></tr>
+    <tr><td>completed 触发条件</td><td>所有 order_package.package_status 变为 received 时，order_status 变为 completed</td></tr>
+    <tr><td>cancelled 约束</td><td>仅 order_status = paid 且 fulfillment_status = unfulfilled 时可取消。已发货不可取消</td></tr>
+    <tr><td>退款不改生命周期</td><td>refund_status 变化不影响 order_status。completed + full 表示「完成后全退」</td></tr>
+    <tr><td>退款阻断发货</td><td>order_item.refund_status 变为 refunding 后，该商品不得发货（发货时校验 refund_status = none）</td></tr>
+  </table>
+
+  <h3 style="margin-top: 24px">聚合关系</h3>
+  <table>
+    <tr><th style="min-width:200px">子层状态变化</th><th>触发的订单层变化</th></tr>
+    <tr><td>首个 package_status → shipped</td><td>fulfillment_status → partially_fulfilled<br>order_status → shipped</td></tr>
+    <tr><td>全部 package_status → shipped</td><td>fulfillment_status → fulfilled</td></tr>
+    <tr><td>全部 package_status → received</td><td>order_status → completed</td></tr>
+    <tr><td>首个 refund.refund_status → completed</td><td>refund_status → partial</td></tr>
+    <tr><td>退款总额 = 订单总额</td><td>refund_status → full</td></tr>
+  </table>
+
+  <h3 style="margin-top: 24px">命名约定</h3>
+  <table>
+    <tr><th style="min-width:200px">字段</th><th>作用域</th><th>说明</th></tr>
+    <tr><td><code>order.refund_status</code></td><td>订单级聚合</td><td>退款维度：none / partial / full</td></tr>
+    <tr><td><code>refund.refund_status</code></td><td>退款单级</td><td>单笔退款进度：pending / processing / completed / rejected</td></tr>
+  </table>
+  <p style="margin-top: 8px">两者同名但作用域不同：前者是订单的退款聚合视图，后者是单笔退款单的处理进度。</p>
+</div>
+
+</div>
+
+<div class="footer">
+  looply - 订单模块状态设计说明 v5.1（含支付层 + 商品级双维度状态）&middot; 2026-06-24
+</div>
+
+</body>
+</html>
