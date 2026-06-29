@@ -1,17 +1,10 @@
 # Looply 物流信息服务 — PRD
 
-> **版本**：v1.5  
-> **日期**：2026-06-29  
+> **版本**：v1.4  
+> **日期**：2026-06-10  
 > **负责人**：产品架构组  
 > **模块**：物流信息服务（Logistics Tracking Service）
 
-> **v1.5 变更（ETA 数据源切换）**：
-> 1. 前台 ETA 数据源由承运商原生 `expected_delivery` 切换为 AfterShip AI EDD（`aftership_estimated_delivery_date`），覆盖率更高、支持单日期/区间，并带置信度（见 2.6、附录）
-> 2. 明确 AI EDD 时区为**目的地当地时区日历日**，入库与展示均不做 UTC 转换（与 checkpoint_time 处理不同）
-> 3. shipments 表新增 EDD 落库字段（eta_min / eta_max / eta_confidence_code）
-> 4. 关联文档升级《三方报文字段映射规范 v1.1》
-> 5. 遗留待办：AI EDD 计费方式与是否需单独开通该产品，待向 AfterShip 销售核实（见 4.x 外部依赖）
->
 > **v1.4 变更（评审一致性修订）**：
 > 1. 状态空间收敛：internal_status 取值为 AfterShip 英文 8 值，移除消费端 Expired（Expired_001 经映射归入 Exception，详见 2.4）。后台筛选下拉、前台进度条、KPI 异常口径同步调整
 > 2. PATCH 冲突判定明确为 effective 组合规则（见 2.1.3）
@@ -825,7 +818,7 @@ abort 处理：
 
 **功能描述**
 
-买家在 APP 中查看包裹的物流追踪信息，包括预计送达时间（AI EDD）、当前状态、完整轨迹、收货地址等。
+买家在 APP 中查看包裹的物流追踪信息，包括预计送达时间、当前状态、完整轨迹、收货地址等。
 
 **前置条件**
 
@@ -840,7 +833,7 @@ APP 端全屏页面，纵向滚动布局。
 | 区域 | 内容 |
 |------|------|
 | 导航栏 | 返回按钮 + "Track Package" 标题 + Looply logo |
-| ETA 区域 | "Estimated Delivery" 标签 + 预计送达日期/日期范围（AI EDD）+ "Based on AI prediction" 说明 |
+| ETA 区域 | "Estimated Delivery" 标签 + 预计送达日期范围 + "Based on carrier transit time" 说明 |
 | 状态进度条 | 5 个节点：Info Received → Shipped → In Transit → Out for Delivery → Delivered（节点高亮规则见下方映射表） |
 | 商品信息 | 商品图片 + 名称 + 数量/颜色 |
 | 运单信息 | 承运商 logo + 名称 + 运单号 + 复制按钮 |
@@ -879,16 +872,12 @@ APP 端全屏页面，纵向滚动布局。
 - 点击 FAQ：跳转帮助中心
 - 下拉刷新：重新获取最新轨迹
 - ETA 区域展示规则：
-  - **数据来源：AfterShip AI EDD —— `aftership_estimated_delivery_date` 对象**（含 `estimated_delivery_date_min` / `estimated_delivery_date_max` / `confidence_code`）。相比承运商原生 `expected_delivery`，AI EDD 覆盖率更高（承运商未提供时也能预测），是本服务选定的 ETA 口径
-  - **时区**：AI EDD 的日期以**目的地当地时区**为准（AfterShip 官方定义）。入库与展示**均只取日期部分（YYYY-MM-DD），不做 UTC 转换、不做时区加减**（与 checkpoint_time 的「统一转 UTC」逻辑不同，避免日期被减成前一天）
-  - **形态与展示**：
-    - 区间（min ≠ max）：展示为日期范围，如 "Jul 3 – Jul 5"
-    - 单日期（min = max 或仅单值）：展示单个日期，如 "Estimated delivery: Jul 3"
-  - **快递100 不参与 AI EDD**，国内段运单无预计送达时间（AI EDD 面向国际段）
-  - 缺省处理（AI EDD 无返回 / 低置信度时）：
+  - 数据来源：AfterShip 返回的 `expected_delivery` 字段
+  - 并非所有承运商都会返回该字段，取决于承运商是否提供预计送达信息
+  - **快递100 不返回 ETA 信息**，国内段运单无预计送达时间
+  - 缺省处理：
     - 优先方案：隐藏整个 ETA 区域（推荐，界面更简洁）
     - 备选方案：保留区域占位，显示 "Estimated delivery date not available"
-  - 说明：`confidence_code` 可用于决定是否展示或是否加置信度提示，具体阈值在联调阶段确认
 
 **异常处理**
 
@@ -1034,9 +1023,6 @@ APP 端全屏页面，纵向滚动布局。
 | phone | VARCHAR(20) | 承运商附加字段（如顺丰手机号后4位） |
 | cancel_reason | VARCHAR(50) | 取消原因（仅 business_cancelled 一个枚举） |
 | cancelled_at | TIMESTAMP | 取消时间 |
-| eta_min | DATE | AI EDD 预计送达起始日（aftership_estimated_delivery_date.estimated_delivery_date_min，目的地当地日历日，不转 UTC；无则 NULL） |
-| eta_max | DATE | AI EDD 预计送达结束日（estimated_delivery_date_max；单日期时与 eta_min 相等；无则 NULL） |
-| eta_confidence_code | VARCHAR(20) | AI EDD 置信度码（confidence_code；用于展示决策，无则 NULL） |
 | last_tracking_update | TIMESTAMP | 最后轨迹更新时间（后台列表"最后更新"列数据源） |
 | created_at | TIMESTAMP | 创建时间 |
 | updated_at | TIMESTAMP | 更新时间 |
