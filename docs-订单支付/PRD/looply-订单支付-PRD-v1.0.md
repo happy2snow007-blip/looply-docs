@@ -114,9 +114,8 @@ C 端页面静态文案（按钮文字、表单标签、提示语、错误提示
 
 | 命名空间 | 覆盖页面 | 包含内容 |
 |---------|---------|---------|
-| checkout | 结算页 | 区块标题（Contact / Delivery / Shipping / Review / Payment）、表单标签、下单按钮、校验错误提示、Newsletter 文案、Sign In 链接 |
+| checkout | 结算页 | 区块标题（Contact / Delivery / Shipping / Review / Payment）、表单标签、下单按钮、校验错误提示、Newsletter 文案、Sign In 链接、支付方式名称、支付中 loading 提示、支付失败错误提示 |
 | orderSuccess | 订单成功页 | 页面标题、副标题、确认邮件提示、Continue Shopping / View Order Details 按钮 |
-| payment | 支付相关 | 支付方式名称、支付中 loading 提示、支付失败错误提示 |
 
 语言包由前端开发维护，产品提供英文源文案和西班牙语译文（或由翻译服务商提供），开发写入对应 JSON 文件。新增或修改文案时同步更新所有语言的 JSON 文件。
 
