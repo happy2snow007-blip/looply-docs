@@ -682,7 +682,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 5. 快照收货地址到订单
 6. 更新结算会话状态为"已转化"
 7. 如用户未注册，触发静默注册（见 3.3）
-8. 发送支付成功确认邮件（见 3.5.1）
+8. 发送支付成功确认邮件（见 5.2）
 9. 页面跳转至订单成功页（见 3.4）
 
 #### 支付通道矩阵
@@ -757,7 +757,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 3. 未注册 → 使用该邮箱创建新账户
 4. 生成"设置密码"一次性 Token（72 小时有效）
 5. 将 Token 嵌入支付成功确认邮件的设置密码链接中
-6. 在确认邮件中增加账户创建通知区块（见 3.5.1 场景 B）
+6. 在确认邮件中增加账户创建通知区块（见 5.2 场景 B）
 
 #### 规则说明
 
@@ -853,200 +853,6 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 | 页面 | PC 端设计稿 | APP 端设计稿 |
 |------|-----------|------------|
 | 订单成功页 | Figma: looply PC Checkout — 结算完成 | Figma: order confirmed-首屏 / order confirmed-full |
-
----
-
-### 3.5 邮件通知
-
-**功能类型**：机制型
-
-#### 功能描述
-
-覆盖订单交易流程中 4 个节点的买家邮件通知。全部为 Transactional Email（交易类邮件），由系统事件自动触发，不受 CAN-SPAM 退订限制，但需在 Footer 标注发送原因。
-
-#### 通用结构
-
-所有邮件共用以下结构：
-
-| 区域 | 内容 |
-|------|------|
-| Header | 品牌紫色（#7C3AED）背景 + looply logo |
-| 标题区 | 邮件标题 + 问候语 |
-| 核心内容 | 按邮件类型变化 |
-| CTA 按钮 | 主操作按钮 |
-| Footer | 帮助中心链接 + 联系客服链接 + 发送原因说明 + 公司地址（© 2026 looply Inc. · 123 Commerce St, San Francisco, CA 94105） |
-
-**邮件适配**：600px 定宽，适配 Gmail、Outlook、Apple Mail。
-
-**发件信息**：
-- From: `looply <orders@looply.com>`
-- Reply-to: `support@looply.com`
-
-#### 3.5.1 支付成功确认邮件
-
-**触发时机**：收到支付通道支付成功 Webhook
-
-**Subject**：`Order confirmed! 🎉 #{{orderNo}}`
-
-**Preheader**：`Thank you for your purchase. Your order #{{orderNo}} has been confirmed.`
-
-**场景 A：已注册用户**
-
-邮件内容：
-1. 标题："Order Confirmed! 🎉"
-2. 问候语："Hi {{userName}},"
-3. 说明："Thank you for your purchase! Your order has been confirmed and is being prepared for shipment."
-4. Order Details 区块：订单号、下单日期、支付方式
-5. Items Ordered 区块：商品列表（图片 + 名称 + 属性 + 价格）
-6. 费用汇总：Subtotal / Shipping / Tax / Total
-7. Shipping Address 区块
-8. CTA 按钮："View Order"
-9. 提示："We'll send you another email when your order ships."
-
-**场景 B：静默注册用户**
-
-在 Order Details 区块上方增加「账户创建通知」区块：
-- 图标：🔑
-- 标题："Your looply account is ready"
-- 描述："We've created a looply account for you so you can track your order, manage returns, and shop again easily. Set your password to get started."
-- 账户邮箱：显示 "Account Email: {{userEmail}}"
-- 内嵌 CTA："Set Your Password"（链接含一次性 Token，72h 有效）
-- 过期提示："This link expires in 72 hours. After that, use 'Forgot Password' to set up your account."
-
-问候语改为 "Hi there,"（无用户名）。
-
-主 CTA 按钮改为 "Set Password & View Order"。
-
-其余订单信息与场景 A 完全相同。
-
-#### 3.5.2 订单发货通知邮件
-
-**触发时机**：商家填写物流单号并确认发货
-
-**Subject**：`Your order is on its way! 📦 #{{orderNo}}`
-
-**Preheader**：`Your order #{{orderNo}} has been shipped. Track your package here.`
-
-邮件内容：
-1. 标题："Your Order Has Shipped! 📦"
-2. 问候语："Hi {{userName}},"
-3. 说明："Great news! Your order has been shipped and is on its way to you."
-4. Tracking Information 区块（绿色背景）：承运商、物流单号（等宽字体）、预计送达日期、内嵌 "Track Package" 按钮（绿色）
-5. Order Summary：订单号、下单日期
-6. Items Shipped：本次发货的商品列表
-7. Shipping To：收货地址
-8. CTA 按钮："View Order"
-
-**部分发货场景**：一个订单分多个包裹时，每次发货各发一封。Subject 末尾加包裹序号（如 `(Package 1 of 2)`），Items Shipped 仅展示本次发货商品。
-
-#### 3.5.3 退款成功通知邮件
-
-**触发时机**：收到支付通道退款成功 Webhook
-
-**Subject**：`Your refund has been processed ✓ #{{orderNo}}`
-
-**Preheader**：`Your refund of {{refundAmount}} for order #{{orderNo}} has been processed.`
-
-邮件内容：
-1. 标题："Refund Processed ✓"
-2. 问候语："Hi {{userName}},"
-3. 说明："Your refund has been processed and the funds are on their way back to you."
-4. Refund Details 区块（蓝色背景）：退款金额（大号蓝色字体）、退款方式（原支付方式）、预计到账时间（5–10 business days）、退款单号（等宽字体）
-5. Original Order：订单号、下单日期
-6. Refunded Items：退款商品列表（价格为红色负数显示）
-7. 金额汇总：原订单总额 / 本次退款金额（红色）/ 剩余收款金额（加粗）
-8. 到账时间说明（小字灰色）
-9. CTA 按钮："View Order"
-
-**部分退款场景**：每笔退款成功各发一封。Refunded Items 仅展示本次退款商品，底部金额汇总反映累计退款后的剩余。
-
-#### 3.5.4 弃单恢复邮件
-
-**触发时机**：用户进入结算页但未完成支付，满足弃单判定条件后触发（具体超时时间和发送策略后续定义）
-
-**Subject**：`You left something behind! 🛒`
-
-**Preheader**：`Your items are still waiting for you. Complete your purchase before they're gone.`
-
-邮件内容：
-1. 标题："Still interested?"
-2. 问候语："Hi {{userName}},"（未注册用户用 "Hi there,"）
-3. 说明："You left some items in your checkout. They're still available — complete your purchase before someone else grabs them."
-4. Items 区块：结算会话中的商品列表（图片 + 名称 + 成色 + 价格）
-5. 费用汇总：Subtotal / Shipping
-6. CTA 按钮："Complete Your Purchase"（链接携带 recovery_token，指向结算页恢复会话）
-7. 提示："These items are subject to availability and may sell out."
-
-**恢复链接规则**：
-- 链接携带 recovery_token，打开后恢复用户的结算会话
-- 有效期和发送频次后续定义（见 1.2 不做什么）
-
-#### 模板变量清单
-
-**通用变量（所有邮件）：**
-
-| 变量 | 类型 | 说明 | 示例 |
-|------|------|------|------|
-| {{userName}} | String | 用户昵称，未设置用 "there" | Sarah |
-| {{userEmail}} | String | 用户邮箱 | sarah@email.com |
-| {{orderNo}} | String | 订单编号 | ORD20260615001 |
-| {{orderDate}} | Date | 下单日期，MMM DD, YYYY | June 15, 2026 |
-| {{orderUrl}} | URL | 订单详情页链接 | — |
-
-**支付成功专属：**
-
-| 变量 | 类型 | 说明 |
-|------|------|------|
-| {{paymentMethod}} | String | 支付方式（卡类型 + 尾号，如 Visa •••• 4242） |
-| {{items[]}} | Array | 商品列表（名称、图片、属性、价格） |
-| {{subtotal}} | Currency | 商品小计 |
-| {{shipping}} | Currency | 运费 |
-| {{tax}} | Currency | 税费 |
-| {{total}} | Currency | 订单总额 |
-| {{shippingAddress}} | Object | 收货地址 |
-| {{isSilentReg}} | Boolean | 是否为静默注册用户 |
-| {{setPasswordUrl}} | URL | 设置密码链接（含一次性 Token） |
-
-**发货通知专属：**
-
-| 变量 | 类型 | 说明 |
-|------|------|------|
-| {{carrier}} | String | 物流公司 |
-| {{trackingNo}} | String | 物流单号 |
-| {{trackingUrl}} | URL | 物流查件链接 |
-| {{estimatedDelivery}} | String | 预计送达日期范围 |
-
-**退款成功专属：**
-
-| 变量 | 类型 | 说明 |
-|------|------|------|
-| {{refundId}} | String | 退款单号 |
-| {{refundAmount}} | Currency | 退款金额 |
-| {{refundMethod}} | String | 退款方式说明 |
-| {{refundEta}} | String | 预计到账时间 |
-| {{refundedItems[]}} | Array | 退款商品列表 |
-| {{remainingCharged}} | Currency | 剩余收款金额 |
-
-**弃单恢复专属：**
-
-| 变量 | 类型 | 说明 |
-|------|------|------|
-| {{recoveryUrl}} | URL | 恢复链接（含 recovery_token） |
-| {{checkoutItems[]}} | Array | 结算会话中的商品列表 |
-| {{checkoutSubtotal}} | Currency | 商品小计 |
-
-#### 异常处理
-
-| 异常场景 | 处理方式 |
-|---------|---------|
-| 邮件发送失败 | 记录失败日志，自动重试最多 3 次（间隔 1 分钟、5 分钟、30 分钟） |
-| 用户邮箱无效（退信） | 记录退信日志，不再重试 |
-
-#### UI 关联
-
-邮件模板设计详见：`looply-交易核心节点邮件通知方案-v1.0.html`
-
----
 
 ---
 
@@ -1870,7 +1676,206 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 ---
 
-## 五、依赖与风险
+---
+
+
+## 五、消息通知
+
+**功能类型**：机制型
+
+#### 功能描述
+
+覆盖订单交易流程中 4 个节点的买家邮件通知。全部为 Transactional Email（交易类邮件），由系统事件自动触发，不受 CAN-SPAM 退订限制，但需在 Footer 标注发送原因。
+
+### 5.1 通用结构
+
+所有邮件共用以下结构：
+
+| 区域 | 内容 |
+|------|------|
+| Header | 品牌紫色（#7C3AED）背景 + looply logo |
+| 标题区 | 邮件标题 + 问候语 |
+| 核心内容 | 按邮件类型变化 |
+| CTA 按钮 | 主操作按钮 |
+| Footer | 帮助中心链接 + 联系客服链接 + 发送原因说明 + 公司地址（© 2026 looply Inc. · 123 Commerce St, San Francisco, CA 94105） |
+
+**邮件适配**：600px 定宽，适配 Gmail、Outlook、Apple Mail。
+
+**发件信息**：
+- From: `looply <orders@looply.com>`
+- Reply-to: `support@looply.com`
+
+### 5.2 支付成功确认邮件
+
+**触发时机**：收到支付通道支付成功 Webhook
+
+**Subject**：`Order confirmed! 🎉 #{{orderNo}}`
+
+**Preheader**：`Thank you for your purchase. Your order #{{orderNo}} has been confirmed.`
+
+**场景 A：已注册用户**
+
+邮件内容：
+1. 标题："Order Confirmed! 🎉"
+2. 问候语："Hi {{userName}},"
+3. 说明："Thank you for your purchase! Your order has been confirmed and is being prepared for shipment."
+4. Order Details 区块：订单号、下单日期、支付方式
+5. Items Ordered 区块：商品列表（图片 + 名称 + 属性 + 价格）
+6. 费用汇总：Subtotal / Shipping / Tax / Total
+7. Shipping Address 区块
+8. CTA 按钮："View Order"
+9. 提示："We'll send you another email when your order ships."
+
+**场景 B：静默注册用户**
+
+在 Order Details 区块上方增加「账户创建通知」区块：
+- 图标：🔑
+- 标题："Your looply account is ready"
+- 描述："We've created a looply account for you so you can track your order, manage returns, and shop again easily. Set your password to get started."
+- 账户邮箱：显示 "Account Email: {{userEmail}}"
+- 内嵌 CTA："Set Your Password"（链接含一次性 Token，72h 有效）
+- 过期提示："This link expires in 72 hours. After that, use 'Forgot Password' to set up your account."
+
+问候语改为 "Hi there,"（无用户名）。
+
+主 CTA 按钮改为 "Set Password & View Order"。
+
+其余订单信息与场景 A 完全相同。
+
+### 5.3 订单发货通知邮件
+
+**触发时机**：商家填写物流单号并确认发货
+
+**Subject**：`Your order is on its way! 📦 #{{orderNo}}`
+
+**Preheader**：`Your order #{{orderNo}} has been shipped. Track your package here.`
+
+邮件内容：
+1. 标题："Your Order Has Shipped! 📦"
+2. 问候语："Hi {{userName}},"
+3. 说明："Great news! Your order has been shipped and is on its way to you."
+4. Tracking Information 区块（绿色背景）：承运商、物流单号（等宽字体）、预计送达日期、内嵌 "Track Package" 按钮（绿色）
+5. Order Summary：订单号、下单日期
+6. Items Shipped：本次发货的商品列表
+7. Shipping To：收货地址
+8. CTA 按钮："View Order"
+
+**部分发货场景**：一个订单分多个包裹时，每次发货各发一封。Subject 末尾加包裹序号（如 `(Package 1 of 2)`），Items Shipped 仅展示本次发货商品。
+
+### 5.4 退款成功通知邮件
+
+**触发时机**：收到支付通道退款成功 Webhook
+
+**Subject**：`Your refund has been processed ✓ #{{orderNo}}`
+
+**Preheader**：`Your refund of {{refundAmount}} for order #{{orderNo}} has been processed.`
+
+邮件内容：
+1. 标题："Refund Processed ✓"
+2. 问候语："Hi {{userName}},"
+3. 说明："Your refund has been processed and the funds are on their way back to you."
+4. Refund Details 区块（蓝色背景）：退款金额（大号蓝色字体）、退款方式（原支付方式）、预计到账时间（5–10 business days）、退款单号（等宽字体）
+5. Original Order：订单号、下单日期
+6. Refunded Items：退款商品列表（价格为红色负数显示）
+7. 金额汇总：原订单总额 / 本次退款金额（红色）/ 剩余收款金额（加粗）
+8. 到账时间说明（小字灰色）
+9. CTA 按钮："View Order"
+
+**部分退款场景**：每笔退款成功各发一封。Refunded Items 仅展示本次退款商品，底部金额汇总反映累计退款后的剩余。
+
+### 5.5 弃单恢复邮件
+
+**触发时机**：用户进入结算页但未完成支付，满足弃单判定条件后触发（具体超时时间和发送策略后续定义）
+
+**Subject**：`You left something behind! 🛒`
+
+**Preheader**：`Your items are still waiting for you. Complete your purchase before they're gone.`
+
+邮件内容：
+1. 标题："Still interested?"
+2. 问候语："Hi {{userName}},"（未注册用户用 "Hi there,"）
+3. 说明："You left some items in your checkout. They're still available — complete your purchase before someone else grabs them."
+4. Items 区块：结算会话中的商品列表（图片 + 名称 + 成色 + 价格）
+5. 费用汇总：Subtotal / Shipping
+6. CTA 按钮："Complete Your Purchase"（链接携带 recovery_token，指向结算页恢复会话）
+7. 提示："These items are subject to availability and may sell out."
+
+**恢复链接规则**：
+- 链接携带 recovery_token，打开后恢复用户的结算会话
+- 有效期和发送频次后续定义（见 1.2 不做什么）
+
+### 5.6 模板变量清单
+
+**通用变量（所有邮件）：**
+
+| 变量 | 类型 | 说明 | 示例 |
+|------|------|------|------|
+| {{userName}} | String | 用户昵称，未设置用 "there" | Sarah |
+| {{userEmail}} | String | 用户邮箱 | sarah@email.com |
+| {{orderNo}} | String | 订单编号 | ORD20260615001 |
+| {{orderDate}} | Date | 下单日期，MMM DD, YYYY | June 15, 2026 |
+| {{orderUrl}} | URL | 订单详情页链接 | — |
+
+**支付成功专属：**
+
+| 变量 | 类型 | 说明 |
+|------|------|------|
+| {{paymentMethod}} | String | 支付方式（卡类型 + 尾号，如 Visa •••• 4242） |
+| {{items[]}} | Array | 商品列表（名称、图片、属性、价格） |
+| {{subtotal}} | Currency | 商品小计 |
+| {{shipping}} | Currency | 运费 |
+| {{tax}} | Currency | 税费 |
+| {{total}} | Currency | 订单总额 |
+| {{shippingAddress}} | Object | 收货地址 |
+| {{isSilentReg}} | Boolean | 是否为静默注册用户 |
+| {{setPasswordUrl}} | URL | 设置密码链接（含一次性 Token） |
+
+**发货通知专属：**
+
+| 变量 | 类型 | 说明 |
+|------|------|------|
+| {{carrier}} | String | 物流公司 |
+| {{trackingNo}} | String | 物流单号 |
+| {{trackingUrl}} | URL | 物流查件链接 |
+| {{estimatedDelivery}} | String | 预计送达日期范围 |
+
+**退款成功专属：**
+
+| 变量 | 类型 | 说明 |
+|------|------|------|
+| {{refundId}} | String | 退款单号 |
+| {{refundAmount}} | Currency | 退款金额 |
+| {{refundMethod}} | String | 退款方式说明 |
+| {{refundEta}} | String | 预计到账时间 |
+| {{refundedItems[]}} | Array | 退款商品列表 |
+| {{remainingCharged}} | Currency | 剩余收款金额 |
+
+**弃单恢复专属：**
+
+| 变量 | 类型 | 说明 |
+|------|------|------|
+| {{recoveryUrl}} | URL | 恢复链接（含 recovery_token） |
+| {{checkoutItems[]}} | Array | 结算会话中的商品列表 |
+| {{checkoutSubtotal}} | Currency | 商品小计 |
+
+### 5.7 异常处理
+
+| 异常场景 | 处理方式 |
+|---------|---------|
+| 邮件发送失败 | 记录失败日志，自动重试最多 3 次（间隔 1 分钟、5 分钟、30 分钟） |
+| 用户邮箱无效（退信） | 记录退信日志，不再重试 |
+
+### 5.8 UI 关联
+
+邮件模板设计详见：`looply-交易核心节点邮件通知方案-v1.0.html`
+
+---
+
+---
+
+---
+
+## 六、依赖与风险
 
 ### 外部依赖
 
@@ -1896,7 +1901,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 ---
 
-## 六、版本规划
+## 七、版本规划
 
 ### MVP（当前版本）
 
@@ -1923,7 +1928,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 ---
 
-## 七、附录
+## 八、附录
 
 ### 设计稿索引
 
