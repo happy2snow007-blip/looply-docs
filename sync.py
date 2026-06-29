@@ -372,7 +372,7 @@ MODULES = {
     },
     'order': {
         'name': '订单支付',
-        'default_source': '$HOME/Desktop/海外业务/订单',
+        'default_source': '$HOME/Desktop/海外业务/订单支付',
         'target': 'docs-订单支付',
         'keywords': ['订单', 'order', '支付'],
         'config_key': 'order',
