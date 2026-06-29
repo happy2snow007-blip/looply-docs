@@ -100,32 +100,25 @@ looply 是一个面向美国市场的二手电商平台，采用 B2C 模式（�
 
 | 内容类型 | 多语言处理方式 | resource_type | 示例 |
 |---------|-------------|--------------|------|
-| C 端页面文案 | 翻译模块管理，key_type = static_content | page-checkout / page-order-success | 按钮文字、表单标签、提示语、错误提示 |
+| C 端页面文案 | 前端语言包（i18n JSON），不经翻译模块 | — | 按钮文字、表单标签、提示语、错误提示 |
 | 邮件通知模板 | 翻译模块管理，key_type = static_content | notif-email | Subject、正文文案、CTA 按钮文案 |
 | 商品信息（结算页/邮件中引用） | 从翻译模块读取，已由商品模块写入 | product / listing | 商品名称、属性值、成色等级 |
 | 结构化数据 | 不翻译，存业务表 | — | 金额、订单号、物流单号、邮箱、时间戳 |
 | 运营后台界面 | 不做多语言，保持中文 | — | 后台所有页面标签、列名、按钮 |
 
-**C 端页面可翻译字段注册**：
+**C 端页面文案 — 语言包方案**：
 
-以下字段需在 translatable_field_config 中注册，作为上线前置条件：
+C 端页面静态文案（按钮文字、表单标签、提示语、错误提示等）采用前端语言包方式实现，不逐一注册 key 到翻译模块。前端维护各语言的 JSON 文件（如 `en.json`、`es.json`），按页面/组件命名空间组织，构建时打包。
 
-| resource_type | field_name | 说明 | 示例源文本 |
-|--------------|------------|------|-----------|
-| page-checkout | section_contact_title | Contact 区块标题 | Contact |
-| page-checkout | section_delivery_title | Delivery 区块标题 | Delivery |
-| page-checkout | section_shipping_title | Shipping 区块标题 | Shipping Method |
-| page-checkout | section_review_title | Review 区块标题 | Review Items |
-| page-checkout | section_payment_title | Payment 区块标题 | Payment |
-| page-checkout | btn_place_order | 下单按钮 | Place Order |
-| page-checkout | label_newsletter | Newsletter 勾选文案 | Email me with news and offers |
-| page-checkout | signin_link | 登录链接文案 | Sign In |
-| page-checkout | error_* | 各类校验错误提示（按字段拆分） | Please enter a valid email |
-| page-order-success | title | 成功页标题 | Thank you for your order! |
-| page-order-success | subtitle | 成功页副标题 | Order Confirmed |
-| page-order-success | msg_confirmation | 确认邮件提示 | A confirmation email has been sent to... |
-| page-order-success | btn_continue | 继续购物按钮 | Continue Shopping |
-| page-order-success | btn_view_order | 查看订单按钮 | View Order Details |
+涉及本模块的语言包命名空间：
+
+| 命名空间 | 覆盖页面 | 包含内容 |
+|---------|---------|---------|
+| checkout | 结算页 | 区块标题（Contact / Delivery / Shipping / Review / Payment）、表单标签、下单按钮、校验错误提示、Newsletter 文案、Sign In 链接 |
+| orderSuccess | 订单成功页 | 页面标题、副标题、确认邮件提示、Continue Shopping / View Order Details 按钮 |
+| payment | 支付相关 | 支付方式名称、支付中 loading 提示、支付失败错误提示 |
+
+语言包由前端开发维护，产品提供英文源文案和西班牙语译文（或由翻译服务商提供），开发写入对应 JSON 文件。新增或修改文案时同步更新所有语言的 JSON 文件。
 
 **邮件通知可翻译字段注册**：
 
@@ -161,7 +154,7 @@ looply 是一个面向美国市场的二手电商平台，采用 B2C 模式（�
 
 **读取与渲染规则**：
 
-- C 端页面渲染时，前端根据用户当前语言设置，通过 resource_type + field_name + language_code 从翻译服务读取对应语言文案
+- C 端页面渲染时，前端根据用户当前语言设置加载对应语言包（JSON），静态文案直接从语言包读取；商品名称等动态内容按用户语言从翻译服务读取
 - 邮件渲染时，后端按语言判定结果从翻译服务读取模板文案，变量（{{orderNo}}、{{userName}} 等）在渲染时替换，不翻译
 - 翻译缺失时降级显示英文源文本，不阻塞页面渲染或邮件发送
 - 商品名称、属性值等引用内容已由商品模块写入翻译服务，订单模块直接按用户语言读取，无需重复注册
