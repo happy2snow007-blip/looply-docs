@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Looply · Shop Navigation v1.0</title>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/antd@6.4.3/dist/antd.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/@ant-design/icons@6.2.1/dist/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.28.4/babel.min.js"></script>
+<style>
+html,body,#root{height:100%;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937}
+#root::before{content:'Loading...';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#9CA3AF;font-size:14px}
+#root:not(:empty)::before{display:none}
+
+.lp-form-row{display:flex;gap:16px;margin-bottom:14px;align-items:flex-start}
+.lp-form-row .lp-form-label{width:96px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0;padding-top:6px}
+.lp-form-row .lp-form-control{flex:1}
+
+.lp-upload-zone{border:2px dashed #D1D5DB;border-radius:10px;padding:28px 16px;text-align:center;background:#FAFAFA;cursor:pointer;transition:border-color .15s,background .15s}
+.lp-upload-zone:hover{border-color:#7C3AED;background:#FAF5FF}
+.lp-upload-zone .hint{font-size:13px;color:#6B7280;margin-bottom:4px}
+.lp-upload-zone .sub{font-size:12px;color:#9CA3AF}
+
+.dim-badge{display:inline-flex;align-items:center;background:#7C3AED;color:#fff;font-size:12px;font-weight:600;padding:3px 12px;border-radius:999px;letter-spacing:0.2px;white-space:nowrap}
+
+.items-count-link{color:#7C3AED;font-weight:600;cursor:pointer;text-decoration:none;background:rgba(124,58,237,.08);padding:2px 10px;border-radius:999px;font-size:12px;transition:background .12s;border:none;outline:none}
+.items-count-link:hover{background:rgba(124,58,237,.18)}
+
+.col-info-card{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:8px 12px;margin-top:8px}
+.col-info-card .col-name{font-weight:600;color:#1E40AF;font-size:13px;margin-bottom:3px}
+.col-info-card .col-url{font-size:12px;color:#2563EB;text-decoration:none}
+.col-info-card .col-url:hover{text-decoration:underline}
+.col-info-card .col-items{font-size:12px;color:#6B7280;margin-top:3px}
+
+/* Phone shell */
+.phone-shell{width:300px;min-width:300px;border-radius:28px;background:#1A1A1A;padding:8px;box-shadow:0 20px 60px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.08);position:sticky;top:24px;align-self:flex-start}
+.phone-screen{border-radius:22px;overflow:hidden;background:#fff;height:580px;display:flex;flex-direction:column}
+.phone-statusbar{height:24px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 14px;flex-shrink:0}
+.phone-header{padding:8px 10px 6px;border-bottom:1px solid #F3F4F6;flex-shrink:0;background:#fff}
+.phone-body{flex:1;display:flex;overflow:hidden}
+.phone-leftnav{width:70px;min-width:70px;background:#F5F5F5;overflow-y:auto;border-right:1px solid #EBEBEB}
+.phone-leftnav-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 4px;cursor:pointer;position:relative;transition:background .12s}
+.phone-leftnav-item.active{background:#fff}
+.phone-leftnav-item.active::before{content:'';position:absolute;left:0;top:20%;height:60%;width:3px;background:#7C3AED;border-radius:0 2px 2px 0}
+.phone-grid{flex:1;overflow-y:auto;padding:8px 6px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;align-content:start}
+.phone-grid-item{display:flex;flex-direction:column;align-items:center;gap:3px}
+.phone-tabbar{height:48px;border-top:1px solid #EBEBEB;display:flex;align-items:center;flex-shrink:0;background:#fff}
+.phone-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+
+:focus-visible{outline:none;box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useRef, useEffect } = React;
+const {
+  ConfigProvider, Layout, Menu, Card, Button, Input, Select,
+  Space, Switch, Table, Drawer, Tooltip, Tag, Popconfirm,
+  message,
+} = antd;
+const {
+  PlusOutlined, HolderOutlined, DeleteOutlined, EditOutlined,
+  SearchOutlined, UnorderedListOutlined, AppstoreOutlined,
+  PictureOutlined, ArrowUpOutlined, ArrowDownOutlined,
+} = icons;
+
+const LOGO_SRC = "data:image/png;base64,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";
+
+/* ── Theme ── */
+const looplyTheme = {
+  token: {
+    colorPrimary: '#7C3AED', colorInfo: '#7C3AED',
+    colorBgLayout: '#F9FAFB', colorBgContainer: '#FFFFFF',
+    colorText: '#1F2937', colorTextSecondary: '#374151',
+    colorTextTertiary: '#4B5563', colorTextDescription: '#6B7280',
+    colorTextPlaceholder: '#9CA3AF',
+    colorBorder: '#E5E7EB', colorBorderSecondary: '#F3F4F6',
+    colorSuccess: '#16A34A', colorWarning: '#D97706', colorError: '#DC2626',
+    borderRadius: 8, borderRadiusLG: 14, borderRadiusSM: 6,
+    fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+    fontSize: 14, controlHeight: 34, controlHeightSM: 28,
+  },
+  components: {
+    Layout: { headerBg: '#FFFFFF', headerHeight: 60, headerPadding: '0 24px', siderBg: '#FFFFFF', bodyBg: '#F9FAFB' },
+    Menu: {
+      itemBg: 'transparent', subMenuItemBg: 'transparent',
+      itemHoverBg: 'rgba(0,0,0,.03)', itemSelectedBg: '#F3EEFF',
+      itemSelectedColor: '#7C3AED', itemBorderRadius: 0,
+      itemMarginInline: 0, itemMarginBlock: 0, itemHeight: 40, subMenuItemBorderRadius: 0,
+    },
+    Card: { borderRadiusLG: 16, paddingLG: 28 },
+    Table: {
+      headerBg: '#FFFFFF', headerColor: '#6B7280',
+      rowHoverBg: '#FAF5FF', borderColor: '#E5E7EB', headerSplitColor: 'transparent',
+      cellFontSize: 13, cellPaddingBlock: 11, cellPaddingInline: 12,
+      headerBorderRadius: 0,
+    },
+    Button: { controlHeight: 34, paddingInline: 14, fontSize: 13 },
+    Input: { controlHeight: 34 }, Select: { controlHeight: 34 },
+    Modal: { borderRadiusLG: 16 },
+  },
+};
+
+const CARD_STYLE   = { boxShadow: '0 8px 24px rgba(16,24,40,.06)', marginBottom: 0 };
+const SIDER_STYLE  = { boxShadow: '3px 0 12px rgba(0,0,0,.06)', padding: '8px 0', height: '100%', overflowY: 'auto' };
+const TABLE_STYLES = { root: { borderRadius: 14, border: '1px solid #E5E7EB', overflow: 'hidden' } };
+
+/* ── Enumerations ── */
+const MARKETS   = [{ value: 'US',         label: 'United States' }];
+const CHANNELS  = [{ value: 'looply_app', label: 'Looply App' }, { value: 'shopify', label: 'Shopify' }];
+const TERMINALS = [{ value: 'app',        label: 'APP' }];
+
+/* ── Collections (read-only mock) ── */
+const ALL_COLLECTIONS = [
+  { id:'c001', name:'Shoulder Bags',       slug:'shoulder-bags' },
+  { id:'c002', name:'Tote Bags',           slug:'tote-bags' },
+  { id:'c003', name:'Crossbody Bags',      slug:'crossbody-bags' },
+  { id:'c004', name:'Mini Bags',           slug:'mini-bags' },
+  { id:'c005', name:'Clutches',            slug:'clutches' },
+  { id:'c006', name:'Belt Bags',           slug:'belt-bags' },
+  { id:'c007', name:'Chanel Classic Flap', slug:'chanel-classic-flap' },
+  { id:'c008', name:'Hermes Birkin',       slug:'hermes-birkin' },
+  { id:'c009', name:'Hermes Kelly',        slug:'hermes-kelly' },
+  { id:'c010', name:'LV Speedy',           slug:'lv-speedy' },
+  { id:'c011', name:'LV Neverfull',        slug:'lv-neverfull' },
+  { id:'c012', name:'Necklaces',           slug:'necklaces' },
+  { id:'c013', name:'Rings',               slug:'rings' },
+  { id:'c014', name:'Bracelets',           slug:'bracelets' },
+  { id:'c015', name:'Rolex Datejust',      slug:'rolex-datejust' },
+  { id:'c016', name:'Omega Speedmaster',   slug:'omega-speedmaster' },
+  { id:'c017', name:'New Arrivals Bags',   slug:'new-arrivals-bags' },
+  { id:'c018', name:'Under $500 Bags',     slug:'under-500-bags' },
+  { id:'c019', name:'On Sale',             slug:'on-sale' },
+  { id:'c020', name:'Staff Picks',         slug:'staff-picks' },
+];
+
+function colById(id) { return ALL_COLLECTIONS.find(c => c.id === id) || null; }
+
+var _seq = 300;
+function genId(p) { return (p || 'id') + '_' + (++_seq); }
+
+/* Initial navigations */
+const INIT_NAVS = [
+  { id:'nav_bags',       name:'Bags',    enabled:true, order:1, market:'US', channel:'looply_app', terminal:'app' },
+  { id:'nav_brands',     name:'Brands',  enabled:true, order:2, market:'US', channel:'looply_app', terminal:'app' },
+  { id:'nav_jewelry',    name:'Jewelry', enabled:true, order:3, market:'US', channel:'looply_app', terminal:'app' },
+  { id:'nav_watches',    name:'Watches', enabled:true, order:4, market:'US', channel:'looply_app', terminal:'app' },
+  { id:'nav_sh_bags',    name:'Bags',    enabled:true, order:1, market:'US', channel:'shopify', terminal:'app' },
+  { id:'nav_sh_jewelry', name:'Jewelry', enabled:true, order:2, market:'US', channel:'shopify', terminal:'app' },
+];
+
+/* Initial menu items */
+function buildInitMenuItems() {
+  const raw = [
+    { navId:'nav_bags',       id:'mi_shoulder',    name:'Shoulder',            collectionId:'c001', enabled:true },
+    { navId:'nav_bags',       id:'mi_tote',         name:'Tote',                collectionId:'c002', enabled:true },
+    { navId:'nav_bags',       id:'mi_cross',        name:'Crossbody',           collectionId:'c003', enabled:true },
+    { navId:'nav_bags',       id:'mi_mini',         name:'Mini',                collectionId:'c004', enabled:true },
+    { navId:'nav_bags',       id:'mi_clutch',       name:'Clutches',            collectionId:'c005', enabled:true },
+    { navId:'nav_bags',       id:'mi_belt',         name:'Belt Bags',           collectionId:'c006', enabled:true },
+    { navId:'nav_brands',     id:'mi_chanel',       name:'Chanel Classic Flap', collectionId:'c007', enabled:true },
+    { navId:'nav_brands',     id:'mi_hb',           name:'Hermes Birkin',       collectionId:'c008', enabled:true },
+    { navId:'nav_brands',     id:'mi_hk',           name:'Hermes Kelly',        collectionId:'c009', enabled:true },
+    { navId:'nav_brands',     id:'mi_lv',           name:'LV Speedy',           collectionId:'c010', enabled:true },
+    { navId:'nav_brands',     id:'mi_lvnf',         name:'LV Neverfull',        collectionId:'c011', enabled:true },
+    { navId:'nav_jewelry',    id:'mi_neck',         name:'Necklaces',           collectionId:'c012', enabled:true },
+    { navId:'nav_jewelry',    id:'mi_rings',        name:'Rings',               collectionId:'c013', enabled:true },
+    { navId:'nav_jewelry',    id:'mi_braces',       name:'Bracelets',           collectionId:'c014', enabled:true },
+    { navId:'nav_watches',    id:'mi_rolex',        name:'Rolex Datejust',      collectionId:'c015', enabled:true },
+    { navId:'nav_watches',    id:'mi_omega',        name:'Omega Speedmaster',   collectionId:'c016', enabled:true },
+    { navId:'nav_sh_bags',    id:'mi_sh_shoulder',  name:'Shoulder',            collectionId:'c001', enabled:true },
+    { navId:'nav_sh_bags',    id:'mi_sh_tote',      name:'Tote',                collectionId:'c002', enabled:true },
+    { navId:'nav_sh_bags',    id:'mi_sh_cross',     name:'Crossbody',           collectionId:'c003', enabled:true },
+    { navId:'nav_sh_jewelry', id:'mi_sh_neck',      name:'Necklaces',           collectionId:'c012', enabled:true },
+    { navId:'nav_sh_jewelry', id:'mi_sh_rings',     name:'Rings',               collectionId:'c013', enabled:true },
+  ];
+  return raw.map(r => ({ ...r, image: null }));
+}
+
+function buildInitItemCounts(menuItems) {
+  const counts = {};
+  menuItems.forEach(mi => { counts[mi.id] = Math.floor(Math.random() * 450 + 50); });
+  return counts;
+}
+
+/* ── Phone preview components ── */
+function PhoneNavGrid({ enabledNavs, previewNavId, setPreviewNavId, menuItems }) {
+  const previewItems = menuItems.filter(m => m.navId === previewNavId && m.enabled);
+  return (
+    <div className="phone-body">
+      <div className="phone-leftnav">
+        {enabledNavs.length === 0 && (
+          <div style={{ padding:'12px 4px', fontSize:9, color:'#C4B5FD', textAlign:'center' }}>No items</div>
+        )}
+        {enabledNavs.map(nav => (
+          <div
+            key={nav.id}
+            className={'phone-leftnav-item' + (previewNavId === nav.id ? ' active' : '')}
+            onClick={() => setPreviewNavId(nav.id)}
+          >
+            <span style={{
+              fontSize:9, textAlign:'center',
+              color: previewNavId === nav.id ? '#7C3AED' : '#6B7280',
+              fontWeight: previewNavId === nav.id ? 600 : 400,
+              lineHeight:1.3, maxWidth:60,
+              overflow:'hidden', display:'-webkit-box',
+              WebkitLineClamp:2, WebkitBoxOrient:'vertical',
+            }}>{nav.name}</span>
+          </div>
+        ))}
+      </div>
+      <div className="phone-grid">
+        {previewItems.length === 0 && (
+          <div style={{ gridColumn:'1/-1', padding:'20px 6px', textAlign:'center', color:'#C4B5FD', fontSize:10 }}>
+            No enabled menu items
+          </div>
+        )}
+        {previewItems.map(mi => (
+          <div key={mi.id} className="phone-grid-item">
+            <div style={{
+              width:46, height:46, borderRadius:'50%',
+              background:'#F3F4F6', border:'1px solid #E5E7EB',
+              display:'flex', alignItems:'center', justifyContent:'center',
+            }}>
+              <PictureOutlined style={{ fontSize:14, color:'#D1D5DB' }} />
+            </div>
+            <span style={{
+              fontSize:8, textAlign:'center', color:'#374151',
+              lineHeight:1.2, maxWidth:50,
+              overflow:'hidden', display:'-webkit-box',
+              WebkitLineClamp:2, WebkitBoxOrient:'vertical',
+            }}>{mi.name}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PhoneShell({ children }) {
+  return (
+    <div className="phone-shell">
+      <div className="phone-screen">
+        <div className="phone-statusbar">
+          <span style={{ fontSize:9, fontWeight:600, color:'#1F2937' }}>9:41</span>
+          <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+            <div style={{ width:12, height:7, border:'1.5px solid #9CA3AF', borderRadius:2, position:'relative' }}>
+              <div style={{ position:'absolute', top:1, left:1, bottom:1, width:'70%', background:'#9CA3AF', borderRadius:1 }} />
+            </div>
+            <svg width="10" height="8" viewBox="0 0 12 10">
+              <path d="M6 2.5C7.8 2.5 9.4 3.2 10.6 4.3L12 2.9C10.4 1.4 8.3 0.5 6 0.5C3.7 0.5 1.6 1.4 0 2.9L1.4 4.3C2.6 3.2 4.2 2.5 6 2.5Z" fill="#9CA3AF"/>
+              <path d="M6 5.5C7.1 5.5 8.1 5.9 8.8 6.6L10.2 5.2C9.1 4.2 7.6 3.5 6 3.5C4.4 3.5 2.9 4.2 1.8 5.2L3.2 6.6C3.9 5.9 4.9 5.5 6 5.5Z" fill="#9CA3AF"/>
+              <circle cx="6" cy="9" r="1.5" fill="#9CA3AF"/>
+            </svg>
+          </div>
+        </div>
+        <div className="phone-header">
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+            <img src={LOGO_SRC} alt="Looply" style={{ height:18, display:'block' }} onError={e => { e.target.style.display='none'; }} />
+            <div style={{ flex:1, background:'#F3F4F6', borderRadius:16, height:22, display:'flex', alignItems:'center', paddingLeft:8, gap:4 }}>
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
+                <circle cx="6.5" cy="6.5" r="5" stroke="#9CA3AF" strokeWidth="1.5"/>
+                <path d="M10.5 10.5L14 14" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+              <span style={{ fontSize:9, color:'#9CA3AF' }}>Search luxury items...</span>
+            </div>
+          </div>
+        </div>
+        {children}
+        <div className="phone-tabbar">
+          <div className="phone-tab">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+              <path d="M3 12L12 4L21 12V20C21 20.5523 20.5523 21 20 21H15V16H9V21H4C3.44772 21 3 20.5523 3 20V12Z" stroke="#9CA3AF" strokeWidth="1.8" fill="none"/>
+            </svg>
+            <span style={{ fontSize:8, color:'#9CA3AF' }}>Home</span>
+          </div>
+          <div className="phone-tab">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+              <path d="M6 2L3 6V20C3 21.1 3.9 22 5 22H19C20.1 22 21 21.1 21 20V6L18 2H6ZM12 17C10.34 17 9 15.66 9 14C9 12.34 10.34 11 12 11C13.66 11 15 12.34 15 14C15 15.66 13.66 17 12 17Z" stroke="#7C3AED" strokeWidth="1.8" fill="none"/>
+            </svg>
+            <span style={{ fontSize:8, color:'#7C3AED', fontWeight:600 }}>Shop</span>
+          </div>
+          <div className="phone-tab">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="#9CA3AF" strokeWidth="1.8" fill="none"/>
+            </svg>
+            <span style={{ fontSize:8, color:'#9CA3AF' }}>Favourites</span>
+          </div>
+          <div className="phone-tab">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="8" r="4" stroke="#9CA3AF" strokeWidth="1.8" fill="none"/>
+              <path d="M4 20c0-4 3.58-7 8-7s8 3 8 7" stroke="#9CA3AF" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
+            </svg>
+            <span style={{ fontSize:8, color:'#9CA3AF' }}>Account</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* Global dim badge */
+function DimBadge({ market, channel, terminal }) {
+  const ch = channel === 'shopify' ? 'Shopify' : 'Looply App';
+  const term = terminal ? terminal.toUpperCase() : 'APP';
+  return <span className="dim-badge">{market || 'US'} &middot; {ch} &middot; {term}</span>;
+}
+
+/* ── Navigation Drawer (Add/Edit) ── */
+/* Market/Channel/Terminal always disabled (pre-filled from global state) */
+function NavDrawer({ open, nav, navItems, globalMarket, globalChannel, globalTerminal, onClose, onSave }) {
+  const [form, setForm] = React.useState({ name: '', enabled: true });
+
+  React.useEffect(() => {
+    if (nav) {
+      setForm({ name: nav.name, enabled: nav.enabled });
+    } else {
+      setForm({ name: '', enabled: true });
+    }
+  }, [nav, open]);
+
+  function handleSave() {
+    if (!form.name.trim()) { message.warning('Name is required'); return; }
+    const duplicate = navItems.find(n => {
+      if (nav && n.id === nav.id) return false;
+      return n.market === globalMarket
+        && n.channel === globalChannel
+        && n.terminal === globalTerminal
+        && n.name.toLowerCase() === form.name.trim().toLowerCase();
+    });
+    if (duplicate) {
+      message.error('A navigation with this name already exists for the current Market / Channel / Terminal.');
+      return;
+    }
+    onSave({ name: form.name.trim(), enabled: form.enabled });
+  }
+
+  const isNew = !nav;
+  const chLabel = CHANNELS.find(c => c.value === globalChannel)?.label || globalChannel;
+
+  return (
+    <Drawer
+      open={open}
+      title={isNew ? 'Add Navigation' : 'Edit Navigation'}
+      width={480}
+      onClose={onClose}
+      footer={
+        <Space style={{ justifyContent:'flex-end', width:'100%' }}>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="primary" onClick={handleSave}>Save</Button>
+        </Space>
+      }
+    >
+      <div className="lp-form-row">
+        <span className="lp-form-label">Market</span>
+        <div className="lp-form-control">
+          <Select value={globalMarket} options={MARKETS} disabled style={{ width:'100%' }} />
+        </div>
+      </div>
+      <div className="lp-form-row">
+        <span className="lp-form-label">Channel</span>
+        <div className="lp-form-control">
+          <Select value={globalChannel} options={CHANNELS} disabled style={{ width:'100%' }} />
+        </div>
+      </div>
+      <div className="lp-form-row">
+        <span className="lp-form-label">Terminal</span>
+        <div className="lp-form-control">
+          <Select value={globalTerminal} options={TERMINALS} disabled style={{ width:'100%' }} />
+        </div>
+      </div>
+      <div className="lp-form-row">
+        <span className="lp-form-label"><span style={{color:'#DC2626'}}>* </span>Name</span>
+        <div className="lp-form-control">
+          <Input
+            value={form.name}
+            onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+            placeholder="e.g. Bags"
+          />
+        </div>
+      </div>
+      <div className="lp-form-row">
+        <span className="lp-form-label">Status</span>
+        <div className="lp-form-control">
+          <Space>
+            <Switch
+              checked={form.enabled}
+              onChange={v => setForm(f => ({ ...f, enabled: v }))}
+              checkedChildren="Active"
+              unCheckedChildren="Inactive"
+            />
+            <span style={{ fontSize:13, color: form.enabled ? '#16A34A' : '#6B7280' }}>
+              {form.enabled ? 'Active' : 'Inactive'}
+            </span>
+          </Space>
+        </div>
+      </div>
+    </Drawer>
+  );
+}
+
+/* ── Navigation Page ── */
+function NavigationPage({ navItems, setNavItems, menuItems, setMenuItems, itemCounts, onNavigateToMenu, globalMarket, globalChannel, globalTerminal }) {
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const [editingNav, setEditingNav] = React.useState(null);
+
+  /* Filter by global context — no extra filter controls on this page */
+  const displayedNavs = navItems.filter(n =>
+    n.market === globalMarket && n.channel === globalChannel && n.terminal === globalTerminal
+  );
+
+  /* Phone preview: enabled navs in global context */
+  const enabledNavs = displayedNavs.filter(n => n.enabled);
+  const [previewNavId, setPreviewNavId] = React.useState(enabledNavs[0]?.id || null);
+
+  React.useEffect(() => {
+    const first = navItems.filter(n => n.enabled && n.market === globalMarket && n.channel === globalChannel && n.terminal === globalTerminal)[0];
+    if (!previewNavId || !navItems.find(n => n.id === previewNavId)) {
+      setPreviewNavId(first ? first.id : null);
+    }
+  }, [navItems, globalMarket, globalChannel, globalTerminal]);
+
+  function handleAddNav() { setEditingNav(null); setDrawerOpen(true); }
+  function handleEditNav(nav) { setEditingNav(nav); setDrawerOpen(true); }
+
+  function handleSaveNav(form) {
+    if (editingNav) {
+      setNavItems(prev => prev.map(n => n.id === editingNav.id ? { ...n, ...form } : n));
+      message.success('Navigation updated');
+    } else {
+      const newNav = {
+        id: genId('nav'), name: form.name, enabled: form.enabled,
+        order: navItems.filter(n => n.market === globalMarket && n.channel === globalChannel && n.terminal === globalTerminal).length + 1,
+        market: globalMarket, channel: globalChannel, terminal: globalTerminal,
+      };
+      setNavItems(prev => [...prev, newNav]);
+      message.success('Navigation added');
+    }
+    setDrawerOpen(false);
+  }
+
+  function handleDeleteNav(navId) {
+    setNavItems(prev => prev.filter(n => n.id !== navId));
+    setMenuItems(prev => prev.filter(m => m.navId !== navId));
+    message.success('Navigation deleted');
+  }
+
+  function handleToggleNav(navId, enabled) {
+    setNavItems(prev => prev.map(n => n.id === navId ? { ...n, enabled } : n));
+  }
+
+  function moveNav(navId, dir) {
+    setNavItems(prev => {
+      const arr = [...prev];
+      const index = arr.findIndex(n => n.id === navId);
+      const targetIndex = index + dir;
+      if (targetIndex < 0 || targetIndex >= arr.length) return arr;
+      [arr[index], arr[targetIndex]] = [arr[targetIndex], arr[index]];
+      return arr.map((n, i) => ({ ...n, order: i + 1 }));
+    });
+  }
+
+  const menuCountByNav = {};
+  navItems.forEach(n => { menuCountByNav[n.id] = 0; });
+  menuItems.forEach(m => { if (menuCountByNav[m.navId] !== undefined) menuCountByNav[m.navId]++; });
+
+  const columns = [
+    {
+      title: '', key: 'order', width: 80,
+      render: (_, record) => {
+        const globalIndex = navItems.findIndex(n => n.id === record.id);
+        return (
+          <Space size={2}>
+            <HolderOutlined style={{ color:'#D1D5DB', fontSize:16, cursor:'grab', marginRight:4 }} />
+            <Button size="small" icon={<ArrowUpOutlined />} disabled={globalIndex === 0} onClick={() => moveNav(record.id, -1)} />
+            <Button size="small" icon={<ArrowDownOutlined />} disabled={globalIndex === navItems.length - 1} onClick={() => moveNav(record.id, 1)} />
+          </Space>
+        );
+      },
+    },
+    {
+      title: 'Name', key: 'name',
+      render: (_, record) => <span style={{ fontWeight:500, fontSize:13, color:'#1F2937' }}>{record.name}</span>,
+    },
+    {
+      title: 'Menu Items', key: 'menuItems', width: 120,
+      render: (_, record) => {
+        const count = menuCountByNav[record.id] || 0;
+        return (
+          <button
+            className="items-count-link"
+            onClick={() => onNavigateToMenu(record.id)}
+            title={'View menu items for ' + record.name}
+          >
+            {count} {count === 1 ? 'item' : 'items'}
+          </button>
+        );
+      },
+    },
+    {
+      title: 'Status', key: 'status', width: 120,
+      render: (_, record) => (
+        <Switch size="small" checked={record.enabled} onChange={v => handleToggleNav(record.id, v)}
+          checkedChildren="Active" unCheckedChildren="Inactive" />
+      ),
+    },
+    {
+      title: 'Actions', key: 'actions', width: 110,
+      render: (_, record) => (
+        <Space size={6}>
+          <Button size="small" icon={<EditOutlined />} onClick={() => handleEditNav(record)}>Edit</Button>
+          <Popconfirm
+            title={'Delete "' + record.name + '"?'}
+            description="This will also remove all associated menu items."
+            onConfirm={() => handleDeleteNav(record.id)}
+            okText="Delete" okButtonProps={{ danger:true }} cancelText="Cancel"
+          >
+            <Button size="small" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+
+  return (
+    <div style={{ display:'flex', flexDirection:'row', gap:24, alignItems:'flex-start' }}>
+      <div style={{ flex:1, minWidth:0, overflow:'auto' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+          <div>
+            <div style={{ fontSize:20, fontWeight:700, color:'#1F2937', marginBottom:2 }}>Navigation</div>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:4 }}>
+              <div style={{ fontSize:13, color:'#6B7280' }}>Shop page left navigation</div>
+              <DimBadge market={globalMarket} channel={globalChannel} terminal={globalTerminal} />
+            </div>
+          </div>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleAddNav}>
+            Add Navigation
+          </Button>
+        </div>
+
+        <Card style={CARD_STYLE} styles={{ body: { padding:0 } }}>
+          <Table
+            rowKey="id"
+            dataSource={displayedNavs}
+            columns={columns}
+            pagination={false}
+            styles={TABLE_STYLES}
+            locale={{ emptyText: (
+              <div style={{ padding:'40px 20px', textAlign:'center' }}>
+                <AppstoreOutlined style={{ fontSize:32, color:'#D1D5DB', marginBottom:12, display:'block' }} />
+                <div style={{ fontSize:14, fontWeight:600, color:'#1F2937', marginBottom:6 }}>No navigations found</div>
+                <div style={{ fontSize:13, color:'#6B7280' }}>Add a navigation for the current market / channel / terminal.</div>
+              </div>
+            ) }}
+          />
+        </Card>
+
+        <NavDrawer
+          open={drawerOpen}
+          nav={editingNav}
+          navItems={navItems}
+          globalMarket={globalMarket}
+          globalChannel={globalChannel}
+          globalTerminal={globalTerminal}
+          onClose={() => setDrawerOpen(false)}
+          onSave={handleSaveNav}
+        />
+      </div>
+
+      <PhoneShell>
+        <PhoneNavGrid
+          enabledNavs={enabledNavs}
+          previewNavId={previewNavId || (enabledNavs[0] ? enabledNavs[0].id : null)}
+          setPreviewNavId={setPreviewNavId}
+          menuItems={menuItems}
+        />
+      </PhoneShell>
+    </div>
+  );
+}
+
+/* ── Menu Item Drawer (Add/Edit) ── */
+function MenuDrawer({ open, item, navItems, menuItems, globalMarket, globalChannel, globalTerminal, onClose, onSave }) {
+  const [form, setForm] = React.useState({ navId: '', name: '', collectionId: '', enabled: true });
+  const [colItemCount] = React.useState(() => Math.floor(Math.random() * 450 + 50));
+
+  /* Navigations scoped to global context */
+  const scopedNavOptions = navItems
+    .filter(n => n.market === globalMarket && n.channel === globalChannel && n.terminal === globalTerminal)
+    .map(n => ({ value: n.id, label: n.name }));
+
+  React.useEffect(() => {
+    if (item) {
+      setForm({
+        navId: item.navId,
+        name: item.name,
+        collectionId: item.collectionId || '',
+        enabled: item.enabled,
+      });
+    } else {
+      setForm({ navId: '', name: '', collectionId: '', enabled: true });
+    }
+  }, [item, open]);
+
+  const selectedCol = colById(form.collectionId);
+  const colOptions = ALL_COLLECTIONS.map(c => ({ value: c.id, label: c.name + ' — /' + c.slug }));
+
+  function handleSave() {
+    if (!form.navId) { message.warning('Navigation is required'); return; }
+    if (!form.name.trim()) { message.warning('Name is required'); return; }
+    const duplicate = menuItems.find(m => {
+      if (item && m.id === item.id) return false;
+      return m.navId === form.navId && m.name.toLowerCase() === form.name.trim().toLowerCase();
+    });
+    if (duplicate) {
+      message.error('A menu item with this name already exists in the selected navigation.');
+      return;
+    }
+    onSave({ ...form, name: form.name.trim() });
+  }
+
+  const isNew = !item;
+
+  return (
+    <Drawer
+      open={open}
+      title={isNew ? 'Add Menu Item' : 'Edit Menu Item'}
+      width={500}
+      onClose={onClose}
+      footer={
+        <Space style={{ justifyContent:'flex-end', width:'100%' }}>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="primary" onClick={handleSave}>Save</Button>
+        </Space>
+      }
+    >
+      <div className="lp-form-row">
+        <span className="lp-form-label">Market</span>
+        <div className="lp-form-control">
+          <Select value={globalMarket} options={MARKETS} disabled style={{ width:'100%' }} />
+        </div>
+      </div>
+      <div className="lp-form-row">
+        <span className="lp-form-label">Channel</span>
+        <div className="lp-form-control">
+          <Select value={globalChannel} options={CHANNELS} disabled style={{ width:'100%' }} />
+        </div>
+      </div>
+      <div className="lp-form-row">
+        <span className="lp-form-label">Terminal</span>
+        <div className="lp-form-control">
+          <Select value={globalTerminal} options={TERMINALS} disabled style={{ width:'100%' }} />
+        </div>
+      </div>
+      <div className="lp-form-row">
+        <span className="lp-form-label"><span style={{color:'#DC2626'}}>* </span>Navigation</span>
+        <div className="lp-form-control">
+          <Select
+            value={form.navId || undefined}
+            placeholder="Select navigation..."
+            options={scopedNavOptions}
+            disabled={!isNew}
+            style={{ width:'100%' }}
+            onChange={v => setForm(f => ({ ...f, navId: v }))}
+          />
+        </div>
+      </div>
+      <div className="lp-form-row">
+        <span className="lp-form-label"><span style={{color:'#DC2626'}}>* </span>Name</span>
+        <div className="lp-form-control">
+          <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Shoulder Bags" />
+        </div>
+      </div>
+      <div className="lp-form-row">
+        <span className="lp-form-label"><span style={{color:'#DC2626'}}>* </span>Image</span>
+        <div className="lp-form-control">
+          <div className="lp-upload-zone" style={{ padding:'20px 12px' }}>
+            <PictureOutlined style={{ fontSize:26, color:'#C4B5FD', marginBottom:6 }} />
+            <div className="hint">Upload 1:1 image (required)</div>
+            <div className="sub">PNG, JPG, WEBP &mdash; prototype placeholder</div>
+          </div>
+        </div>
+      </div>
+      <div className="lp-form-row">
+        <span className="lp-form-label"><span style={{color:'#DC2626'}}>* </span>Collection</span>
+        <div className="lp-form-control">
+          <Select
+            showSearch allowClear
+            value={form.collectionId || undefined}
+            placeholder="Select a collection..."
+            style={{ width:'100%' }}
+            options={colOptions}
+            filterOption={(input, opt) => (opt.label || '').toLowerCase().includes(input.toLowerCase())}
+            onChange={v => setForm(f => ({ ...f, collectionId: v || '' }))}
+          />
+          {selectedCol && (
+            <div className="col-info-card">
+              <div className="col-name">{selectedCol.name}</div>
+              <a className="col-url" href={'/collections/' + selectedCol.slug} target="_blank">
+                {'/collections/' + selectedCol.slug}
+              </a>
+              <div className="col-items">~{colItemCount} items &mdash; Based on latest sync</div>
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="lp-form-row">
+        <span className="lp-form-label">Status</span>
+        <div className="lp-form-control">
+          <Space>
+            <Switch checked={form.enabled} onChange={v => setForm(f => ({ ...f, enabled: v }))}
+              checkedChildren="Active" unCheckedChildren="Inactive" />
+            <span style={{ fontSize:13, color: form.enabled ? '#16A34A' : '#6B7280' }}>
+              {form.enabled ? 'Active' : 'Inactive'}
+            </span>
+          </Space>
+        </div>
+      </div>
+    </Drawer>
+  );
+}
+
+/* ── Menu Page ── */
+function MenuPage({ navItems, menuItems, setMenuItems, itemCounts, initialNavFilter, globalMarket, globalChannel, globalTerminal }) {
+  const [search, setSearch] = React.useState('');
+  const [searchInput, setSearchInput] = React.useState('');
+  const [navFilter, setNavFilter] = React.useState(initialNavFilter || null);
+  const [statusFilter, setStatusFilter] = React.useState('all');
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const [editingItem, setEditingItem] = React.useState(null);
+  const [previewNavId, setPreviewNavId] = React.useState(null);
+  const debounceRef = React.useRef(null);
+
+  /* Navigations scoped to global context for filter dropdown */
+  const scopedNavs = navItems.filter(n =>
+    n.market === globalMarket && n.channel === globalChannel && n.terminal === globalTerminal
+  );
+  const enabledNavs = scopedNavs.filter(n => n.enabled);
+
+  React.useEffect(() => {
+    if (initialNavFilter && initialNavFilter !== 'all') {
+      setNavFilter(initialNavFilter || null);
+      setPreviewNavId(initialNavFilter);
+    } else {
+      const first = enabledNavs[0];
+      if (first) setPreviewNavId(first.id);
+    }
+  }, [initialNavFilter]);
+
+  React.useEffect(() => {
+    if (navFilter) setPreviewNavId(navFilter);
+  }, [navFilter]);
+
+  /* Reset navFilter when global context changes and current filter is out of scope */
+  React.useEffect(() => {
+    if (navFilter) {
+      const still = scopedNavs.find(n => n.id === navFilter);
+      if (!still) setNavFilter(null);
+    }
+  }, [globalMarket, globalChannel, globalTerminal]);
+
+  function handleSearchChange(e) {
+    const val = e.target.value;
+    setSearchInput(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setSearch(val), 300);
+  }
+
+  function handleAddItem() { setEditingItem(null); setDrawerOpen(true); }
+  function handleEditItem(item) { setEditingItem(item); setDrawerOpen(true); }
+
+  function handleSaveItem(form) {
+    if (editingItem) {
+      setMenuItems(prev => prev.map(m => m.id === editingItem.id ? { ...m, ...form } : m));
+      message.success('Menu item updated');
+    } else {
+      setMenuItems(prev => [...prev, { id: genId('mi'), navId: form.navId, name: form.name, collectionId: form.collectionId, image: null, enabled: form.enabled }]);
+      message.success('Menu item added');
+    }
+    setDrawerOpen(false);
+  }
+
+  function handleDeleteItem(itemId) {
+    setMenuItems(prev => prev.filter(m => m.id !== itemId));
+    message.success('Menu item deleted');
+  }
+
+  function handleToggleItem(itemId, enabled) {
+    setMenuItems(prev => prev.map(m => m.id === itemId ? { ...m, enabled } : m));
+  }
+
+  function moveMenuItem(itemId, dir) {
+    setMenuItems(prev => {
+      const item = prev.find(m => m.id === itemId);
+      if (!item) return prev;
+      const siblings = prev.filter(m => m.navId === item.navId);
+      const idx = siblings.findIndex(m => m.id === itemId);
+      const targetIdx = idx + dir;
+      if (targetIdx < 0 || targetIdx >= siblings.length) return prev;
+      const newSiblings = [...siblings];
+      [newSiblings[idx], newSiblings[targetIdx]] = [newSiblings[targetIdx], newSiblings[idx]];
+      const siblingIds = new Set(newSiblings.map(m => m.id));
+      return prev.filter(m => !siblingIds.has(m.id)).concat(newSiblings);
+    });
+  }
+
+  /* Only menu items belonging to scoped navigations */
+  const scopedNavIds = new Set(scopedNavs.map(n => n.id));
+  const q = search.trim().toLowerCase();
+  const filtered = menuItems.filter(m => {
+    if (!scopedNavIds.has(m.navId)) return false;
+    if (navFilter && m.navId !== navFilter) return false;
+    if (statusFilter === 'active' && !m.enabled) return false;
+    if (statusFilter === 'inactive' && m.enabled) return false;
+    if (q) {
+      const col = colById(m.collectionId);
+      if (!m.name.toLowerCase().includes(q) && !(col && col.name.toLowerCase().includes(q)) && m.collectionId !== q) return false;
+    }
+    return true;
+  });
+
+  const navFilterOptions = scopedNavs.map(n => ({ value: n.id, label: n.name }));
+  const statusOptions = [
+    { value:'all', label:'All Status' },
+    { value:'active', label:'Active' },
+    { value:'inactive', label:'Inactive' },
+  ];
+
+  const effectivePreviewNavId = previewNavId || (enabledNavs[0] ? enabledNavs[0].id : null);
+
+  const columns = [
+    {
+      title: '', key: 'order', width: 80,
+      render: (_, record) => {
+        const siblings = menuItems.filter(m => m.navId === record.navId);
+        const idx = siblings.findIndex(m => m.id === record.id);
+        return (
+          <Space size={2}>
+            <HolderOutlined style={{ color:'#D1D5DB', fontSize:16, cursor:'grab', marginRight:4 }} />
+            <Button size="small" icon={<ArrowUpOutlined />} disabled={idx === 0} onClick={() => moveMenuItem(record.id, -1)} />
+            <Button size="small" icon={<ArrowDownOutlined />} disabled={idx === siblings.length - 1} onClick={() => moveMenuItem(record.id, 1)} />
+          </Space>
+        );
+      },
+    },
+    {
+      title: 'Navigation', key: 'navigation', width: 120,
+      render: (_, record) => {
+        const nav = navItems.find(n => n.id === record.navId);
+        if (!nav) return <span style={{ color:'#9CA3AF' }}>&mdash;</span>;
+        return <Tag style={{ fontSize:11 }}>{nav.name}</Tag>;
+      },
+    },
+    {
+      title: 'Name', key: 'name', width: 140,
+      render: (_, record) => <span style={{ fontWeight:500, fontSize:13 }}>{record.name}</span>,
+    },
+    {
+      title: 'Image', key: 'image', width: 70,
+      render: () => (
+        <div style={{ width:32, height:32, borderRadius:'50%', border:'1.5px dashed #D1D5DB', background:'#F9FAFB', display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <PictureOutlined style={{ fontSize:12, color:'#D1D5DB' }} />
+        </div>
+      ),
+    },
+    {
+      title: 'Collection', key: 'collection', width: 220,
+      render: (_, record) => {
+        const col = colById(record.collectionId);
+        if (!col) return <span style={{ color:'#9CA3AF', fontSize:12 }}>Not linked</span>;
+        return (
+          <div>
+            <div style={{ fontWeight:600, color:'#2563EB', fontSize:12 }}>{col.name}</div>
+            <a href={'/collections/' + col.slug} target="_blank" style={{ color:'#9CA3AF', fontSize:11, textDecoration:'none' }}>
+              {'/collections/' + col.slug}
+            </a>
+          </div>
+        );
+      },
+    },
+    {
+      title: 'Items', key: 'items', width: 110,
+      render: (_, record) => (
+        <Tooltip title="Based on latest collection sync">
+          <span style={{ color:'#6B7280', fontSize:12 }}>~{itemCounts[record.id] || 0} items</span>
+        </Tooltip>
+      ),
+    },
+    {
+      title: 'Status', key: 'status', width: 90,
+      render: (_, record) => (
+        <Switch size="small" checked={record.enabled} onChange={v => handleToggleItem(record.id, v)}
+          checkedChildren="Active" unCheckedChildren="Inactive" />
+      ),
+    },
+    {
+      title: 'Actions', key: 'actions', width: 100, fixed: 'right',
+      render: (_, record) => (
+        <Space size={6}>
+          <Button size="small" icon={<EditOutlined />} onClick={() => handleEditItem(record)}>Edit</Button>
+          <Popconfirm
+            title={'Delete "' + record.name + '"?'}
+            description="This action cannot be undone."
+            onConfirm={() => handleDeleteItem(record.id)}
+            okText="Delete" okButtonProps={{ danger:true }} cancelText="Cancel"
+          >
+            <Button size="small" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+
+  return (
+    <div style={{ display:'flex', flexDirection:'row', gap:24, alignItems:'flex-start' }}>
+      <div style={{ flex:1, minWidth:0, overflow:'auto' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 }}>
+          <div>
+            <div style={{ fontSize:20, fontWeight:700, color:'#1F2937', marginBottom:2 }}>Menu</div>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:4 }}>
+              <div style={{ fontSize:13, color:'#6B7280' }}>Menu items within each navigation</div>
+              <DimBadge market={globalMarket} channel={globalChannel} terminal={globalTerminal} />
+            </div>
+          </div>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleAddItem}>Add Menu Item</Button>
+        </div>
+
+        <div style={{ display:'flex', gap:10, marginBottom:16, flexWrap:'wrap' }}>
+          <Input
+            prefix={<SearchOutlined style={{ color:'#9CA3AF' }} />}
+            placeholder="Search by name, collection name or collection ID"
+            value={searchInput} onChange={handleSearchChange} allowClear
+            style={{ flex:1, minWidth:280 }}
+          />
+          <Select
+            value={navFilter}
+            onChange={v => { setNavFilter(v || null); if (v) setPreviewNavId(v); }}
+            options={navFilterOptions}
+            style={{ width:200 }}
+            placeholder="All Navigations"
+            allowClear
+          />
+          <Select value={statusFilter} onChange={setStatusFilter} options={statusOptions} style={{ width:140 }} />
+        </div>
+
+        <Card style={CARD_STYLE} styles={{ body: { padding:0 } }}>
+          <Table
+            rowKey="id"
+            dataSource={filtered}
+            columns={columns}
+            scroll={{ x:'max-content' }}
+            pagination={{ pageSize:20, showTotal: t => t + ' items' }}
+            styles={TABLE_STYLES}
+            locale={{ emptyText: (
+              <div style={{ padding:'40px 20px', textAlign:'center' }}>
+                <AppstoreOutlined style={{ fontSize:32, color:'#D1D5DB', marginBottom:12, display:'block' }} />
+                <div style={{ fontSize:14, fontWeight:600, color:'#1F2937', marginBottom:6 }}>No menu items found</div>
+                <div style={{ fontSize:13, color:'#6B7280' }}>
+                  {q || navFilter || statusFilter !== 'all'
+                    ? 'Try adjusting your filters or search query.'
+                    : 'Add your first menu item to get started.'}
+                </div>
+              </div>
+            ) }}
+          />
+        </Card>
+
+        <MenuDrawer
+          open={drawerOpen}
+          item={editingItem}
+          navItems={navItems}
+          menuItems={menuItems}
+          globalMarket={globalMarket}
+          globalChannel={globalChannel}
+          globalTerminal={globalTerminal}
+          onClose={() => setDrawerOpen(false)}
+          onSave={handleSaveItem}
+        />
+      </div>
+
+      <PhoneShell>
+        <PhoneNavGrid
+          enabledNavs={enabledNavs}
+          previewNavId={effectivePreviewNavId}
+          setPreviewNavId={setPreviewNavId}
+          menuItems={menuItems}
+        />
+      </PhoneShell>
+    </div>
+  );
+}
+
+/* ── App ── */
+function App() {
+  const initMenuItems = buildInitMenuItems();
+  const [navItems, setNavItems] = React.useState(INIT_NAVS);
+  const [menuItems, setMenuItems] = React.useState(initMenuItems);
+  const [itemCounts] = React.useState(() => buildInitItemCounts(initMenuItems));
+  const [currentPage, setCurrentPage] = React.useState('navigation');
+  const [menuNavFilter, setMenuNavFilter] = React.useState('all');
+
+  /* Global filters — top of hierarchy */
+  const [globalMarket, setGlobalMarket] = React.useState('US');
+  const [globalChannel, setGlobalChannel] = React.useState('looply_app');
+  const [globalTerminal, setGlobalTerminal] = React.useState('app');
+
+  function navigateToMenu(navId) {
+    setMenuNavFilter(navId);
+    setCurrentPage('menu');
+  }
+
+  const siderMenuItems = [
+    { key:'navigation', icon:<UnorderedListOutlined />, label:'Navigation' },
+    { key:'menu', icon:<AppstoreOutlined />, label:'Menu' },
+  ];
+
+  return (
+    <ConfigProvider theme={looplyTheme}>
+      <Layout style={{ minHeight:'100vh' }}>
+        <Layout.Header style={{
+          background:'#fff', borderBottom:'1px solid #E5E7EB',
+          display:'flex', alignItems:'center', justifyContent:'space-between',
+          position:'sticky', top:0, zIndex:100, padding:'0 24px',
+        }}>
+          {/* Left: logo + title */}
+          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+            <img src={LOGO_SRC} alt="Looply" style={{ height:32, display:'block' }} onError={e => { e.target.style.display='none'; }} />
+            <span style={{ fontSize:12, color:'#9CA3AF', borderLeft:'1px solid #E5E7EB', paddingLeft:12 }}>Shop Admin</span>
+          </div>
+
+        </Layout.Header>
+
+        {/* Global filter bar — highest priority, above all page-level controls */}
+        <div style={{
+          background:'#F3EEFF', borderBottom:'1px solid #DDD6FE',
+          padding:'10px 24px', display:'flex', alignItems:'center', gap:16,
+          position:'sticky', top:60, zIndex:99,
+        }}>
+          <span style={{ fontSize:12, fontWeight:600, color:'#7C3AED', letterSpacing:'0.3px', whiteSpace:'nowrap' }}>Global Context</span>
+          <div style={{ width:1, height:16, background:'#C4B5FD' }} />
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+            <span style={{ fontSize:12, color:'#6B7280' }}>Market</span>
+            <Select
+              value={globalMarket}
+              options={MARKETS}
+              onChange={setGlobalMarket}
+              style={{ width:148 }}
+              size="small"
+            />
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+            <span style={{ fontSize:12, color:'#6B7280' }}>Channel</span>
+            <Select
+              value={globalChannel}
+              options={CHANNELS}
+              onChange={v => { setGlobalChannel(v); setMenuNavFilter(null); }}
+              style={{ width:136 }}
+              size="small"
+            />
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+            <span style={{ fontSize:12, color:'#6B7280' }}>Terminal</span>
+            <Select
+              value={globalTerminal}
+              options={TERMINALS}
+              onChange={setGlobalTerminal}
+              style={{ width:90 }}
+              size="small"
+            />
+          </div>
+        </div>
+
+        <Layout style={{ height:'calc(100vh - 104px)' }}>
+          <Layout.Sider width={220} theme="light" style={SIDER_STYLE}>
+            <div style={{ padding:'20px 16px 10px', fontSize:11, fontWeight:600, color:'#9CA3AF', letterSpacing:'0.6px', textTransform:'uppercase' }}>
+              Shop
+            </div>
+            <Menu
+              mode="inline"
+              selectedKeys={[currentPage]}
+              items={siderMenuItems}
+              style={{ borderRight:'none' }}
+              onClick={({ key }) => {
+                if (key === 'menu') setMenuNavFilter('all');
+                setCurrentPage(key);
+              }}
+            />
+          </Layout.Sider>
+
+          <Layout.Content style={{ padding:28, overflowY:'auto', background:'#F9FAFB' }}>
+            {currentPage === 'navigation' && (
+              <NavigationPage
+                navItems={navItems}
+                setNavItems={setNavItems}
+                menuItems={menuItems}
+                setMenuItems={setMenuItems}
+                itemCounts={itemCounts}
+                onNavigateToMenu={navigateToMenu}
+                globalMarket={globalMarket}
+                globalChannel={globalChannel}
+                globalTerminal={globalTerminal}
+              />
+            )}
+            {currentPage === 'menu' && (
+              <MenuPage
+                navItems={navItems}
+                menuItems={menuItems}
+                setMenuItems={setMenuItems}
+                itemCounts={itemCounts}
+                initialNavFilter={menuNavFilter}
+                globalMarket={globalMarket}
+                globalChannel={globalChannel}
+                globalTerminal={globalTerminal}
+              />
+            )}
+          </Layout.Content>
+        </Layout>
+      </Layout>
+    </ConfigProvider>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
