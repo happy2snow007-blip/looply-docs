@@ -1,0 +1,2487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Looply 支付渠道对接集成说明文档 V1.0</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    background: #f5f6f8;
+    color: #1a1a2e;
+    line-height: 1.7;
+  }
+  .page-layout {
+    display: flex; min-height: 100vh;
+  }
+
+  /* Sidebar TOC */
+  .toc-sidebar {
+    width: 280px; flex-shrink: 0;
+    position: fixed; top: 0; left: 0; bottom: 0;
+    background: #fff; border-right: 1px solid #e8e8ee;
+    overflow-y: auto; z-index: 100;
+    padding: 20px 0;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.04);
+  }
+  .toc-sidebar::-webkit-scrollbar { width: 4px; }
+  .toc-sidebar::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
+  .toc-sidebar::-webkit-scrollbar-thumb:hover { background: #bbb; }
+  .toc-brand {
+    padding: 4px 20px 16px;
+    border-bottom: 1px solid #f0f0f5;
+    margin-bottom: 12px;
+  }
+  .toc-brand h2 {
+    font-size: 15px; font-weight: 700; color: #6C5CE7;
+    margin-bottom: 2px;
+  }
+  .toc-brand .toc-version {
+    font-size: 11px; color: #aaa;
+  }
+  .toc-sidebar ol { list-style: none; padding: 0; margin: 0; }
+  .toc-sidebar > ol > li { margin-bottom: 2px; }
+  .toc-sidebar > ol > li > a {
+    display: block; padding: 7px 20px; font-size: 13px;
+    font-weight: 600; color: #333; text-decoration: none;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+  }
+  .toc-sidebar > ol > li > a:hover {
+    background: #f5f3ff; color: #6C5CE7;
+  }
+  .toc-sidebar > ol > li > a.active {
+    background: #f5f3ff; color: #6C5CE7;
+    border-left-color: #6C5CE7;
+  }
+  .toc-sidebar ol ol { margin: 0; }
+  .toc-sidebar ol ol li a {
+    display: block; padding: 4px 20px 4px 36px; font-size: 12px;
+    color: #888; text-decoration: none;
+    transition: all 0.15s;
+  }
+  .toc-sidebar ol ol li a:hover { color: #6C5CE7; }
+  .toc-sidebar ol ol li a.active { color: #6C5CE7; font-weight: 600; }
+
+  /* Main content with right gutter for comments */
+  .main-content {
+    margin-left: 280px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    min-height: 100vh;
+  }
+  .container {
+    max-width: 1200px;
+    padding: 40px 48px;
+    min-width: 0;
+  }
+  .comments-gutter {
+    position: relative;
+    padding: 40px 16px 40px 0;
+    min-width: 0;
+  }
+
+  /* Text highlight */
+  mark.doc-highlight {
+    background: #FEF3CD; border-bottom: 2px solid #FFD43B;
+    cursor: pointer; transition: background 0.15s; border-radius: 2px;
+  }
+  mark.doc-highlight:hover, mark.doc-highlight.active {
+    background: #FFE69C;
+  }
+
+  /* Floating add-comment trigger */
+  .comment-trigger {
+    position: fixed; display: none;
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 1px solid #e0e0e0; background: #fff;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+    cursor: pointer; align-items: center; justify-content: center;
+    font-size: 18px; color: #6C5CE7; z-index: 300;
+    transition: all 0.15s;
+  }
+  .comment-trigger.visible { display: flex; }
+  .comment-trigger:hover {
+    background: #6C5CE7; color: #fff; border-color: #6C5CE7;
+    transform: scale(1.1);
+  }
+
+  /* Comment card */
+  .doc-comment {
+    position: absolute; left: 8px; right: 16px;
+    background: #fff; border: 1px solid #e8e8ee; border-radius: 8px;
+    padding: 12px 14px; z-index: 50;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .doc-comment:hover {
+    border-color: #c4b5fd; box-shadow: 0 2px 12px rgba(108,92,231,0.1);
+  }
+  .doc-comment.active {
+    border-color: #6C5CE7; box-shadow: 0 2px 12px rgba(108,92,231,0.15);
+  }
+  .doc-comment-connector {
+    position: absolute; left: -9px; top: 16px;
+    width: 9px; height: 1px; background: #ddd;
+  }
+  .doc-comment.active .doc-comment-connector { background: #6C5CE7; }
+  .doc-comment-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 6px;
+  }
+  .doc-comment-time { font-size: 11px; color: #bbb; }
+  .doc-comment-actions {
+    display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s;
+  }
+  .doc-comment:hover .doc-comment-actions { opacity: 1; }
+  .doc-comment-action {
+    width: 22px; height: 22px; border-radius: 4px; border: none;
+    background: transparent; cursor: pointer; display: flex;
+    align-items: center; justify-content: center;
+    font-size: 12px; color: #999; transition: all 0.15s;
+  }
+  .doc-comment-action:hover { background: #f0f0f5; color: #6C5CE7; }
+  .doc-comment-action.delete:hover { background: #FFF0F0; color: #e64553; }
+  .doc-comment-quote {
+    font-size: 11px; color: #999; font-style: italic;
+    border-left: 2px solid #e8e8ee; padding: 2px 0 2px 8px;
+    margin-bottom: 8px; max-height: 36px; overflow: hidden;
+    white-space: nowrap; text-overflow: ellipsis;
+  }
+  .doc-comment-text {
+    font-size: 13px; line-height: 1.6; color: #333;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .doc-comment-input {
+    width: 100%; border: 1px solid #e0e0e0; border-radius: 6px;
+    outline: none; resize: vertical;
+    font-size: 13px; line-height: 1.5; color: #333;
+    font-family: inherit; padding: 8px 10px; min-height: 56px;
+  }
+  .doc-comment-input:focus { border-color: #6C5CE7; }
+  .doc-comment-input::placeholder { color: #ccc; }
+  .doc-comment-btns {
+    display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;
+  }
+  .doc-comment-save {
+    padding: 5px 16px; border-radius: 6px; border: none;
+    background: #6C5CE7; color: #fff; font-size: 12px;
+    font-weight: 600; cursor: pointer; transition: background 0.15s;
+  }
+  .doc-comment-save:hover { background: #5a4bd1; }
+  .doc-comment-cancel {
+    padding: 5px 16px; border-radius: 6px; border: 1px solid #ddd;
+    background: #fff; color: #666; font-size: 12px;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .doc-comment-cancel:hover { background: #f5f5f5; }
+
+  /* Header */
+  .doc-header {
+    text-align: center;
+    margin-bottom: 48px;
+    padding: 40px 32px;
+    background: linear-gradient(135deg, #6C5CE7 0%, #a855f7 100%);
+    border-radius: 16px;
+    color: #fff;
+  }
+  .doc-header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  .doc-header .subtitle { font-size: 14px; opacity: 0.85; margin-bottom: 12px; }
+  .doc-header .meta {
+    display: flex; justify-content: center; gap: 24px;
+    font-size: 13px; opacity: 0.75;
+  }
+
+  /* Section */
+  .section {
+    background: #fff; border-radius: 12px; padding: 32px;
+    margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .section h2 {
+    font-size: 22px; font-weight: 700; margin-bottom: 20px;
+    padding-bottom: 12px; border-bottom: 2px solid #6C5CE7;
+    color: #1a1a2e;
+  }
+  .section h3 {
+    font-size: 17px; font-weight: 600; margin: 24px 0 12px;
+    color: #6C5CE7;
+  }
+  .section h4 {
+    font-size: 15px; font-weight: 600; margin: 18px 0 8px;
+    color: #444;
+  }
+  .section p { margin-bottom: 12px; font-size: 14px; }
+  .section ul, .section ol { padding-left: 20px; margin-bottom: 12px; font-size: 14px; }
+  .section li { margin-bottom: 4px; }
+
+  /* Code block */
+  pre {
+    background: #1e1e2e; color: #cdd6f4; border-radius: 8px;
+    padding: 16px 20px; font-size: 13px; line-height: 1.5;
+    overflow-x: auto; margin: 12px 0 16px;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  }
+  code {
+    background: #f0f0f5; padding: 1px 5px; border-radius: 4px;
+    font-size: 13px; color: #e64553;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  }
+  pre code { background: none; padding: 0; color: inherit; }
+  .kw { color: #cba6f7; }
+  .str { color: #a6e3a1; }
+  .num { color: #fab387; }
+  .cmt { color: #6c7086; font-style: italic; }
+
+  /* Table */
+  table {
+    width: 100%; border-collapse: collapse; margin: 12px 0 16px;
+    font-size: 13px;
+  }
+  th {
+    background: #f5f3ff; text-align: left; padding: 10px 14px;
+    border: 1px solid #e2e2ea; font-weight: 600; color: #6C5CE7;
+  }
+  td {
+    padding: 10px 14px; border: 1px solid #e2e2ea; vertical-align: top;
+  }
+  tr:nth-child(even) td { background: #fafafe; }
+
+  /* Tag */
+  .tag {
+    display: inline-block; padding: 2px 10px; border-radius: 10px;
+    font-size: 11px; font-weight: 600;
+  }
+  .tag-paypal { background: #FFF5E0; color: #003087; }
+  .tag-airwallex { background: #E8F5E9; color: #1B5E20; }
+  .tag-both { background: #F3E8FF; color: #6C5CE7; }
+
+  /* Callout */
+  .callout {
+    padding: 14px 18px; border-radius: 8px; margin: 14px 0;
+    font-size: 13px; display: flex; gap: 10px; align-items: flex-start;
+  }
+  .callout-warn { background: #FFF8E1; border-left: 3px solid #F9A825; }
+  .callout-info { background: #E8F4FD; border-left: 3px solid #1976D2; }
+  .callout-tip { background: #E8F5E9; border-left: 3px solid #2E7D32; }
+  .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  /* Sequence Diagram */
+  .seq-diagram {
+    margin: 20px 0; overflow-x: auto;
+  }
+  .seq-diagram table {
+    border-collapse: collapse; min-width: 700px;
+  }
+  .seq-diagram .participant {
+    background: #6C5CE7; color: #fff; padding: 8px 16px;
+    border-radius: 6px; font-weight: 600; font-size: 13px;
+    text-align: center; white-space: nowrap;
+  }
+  .seq-diagram .participant-paypal { background: #003087; }
+  .seq-diagram .participant-airwallex { background: #1B5E20; }
+  .seq-diagram .lifeline {
+    border-right: 2px dashed #ccc; padding: 0 20px; min-width: 120px;
+    vertical-align: top; position: relative;
+  }
+  .seq-diagram .step-row td {
+    padding: 6px 12px; font-size: 12px; border: none;
+    vertical-align: middle; position: relative;
+  }
+  .seq-diagram .step-num {
+    display: inline-block; width: 22px; height: 22px;
+    border-radius: 50%; background: #6C5CE7; color: #fff;
+    text-align: center; line-height: 22px; font-size: 11px;
+    font-weight: 600; margin-right: 6px; flex-shrink: 0;
+  }
+  .seq-diagram .arrow-right {
+    display: flex; align-items: center; gap: 4px;
+    color: #6C5CE7; font-size: 12px; white-space: nowrap;
+    padding: 4px 0;
+  }
+  .seq-diagram .arrow-left {
+    display: flex; align-items: center; gap: 4px;
+    color: #888; font-size: 12px; white-space: nowrap;
+    padding: 4px 0; direction: rtl;
+  }
+  .seq-diagram .arrow-line {
+    flex: 1; height: 2px; background: #6C5CE7; min-width: 30px;
+    position: relative;
+  }
+  .seq-diagram .arrow-line::after {
+    content: ''; position: absolute; right: -1px; top: -4px;
+    border-left: 8px solid #6C5CE7; border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+  }
+  .seq-diagram .arrow-line-back {
+    flex: 1; height: 2px; background: #aaa; min-width: 30px;
+    position: relative; border-style: dashed;
+  }
+  .seq-diagram .arrow-line-back::before {
+    content: ''; position: absolute; left: -1px; top: -4px;
+    border-right: 8px solid #aaa; border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+  }
+
+  /* Flow Diagram */
+  .flow-box {
+    display: flex; flex-wrap: wrap; gap: 12px;
+    justify-content: center; align-items: center;
+    margin: 20px 0;
+  }
+  .flow-node {
+    padding: 12px 20px; border-radius: 8px; font-size: 13px;
+    font-weight: 600; text-align: center; min-width: 120px;
+  }
+  .flow-node-primary { background: #6C5CE7; color: #fff; }
+  .flow-node-paypal { background: #003087; color: #fff; }
+  .flow-node-airwallex { background: #1B5E20; color: #fff; }
+  .flow-node-looply { background: #f5f3ff; color: #6C5CE7; border: 2px solid #6C5CE7; }
+  .flow-node-user { background: #FFF3E0; color: #E65100; border: 2px solid #E65100; }
+  .flow-arrow {
+    font-size: 20px; color: #aaa; font-weight: 700;
+  }
+
+  /* Architecture diagram */
+  .arch-diagram {
+    margin: 24px 0; padding: 24px;
+    background: #fafafe; border-radius: 12px; border: 1px solid #e2e2ea;
+  }
+  .arch-layer {
+    margin-bottom: 16px; padding: 16px;
+    border-radius: 8px;
+  }
+  .arch-layer-title {
+    font-size: 12px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1px; margin-bottom: 10px; color: #888;
+  }
+  .arch-boxes {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    justify-content: center;
+  }
+  .arch-box {
+    padding: 10px 18px; border-radius: 8px; font-size: 13px;
+    font-weight: 500; text-align: center;
+  }
+  .arch-connector {
+    text-align: center; font-size: 20px; color: #ccc;
+    margin: 4px 0;
+  }
+
+  /* Status flow */
+  .status-flow {
+    display: flex; align-items: center; gap: 8px;
+    flex-wrap: wrap; margin: 12px 0;
+  }
+  .status-node {
+    padding: 6px 14px; border-radius: 6px; font-size: 12px;
+    font-weight: 600; white-space: nowrap;
+  }
+  .status-pending { background: #FFF3E0; color: #E65100; }
+  .status-paid { background: #E8F5E9; color: #2E7D32; }
+  .status-failed { background: #FFEBEE; color: #C62828; }
+  .status-refunding { background: #E3F2FD; color: #1565C0; }
+  .status-refunded { background: #F3E5F5; color: #6A1B9A; }
+  .status-arrow { color: #aaa; font-weight: 700; }
+
+  /* Sequence diagram v2 - clean horizontal arrow style */
+  .seq2 { margin: 20px 0; }
+  .seq2 .participants {
+    display: grid; gap: 0; margin-bottom: 0;
+    border-bottom: none;
+  }
+  .seq2 .p-label {
+    padding: 8px 12px; text-align: center; font-weight: 600;
+    font-size: 13px; border-radius: 6px 6px 0 0; color: #fff;
+  }
+  .seq2 .steps { position: relative; }
+  .seq2 .s-row {
+    display: grid; gap: 0; padding: 6px 0; min-height: 36px;
+    align-items: center; border-bottom: 1px solid #f0f0f5;
+  }
+  .seq2 .s-row:last-child { border-bottom: none; }
+  .seq2 .s-cell {
+    padding: 4px 8px; font-size: 12px; text-align: center;
+    border-left: 2px dashed #ddd; min-height: 28px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .seq2 .s-cell:first-child { border-left: none; }
+  .seq2 .msg {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #f5f3ff; padding: 3px 10px; border-radius: 4px;
+    font-size: 11px; color: #6C5CE7; font-weight: 500;
+    white-space: nowrap;
+  }
+  .seq2 .msg-back {
+    background: #f0f0f5; color: #666;
+  }
+  .seq2 .msg-num {
+    display: inline-flex; width: 18px; height: 18px;
+    border-radius: 50%; background: #6C5CE7; color: #fff;
+    align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; flex-shrink: 0;
+  }
+
+  /* Clean sequence diagram using flex layout */
+  .seqd {
+    margin: 24px 0; padding: 20px;
+    background: #fafafe; border-radius: 10px; border: 1px solid #e8e8ee;
+    overflow-x: auto;
+  }
+  .seqd-title {
+    font-size: 14px; font-weight: 600; margin-bottom: 16px;
+    color: #6C5CE7; text-align: center;
+  }
+  .seqd-row {
+    display: flex; align-items: center; margin-bottom: 8px;
+    min-height: 32px; font-size: 12px;
+  }
+  .seqd-num {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: #6C5CE7; color: #fff; display: flex;
+    align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; flex-shrink: 0;
+    margin-right: 10px;
+  }
+  .seqd-num.back { background: #aaa; }
+  .seqd-from {
+    width: 140px; text-align: right; padding-right: 8px;
+    font-weight: 500; color: #555; flex-shrink: 0;
+  }
+  .seqd-arrow {
+    flex: 1; display: flex; align-items: center;
+    min-width: 60px; position: relative;
+    padding: 0 4px;
+  }
+  .seqd-arrow .line {
+    flex: 1; height: 2px; background: #6C5CE7;
+  }
+  .seqd-arrow .line.dashed {
+    background: none;
+    border-top: 2px dashed #aaa;
+  }
+  .seqd-arrow .head {
+    width: 0; height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 8px solid #6C5CE7;
+    flex-shrink: 0;
+  }
+  .seqd-arrow .head.left {
+    border-left: none;
+    border-right: 8px solid #aaa;
+  }
+  .seqd-arrow.reverse { flex-direction: row-reverse; }
+  .seqd-to {
+    width: 140px; padding-left: 8px;
+    font-weight: 500; color: #555; flex-shrink: 0;
+  }
+  .seqd-label {
+    font-size: 11px; padding: 2px 8px;
+    border-radius: 3px; white-space: nowrap;
+    position: absolute; top: -14px; left: 50%;
+    transform: translateX(-50%);
+    background: #f5f3ff; color: #6C5CE7;
+  }
+  .seqd-label.back { background: #f0f0f5; color: #888; }
+  .seqd-group {
+    margin: 6px 0; padding: 8px 12px;
+    border: 1px dashed #ccc; border-radius: 6px;
+    background: #fff;
+  }
+  .seqd-group-label {
+    font-size: 11px; color: #888; font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .seqd-divider {
+    text-align: center; font-size: 11px; color: #aaa;
+    margin: 12px 0 8px; border-top: 1px solid #eee;
+    padding-top: 8px;
+  }
+
+
+  /* Print */
+  @media print {
+    body { background: #fff; padding: 20px; }
+    .section { box-shadow: none; border: 1px solid #eee; }
+    pre { border: 1px solid #ddd; }
+  }
+</style>
+</head>
+<body>
+<div class="page-layout">
+
+<!-- Fixed Sidebar TOC -->
+<nav class="toc-sidebar" id="toc">
+  <div class="toc-brand">
+    <h2>支付对接集成文档</h2>
+    <div class="toc-version">V1.0 &middot; 2026-06-26</div>
+  </div>
+  <ol>
+    <li><a href="#ch1">1. 支付架构总览</a>
+      <ol>
+        <li><a href="#ch1-1">1.1 支付渠道矩阵</a></li>
+        <li><a href="#ch1-2">1.2 系统架构图</a></li>
+        <li><a href="#ch1-3">1.3 核心设计原则</a></li>
+      </ol>
+    </li>
+    <li><a href="#ch2">2. PayPal 支付集成</a>
+      <ol>
+        <li><a href="#ch2-1">2.1 支付时序图</a></li>
+        <li><a href="#ch2-2">2.2 前端集成（JS SDK）</a></li>
+        <li><a href="#ch2-3">2.3 后端 API 对接</a></li>
+        <li><a href="#ch2-4">2.4 Webhook 处理</a></li>
+      </ol>
+    </li>
+    <li><a href="#ch3">3. Airwallex 支付集成</a>
+      <ol>
+        <li><a href="#ch3-1">3.1 支付时序图</a></li>
+        <li><a href="#ch3-2">3.2 前端集成（Drop-in）</a></li>
+        <li><a href="#ch3-3">3.3 后端 API 对接</a></li>
+        <li><a href="#ch3-4">3.4 Webhook 处理</a></li>
+        <li><a href="#ch3-5">3.5 Apple Pay 配置</a></li>
+      </ol>
+    </li>
+    <li><a href="#ch4">4. Checkout 前端组件</a>
+      <ol>
+        <li><a href="#ch4-1">4.1 支付方式选择器</a></li>
+        <li><a href="#ch4-2">4.2 按钮状态 & 文案</a></li>
+        <li><a href="#ch4-3">4.3 组件挂载逻辑</a></li>
+      </ol>
+    </li>
+    <li><a href="#ch5">5. 退款流程</a>
+      <ol>
+        <li><a href="#ch5-1">5.1 退款系统流程</a></li>
+        <li><a href="#ch5-2">5.2 PayPal 退款 API</a></li>
+        <li><a href="#ch5-3">5.3 Airwallex 退款 API</a></li>
+        <li><a href="#ch5-4">5.4 退款 Webhook</a></li>
+      </ol>
+    </li>
+    <li><a href="#ch6">6. 订单状态映射</a>
+      <ol>
+        <li><a href="#ch6-1">6.1 订单状态机</a></li>
+        <li><a href="#ch6-2">6.2 渠道状态映射</a></li>
+      </ol>
+    </li>
+    <li><a href="#ch7">7. 错误处理 & 异常</a></li>
+    <li><a href="#ch8">8. 前置准备清单</a></li>
+    <li><a href="#ch9">9. 环境配置 & 测试</a></li>
+    <li><a href="#appendix-api">附：接口清单</a></li>
+    <li><a href="#appendix-db">附：数据库字段</a></li>
+  </ol>
+</nav>
+
+<!-- Main Content -->
+<div class="main-content">
+<div class="container">
+
+<!-- Header -->
+<div class="doc-header">
+  <h1>Looply 支付渠道对接集成说明文档</h1>
+  <div class="subtitle">PayPal + Airwallex (Credit Card / Klarna / Apple Pay) 全渠道支付 & 退款技术方案</div>
+  <div class="meta">
+    <span>Version 1.0</span>
+    <span>2026-06-26</span>
+    <span>面向：前端 / 后端开发</span>
+  </div>
+</div>
+
+<!-- ==================== CH1 ==================== -->
+<div class="section" id="ch1">
+  <h2>1. 支付架构总览</h2>
+
+  <h3 id="ch1-1">1.1 支付渠道矩阵</h3>
+  <p>Looply Checkout 页面提供 4 种支付方式，分别通过 PayPal 和 Airwallex 两个支付渠道完成：</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>支付方式</th>
+        <th>对接渠道</th>
+        <th>前端组件</th>
+        <th>用户体验</th>
+        <th>支持币种</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>PayPal</strong></td>
+        <td><span class="tag tag-paypal">PayPal</span></td>
+        <td>PayPal JS SDK Button</td>
+        <td>弹窗/跳转到 PayPal 登录并支付</td>
+        <td>USD</td>
+      </tr>
+      <tr>
+        <td><strong>Credit Card</strong></td>
+        <td><span class="tag tag-airwallex">Airwallex</span></td>
+        <td>Airwallex Drop-in Element</td>
+        <td>页面内嵌卡号输入框，无跳转</td>
+        <td>USD</td>
+      </tr>
+      <tr>
+        <td><strong>Klarna</strong></td>
+        <td><span class="tag tag-airwallex">Airwallex</span></td>
+        <td>Airwallex Drop-in Element</td>
+        <td>跳转到 Klarna 完成支付</td>
+        <td>USD</td>
+      </tr>
+      <tr>
+        <td><strong>Apple Pay</strong></td>
+        <td><span class="tag tag-airwallex">Airwallex</span></td>
+        <td>Airwallex Drop-in Element</td>
+        <td>系统级 Apple Pay 弹窗（仅 Safari/iOS）</td>
+        <td>USD</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-info">
+    <span class="callout-icon">i</span>
+    <div>
+      <strong>为什么 Credit Card 走 Airwallex 而不走 PayPal？</strong><br>
+      PayPal 的信用卡通道（ACDC）需要 PayPal 商家账号审核且费率较高。Airwallex 作为独立收单渠道，费率更优、支持 3DS 验证、且可同时接入 Klarna 和 Apple Pay，一个 Drop-in 组件覆盖三种支付方式。
+    </div>
+  </div>
+
+  <h3 id="ch1-2">1.2 系统架构图</h3>
+
+  <div class="arch-diagram">
+    <div class="arch-layer" style="background: #FFF3E0;">
+      <div class="arch-layer-title">用户层 (Browser / App)</div>
+      <div class="arch-boxes">
+        <div class="arch-box" style="background:#fff; border:2px solid #E65100; color:#E65100;">Checkout 页面</div>
+        <div class="arch-box" style="background:#fff; border:2px solid #E65100; color:#E65100;">支付方式选择器</div>
+        <div class="arch-box" style="background:#003087; color:#fff;">PayPal JS SDK</div>
+        <div class="arch-box" style="background:#1B5E20; color:#fff;">Airwallex Drop-in</div>
+      </div>
+    </div>
+    <div class="arch-connector">&#8595; HTTPS &#8595;</div>
+    <div class="arch-layer" style="background: #f5f3ff;">
+      <div class="arch-layer-title">Looply 后端</div>
+      <div class="arch-boxes">
+        <div class="arch-box" style="background:#6C5CE7; color:#fff;">Payment Service</div>
+        <div class="arch-box" style="background:#6C5CE7; color:#fff;">Order Service</div>
+        <div class="arch-box" style="background:#6C5CE7; color:#fff;">Webhook Handler</div>
+        <div class="arch-box" style="background:#6C5CE7; color:#fff;">Refund Service</div>
+      </div>
+    </div>
+    <div class="arch-connector">&#8595; REST API &#8595;</div>
+    <div class="arch-layer" style="background: #e8e8ee;">
+      <div class="arch-layer-title">第三方支付平台</div>
+      <div class="arch-boxes">
+        <div class="arch-box" style="background:#003087; color:#fff;">PayPal Orders API v2</div>
+        <div class="arch-box" style="background:#003087; color:#fff;">PayPal Webhooks</div>
+        <div class="arch-box" style="background:#1B5E20; color:#fff;">Airwallex PaymentIntent API</div>
+        <div class="arch-box" style="background:#1B5E20; color:#fff;">Airwallex Webhooks</div>
+      </div>
+    </div>
+  </div>
+
+  <h3 id="ch1-3">1.3 核心设计原则</h3>
+  <ol>
+    <li><strong>以 Webhook 为准</strong>：前端回调仅用于页面跳转提示，订单状态变更必须以 Webhook 通知为最终依据</li>
+    <li><strong>幂等处理</strong>：所有 Webhook handler 和支付回调都必须支持幂等，防止重复处理</li>
+    <li><strong>统一抽象</strong>：Looply 后端 Payment Service 统一封装 PayPal / Airwallex 的差异，Order Service 只关心 payment_order 的最终状态（succeeded / failed）</li>
+    <li><strong>支付成功即创建订单</strong>：用户点击支付按钮时，Looply 先创建 payment_order（status = pending），支付成功后（payment_order.status = succeeded）才创建 parent_order + order（order_status = paid）</li>
+  </ol>
+</div>
+
+<!-- ==================== CH2 ==================== -->
+<div class="section" id="ch2">
+  <h2>2. PayPal 支付集成</h2>
+
+  <h3 id="ch2-1">2.1 PayPal 支付时序图</h3>
+  <p>用户选择 PayPal 支付后，点击 "Pay with PayPal" 按钮，完整流程如下：</p>
+
+  
+  <svg viewBox="0 0 800 882" style="width:100%;max-width:800px" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,BlinkMacSystemFont,sans-serif">
+<defs><marker id="pp-ah" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#555"/></marker>
+<marker id="pp-ahd" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#999"/></marker></defs>
+<rect width="800" height="882" fill="#f8f9fc" rx="8"/>
+<rect x="78.33333333333331" y="14" width="150" height="38" rx="6" fill="#fff" stroke="#6C5CE7" stroke-width="2"/>
+<text x="153.33333333333331" y="38.0" text-anchor="middle" font-size="13" font-weight="600" fill="#333">Browser</text>
+<line x1="153.33333333333331" y1="52" x2="153.33333333333331" y2="872" stroke="#d0d0d0" stroke-width="1" stroke-dasharray="6,4"/>
+<rect x="324.99999999999994" y="14" width="150" height="38" rx="6" fill="#fff" stroke="#4A90D9" stroke-width="2"/>
+<text x="399.99999999999994" y="38.0" text-anchor="middle" font-size="13" font-weight="600" fill="#333">Looply 后端</text>
+<line x1="399.99999999999994" y1="52" x2="399.99999999999994" y2="872" stroke="#d0d0d0" stroke-width="1" stroke-dasharray="6,4"/>
+<rect x="571.6666666666666" y="14" width="150" height="38" rx="6" fill="#fff" stroke="#003087" stroke-width="2"/>
+<text x="646.6666666666666" y="38.0" text-anchor="middle" font-size="13" font-weight="600" fill="#333">PayPal</text>
+<line x1="646.6666666666666" y1="52" x2="646.6666666666666" y2="872" stroke="#d0d0d0" stroke-width="1" stroke-dasharray="6,4"/>
+<line x1="158.33333333333331" y1="82" x2="394.99999999999994" y2="82" stroke="#555" stroke-width="1.5" marker-end="url(#pp-ah)"/>
+<text x="276.66666666666663" y="72" text-anchor="middle" font-size="12" fill="#333">① 触发 createOrder 回调</text>
+<text x="276.66666666666663" y="97" text-anchor="middle" font-size="10" fill="#999" font-family="SF Mono,Menlo,monospace">POST /api/payment/paypal/create</text>
+<polyline points="403.99999999999994,128 444.99999999999994,128 444.99999999999994,144 403.99999999999994,144" fill="none" stroke="#555" stroke-width="1.5" marker-end="url(#pp-ah)"/>
+<text x="452.99999999999994" y="130" font-size="11" fill="#333">② 创建 payment_order (pending)</text>
+<line x1="404.99999999999994" y1="186" x2="641.6666666666666" y2="186" stroke="#555" stroke-width="1.5" marker-end="url(#pp-ah)"/>
+<text x="523.3333333333333" y="176" text-anchor="middle" font-size="12" fill="#333">③ 创建 PayPal Order</text>
+<text x="523.3333333333333" y="201" text-anchor="middle" font-size="10" fill="#999" font-family="SF Mono,Menlo,monospace">POST /v2/checkout/orders</text>
+<line x1="641.6666666666666" y1="238" x2="404.99999999999994" y2="238" stroke="#999" stroke-width="1.5" marker-end="url(#pp-ahd)" stroke-dasharray="6,3"/>
+<text x="523.3333333333333" y="228" text-anchor="middle" font-size="12" fill="#333">④ 返回 PayPal Order ID</text>
+<line x1="394.99999999999994" y1="290" x2="158.33333333333331" y2="290" stroke="#999" stroke-width="1.5" marker-end="url(#pp-ahd)" stroke-dasharray="6,3"/>
+<text x="276.66666666666663" y="280" text-anchor="middle" font-size="12" fill="#333">⑤ 返回 paypal_order_id</text>
+<line x1="158.33333333333331" y1="342" x2="641.6666666666666" y2="342" stroke="#555" stroke-width="1.5" marker-end="url(#pp-ah)"/>
+<text x="400.0" y="332" text-anchor="middle" font-size="12" fill="#333">⑥ SDK 弹窗，用户登录并确认支付</text>
+<line x1="641.6666666666666" y1="394" x2="158.33333333333331" y2="394" stroke="#999" stroke-width="1.5" marker-end="url(#pp-ahd)" stroke-dasharray="6,3"/>
+<text x="400.0" y="384" text-anchor="middle" font-size="12" fill="#333">⑦ 用户确认，触发 onApprove</text>
+<line x1="158.33333333333331" y1="446" x2="394.99999999999994" y2="446" stroke="#555" stroke-width="1.5" marker-end="url(#pp-ah)"/>
+<text x="276.66666666666663" y="436" text-anchor="middle" font-size="12" fill="#333">⑧ 请求 Capture</text>
+<text x="276.66666666666663" y="461" text-anchor="middle" font-size="10" fill="#999" font-family="SF Mono,Menlo,monospace">POST /api/payment/paypal/capture</text>
+<line x1="404.99999999999994" y1="498" x2="641.6666666666666" y2="498" stroke="#555" stroke-width="1.5" marker-end="url(#pp-ah)"/>
+<text x="523.3333333333333" y="488" text-anchor="middle" font-size="12" fill="#333">⑨ Capture 扣款</text>
+<text x="523.3333333333333" y="513" text-anchor="middle" font-size="10" fill="#999" font-family="SF Mono,Menlo,monospace">POST /v2/checkout/orders/{id}/capture</text>
+<line x1="641.6666666666666" y1="550" x2="404.99999999999994" y2="550" stroke="#999" stroke-width="1.5" marker-end="url(#pp-ahd)" stroke-dasharray="6,3"/>
+<text x="523.3333333333333" y="540" text-anchor="middle" font-size="12" fill="#333">⑩ status: COMPLETED</text>
+<polyline points="403.99999999999994,596 444.99999999999994,596 444.99999999999994,612 403.99999999999994,612" fill="none" stroke="#555" stroke-width="1.5" marker-end="url(#pp-ah)"/>
+<text x="452.99999999999994" y="598" font-size="11" fill="#333">⑪ payment_order → succeeded</text>
+<text x="452.99999999999994" y="613" font-size="11" fill="#333">   创建 order (order_status = paid)</text>
+<line x1="394.99999999999994" y1="654" x2="158.33333333333331" y2="654" stroke="#999" stroke-width="1.5" marker-end="url(#pp-ahd)" stroke-dasharray="6,3"/>
+<text x="276.66666666666663" y="644" text-anchor="middle" font-size="12" fill="#333">⑫ 返回支付结果，跳转确认页</text>
+<line x1="40" y1="706" x2="760" y2="706" stroke="#bbb" stroke-width="1" stroke-dasharray="4,3"/>
+<rect x="338.0" y="696" width="124" height="20" fill="#f8f9fc"/>
+<text x="400.0" y="710" text-anchor="middle" font-size="11" fill="#888" font-style="italic">异步补偿（Webhook）</text>
+<line x1="641.6666666666666" y1="758" x2="404.99999999999994" y2="758" stroke="#555" stroke-width="1.5" marker-end="url(#pp-ah)"/>
+<text x="523.3333333333333" y="748" text-anchor="middle" font-size="12" fill="#333">PAYMENT.CAPTURE.COMPLETED</text>
+<polyline points="403.99999999999994,804 444.99999999999994,804 444.99999999999994,820 403.99999999999994,820" fill="none" stroke="#555" stroke-width="1.5" marker-end="url(#pp-ah)"/>
+<text x="452.99999999999994" y="806" font-size="11" fill="#333">幂等：已 succeeded 则忽略</text>
+</svg>
+
+  <div class="callout callout-warn">
+    <span class="callout-icon">!</span>
+    <div>
+      <strong>异步补偿机制</strong>：如果步骤 ⑨ Capture 返回 <code>status: "PENDING"</code>（如 eCheck），payment_order 保持 pending，不能创建订单。需等待 Webhook 最终确认（时序图中"异步补偿"部分）。
+    </div>
+  </div>
+
+  <h3 id="ch2-2">2.2 前端集成（PayPal JS SDK）</h3>
+
+  <h4>加载 SDK</h4>
+  <pre><code><span class="cmt">&lt;!-- 在 Checkout 页面 head 或 body 末尾加载 --&gt;</span>
+&lt;script src="https://www.paypal.com/sdk/js?client-id=<span class="str">{PAYPAL_CLIENT_ID}</span>&currency=USD"&gt;&lt;/script&gt;</code></pre>
+
+  <div class="callout callout-info">
+    <span class="callout-icon">i</span>
+    <div>
+      <code>client-id</code> 从 PayPal Developer 后台的 REST APP 获取。Sandbox 和 Live 环境使用不同的 client-id。<br>
+      <code>currency=USD</code> 指定币种，与 Create Order 时传入的 currency 保持一致。
+    </div>
+  </div>
+
+  <h4>渲染按钮 & 处理回调</h4>
+  <pre><code><span class="cmt">// 当用户选择 PayPal 支付方式时，渲染 PayPal 按钮</span>
+paypal.Buttons({
+  <span class="cmt">// 步骤 1-5：创建 PayPal 订单</span>
+  <span class="kw">createOrder</span>: <span class="kw">async</span> () =&gt; {
+    <span class="kw">const</span> res = <span class="kw">await</span> fetch(<span class="str">'/api/payment/paypal/create'</span>, {
+      method: <span class="str">'POST'</span>,
+      headers: { <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span> },
+      body: JSON.stringify({
+        cart_id: cartId,          <span class="cmt">// Looply 购物车 ID</span>
+        shipping_address: addr,   <span class="cmt">// 用户已填的收货地址</span>
+      }),
+    });
+    <span class="kw">const</span> data = <span class="kw">await</span> res.json();
+    <span class="kw">return</span> data.paypal_order_id;  <span class="cmt">// 返回给 PayPal SDK</span>
+  },
+
+  <span class="cmt">// 步骤 7-12：用户在 PayPal 确认支付后</span>
+  <span class="kw">onApprove</span>: <span class="kw">async</span> (data, actions) =&gt; {
+    <span class="kw">const</span> res = <span class="kw">await</span> fetch(<span class="str">'/api/payment/paypal/capture'</span>, {
+      method: <span class="str">'POST'</span>,
+      headers: { <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span> },
+      body: JSON.stringify({
+        paypal_order_id: data.orderID,
+      }),
+    });
+    <span class="kw">const</span> result = <span class="kw">await</span> res.json();
+
+    <span class="kw">if</span> (result.status === <span class="str">'COMPLETED'</span>) {
+      <span class="cmt">// 跳转到支付成功页</span>
+      window.location.href = <span class="str">`/order/${result.looply_order_id}/confirmation`</span>;
+    } <span class="kw">else if</span> (result.status === <span class="str">'PENDING'</span>) {
+      <span class="cmt">// eCheck 等异步支付，显示"支付处理中"</span>
+      window.location.href = <span class="str">`/order/${result.looply_order_id}/pending`</span>;
+    }
+  },
+
+  <span class="cmt">// 用户在 PayPal 弹窗中取消</span>
+  <span class="kw">onCancel</span>: () =&gt; {
+    showToast(<span class="str">'Payment cancelled. You can try again.'</span>);
+  },
+
+  <span class="cmt">// SDK 级错误（网络异常等）</span>
+  <span class="kw">onError</span>: (err) =&gt; {
+    console.error(<span class="str">'PayPal error:'</span>, err);
+    showToast(<span class="str">'Something went wrong. Please try again.'</span>);
+  },
+}).render(<span class="str">'#paypal-button-container'</span>);</code></pre>
+
+  <h3 id="ch2-3">2.3 后端 API 对接</h3>
+
+  <h4>2.3.1 获取 Access Token</h4>
+  <p>所有 PayPal API 调用前需获取 Bearer Token（有效期约 9 小时，建议缓存复用）：</p>
+  <pre><code><span class="cmt"># Sandbox</span>
+POST https://api-m.sandbox.paypal.com/v1/oauth2/token
+Authorization: Basic {Base64(CLIENT_ID:SECRET)}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials
+
+<span class="cmt"># Live</span>
+POST https://api-m.paypal.com/v1/oauth2/token</code></pre>
+
+  <h4>2.3.2 创建 PayPal 订单</h4>
+  <pre><code>POST https://api-m.sandbox.paypal.com/v2/checkout/orders
+Authorization: Bearer {ACCESS_TOKEN}
+Content-Type: application/json
+
+{
+  <span class="str">"intent"</span>: <span class="str">"CAPTURE"</span>,
+  <span class="str">"purchase_units"</span>: [{
+    <span class="str">"reference_id"</span>: <span class="str">"LOOPLY-ORD-20260626001"</span>,
+    <span class="str">"amount"</span>: {
+      <span class="str">"currency_code"</span>: <span class="str">"USD"</span>,
+      <span class="str">"value"</span>: <span class="str">"129.99"</span>,
+      <span class="str">"breakdown"</span>: {
+        <span class="str">"item_total"</span>:    { <span class="str">"currency_code"</span>: <span class="str">"USD"</span>, <span class="str">"value"</span>: <span class="str">"109.99"</span> },
+        <span class="str">"shipping"</span>:      { <span class="str">"currency_code"</span>: <span class="str">"USD"</span>, <span class="str">"value"</span>: <span class="str">"15.00"</span> },
+        <span class="str">"tax_total"</span>:     { <span class="str">"currency_code"</span>: <span class="str">"USD"</span>, <span class="str">"value"</span>: <span class="str">"5.00"</span> }
+      }
+    },
+    <span class="str">"items"</span>: [{
+      <span class="str">"name"</span>: <span class="str">"Pre-owned Gucci Bag"</span>,
+      <span class="str">"quantity"</span>: <span class="str">"1"</span>,
+      <span class="str">"unit_amount"</span>: { <span class="str">"currency_code"</span>: <span class="str">"USD"</span>, <span class="str">"value"</span>: <span class="str">"109.99"</span> },
+      <span class="str">"category"</span>: <span class="str">"PHYSICAL_GOODS"</span>
+    }],
+    <span class="str">"shipping"</span>: {
+      <span class="str">"name"</span>: { <span class="str">"full_name"</span>: <span class="str">"John Doe"</span> },
+      <span class="str">"address"</span>: {
+        <span class="str">"address_line_1"</span>: <span class="str">"123 Main St"</span>,
+        <span class="str">"admin_area_2"</span>: <span class="str">"San Francisco"</span>,
+        <span class="str">"admin_area_1"</span>: <span class="str">"CA"</span>,
+        <span class="str">"postal_code"</span>: <span class="str">"94105"</span>,
+        <span class="str">"country_code"</span>: <span class="str">"US"</span>
+      }
+    }
+  }],
+  <span class="str">"payment_source"</span>: {
+    <span class="str">"paypal"</span>: {
+      <span class="str">"experience_context"</span>: {
+        <span class="str">"shipping_preference"</span>: <span class="str">"SET_PROVIDED_ADDRESS"</span>,
+        <span class="str">"return_url"</span>: <span class="str">"https://looply.com/checkout/return"</span>,
+        <span class="str">"cancel_url"</span>: <span class="str">"https://looply.com/checkout/cancel"</span>
+      }
+    }
+  }
+}</code></pre>
+
+  <div class="callout callout-tip">
+    <span class="callout-icon">!</span>
+    <div>
+      <strong>Looply 二手商品均为实物</strong>：<code>category</code> 固定传 <code>PHYSICAL_GOODS</code>，<code>shipping_preference</code> 传 <code>SET_PROVIDED_ADDRESS</code>（使用用户在 Looply 已填的地址，PayPal 页面不允许修改地址）。
+    </div>
+  </div>
+
+  <h4>2.3.3 捕获支付（Capture）</h4>
+  <pre><code>POST https://api-m.sandbox.paypal.com/v2/checkout/orders/{paypal_order_id}/capture
+Authorization: Bearer {ACCESS_TOKEN}
+Content-Type: application/json
+
+<span class="cmt">// 请求体为空 {}</span>
+<span class="cmt">// 成功响应关键字段：</span>
+{
+  <span class="str">"id"</span>: <span class="str">"PAY-xxx"</span>,
+  <span class="str">"status"</span>: <span class="str">"COMPLETED"</span>,
+  <span class="str">"purchase_units"</span>: [{
+    <span class="str">"payments"</span>: {
+      <span class="str">"captures"</span>: [{
+        <span class="str">"id"</span>: <span class="str">"CAP-xxx"</span>,          <span class="cmt">// capture_id，退款时需要</span>
+        <span class="str">"status"</span>: <span class="str">"COMPLETED"</span>,
+        <span class="str">"amount"</span>: { <span class="str">"currency_code"</span>: <span class="str">"USD"</span>, <span class="str">"value"</span>: <span class="str">"129.99"</span> }
+      }]
+    }
+  }]
+}</code></pre>
+
+  <table>
+    <thead>
+      <tr><th>Capture 状态</th><th>含义</th><th>Looply 处理</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>COMPLETED</code></td><td>支付成功</td><td>payment_order → succeeded，创建订单 (paid)</td></tr>
+      <tr><td><code>PENDING</code></td><td>支付处理中（eCheck 等）</td><td>payment_order 保持 pending，等 Webhook 确认后再创建订单</td></tr>
+      <tr><td><code>DECLINED</code></td><td>支付被拒</td><td>提示用户更换支付方式</td></tr>
+    </tbody>
+  </table>
+
+  <h4>2.3.4 错误处理：INSTRUMENT_DECLINED</h4>
+  <pre><code><span class="cmt">// 在 onApprove 中，如果 Capture 返回 INSTRUMENT_DECLINED</span>
+<span class="kw">if</span> (result.error === <span class="str">'INSTRUMENT_DECLINED'</span>) {
+  <span class="cmt">// 调用 actions.restart() 让用户在 PayPal 中选择其他支付方式</span>
+  <span class="kw">return</span> actions.restart();
+}</code></pre>
+
+  <h3 id="ch2-4">2.4 PayPal Webhook 处理</h3>
+
+  <h4>需要监听的事件</h4>
+  <table>
+    <thead>
+      <tr><th>事件名</th><th>触发时机</th><th>Looply 处理</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>PAYMENT.CAPTURE.COMPLETED</code></td>
+        <td>Capture 成功（含异步成功）</td>
+        <td>payment_order.status → succeeded，创建订单（幂等：已 succeeded 则忽略）</td>
+      </tr>
+      <tr>
+        <td><code>PAYMENT.CAPTURE.DENIED</code></td>
+        <td>Capture 被拒（异步场景）</td>
+        <td>payment_order.status → failed，通知用户</td>
+      </tr>
+      <tr>
+        <td><code>PAYMENT.CAPTURE.PENDING</code></td>
+        <td>Capture 进入待处理</td>
+        <td>记录日志，payment_order 保持 pending</td>
+      </tr>
+      <tr>
+        <td><code>PAYMENT.CAPTURE.REFUNDED</code></td>
+        <td>退款完成</td>
+        <td>refund_order.status → succeeded，更新 order_item.refund_status = refunded（见第 5 章退款流程）</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h4>Webhook 端点实现</h4>
+  <pre><code><span class="cmt">// POST /api/webhook/paypal</span>
+<span class="cmt">// 1. 验证 Webhook 签名（调用 PayPal Verify Webhook Signature API）</span>
+<span class="cmt">// 2. 解析事件</span>
+
+<span class="kw">async function</span> handlePayPalWebhook(event) {
+  <span class="kw">const</span> eventType = event.event_type;
+  <span class="kw">const</span> resource = event.resource;
+
+  <span class="kw">switch</span> (eventType) {
+    <span class="kw">case</span> <span class="str">'PAYMENT.CAPTURE.COMPLETED'</span>:
+      <span class="kw">const</span> captureId = resource.id;
+      <span class="kw">const</span> paypalOrderId = resource.supplementary_data
+        ?.related_ids?.order_id;
+      <span class="cmt">// 通过 paypalOrderId 找到 Looply 订单，更新为 PAID</span>
+      <span class="kw">await</span> orderService.markAsPaid(paypalOrderId, {
+        capture_id: captureId,
+        channel: <span class="str">'PAYPAL'</span>,
+      });
+      <span class="kw">break</span>;
+
+    <span class="kw">case</span> <span class="str">'PAYMENT.CAPTURE.DENIED'</span>:
+      <span class="kw">await</span> orderService.markAsPaymentFailed(paypalOrderId);
+      <span class="kw">break</span>;
+  }
+}</code></pre>
+
+  <div class="callout callout-warn">
+    <span class="callout-icon">!</span>
+    <div>
+      <strong>Webhook 签名验证必做</strong>：使用 PayPal 的 <code>POST /v1/notifications/verify-webhook-signature</code> API 验证 Webhook 真实性，防止伪造通知。生产环境必须开启。
+    </div>
+  </div>
+</div>
+
+<!-- ==================== CH3 ==================== -->
+<div class="section" id="ch3">
+  <h2>3. Airwallex 支付集成</h2>
+  <p>Airwallex 使用 <strong>PaymentIntent</strong> 模型：后端创建 PaymentIntent，前端使用 Drop-in Element 收集支付信息并完成支付。Credit Card、Klarna、Apple Pay 共用同一个 Drop-in 组件。</p>
+
+  <h3 id="ch3-1">3.1 Airwallex 支付时序图</h3>
+
+  
+  <svg viewBox="0 0 800 882" style="width:100%;max-width:800px" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,BlinkMacSystemFont,sans-serif">
+<defs><marker id="aw-ah" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#555"/></marker>
+<marker id="aw-ahd" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#999"/></marker></defs>
+<rect width="800" height="882" fill="#f8f9fc" rx="8"/>
+<rect x="78.33333333333331" y="14" width="150" height="38" rx="6" fill="#fff" stroke="#6C5CE7" stroke-width="2"/>
+<text x="153.33333333333331" y="38.0" text-anchor="middle" font-size="13" font-weight="600" fill="#333">Browser</text>
+<line x1="153.33333333333331" y1="52" x2="153.33333333333331" y2="872" stroke="#d0d0d0" stroke-width="1" stroke-dasharray="6,4"/>
+<rect x="324.99999999999994" y="14" width="150" height="38" rx="6" fill="#fff" stroke="#4A90D9" stroke-width="2"/>
+<text x="399.99999999999994" y="38.0" text-anchor="middle" font-size="13" font-weight="600" fill="#333">Looply 后端</text>
+<line x1="399.99999999999994" y1="52" x2="399.99999999999994" y2="872" stroke="#d0d0d0" stroke-width="1" stroke-dasharray="6,4"/>
+<rect x="571.6666666666666" y="14" width="150" height="38" rx="6" fill="#fff" stroke="#E8833A" stroke-width="2"/>
+<text x="646.6666666666666" y="38.0" text-anchor="middle" font-size="13" font-weight="600" fill="#333">Airwallex</text>
+<line x1="646.6666666666666" y1="52" x2="646.6666666666666" y2="872" stroke="#d0d0d0" stroke-width="1" stroke-dasharray="6,4"/>
+<line x1="158.33333333333331" y1="82" x2="394.99999999999994" y2="82" stroke="#555" stroke-width="1.5" marker-end="url(#aw-ah)"/>
+<text x="276.66666666666663" y="72" text-anchor="middle" font-size="12" fill="#333">① 选择支付方式，请求创建支付</text>
+<text x="276.66666666666663" y="97" text-anchor="middle" font-size="10" fill="#999" font-family="SF Mono,Menlo,monospace">POST /api/payment/airwallex/create</text>
+<polyline points="403.99999999999994,128 444.99999999999994,128 444.99999999999994,144 403.99999999999994,144" fill="none" stroke="#555" stroke-width="1.5" marker-end="url(#aw-ah)"/>
+<text x="452.99999999999994" y="130" font-size="11" fill="#333">② 创建 payment_order (pending)</text>
+<line x1="404.99999999999994" y1="186" x2="641.6666666666666" y2="186" stroke="#555" stroke-width="1.5" marker-end="url(#aw-ah)"/>
+<text x="523.3333333333333" y="176" text-anchor="middle" font-size="12" fill="#333">③ 创建 PaymentIntent</text>
+<text x="523.3333333333333" y="201" text-anchor="middle" font-size="10" fill="#999" font-family="SF Mono,Menlo,monospace">POST /api/v1/pa/payment_intents/create</text>
+<line x1="641.6666666666666" y1="238" x2="404.99999999999994" y2="238" stroke="#999" stroke-width="1.5" marker-end="url(#aw-ahd)" stroke-dasharray="6,3"/>
+<text x="523.3333333333333" y="228" text-anchor="middle" font-size="12" fill="#333">④ 返回 intent_id + client_secret</text>
+<line x1="394.99999999999994" y1="290" x2="158.33333333333331" y2="290" stroke="#999" stroke-width="1.5" marker-end="url(#aw-ahd)" stroke-dasharray="6,3"/>
+<text x="276.66666666666663" y="280" text-anchor="middle" font-size="12" fill="#333">⑤ 返回 intent_id, client_secret</text>
+<polyline points="157.33333333333331,336 198.33333333333331,336 198.33333333333331,352 157.33333333333331,352" fill="none" stroke="#555" stroke-width="1.5" marker-end="url(#aw-ah)"/>
+<text x="206.33333333333331" y="338" font-size="11" fill="#333">⑥ 创建 Drop-in Element 并挂载</text>
+<line x1="158.33333333333331" y1="394" x2="641.6666666666666" y2="394" stroke="#555" stroke-width="1.5" marker-end="url(#aw-ah)"/>
+<text x="400.0" y="384" text-anchor="middle" font-size="12" fill="#333">⑦ 用户在 Drop-in 中完成支付</text>
+<line x1="641.6666666666666" y1="446" x2="158.33333333333331" y2="446" stroke="#999" stroke-width="1.5" marker-end="url(#aw-ahd)" stroke-dasharray="6,3"/>
+<text x="400.0" y="436" text-anchor="middle" font-size="12" fill="#333">⑧ 触发 success 事件</text>
+<line x1="158.33333333333331" y1="498" x2="394.99999999999994" y2="498" stroke="#555" stroke-width="1.5" marker-end="url(#aw-ah)"/>
+<text x="276.66666666666663" y="488" text-anchor="middle" font-size="12" fill="#333">⑨ 通知后端确认</text>
+<text x="276.66666666666663" y="513" text-anchor="middle" font-size="10" fill="#999" font-family="SF Mono,Menlo,monospace">POST /api/payment/airwallex/confirm</text>
+<line x1="404.99999999999994" y1="550" x2="641.6666666666666" y2="550" stroke="#555" stroke-width="1.5" marker-end="url(#aw-ah)"/>
+<text x="523.3333333333333" y="540" text-anchor="middle" font-size="12" fill="#333">⑩ 查询 PaymentIntent 状态</text>
+<text x="523.3333333333333" y="565" text-anchor="middle" font-size="10" fill="#999" font-family="SF Mono,Menlo,monospace">GET /api/v1/pa/payment_intents/{id}</text>
+<polyline points="403.99999999999994,596 444.99999999999994,596 444.99999999999994,612 403.99999999999994,612" fill="none" stroke="#555" stroke-width="1.5" marker-end="url(#aw-ah)"/>
+<text x="452.99999999999994" y="598" font-size="11" fill="#333">⑪ payment_order → succeeded</text>
+<text x="452.99999999999994" y="613" font-size="11" fill="#333">   创建 order (order_status = paid)</text>
+<line x1="394.99999999999994" y1="654" x2="158.33333333333331" y2="654" stroke="#999" stroke-width="1.5" marker-end="url(#aw-ahd)" stroke-dasharray="6,3"/>
+<text x="276.66666666666663" y="644" text-anchor="middle" font-size="12" fill="#333">⑫ 返回结果，跳转确认页</text>
+<line x1="40" y1="706" x2="760" y2="706" stroke="#bbb" stroke-width="1" stroke-dasharray="4,3"/>
+<rect x="338.0" y="696" width="124" height="20" fill="#f8f9fc"/>
+<text x="400.0" y="710" text-anchor="middle" font-size="11" fill="#888" font-style="italic">异步补偿（Webhook）</text>
+<line x1="641.6666666666666" y1="758" x2="404.99999999999994" y2="758" stroke="#555" stroke-width="1.5" marker-end="url(#aw-ah)"/>
+<text x="523.3333333333333" y="748" text-anchor="middle" font-size="12" fill="#333">payment_intent.succeeded</text>
+<polyline points="403.99999999999994,804 444.99999999999994,804 444.99999999999994,820 403.99999999999994,820" fill="none" stroke="#555" stroke-width="1.5" marker-end="url(#aw-ah)"/>
+<text x="452.99999999999994" y="806" font-size="11" fill="#333">幂等：已 succeeded 则忽略</text>
+</svg>
+
+  <div class="callout callout-info">
+    <span class="callout-icon">i</span>
+    <div>
+      <strong>Airwallex 与 PayPal 的关键差异</strong>：Airwallex 的 Drop-in Element 自行处理支付确认（步骤 ⑦），不需要像 PayPal 那样由后端调用 Capture API。后端只需在收到 success 回调后，通过 Retrieve API 二次确认状态即可。
+    </div>
+  </div>
+
+  <h3 id="ch3-2">3.2 前端集成（Airwallex Drop-in Element）</h3>
+
+  <h4>安装 SDK</h4>
+  <pre><code><span class="cmt"># 方式一：npm 安装</span>
+npm install @airwallex/components-sdk
+
+<span class="cmt"># 方式二：CDN 引入</span>
+&lt;script src="https://static.airwallex.com/components/sdk/v1/index.js"&gt;&lt;/script&gt;</code></pre>
+
+  <h4>初始化 & 挂载 Drop-in</h4>
+  <pre><code><span class="kw">import</span> { init, createElement } <span class="kw">from</span> <span class="str">'@airwallex/components-sdk'</span>;
+
+<span class="cmt">// 用户点击 "Pay now" 后执行</span>
+<span class="kw">async function</span> handleAirwallexPayment(cartId, shippingAddr) {
+  <span class="cmt">// 1. 请求后端创建 PaymentIntent</span>
+  <span class="kw">const</span> res = <span class="kw">await</span> fetch(<span class="str">'/api/payment/airwallex/create'</span>, {
+    method: <span class="str">'POST'</span>,
+    headers: { <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span> },
+    body: JSON.stringify({ cart_id: cartId, shipping_address: shippingAddr }),
+  });
+  <span class="kw">const</span> { intent_id, client_secret, currency } = <span class="kw">await</span> res.json();
+
+  <span class="cmt">// 2. 初始化 Airwallex SDK</span>
+  <span class="kw">await</span> init({
+    env: <span class="str">'demo'</span>,   <span class="cmt">// 生产环境改为 'prod'</span>
+    enabledElements: [<span class="str">'payments'</span>],
+  });
+
+  <span class="cmt">// 3. 创建 Drop-in Element</span>
+  <span class="kw">const</span> element = <span class="kw">await</span> createElement(<span class="str">'dropIn'</span>, {
+    intent_id,
+    client_secret,
+    currency,
+    <span class="cmt">// 可选：指定只展示特定支付方式</span>
+    <span class="cmt">// methods: ['card', 'klarna', 'applepay'],</span>
+  });
+
+  <span class="cmt">// 4. 挂载到 DOM</span>
+  element.mount(<span class="str">'airwallex-dropin-container'</span>);
+
+  <span class="cmt">// 5. 事件监听</span>
+  element.on(<span class="str">'ready'</span>, () =&gt; {
+    <span class="cmt">// Drop-in 加载完成，隐藏 loading 态</span>
+    hideLoadingSpinner();
+  });
+
+  element.on(<span class="str">'success'</span>, <span class="kw">async</span> () =&gt; {
+    <span class="cmt">// 支付成功 - 通知后端确认并跳转</span>
+    <span class="kw">const</span> confirmRes = <span class="kw">await</span> fetch(<span class="str">'/api/payment/airwallex/confirm'</span>, {
+      method: <span class="str">'POST'</span>,
+      headers: { <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span> },
+      body: JSON.stringify({ intent_id }),
+    });
+    <span class="kw">const</span> result = <span class="kw">await</span> confirmRes.json();
+    window.location.href = <span class="str">`/order/${result.looply_order_id}/confirmation`</span>;
+  });
+
+  element.on(<span class="str">'error'</span>, (event) =&gt; {
+    <span class="cmt">// 支付失败 - 展示错误信息，用户可重试</span>
+    showToast(event.detail?.message || <span class="str">'Payment failed. Please try again.'</span>);
+  });
+}</code></pre>
+
+  <h4>HTML 容器</h4>
+  <pre><code>&lt;!-- Checkout 页面中，当用户选择 Credit Card / Klarna / Apple Pay 时展示 --&gt;
+&lt;div id="airwallex-dropin-container"&gt;&lt;/div&gt;</code></pre>
+
+  <h3 id="ch3-3">3.3 后端 API 对接</h3>
+
+  <h4>3.3.1 获取 Access Token</h4>
+  <pre><code><span class="cmt"># Sandbox</span>
+POST https://api-demo.airwallex.com/api/v1/authentication/login
+Content-Type: application/json
+x-api-key: {YOUR_SANDBOX_API_KEY}
+x-client-id: {YOUR_SANDBOX_CLIENT_ID}
+
+<span class="cmt"># 响应</span>
+{
+  <span class="str">"token"</span>: <span class="str">"eyJhbGciOi..."</span>,
+  <span class="str">"expires_at"</span>: <span class="str">"2026-06-26T12:00:00Z"</span>
+}
+
+<span class="cmt"># Live</span>
+POST https://api.airwallex.com/api/v1/authentication/login</code></pre>
+
+  <div class="callout callout-warn">
+    <span class="callout-icon">!</span>
+    <div>
+      <strong>安全要求</strong>：<code>x-api-key</code> 和 <code>x-client-id</code> 仅在服务端使用，绝不能暴露到前端代码或客户端。
+    </div>
+  </div>
+
+  <h4>3.3.2 创建 PaymentIntent</h4>
+  <pre><code>POST https://api-demo.airwallex.com/api/v1/pa/payment_intents/create
+Authorization: Bearer {ACCESS_TOKEN}
+Content-Type: application/json
+
+{
+  <span class="str">"request_id"</span>: <span class="str">"looply-pay-20260626-001"</span>,    <span class="cmt">// 幂等键，建议用 UUID</span>
+  <span class="str">"amount"</span>: <span class="num">129.99</span>,                        <span class="cmt">// 注意：Airwallex 用实际金额，不是分</span>
+  <span class="str">"currency"</span>: <span class="str">"USD"</span>,
+  <span class="str">"merchant_order_id"</span>: <span class="str">"LOOPLY-ORD-20260626001"</span>,
+  <span class="str">"return_url"</span>: <span class="str">"https://looply.com/order/LOOPLY-ORD-20260626001/result"</span>,
+  <span class="str">"metadata"</span>: {
+    <span class="str">"looply_order_id"</span>: <span class="str">"LOOPLY-ORD-20260626001"</span>,
+    <span class="str">"user_id"</span>: <span class="str">"USR-12345"</span>
+  }
+}
+
+<span class="cmt">// 响应</span>
+{
+  <span class="str">"id"</span>: <span class="str">"int_hkdm1234567890"</span>,
+  <span class="str">"request_id"</span>: <span class="str">"looply-pay-20260626-001"</span>,
+  <span class="str">"amount"</span>: <span class="num">129.99</span>,
+  <span class="str">"currency"</span>: <span class="str">"USD"</span>,
+  <span class="str">"merchant_order_id"</span>: <span class="str">"LOOPLY-ORD-20260626001"</span>,
+  <span class="str">"status"</span>: <span class="str">"REQUIRES_PAYMENT_METHOD"</span>,
+  <span class="str">"client_secret"</span>: <span class="str">"int_hkdm1234567890_abcdefg"</span>,  <span class="cmt">// 传给前端</span>
+  <span class="str">"created_at"</span>: <span class="str">"2026-06-26T10:00:00+0000"</span>
+}</code></pre>
+
+  <div class="callout callout-info">
+    <span class="callout-icon">i</span>
+    <div>
+      <strong>金额单位</strong>：Airwallex 金额使用主货币单位（如 10.99 = $10.99），与 Stripe 的分单位（1099）不同。<br>
+      <strong>return_url</strong>：Klarna 等需要跳转的支付方式会在完成后重定向到此 URL。
+    </div>
+  </div>
+
+  <h4>3.3.3 查询 PaymentIntent 状态</h4>
+  <pre><code>GET https://api-demo.airwallex.com/api/v1/pa/payment_intents/{intent_id}
+Authorization: Bearer {ACCESS_TOKEN}
+
+<span class="cmt">// 检查 status 字段</span>
+{
+  <span class="str">"id"</span>: <span class="str">"int_hkdm1234567890"</span>,
+  <span class="str">"status"</span>: <span class="str">"SUCCEEDED"</span>,         <span class="cmt">// 支付成功</span>
+  <span class="str">"latest_payment_attempt"</span>: {
+    <span class="str">"payment_method"</span>: <span class="str">"card"</span>,    <span class="cmt">// 实际使用的支付方式</span>
+    <span class="str">"id"</span>: <span class="str">"att_xxx"</span>               <span class="cmt">// payment_attempt_id，退款时可能需要</span>
+  }
+}</code></pre>
+
+  <table>
+    <thead>
+      <tr><th>PaymentIntent 状态</th><th>含义</th><th>Looply 处理</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>REQUIRES_PAYMENT_METHOD</code></td><td>等待用户输入支付信息</td><td>前端展示 Drop-in</td></tr>
+      <tr><td><code>REQUIRES_CUSTOMER_ACTION</code></td><td>需要 3DS 验证 / Klarna 跳转</td><td>SDK 自动处理</td></tr>
+      <tr><td><code>SUCCEEDED</code></td><td>支付成功</td><td>payment_order → succeeded，创建订单 (paid)</td></tr>
+      <tr><td><code>REQUIRES_CAPTURE</code></td><td>预授权成功，待捕获</td><td>Looply 当前不使用预授权</td></tr>
+      <tr><td><code>CANCELLED</code></td><td>已取消</td><td>payment_order → closed</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="ch3-4">3.4 Airwallex Webhook 处理</h3>
+
+  <h4>需要监听的事件</h4>
+  <table>
+    <thead>
+      <tr><th>事件名</th><th>触发时机</th><th>Looply 处理</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>payment_intent.succeeded</code></td>
+        <td>PaymentIntent 支付成功</td>
+        <td>payment_order.status → succeeded，创建订单（幂等）</td>
+      </tr>
+      <tr>
+        <td><code>payment_attempt.authorized</code></td>
+        <td>支付授权成功</td>
+        <td>记录日志（Looply 用自动捕获模式，后续会收到 succeeded）</td>
+      </tr>
+      <tr>
+        <td><code>payment_attempt.payment_failed</code></td>
+        <td>支付失败</td>
+        <td>payment_order.status → failed</td>
+      </tr>
+      <tr>
+        <td><code>refund.succeeded</code></td>
+        <td>退款成功</td>
+        <td>refund_order.status → succeeded，更新 order_item.refund_status = refunded（见第 5 章）</td>
+      </tr>
+      <tr>
+        <td><code>refund.failed</code></td>
+        <td>退款失败</td>
+        <td>退款单标记失败，通知运营人员</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h4>Webhook 签名验证</h4>
+  <pre><code><span class="cmt">// POST /api/webhook/airwallex</span>
+<span class="cmt">// Airwallex Webhook 签名验证</span>
+
+<span class="kw">function</span> verifyAirwallexWebhook(req) {
+  <span class="kw">const</span> timestamp = req.headers[<span class="str">'x-timestamp'</span>];   <span class="cmt">// Unix 毫秒时间戳</span>
+  <span class="kw">const</span> signature = req.headers[<span class="str">'x-signature'</span>];   <span class="cmt">// HMAC-SHA256 签名</span>
+  <span class="kw">const</span> rawBody = req.rawBody;                     <span class="cmt">// 原始请求体（未解析）</span>
+
+  <span class="cmt">// 拼接待签名字符串：timestamp + rawBody</span>
+  <span class="kw">const</span> valueToDigest = timestamp + rawBody;
+
+  <span class="cmt">// 使用 Webhook Secret 计算 HMAC-SHA256</span>
+  <span class="kw">const</span> hmac = crypto.createHmac(<span class="str">'sha256'</span>, AIRWALLEX_WEBHOOK_SECRET);
+  <span class="kw">const</span> computedSignature = hmac.update(valueToDigest).digest(<span class="str">'hex'</span>);
+
+  <span class="kw">return</span> computedSignature === signature;
+}
+
+<span class="cmt">// 事件处理</span>
+<span class="kw">async function</span> handleAirwallexWebhook(event) {
+  <span class="kw">const</span> { name, data } = event;
+
+  <span class="kw">switch</span> (name) {
+    <span class="kw">case</span> <span class="str">'payment_intent.succeeded'</span>:
+      <span class="kw">const</span> intentId = data.object.id;
+      <span class="kw">const</span> merchantOrderId = data.object.merchant_order_id;
+      <span class="kw">await</span> orderService.markAsPaid(merchantOrderId, {
+        intent_id: intentId,
+        channel: <span class="str">'AIRWALLEX'</span>,
+        payment_method: data.object.latest_payment_attempt?.payment_method,
+      });
+      <span class="kw">break</span>;
+
+    <span class="kw">case</span> <span class="str">'payment_attempt.payment_failed'</span>:
+      <span class="kw">await</span> orderService.markAsPaymentFailed(merchantOrderId);
+      <span class="kw">break</span>;
+
+    <span class="kw">case</span> <span class="str">'refund.succeeded'</span>:
+      <span class="kw">await</span> refundService.markRefundSucceeded(data.object.id);
+      <span class="kw">break</span>;
+  }
+}</code></pre>
+
+  <div class="callout callout-warn">
+    <span class="callout-icon">!</span>
+    <div>
+      <strong>关键</strong>：验证签名时必须使用<strong>原始请求体</strong>（raw body），不能重新序列化 JSON。Express 中需配置 <code>express.raw()</code> 或 <code>bodyParser.raw()</code> 来获取 raw body。
+    </div>
+  </div>
+
+  <h3 id="ch3-5">3.5 Apple Pay 额外配置</h3>
+  <p>Apple Pay 需要完成以下前置配置才能在 Drop-in 中展示：</p>
+  <table>
+    <thead>
+      <tr><th>步骤</th><th>说明</th><th>负责方</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1. 注册 Apple Developer</td>
+        <td>需要 Apple Developer 账号（$99/年）</td>
+        <td>运营 / 管理员</td>
+      </tr>
+      <tr>
+        <td>2. 创建 Merchant ID</td>
+        <td>在 Apple Developer 后台创建 Merchant Identifier</td>
+        <td>后端开发</td>
+      </tr>
+      <tr>
+        <td>3. 域名验证</td>
+        <td>在 Airwallex Dashboard 上传 Apple 域名验证文件到 <code>/.well-known/apple-developer-merchantid-domain-association</code></td>
+        <td>后端开发 / 运维</td>
+      </tr>
+      <tr>
+        <td>4. Airwallex 配置</td>
+        <td>在 Airwallex Dashboard → Payment Methods 中启用 Apple Pay 并配置证书</td>
+        <td>运营 / 后端开发</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-info">
+    <span class="callout-icon">i</span>
+    <div>
+      <strong>展示条件</strong>：Apple Pay 按钮仅在支持 Apple Pay 的设备（Safari / iOS）上展示，Drop-in Element 会自动检测并隐藏不支持的支付方式。无需前端额外判断。
+    </div>
+  </div>
+</div>
+
+<!-- ==================== CH4 ==================== -->
+<div class="section" id="ch4">
+  <h2>4. Checkout 页面前端组件</h2>
+
+  <h3 id="ch4-1">4.1 支付方式选择器</h3>
+  <p>根据用户提供的 UI 设计稿，Checkout 页面的 Payment 区域展示 4 种支付方式（Radio 单选），选中后展示对应的支付组件：</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Radio 选项</th>
+        <th>选中后展示</th>
+        <th>按钮文案</th>
+        <th>组件来源</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Credit card <span style="color:#888; font-size:11px;">(VISA / MC / AMEX + 5)</span></td>
+        <td>Airwallex Drop-in（Card 输入框：Card number / Expiration / Security code / Name on card）</td>
+        <td><strong>Pay now</strong></td>
+        <td>Airwallex Drop-in Element</td>
+      </tr>
+      <tr>
+        <td>PayPal <span style="color:#003087; font-size:11px;">PayPal</span></td>
+        <td>提示文案："You'll be redirected to PayPal to complete your purchase"</td>
+        <td><strong>Pay with PayPal</strong></td>
+        <td>PayPal JS SDK Button</td>
+      </tr>
+      <tr>
+        <td>Klarna <span style="color:#FFB3C7; font-size:11px;">Klarna</span></td>
+        <td>Airwallex Drop-in（Klarna 支付区域）</td>
+        <td><strong>Pay now</strong></td>
+        <td>Airwallex Drop-in Element</td>
+      </tr>
+      <tr>
+        <td>Apple Pay <span style="color:#000; font-size:11px;"> Pay</span></td>
+        <td>Airwallex Drop-in（Apple Pay 按钮）</td>
+        <td><strong>Pay now</strong></td>
+        <td>Airwallex Drop-in Element</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 id="ch4-2">4.2 按钮状态 & 文案映射</h3>
+  <table>
+    <thead>
+      <tr><th>选中的支付方式</th><th>按钮文案</th><th>按钮颜色</th><th>点击行为</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Credit Card</td>
+        <td>Pay now</td>
+        <td>品牌紫 #6C5CE7</td>
+        <td>触发 Airwallex Drop-in 提交</td>
+      </tr>
+      <tr>
+        <td>PayPal</td>
+        <td>Pay with PayPal</td>
+        <td>PayPal 蓝 #003087</td>
+        <td>触发 PayPal JS SDK createOrder</td>
+      </tr>
+      <tr>
+        <td>Klarna</td>
+        <td>Pay now</td>
+        <td>品牌紫 #6C5CE7</td>
+        <td>触发 Airwallex Drop-in 提交</td>
+      </tr>
+      <tr>
+        <td>Apple Pay</td>
+        <td>Pay now</td>
+        <td>品牌紫 #6C5CE7</td>
+        <td>触发 Airwallex Drop-in 提交</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 id="ch4-3">4.3 组件挂载逻辑</h3>
+  <pre><code><span class="cmt">// Checkout 页面支付方式切换逻辑</span>
+
+<span class="kw">const</span> PAYMENT_METHOD = {
+  CREDIT_CARD: <span class="str">'credit_card'</span>,
+  PAYPAL: <span class="str">'paypal'</span>,
+  KLARNA: <span class="str">'klarna'</span>,
+  APPLE_PAY: <span class="str">'apple_pay'</span>,
+};
+
+<span class="cmt">// Airwallex 类型的支付方式共用一个 Drop-in，PayPal 使用独立 SDK</span>
+<span class="kw">const</span> AIRWALLEX_METHODS = [
+  PAYMENT_METHOD.CREDIT_CARD,
+  PAYMENT_METHOD.KLARNA,
+  PAYMENT_METHOD.APPLE_PAY,
+];
+
+<span class="kw">let</span> currentMethod = <span class="kw">null</span>;
+<span class="kw">let</span> airwallexElement = <span class="kw">null</span>;
+<span class="kw">let</span> paypalButtonRendered = <span class="kw">false</span>;
+
+<span class="kw">function</span> onPaymentMethodChange(method) {
+  currentMethod = method;
+
+  <span class="cmt">// 切换 UI 显隐</span>
+  document.getElementById(<span class="str">'paypal-button-container'</span>).style.display =
+    method === PAYMENT_METHOD.PAYPAL ? <span class="str">'block'</span> : <span class="str">'none'</span>;
+  document.getElementById(<span class="str">'airwallex-dropin-container'</span>).style.display =
+    AIRWALLEX_METHODS.includes(method) ? <span class="str">'block'</span> : <span class="str">'none'</span>;
+
+  <span class="cmt">// 更新按钮文案</span>
+  <span class="kw">const</span> payBtn = document.getElementById(<span class="str">'pay-button'</span>);
+  <span class="kw">if</span> (method === PAYMENT_METHOD.PAYPAL) {
+    payBtn.textContent = <span class="str">'Pay with PayPal'</span>;
+    payBtn.style.background = <span class="str">'#003087'</span>;
+    payBtn.style.display = <span class="str">'none'</span>; <span class="cmt">// PayPal 用自己的按钮</span>
+  } <span class="kw">else</span> {
+    payBtn.textContent = <span class="str">'Pay now'</span>;
+    payBtn.style.background = <span class="str">'#6C5CE7'</span>;
+    payBtn.style.display = <span class="str">'block'</span>;
+  }
+
+  <span class="cmt">// 延迟初始化 PayPal 按钮（只渲染一次）</span>
+  <span class="kw">if</span> (method === PAYMENT_METHOD.PAYPAL && !paypalButtonRendered) {
+    renderPayPalButton();
+    paypalButtonRendered = <span class="kw">true</span>;
+  }
+}
+
+<span class="cmt">// 点击 "Pay now" 按钮</span>
+<span class="kw">async function</span> onPayNowClick() {
+  <span class="kw">if</span> (AIRWALLEX_METHODS.includes(currentMethod)) {
+    <span class="kw">await</span> handleAirwallexPayment(cartId, shippingAddr);
+  }
+  <span class="cmt">// PayPal 有自己的按钮，不走这里</span>
+}</code></pre>
+</div>
+
+<!-- ==================== CH5 ==================== -->
+<div class="section" id="ch5">
+  <h2>5. 退款流程</h2>
+
+  <h3 id="ch5-1">5.1 退款系统流程</h3>
+  <p>按照 v8.0 状态设计，退款分为两个阶段：<strong>业务审批</strong>（refund_request）和<strong>资金退回</strong>（refund_order），两者通过单号松耦合。</p>
+
+  <svg viewBox="0 0 800 674" style="width:100%;max-width:800px" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,BlinkMacSystemFont,sans-serif">
+<defs><marker id="rf-ah" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#555"/></marker>
+<marker id="rf-ahd" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#999"/></marker></defs>
+<rect width="800" height="674" fill="#f8f9fc" rx="8"/>
+<rect x="78.33333333333331" y="14" width="150" height="38" rx="6" fill="#fff" stroke="#388E3C" stroke-width="2"/>
+<text x="153.33333333333331" y="38.0" text-anchor="middle" font-size="13" font-weight="600" fill="#333">运营后台</text>
+<line x1="153.33333333333331" y1="52" x2="153.33333333333331" y2="664" stroke="#d0d0d0" stroke-width="1" stroke-dasharray="6,4"/>
+<rect x="324.99999999999994" y="14" width="150" height="38" rx="6" fill="#fff" stroke="#4A90D9" stroke-width="2"/>
+<text x="399.99999999999994" y="38.0" text-anchor="middle" font-size="13" font-weight="600" fill="#333">Looply 后端</text>
+<line x1="399.99999999999994" y1="52" x2="399.99999999999994" y2="664" stroke="#d0d0d0" stroke-width="1" stroke-dasharray="6,4"/>
+<rect x="571.6666666666666" y="14" width="150" height="38" rx="6" fill="#fff" stroke="#5E35B1" stroke-width="2"/>
+<text x="646.6666666666666" y="38.0" text-anchor="middle" font-size="13" font-weight="600" fill="#333">支付渠道</text>
+<line x1="646.6666666666666" y1="52" x2="646.6666666666666" y2="664" stroke="#d0d0d0" stroke-width="1" stroke-dasharray="6,4"/>
+<line x1="158.33333333333331" y1="82" x2="394.99999999999994" y2="82" stroke="#555" stroke-width="1.5" marker-end="url(#rf-ah)"/>
+<text x="276.66666666666663" y="72" text-anchor="middle" font-size="12" fill="#333">① 提交退款申请（商品、金额、原因）</text>
+<polyline points="403.99999999999994,128 444.99999999999994,128 444.99999999999994,144 403.99999999999994,144" fill="none" stroke="#555" stroke-width="1.5" marker-end="url(#rf-ah)"/>
+<text x="452.99999999999994" y="130" font-size="11" fill="#333">② 创建 refund_request (pending)</text>
+<text x="452.99999999999994" y="145" font-size="11" fill="#333">   校验退款金额 ≤ 可退金额</text>
+<line x1="158.33333333333331" y1="186" x2="394.99999999999994" y2="186" stroke="#555" stroke-width="1.5" marker-end="url(#rf-ah)"/>
+<text x="276.66666666666663" y="176" text-anchor="middle" font-size="12" fill="#333">③ 审批通过</text>
+<polyline points="403.99999999999994,232 444.99999999999994,232 444.99999999999994,248 403.99999999999994,248" fill="none" stroke="#555" stroke-width="1.5" marker-end="url(#rf-ah)"/>
+<text x="452.99999999999994" y="234" font-size="11" fill="#333">④ approval_status → approved</text>
+<text x="452.99999999999994" y="249" font-size="11" fill="#333">   order_item.refund_status → refunding</text>
+<polyline points="403.99999999999994,284 444.99999999999994,284 444.99999999999994,300 403.99999999999994,300" fill="none" stroke="#555" stroke-width="1.5" marker-end="url(#rf-ah)"/>
+<text x="452.99999999999994" y="286" font-size="11" fill="#333">⑤ 创建 refund_order (pending)</text>
+<line x1="404.99999999999994" y1="342" x2="641.6666666666666" y2="342" stroke="#555" stroke-width="1.5" marker-end="url(#rf-ah)"/>
+<text x="523.3333333333333" y="332" text-anchor="middle" font-size="12" fill="#333">⑥ 调用退款 API</text>
+<text x="523.3333333333333" y="357" text-anchor="middle" font-size="10" fill="#999" font-family="SF Mono,Menlo,monospace">PayPal Refund / Airwallex Refund</text>
+<line x1="641.6666666666666" y1="394" x2="404.99999999999994" y2="394" stroke="#999" stroke-width="1.5" marker-end="url(#rf-ahd)" stroke-dasharray="6,3"/>
+<text x="523.3333333333333" y="384" text-anchor="middle" font-size="12" fill="#333">⑦ 退款响应（同步成功 / 异步处理中）</text>
+<line x1="40" y1="446" x2="760" y2="446" stroke="#bbb" stroke-width="1" stroke-dasharray="4,3"/>
+<rect x="338.0" y="436" width="124" height="20" fill="#f8f9fc"/>
+<text x="400.0" y="450" text-anchor="middle" font-size="11" fill="#888" font-style="italic">异步确认（Webhook）</text>
+<line x1="641.6666666666666" y1="498" x2="404.99999999999994" y2="498" stroke="#555" stroke-width="1.5" marker-end="url(#rf-ah)"/>
+<text x="523.3333333333333" y="488" text-anchor="middle" font-size="12" fill="#333">⑧ Webhook: 退款成功</text>
+<polyline points="403.99999999999994,544 444.99999999999994,544 444.99999999999994,560 403.99999999999994,560" fill="none" stroke="#555" stroke-width="1.5" marker-end="url(#rf-ah)"/>
+<text x="452.99999999999994" y="546" font-size="11" fill="#333">⑨ refund_order → succeeded</text>
+<text x="452.99999999999994" y="561" font-size="11" fill="#333">   order_item.refund_status → refunded</text>
+<rect x="309.99999999999994" y="589" width="180" height="26" rx="4" fill="#FFF8E1" stroke="#FFD93D" stroke-width="1"/>
+<text x="399.99999999999994" y="606" text-anchor="middle" font-size="11" fill="#666">⑩ 发送退款通知邮件给买家</text>
+</svg>
+
+  <h3 id="ch5-2">5.2 PayPal 退款 API</h3>
+  <pre><code><span class="cmt"># 对已捕获的交易发起退款（capture_id 在 Capture 响应中获取）</span>
+POST https://api-m.sandbox.paypal.com/v2/payments/captures/{capture_id}/refund
+Authorization: Bearer {ACCESS_TOKEN}
+Content-Type: application/json
+
+<span class="cmt">// 全额退款：body 为空 {}</span>
+
+<span class="cmt">// 部分退款：</span>
+{
+  <span class="str">"amount"</span>: {
+    <span class="str">"value"</span>: <span class="str">"50.00"</span>,
+    <span class="str">"currency_code"</span>: <span class="str">"USD"</span>
+  },
+  <span class="str">"note_to_payer"</span>: <span class="str">"Refund for returned item"</span>
+}
+
+<span class="cmt">// 响应</span>
+{
+  <span class="str">"id"</span>: <span class="str">"REFUND-xxx"</span>,
+  <span class="str">"status"</span>: <span class="str">"COMPLETED"</span>,     <span class="cmt">// 或 "PENDING"</span>
+  <span class="str">"amount"</span>: {
+    <span class="str">"value"</span>: <span class="str">"50.00"</span>,
+    <span class="str">"currency_code"</span>: <span class="str">"USD"</span>
+  }
+}</code></pre>
+
+  <table>
+    <thead>
+      <tr><th>退款状态</th><th>含义</th><th>Looply 处理</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>COMPLETED</code></td><td>退款即时成功</td><td>refund_order.status → succeeded，更新 order_item.refund_status = refunded</td></tr>
+      <tr><td><code>PENDING</code></td><td>退款处理中（eCheck 等）</td><td>refund_order 保持 pending，等待 Webhook <code>PAYMENT.CAPTURE.REFUNDED</code></td></tr>
+      <tr><td><code>CANCELLED</code></td><td>退款被取消</td><td>退款记录标记 FAILED，通知运营</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="ch5-3">5.3 Airwallex 退款 API</h3>
+  <pre><code><span class="cmt"># 对 PaymentIntent 发起退款</span>
+POST https://api-demo.airwallex.com/api/v1/pa/refunds/create
+Authorization: Bearer {ACCESS_TOKEN}
+Content-Type: application/json
+
+{
+  <span class="str">"request_id"</span>: <span class="str">"looply-refund-20260626-001"</span>,   <span class="cmt">// 幂等键</span>
+  <span class="str">"payment_intent_id"</span>: <span class="str">"int_hkdm1234567890"</span>,
+  <span class="str">"amount"</span>: <span class="num">50.00</span>,                            <span class="cmt">// 部分退款金额</span>
+  <span class="str">"reason"</span>: <span class="str">"Buyer requested return"</span>,
+  <span class="str">"metadata"</span>: {
+    <span class="str">"looply_refund_id"</span>: <span class="str">"RFD-20260626001"</span>
+  }
+}
+
+<span class="cmt">// 全额退款：amount 不传或传原金额</span>
+
+<span class="cmt">// 响应</span>
+{
+  <span class="str">"id"</span>: <span class="str">"ref_hkdm9876543210"</span>,
+  <span class="str">"request_id"</span>: <span class="str">"looply-refund-20260626-001"</span>,
+  <span class="str">"payment_intent_id"</span>: <span class="str">"int_hkdm1234567890"</span>,
+  <span class="str">"amount"</span>: <span class="num">50.00</span>,
+  <span class="str">"currency"</span>: <span class="str">"USD"</span>,
+  <span class="str">"status"</span>: <span class="str">"SUCCEEDED"</span>           <span class="cmt">// 或 "CREATED" / "PENDING"</span>
+}</code></pre>
+
+  <table>
+    <thead>
+      <tr><th>退款状态</th><th>含义</th><th>Looply 处理</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>SUCCEEDED</code></td><td>退款即时成功</td><td>退款记录标记 SUCCESS</td></tr>
+      <tr><td><code>CREATED</code></td><td>退款已创建，处理中</td><td>等待 Webhook <code>refund.succeeded</code></td></tr>
+      <tr><td><code>PENDING</code></td><td>退款处理中</td><td>等待 Webhook</td></tr>
+      <tr><td><code>FAILED</code></td><td>退款失败</td><td>退款记录标记 FAILED，通知运营</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="ch5-4">5.4 退款 Webhook 事件</h3>
+  <table>
+    <thead>
+      <tr><th>渠道</th><th>事件</th><th>触发时机</th><th>Looply 处理</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="tag tag-paypal">PayPal</span></td>
+        <td><code>PAYMENT.CAPTURE.REFUNDED</code></td>
+        <td>退款完成</td>
+        <td>refund_order.status → succeeded，更新 order_item.refund_status = refunded</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-airwallex">Airwallex</span></td>
+        <td><code>refund.succeeded</code></td>
+        <td>退款成功</td>
+        <td>refund_order.status → succeeded，更新 order_item.refund_status = refunded</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-airwallex">Airwallex</span></td>
+        <td><code>refund.failed</code></td>
+        <td>退款失败</td>
+        <td>更新退款记录为 FAILED，通知运营</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-tip">
+    <span class="callout-icon">!</span>
+    <div>
+      <strong>退款到账时间参考</strong>：PayPal 余额退款一般即时到账；信用卡退款 5-10 个工作日；Klarna 退款 5-7 个工作日。退款时间由支付渠道和用户银行共同决定，Looply 无法控制。
+    </div>
+  </div>
+</div>
+
+<!-- ==================== CH6 ==================== -->
+<div class="section" id="ch6">
+  <h2>6. 订单状态映射</h2>
+  <p>以下状态设计严格参照《looply 订单模块状态设计说明 v8.0》，采用分层状态模型。支付对接只涉及其中两层：<strong>支付层</strong>（payment_order / refund_order）和<strong>订单核心层</strong>（order 创建触发）。</p>
+
+  <h3 id="ch6-1">6.1 Looply 分层状态模型（支付相关）</h3>
+
+  <h4>支付层：payment_order.status（4 个值）</h4>
+  <p>用户点击「去支付」时创建 payment_order，跳转支付网关。支付前的状态由 checkout_session 承载。</p>
+  <div class="status-flow">
+    <span class="status-node status-pending">pending</span>
+    <span class="status-arrow">→</span>
+    <span class="status-node status-paid">succeeded</span>
+  </div>
+  <div class="status-flow" style="margin-top: 8px;">
+    <span class="status-node status-pending">pending</span>
+    <span class="status-arrow">→</span>
+    <span class="status-node status-failed">failed</span>
+  </div>
+  <div class="status-flow" style="margin-top: 8px;">
+    <span class="status-node status-pending">pending</span>
+    <span class="status-arrow">→</span>
+    <span class="status-node" style="background:#F5F5F5; color:#757575;">closed</span>
+    <span style="font-size:12px; color:#888; margin-left:8px">（超时未支付）</span>
+  </div>
+  <table>
+    <thead>
+      <tr><th>枚举值</th><th>中文</th><th>说明</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>pending</code></td><td>待支付</td><td>已跳转支付网关，等待支付结果</td></tr>
+      <tr><td><code>succeeded</code></td><td>成功</td><td>支付回调确认成功，触发创建 parent_order + order</td></tr>
+      <tr><td><code>failed</code></td><td>失败</td><td>支付网关返回失败（余额不足、风控拒绝等）</td></tr>
+      <tr><td><code>closed</code></td><td>超时关闭</td><td>超过 expired_at 未完成支付</td></tr>
+    </tbody>
+  </table>
+
+  <h4 style="margin-top: 24px;">订单层：order.order_status（4 个值）</h4>
+  <p>订单在 payment_order succeeded 后才创建，起始状态即 <code>paid</code>，<strong>无 pending_payment 状态</strong>。</p>
+  <div class="status-flow">
+    <span class="status-node status-paid">paid</span>
+    <span class="status-arrow">→</span>
+    <span class="status-node status-refunding">shipped</span>
+    <span class="status-arrow">→</span>
+    <span class="status-node" style="background:#E8F5E9; color:#2E7D32;">completed</span>
+  </div>
+  <div class="status-flow" style="margin-top: 8px;">
+    <span class="status-node status-paid">paid</span>
+    <span class="status-arrow">→</span>
+    <span class="status-node status-failed">cancelled</span>
+    <span style="font-size:12px; color:#888; margin-left:8px">（发货前取消，伴随退款）</span>
+  </div>
+
+  <h4 style="margin-top: 24px;">退款层：refund_order.status（3 个值）</h4>
+  <p>退款审批通过（refund_request.approval_status = approved）后，在支付域创建 refund_order 执行资金退回。</p>
+  <div class="status-flow">
+    <span class="status-node status-pending">pending</span>
+    <span class="status-arrow">→</span>
+    <span class="status-node" style="background:#E8F5E9; color:#2E7D32;">succeeded</span>
+    <span style="font-size:12px; color:#888; margin-left:8px">或</span>
+    <span class="status-node status-failed">failed</span>
+  </div>
+  <table>
+    <thead>
+      <tr><th>枚举值</th><th>中文</th><th>说明</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>pending</code></td><td>退款中</td><td>已发起退款，等待渠道确认</td></tr>
+      <tr><td><code>succeeded</code></td><td>退款成功</td><td>渠道确认退款到账，累加 payment_order.refunded_amount</td></tr>
+      <tr><td><code>failed</code></td><td>退款失败</td><td>渠道返回失败，需人工介入或重试</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-info">
+    <span class="callout-icon">i</span>
+    <div>
+      <strong>退款不改订单生命周期</strong>：退款进度在商品级跟踪（order_item.refund_status: none → refunding → refunded），不影响 order.order_status。订单级无 REFUNDED / PARTIALLY_REFUNDED 状态，退款维度从 order_item 实时聚合。
+    </div>
+  </div>
+
+  <h3 id="ch6-2">6.2 支付渠道状态 → Looply 状态映射表</h3>
+
+  <h4>PayPal → payment_order.status</h4>
+  <table>
+    <thead>
+      <tr><th>PayPal 状态 / 事件</th><th>payment_order.status</th><th>后续动作</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Order Created（createOrder 返回）</td><td><code>pending</code></td><td>等待用户在 PayPal 弹窗中确认</td></tr>
+      <tr><td>Capture: COMPLETED</td><td><code>succeeded</code></td><td>创建 parent_order + order（order_status = paid）</td></tr>
+      <tr><td>Capture: PENDING</td><td><code>pending</code></td><td>保持待支付，等 Webhook 最终确认</td></tr>
+      <tr><td>Capture: DECLINED</td><td><code>failed</code></td><td>提示用户支付失败，可重试（创建新 payment_order）</td></tr>
+      <tr><td>Webhook: PAYMENT.CAPTURE.COMPLETED</td><td><code>succeeded</code></td><td>幂等：已 succeeded 则忽略，未处理则创建订单</td></tr>
+      <tr><td>Webhook: PAYMENT.CAPTURE.DENIED</td><td><code>failed</code></td><td>更新状态，通知用户</td></tr>
+    </tbody>
+  </table>
+
+  <h4>PayPal → refund_order.status</h4>
+  <table>
+    <thead>
+      <tr><th>PayPal 状态 / 事件</th><th>refund_order.status</th><th>后续动作</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Refund API: COMPLETED</td><td><code>succeeded</code></td><td>累加 payment_order.refunded_amount，更新 order_item.refund_status = refunded</td></tr>
+      <tr><td>Refund API: PENDING</td><td><code>pending</code></td><td>等 Webhook 最终确认</td></tr>
+      <tr><td>Webhook: PAYMENT.CAPTURE.REFUNDED</td><td><code>succeeded</code></td><td>幂等确认退款到账</td></tr>
+    </tbody>
+  </table>
+
+  <h4 style="margin-top: 24px;">Airwallex → payment_order.status</h4>
+  <table>
+    <thead>
+      <tr><th>Airwallex 状态 / 事件</th><th>payment_order.status</th><th>后续动作</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>PaymentIntent 创建</td><td><code>pending</code></td><td>等待前端 Drop-in 组件完成支付</td></tr>
+      <tr><td>PaymentIntent: REQUIRES_PAYMENT_METHOD</td><td><code>pending</code></td><td>等待用户输入支付信息</td></tr>
+      <tr><td>PaymentIntent: REQUIRES_CUSTOMER_ACTION</td><td><code>pending</code></td><td>3DS 验证中 / Klarna 跳转中</td></tr>
+      <tr><td>PaymentIntent: SUCCEEDED</td><td><code>succeeded</code></td><td>创建 parent_order + order（order_status = paid）</td></tr>
+      <tr><td>PaymentIntent: CANCELLED</td><td><code>closed</code></td><td>支付取消，checkout_session 保持 pending 可重试</td></tr>
+      <tr><td>Webhook: payment_intent.succeeded</td><td><code>succeeded</code></td><td>幂等：已 succeeded 则忽略，未处理则创建订单</td></tr>
+      <tr><td>Webhook: payment_attempt.payment_failed</td><td><code>failed</code></td><td>更新状态，通知用户</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Airwallex → refund_order.status</h4>
+  <table>
+    <thead>
+      <tr><th>Airwallex 状态 / 事件</th><th>refund_order.status</th><th>后续动作</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Refund API: RECEIVED / PENDING</td><td><code>pending</code></td><td>退款已受理，等待渠道处理</td></tr>
+      <tr><td>Refund API: SUCCEEDED</td><td><code>succeeded</code></td><td>累加 payment_order.refunded_amount，更新 order_item.refund_status = refunded</td></tr>
+      <tr><td>Webhook: refund.succeeded</td><td><code>succeeded</code></td><td>幂等确认退款到账</td></tr>
+      <tr><td>Webhook: refund.failed</td><td><code>failed</code></td><td>需人工介入或重试</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-info">
+    <span class="callout-icon">i</span>
+    <div>
+      <strong>支付成功 = 创建订单</strong>：payment_order.status 变为 succeeded 时，同步完成：checkout_session.checkout_status → converted + 创建 parent_order + order（order_status = paid）。支付失败时 checkout_session 保持 pending，用户可重试（创建新的 payment_order）。<br>
+      <strong>超额退款防护</strong>：创建 refund_order 前校验 payment_order.refunded_amount + 本次退款 ≤ payment_order.amount。
+    </div>
+  </div>
+</div>
+
+<!-- ==================== CH7 ==================== -->
+<div class="section" id="ch7">
+  <h2>7. 错误处理 & 异常场景</h2>
+
+  <table>
+    <thead>
+      <tr><th>异常场景</th><th>触发条件</th><th>处理策略</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>用户关闭支付弹窗</strong></td>
+        <td>PayPal 弹窗关闭 / 页面刷新</td>
+        <td>payment_order 保持 pending，超时后自动关闭（payment_order.status → closed）</td>
+      </tr>
+      <tr>
+        <td><strong>支付成功但前端回调未执行</strong></td>
+        <td>网络中断、用户关闭页面</td>
+        <td>Webhook 兜底更新 payment_order 状态并创建订单，不依赖前端回调</td>
+      </tr>
+      <tr>
+        <td><strong>重复支付</strong></td>
+        <td>用户多次点击支付按钮</td>
+        <td>前端：点击后禁用按钮。后端：PayPal 同一 order_id 只能 Capture 一次；Airwallex 使用 request_id 幂等</td>
+      </tr>
+      <tr>
+        <td><strong>3DS 验证失败</strong></td>
+        <td>信用卡 3DS 挑战未通过</td>
+        <td>Airwallex Drop-in 自动处理 3DS 流程，失败会触发 error 事件，提示用户重试</td>
+      </tr>
+      <tr>
+        <td><strong>Webhook 重复投递</strong></td>
+        <td>支付渠道重试</td>
+        <td>所有 handler 幂等处理：通过 event_id 或 capture_id/intent_id 去重</td>
+      </tr>
+      <tr>
+        <td><strong>Webhook 签名验证失败</strong></td>
+        <td>伪造请求 / Secret 配置错误</td>
+        <td>返回 400，记录告警日志，不处理</td>
+      </tr>
+      <tr>
+        <td><strong>退款超出可退金额</strong></td>
+        <td>运营输入退款金额 > 已付金额 - 已退金额</td>
+        <td>后端校验并拒绝，提示最大可退金额</td>
+      </tr>
+      <tr>
+        <td><strong>PayPal INSTRUMENT_DECLINED</strong></td>
+        <td>用户 PayPal 绑定的支付方式余额不足 / 被拒</td>
+        <td>前端调用 <code>actions.restart()</code> 让用户在 PayPal 中选择其他支付方式</td>
+      </tr>
+      <tr>
+        <td><strong>Airwallex Token 过期</strong></td>
+        <td>Access Token 超过有效期</td>
+        <td>后端实现 Token 刷新机制，过期前自动重新获取</td>
+      </tr>
+      <tr>
+        <td><strong>Klarna 跳转后未完成</strong></td>
+        <td>用户在 Klarna 页面放弃</td>
+        <td>Klarna 超时后自动取消，Webhook 通知 payment_failed</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ==================== CH8 ==================== -->
+<div class="section" id="ch8">
+  <h2>8. 前置准备清单</h2>
+
+  <h3>8.1 PayPal</h3>
+  <table>
+    <thead>
+      <tr><th>事项</th><th>说明</th><th>负责人</th><th>状态</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>注册 PayPal Business 账号</td>
+        <td>在 PayPal.cn 注册跨境收付款商家账号</td>
+        <td>运营</td>
+        <td>待完成</td>
+      </tr>
+      <tr>
+        <td>创建 REST APP</td>
+        <td>在 PayPal Developer 后台创建 APP，获取 Client ID 和 Secret</td>
+        <td>后端开发</td>
+        <td>待完成</td>
+      </tr>
+      <tr>
+        <td>创建 Sandbox 测试账号</td>
+        <td>创建 Business（商家）和 Personal（买家）测试账号</td>
+        <td>后端开发</td>
+        <td>待完成</td>
+      </tr>
+      <tr>
+        <td>配置 Webhook</td>
+        <td>在 Developer 后台配置 Webhook URL 和事件订阅</td>
+        <td>后端开发</td>
+        <td>待完成</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>8.2 Airwallex</h3>
+  <table>
+    <thead>
+      <tr><th>事项</th><th>说明</th><th>负责人</th><th>状态</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>注册 Airwallex 商家账号</td>
+        <td>在 airwallex.com 注册商家账号并完成 KYC 审核</td>
+        <td>运营</td>
+        <td>待完成</td>
+      </tr>
+      <tr>
+        <td>获取 API Key</td>
+        <td>在 Airwallex Dashboard → API Keys 获取 Client ID 和 API Key</td>
+        <td>后端开发</td>
+        <td>待完成</td>
+      </tr>
+      <tr>
+        <td>开通支付方式</td>
+        <td>在 Dashboard → Payment Methods 中启用 Card、Klarna、Apple Pay</td>
+        <td>运营</td>
+        <td>待完成</td>
+      </tr>
+      <tr>
+        <td>配置 Webhook</td>
+        <td>在 Dashboard → Webhooks 配置通知 URL 和事件订阅</td>
+        <td>后端开发</td>
+        <td>待完成</td>
+      </tr>
+      <tr>
+        <td>Apple Pay 域名验证</td>
+        <td>上传 Apple 域名验证文件到网站根目录</td>
+        <td>后端 / 运维</td>
+        <td>待完成</td>
+      </tr>
+      <tr>
+        <td>Apple Developer 账号</td>
+        <td>注册 Apple Developer Program（$99/年）</td>
+        <td>运营</td>
+        <td>待完成</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ==================== CH9 ==================== -->
+<div class="section" id="ch9">
+  <h2>9. 环境配置 & 测试</h2>
+
+  <h3>9.1 环境变量</h3>
+  <pre><code><span class="cmt"># === PayPal ===</span>
+PAYPAL_CLIENT_ID=&lt;sandbox-client-id&gt;
+PAYPAL_SECRET=&lt;sandbox-secret&gt;
+PAYPAL_API_BASE=https://api-m.sandbox.paypal.com   <span class="cmt"># 生产: https://api-m.paypal.com</span>
+PAYPAL_WEBHOOK_ID=&lt;webhook-id&gt;
+
+<span class="cmt"># === Airwallex ===</span>
+AIRWALLEX_CLIENT_ID=&lt;sandbox-client-id&gt;
+AIRWALLEX_API_KEY=&lt;sandbox-api-key&gt;
+AIRWALLEX_API_BASE=https://api-demo.airwallex.com  <span class="cmt"># 生产: https://api.airwallex.com</span>
+AIRWALLEX_WEBHOOK_SECRET=&lt;webhook-secret&gt;
+AIRWALLEX_ENV=demo                                  <span class="cmt"># 生产: prod</span></code></pre>
+
+  <h3>9.2 测试卡号</h3>
+
+  <h4>PayPal Sandbox</h4>
+  <p>使用 PayPal Developer 后台创建的 Personal Sandbox 账号登录测试。</p>
+
+  <h4>Airwallex Sandbox 测试卡</h4>
+  <table>
+    <thead>
+      <tr><th>场景</th><th>卡号</th><th>有效期</th><th>CVV</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>支付成功</td>
+        <td><code>4242 4242 4242 4242</code></td>
+        <td>任意未来日期</td>
+        <td>任意 3 位</td>
+      </tr>
+      <tr>
+        <td>支付成功（需 3DS）</td>
+        <td><code>4000 0000 0000 3220</code></td>
+        <td>任意未来日期</td>
+        <td>任意 3 位</td>
+      </tr>
+      <tr>
+        <td>支付拒绝</td>
+        <td><code>4000 0000 0000 0002</code></td>
+        <td>任意未来日期</td>
+        <td>任意 3 位</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>9.3 Webhook 本地调试</h3>
+  <p>本地开发时无法接收外部 Webhook，推荐使用 ngrok 或 Airwallex CLI 进行调试：</p>
+  <pre><code><span class="cmt"># 使用 ngrok 暴露本地端口</span>
+ngrok http 3000
+
+<span class="cmt"># 将 ngrok 生成的 URL 配置到 PayPal / Airwallex Webhook 设置中</span>
+<span class="cmt"># 例如: https://abc123.ngrok.io/api/webhook/paypal</span></code></pre>
+
+  <h3>9.4 Airwallex Webhook IP 白名单（生产环境）</h3>
+  <p>生产环境建议在防火墙/网关层配置 Airwallex Webhook IP 白名单，仅允许以下 IP 发起请求：</p>
+  <pre><code><span class="cmt"># Airwallex Production IPs</span>
+35.240.218.67, 35.198.197.83, 35.197.128.86, 35.240.219.218,
+35.198.239.51, 35.198.250.210, 35.197.165.40, 35.240.221.15,
+35.198.227.200, 34.87.130.213, 34.87.175.82, 35.198.207.246,
+34.87.67.183, 35.198.234.237, 35.198.197.137, 35.198.236.255,
+34.87.7.233, 34.87.155.193, 34.87.38.65, 34.87.54.142,
+35.197.135.105, 35.240.235.109, 34.87.141.165, 34.87.26.83,
+34.85.218.163</code></pre>
+</div>
+
+<!-- ==================== Summary ==================== -->
+<div class="section" id="appendix-api">
+  <h2>附：后端服务接口清单</h2>
+  <p>Looply 后端需要实现以下接口：</p>
+
+  <table>
+    <thead>
+      <tr><th>接口</th><th>Method</th><th>说明</th><th>调用方</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>/api/payment/paypal/create</code></td>
+        <td>POST</td>
+        <td>创建 Looply 订单 + 调用 PayPal Create Order API</td>
+        <td>前端</td>
+      </tr>
+      <tr>
+        <td><code>/api/payment/paypal/capture</code></td>
+        <td>POST</td>
+        <td>调用 PayPal Capture API，支付成功后创建订单</td>
+        <td>前端</td>
+      </tr>
+      <tr>
+        <td><code>/api/payment/airwallex/create</code></td>
+        <td>POST</td>
+        <td>创建 Looply 订单 + 调用 Airwallex Create PaymentIntent</td>
+        <td>前端</td>
+      </tr>
+      <tr>
+        <td><code>/api/payment/airwallex/confirm</code></td>
+        <td>POST</td>
+        <td>调用 Airwallex Retrieve PaymentIntent 确认状态 + 更新订单</td>
+        <td>前端</td>
+      </tr>
+      <tr>
+        <td><code>/api/webhook/paypal</code></td>
+        <td>POST</td>
+        <td>接收 PayPal Webhook 通知</td>
+        <td>PayPal</td>
+      </tr>
+      <tr>
+        <td><code>/api/webhook/airwallex</code></td>
+        <td>POST</td>
+        <td>接收 Airwallex Webhook 通知</td>
+        <td>Airwallex</td>
+      </tr>
+      <tr>
+        <td><code>/api/refund/create</code></td>
+        <td>POST</td>
+        <td>创建退款请求，调用对应渠道退款 API</td>
+        <td>运营后台</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="section" id="appendix-db">
+  <h2>附：数据库关键字段</h2>
+  <p>支付相关信息需要存储在订单表和支付流水表中：</p>
+
+  <h3>支付流水表 (payment_transaction)</h3>
+  <table>
+    <thead>
+      <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>id</code></td><td>BIGINT PK</td><td>主键</td></tr>
+      <tr><td><code>order_id</code></td><td>VARCHAR</td><td>Looply 订单号</td></tr>
+      <tr><td><code>channel</code></td><td>ENUM</td><td>PAYPAL / AIRWALLEX</td></tr>
+      <tr><td><code>payment_method</code></td><td>VARCHAR</td><td>paypal / card / klarna / applepay</td></tr>
+      <tr><td><code>channel_order_id</code></td><td>VARCHAR</td><td>PayPal Order ID / Airwallex Intent ID</td></tr>
+      <tr><td><code>channel_capture_id</code></td><td>VARCHAR</td><td>PayPal Capture ID（退款用）</td></tr>
+      <tr><td><code>amount</code></td><td>DECIMAL(10,2)</td><td>支付金额</td></tr>
+      <tr><td><code>currency</code></td><td>VARCHAR(3)</td><td>币种（USD）</td></tr>
+      <tr><td><code>status</code></td><td>ENUM</td><td>PENDING / SUCCEEDED / FAILED</td></tr>
+      <tr><td><code>channel_status</code></td><td>VARCHAR</td><td>渠道原始状态</td></tr>
+      <tr><td><code>created_at</code></td><td>TIMESTAMP</td><td>创建时间</td></tr>
+      <tr><td><code>updated_at</code></td><td>TIMESTAMP</td><td>最后更新时间</td></tr>
+    </tbody>
+  </table>
+
+  <h3>退款流水表 (refund_transaction)</h3>
+  <table>
+    <thead>
+      <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>id</code></td><td>BIGINT PK</td><td>主键</td></tr>
+      <tr><td><code>order_id</code></td><td>VARCHAR</td><td>Looply 订单号</td></tr>
+      <tr><td><code>payment_transaction_id</code></td><td>BIGINT</td><td>关联支付流水</td></tr>
+      <tr><td><code>channel</code></td><td>ENUM</td><td>PAYPAL / AIRWALLEX</td></tr>
+      <tr><td><code>channel_refund_id</code></td><td>VARCHAR</td><td>渠道退款 ID</td></tr>
+      <tr><td><code>amount</code></td><td>DECIMAL(10,2)</td><td>退款金额</td></tr>
+      <tr><td><code>currency</code></td><td>VARCHAR(3)</td><td>币种</td></tr>
+      <tr><td><code>reason</code></td><td>VARCHAR</td><td>退款原因</td></tr>
+      <tr><td><code>status</code></td><td>ENUM</td><td>PROCESSING / SUCCEEDED / FAILED</td></tr>
+      <tr><td><code>operator_id</code></td><td>VARCHAR</td><td>操作人 ID</td></tr>
+      <tr><td><code>created_at</code></td><td>TIMESTAMP</td><td>创建时间</td></tr>
+      <tr><td><code>completed_at</code></td><td>TIMESTAMP</td><td>完成时间</td></tr>
+    </tbody>
+  </table>
+</div>
+
+</div><!-- /.container -->
+<div class="comments-gutter" id="commentsGutter"></div>
+</div><!-- /.main-content -->
+</div><!-- /.page-layout -->
+
+<!-- Floating add-comment button -->
+<button class="comment-trigger" id="commentTrigger" title="添加评论">+</button>
+
+<script>
+(function() {
+  /* ==================== TOC Scroll Tracking ==================== */
+  var tocLinks = document.querySelectorAll('.toc-sidebar a');
+  var tocSections = [];
+  tocLinks.forEach(function(link) {
+    var href = link.getAttribute('href');
+    if (href && href.startsWith('#')) {
+      var el = document.getElementById(href.slice(1));
+      if (el) tocSections.push({ id: href.slice(1), link: link, el: el });
+    }
+  });
+  function updateTocActive() {
+    var scrollY = window.scrollY + 80;
+    var current = '';
+    for (var i = tocSections.length - 1; i >= 0; i--) {
+      if (tocSections[i].el.offsetTop <= scrollY) { current = tocSections[i].id; break; }
+    }
+    tocLinks.forEach(function(l) { l.classList.remove('active'); });
+    if (current) {
+      var al = document.querySelector('.toc-sidebar a[href="#' + current + '"]');
+      if (al) {
+        al.classList.add('active');
+        var p = al.closest('ol') && al.closest('ol').closest('li');
+        if (p) { var pl = p.querySelector(':scope > a'); if (pl) pl.classList.add('active'); }
+      }
+    }
+  }
+  var ticking = false;
+  window.addEventListener('scroll', function() {
+    if (!ticking) { requestAnimationFrame(function() { updateTocActive(); ticking = false; }); ticking = true; }
+  });
+  tocLinks.forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      var target = document.getElementById(this.getAttribute('href').slice(1));
+      if (target) window.scrollTo({ top: target.offsetTop - 20, behavior: 'smooth' });
+    });
+  });
+  updateTocActive();
+
+  /* ==================== Inline Comments ==================== */
+  var STORAGE_KEY = 'looply-payment-doc-comments-v3';
+  var gutter = document.getElementById('commentsGutter');
+  var trigger = document.getElementById('commentTrigger');
+  var pendingRange = null;
+  var activeCommentId = null;
+
+  function escapeHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  function fmtTime(ts) {
+    var d = new Date(ts), p = function(n) { return n < 10 ? '0' + n : n; };
+    return p(d.getMonth()+1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  function loadComments() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch(e) { return []; }
+  }
+  function saveComments(arr) { localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }
+
+  function findSection(node) {
+    var el = node.nodeType === 3 ? node.parentElement : node;
+    var sec = el.closest('.section[id]');
+    return sec ? sec.id : null;
+  }
+
+  function getTextContext(range, section) {
+    var walker = document.createTreeWalker(section, NodeFilter.SHOW_TEXT);
+    var fullText = '', nodes = [], n;
+    while (n = walker.nextNode()) {
+      nodes.push({ node: n, start: fullText.length });
+      fullText += n.textContent;
+    }
+    var selText = range.toString();
+    var startNode = range.startContainer;
+    var startOffset = range.startOffset;
+    var charPos = 0;
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].node === startNode) { charPos = nodes[i].start + startOffset; break; }
+    }
+    var ctxBefore = fullText.substring(Math.max(0, charPos - 40), charPos);
+    var ctxAfter = fullText.substring(charPos + selText.length, charPos + selText.length + 40);
+    return { before: ctxBefore, after: ctxAfter, pos: charPos };
+  }
+
+  function wrapRange(range, commentId) {
+    try {
+      var mark = document.createElement('mark');
+      mark.className = 'doc-highlight';
+      mark.dataset.commentId = commentId;
+      range.surroundContents(mark);
+      return mark;
+    } catch(e) {
+      var frag = range.extractContents();
+      var mark2 = document.createElement('mark');
+      mark2.className = 'doc-highlight';
+      mark2.dataset.commentId = commentId;
+      mark2.appendChild(frag);
+      range.insertNode(mark2);
+      return mark2;
+    }
+  }
+
+  function findTextInSection(comment) {
+    var section = document.getElementById(comment.sectionId);
+    if (!section) return null;
+    var walker = document.createTreeWalker(section, NodeFilter.SHOW_TEXT);
+    var fullText = '', nodes = [], n;
+    while (n = walker.nextNode()) {
+      nodes.push({ node: n, start: fullText.length });
+      fullText += n.textContent;
+    }
+    var searchStr = comment.contextBefore + comment.selectedText + comment.contextAfter;
+    var idx = fullText.indexOf(searchStr);
+    var startIdx, endIdx;
+    if (idx !== -1) {
+      startIdx = idx + comment.contextBefore.length;
+      endIdx = startIdx + comment.selectedText.length;
+    } else {
+      startIdx = fullText.indexOf(comment.selectedText, Math.max(0, comment.charPos - 100));
+      if (startIdx === -1) startIdx = fullText.indexOf(comment.selectedText);
+      if (startIdx === -1) return null;
+      endIdx = startIdx + comment.selectedText.length;
+    }
+    var range = document.createRange();
+    var startSet = false, endSet = false;
+    for (var i = 0; i < nodes.length; i++) {
+      var tn = nodes[i], tnEnd = tn.start + tn.node.textContent.length;
+      if (!startSet && startIdx >= tn.start && startIdx < tnEnd) {
+        range.setStart(tn.node, startIdx - tn.start); startSet = true;
+      }
+      if (!endSet && endIdx > tn.start && endIdx <= tnEnd) {
+        range.setEnd(tn.node, endIdx - tn.start); endSet = true;
+      }
+      if (startSet && endSet) break;
+    }
+    if (!startSet || !endSet) return null;
+    return range;
+  }
+
+  function getMarkTop(mark) {
+    var gutterTop = gutter.getBoundingClientRect().top + window.scrollY;
+    var markTop = mark.getBoundingClientRect().top + window.scrollY;
+    return markTop - gutterTop;
+  }
+
+  function resolveOverlaps() {
+    var cards = Array.from(gutter.querySelectorAll('.doc-comment'));
+    cards.sort(function(a, b) { return parseFloat(a.style.top) - parseFloat(b.style.top); });
+    for (var i = 1; i < cards.length; i++) {
+      var prevBottom = cards[i-1].offsetTop + cards[i-1].offsetHeight;
+      var currTop = parseFloat(cards[i].style.top);
+      if (currTop < prevBottom + 8) {
+        cards[i].style.top = (prevBottom + 8) + 'px';
+      }
+    }
+  }
+
+  function createCommentCard(comment, mark) {
+    var card = document.createElement('div');
+    card.className = 'doc-comment';
+    card.dataset.commentId = comment.id;
+    var quoteText = comment.selectedText.length > 50
+      ? comment.selectedText.substring(0, 50) + '...' : comment.selectedText;
+    card.innerHTML =
+      '<div class="doc-comment-connector"></div>' +
+      '<div class="doc-comment-header">' +
+        '<span class="doc-comment-time">' + fmtTime(comment.updatedAt || comment.createdAt) + '</span>' +
+        '<div class="doc-comment-actions">' +
+          '<button class="doc-comment-action edit" title="编辑">&#x270E;</button>' +
+          '<button class="doc-comment-action delete" title="删除">&#x2715;</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="doc-comment-quote">"' + escapeHtml(quoteText) + '"</div>' +
+      '<div class="doc-comment-text">' + escapeHtml(comment.content) + '</div>';
+    card.style.top = getMarkTop(mark) + 'px';
+    gutter.appendChild(card);
+
+    card.addEventListener('mouseenter', function() {
+      setActive(comment.id);
+    });
+    card.addEventListener('mouseleave', function() {
+      clearActive();
+    });
+    card.querySelector('.edit').addEventListener('click', function() {
+      editComment(comment.id);
+    });
+    card.querySelector('.delete').addEventListener('click', function() {
+      deleteComment(comment.id);
+    });
+    if (mark) {
+      mark.addEventListener('mouseenter', function() { setActive(comment.id); });
+      mark.addEventListener('mouseleave', function() { clearActive(); });
+      mark.addEventListener('click', function() {
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        setActive(comment.id);
+      });
+    }
+    return card;
+  }
+
+  function setActive(commentId) {
+    clearActive();
+    activeCommentId = commentId;
+    var mark = document.querySelector('mark.doc-highlight[data-comment-id="' + commentId + '"]');
+    var card = gutter.querySelector('.doc-comment[data-comment-id="' + commentId + '"]');
+    if (mark) mark.classList.add('active');
+    if (card) card.classList.add('active');
+  }
+  function clearActive() {
+    activeCommentId = null;
+    document.querySelectorAll('mark.doc-highlight.active').forEach(function(m) { m.classList.remove('active'); });
+    gutter.querySelectorAll('.doc-comment.active').forEach(function(c) { c.classList.remove('active'); });
+  }
+
+  function editComment(commentId) {
+    var comments = loadComments();
+    var comment = comments.find(function(c) { return c.id === commentId; });
+    if (!comment) return;
+    var card = gutter.querySelector('.doc-comment[data-comment-id="' + commentId + '"]');
+    if (!card) return;
+    var textEl = card.querySelector('.doc-comment-text');
+    textEl.innerHTML =
+      '<textarea class="doc-comment-input">' + escapeHtml(comment.content) + '</textarea>' +
+      '<div class="doc-comment-btns">' +
+        '<button class="doc-comment-cancel">取消</button>' +
+        '<button class="doc-comment-save">保存</button>' +
+      '</div>';
+    var ta = textEl.querySelector('.doc-comment-input');
+    ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+    textEl.querySelector('.doc-comment-save').addEventListener('click', function() {
+      var v = ta.value.trim();
+      if (v) {
+        comment.content = v; comment.updatedAt = Date.now(); saveComments(comments);
+        textEl.innerHTML = escapeHtml(v);
+        card.querySelector('.doc-comment-time').textContent = fmtTime(comment.updatedAt);
+      } else {
+        textEl.innerHTML = escapeHtml(comment.content);
+      }
+    });
+    textEl.querySelector('.doc-comment-cancel').addEventListener('click', function() {
+      textEl.innerHTML = escapeHtml(comment.content);
+    });
+  }
+
+  function deleteComment(commentId) {
+    if (!confirm('删除这条评论？')) return;
+    var comments = loadComments().filter(function(c) { return c.id !== commentId; });
+    saveComments(comments);
+    var card = gutter.querySelector('.doc-comment[data-comment-id="' + commentId + '"]');
+    if (card) card.remove();
+    var mark = document.querySelector('mark.doc-highlight[data-comment-id="' + commentId + '"]');
+    if (mark) {
+      var parent = mark.parentNode;
+      while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+      parent.removeChild(mark);
+      parent.normalize();
+    }
+    resolveOverlaps();
+  }
+
+  function createNewCommentCard(mark, sectionId, selectedText, ctx) {
+    var commentId = 'c_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+    mark.dataset.commentId = commentId;
+    var card = document.createElement('div');
+    card.className = 'doc-comment active';
+    card.dataset.commentId = commentId;
+    var quoteText = selectedText.length > 50 ? selectedText.substring(0, 50) + '...' : selectedText;
+    card.innerHTML =
+      '<div class="doc-comment-connector"></div>' +
+      '<div class="doc-comment-quote">"' + escapeHtml(quoteText) + '"</div>' +
+      '<textarea class="doc-comment-input" placeholder="写评论..."></textarea>' +
+      '<div class="doc-comment-btns">' +
+        '<button class="doc-comment-cancel">取消</button>' +
+        '<button class="doc-comment-save">评论</button>' +
+      '</div>';
+    card.style.top = getMarkTop(mark) + 'px';
+    gutter.appendChild(card);
+    mark.classList.add('active');
+
+    var ta = card.querySelector('.doc-comment-input');
+    ta.focus();
+
+    card.querySelector('.doc-comment-save').addEventListener('click', function() {
+      var v = ta.value.trim();
+      if (!v) return;
+      var comment = {
+        id: commentId, sectionId: sectionId, selectedText: selectedText,
+        contextBefore: ctx.before, contextAfter: ctx.after, charPos: ctx.pos,
+        content: v, createdAt: Date.now(), updatedAt: Date.now()
+      };
+      var comments = loadComments();
+      comments.push(comment);
+      saveComments(comments);
+      card.remove();
+      createCommentCard(comment, mark);
+      resolveOverlaps();
+    });
+    card.querySelector('.doc-comment-cancel').addEventListener('click', function() {
+      card.remove();
+      var parent = mark.parentNode;
+      while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+      parent.removeChild(mark);
+      parent.normalize();
+    });
+    resolveOverlaps();
+  }
+
+  /* Selection handling */
+  var containerEl = document.querySelector('.container');
+
+  document.addEventListener('mouseup', function(e) {
+    if (e.target.closest('.comment-trigger') || e.target.closest('.doc-comment')) return;
+    setTimeout(function() {
+      var sel = window.getSelection();
+      if (!sel || sel.isCollapsed || !sel.rangeCount) { trigger.classList.remove('visible'); return; }
+      var range = sel.getRangeAt(0);
+      var text = sel.toString().trim();
+      if (!text || text.length < 2) { trigger.classList.remove('visible'); return; }
+      if (!containerEl.contains(range.commonAncestorContainer)) {
+        trigger.classList.remove('visible'); return;
+      }
+      var rect = range.getBoundingClientRect();
+      trigger.style.top = (rect.top + window.scrollY - 36) + 'px';
+      trigger.style.left = (rect.right + 8) + 'px';
+      trigger.classList.add('visible');
+      pendingRange = range.cloneRange();
+    }, 10);
+  });
+
+  document.addEventListener('mousedown', function(e) {
+    if (!e.target.closest('.comment-trigger') && !e.target.closest('.doc-comment')) {
+      trigger.classList.remove('visible');
+      pendingRange = null;
+    }
+  });
+
+  trigger.addEventListener('click', function(e) {
+    e.preventDefault(); e.stopPropagation();
+    trigger.classList.remove('visible');
+    if (!pendingRange) return;
+    var sectionId = findSection(pendingRange.startContainer);
+    if (!sectionId) return;
+    var selectedText = pendingRange.toString().trim();
+    if (!selectedText) return;
+    var section = document.getElementById(sectionId);
+    var ctx = getTextContext(pendingRange, section);
+    var mark = wrapRange(pendingRange, '');
+    window.getSelection().removeAllRanges();
+    createNewCommentCard(mark, sectionId, selectedText, ctx);
+    pendingRange = null;
+  });
+
+  /* Restore saved comments */
+  function restoreComments() {
+    var comments = loadComments();
+    comments.forEach(function(comment) {
+      var range = findTextInSection(comment);
+      if (!range) return;
+      var mark = wrapRange(range, comment.id);
+      createCommentCard(comment, mark);
+    });
+    resolveOverlaps();
+  }
+
+  /* Reposition on resize */
+  window.addEventListener('resize', function() {
+    var comments = loadComments();
+    comments.forEach(function(comment) {
+      var mark = document.querySelector('mark.doc-highlight[data-comment-id="' + comment.id + '"]');
+      var card = gutter.querySelector('.doc-comment[data-comment-id="' + comment.id + '"]');
+      if (mark && card) card.style.top = getMarkTop(mark) + 'px';
+    });
+    resolveOverlaps();
+  });
+
+  restoreComments();
+})();
+</script>
+</body>
+</html>
