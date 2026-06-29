@@ -86,10 +86,85 @@ looply 是一个面向美国市场的二手电商平台，采用 B2C 模式（�
 ### 1.7 多语言 / 多国家策略
 
 - **目标市场**：前期针对美国
-- **界面语言**：英文
-- **币种**：USD（ISO 4217 编码），所有金额以美元计价
+- **支持语言**：英语（en）+ 西班牙语（es），用户可在前端切换语言
+- **源语言**：英语（en），所有内容以英文录入，西班牙语由翻译模块自动翻译或运营手动维护
+- **币种**：USD（ISO 4217 编码），所有金额以美元计价，不随语言变化
 - **税费**：按收货地址所在州的税率计算（美国各州税率不同），结算时由系统计算，订单记录结果
 - **后续扩展**：如开放欧洲市场，需增加多币种支持、GDPR 数据处理合规、增值税（VAT）处理
+
+#### 多语言接入方式
+
+本模块遵循多语言模块的 Localized Content 分离架构（详见《多语言模块 PRD v3.1》第三章），多语言内容统一由翻译模块存储和管理。
+
+**内容分类**：
+
+| 内容类型 | 多语言处理方式 | resource_type | 示例 |
+|---------|-------------|--------------|------|
+| C 端页面文案 | 翻译模块管理，key_type = static_content | page-checkout / page-order-success | 按钮文字、表单标签、提示语、错误提示 |
+| 邮件通知模板 | 翻译模块管理，key_type = static_content | notif-email | Subject、正文文案、CTA 按钮文案 |
+| 商品信息（结算页/邮件中引用） | 从翻译模块读取，已由商品模块写入 | product / listing | 商品名称、属性值、成色等级 |
+| 结构化数据 | 不翻译，存业务表 | — | 金额、订单号、物流单号、邮箱、时间戳 |
+| 运营后台界面 | 不做多语言，保持中文 | — | 后台所有页面标签、列名、按钮 |
+
+**C 端页面可翻译字段注册**：
+
+以下字段需在 translatable_field_config 中注册，作为上线前置条件：
+
+| resource_type | field_name | 说明 | 示例源文本 |
+|--------------|------------|------|-----------|
+| page-checkout | section_contact_title | Contact 区块标题 | Contact |
+| page-checkout | section_delivery_title | Delivery 区块标题 | Delivery |
+| page-checkout | section_shipping_title | Shipping 区块标题 | Shipping Method |
+| page-checkout | section_review_title | Review 区块标题 | Review Items |
+| page-checkout | section_payment_title | Payment 区块标题 | Payment |
+| page-checkout | btn_place_order | 下单按钮 | Place Order |
+| page-checkout | label_newsletter | Newsletter 勾选文案 | Email me with news and offers |
+| page-checkout | signin_link | 登录链接文案 | Sign In |
+| page-checkout | error_* | 各类校验错误提示（按字段拆分） | Please enter a valid email |
+| page-order-success | title | 成功页标题 | Thank you for your order! |
+| page-order-success | subtitle | 成功页副标题 | Order Confirmed |
+| page-order-success | msg_confirmation | 确认邮件提示 | A confirmation email has been sent to... |
+| page-order-success | btn_continue | 继续购物按钮 | Continue Shopping |
+| page-order-success | btn_view_order | 查看订单按钮 | View Order Details |
+
+**邮件通知可翻译字段注册**：
+
+| resource_type | field_name | 说明 | 示例源文本 |
+|--------------|------------|------|-----------|
+| notif-email | order_confirm_subject | 支付成功邮件 Subject | Order confirmed! 🎉 #{{orderNo}} |
+| notif-email | order_confirm_greeting | 问候语 | Hi {{userName}}, |
+| notif-email | order_confirm_body | 正文说明 | Thank you for your purchase!... |
+| notif-email | order_confirm_cta | CTA 按钮 | View Order |
+| notif-email | order_confirm_footer | 底部提示 | We'll send you another email when your order ships. |
+| notif-email | ship_subject | 发货通知 Subject | Your order is on its way! 📦 #{{orderNo}} |
+| notif-email | ship_body | 发货正文 | Great news! Your order has been shipped... |
+| notif-email | ship_cta | CTA 按钮 | Track Package |
+| notif-email | refund_subject | 退款成功 Subject | Your refund has been processed ✓ #{{orderNo}} |
+| notif-email | refund_body | 退款正文 | Your refund has been processed... |
+| notif-email | refund_cta | CTA 按钮 | View Order |
+| notif-email | abandon_subject | 弃单恢复 Subject | You left something behind! 🛒 |
+| notif-email | abandon_body | 弃单正文 | You left some items in your checkout... |
+| notif-email | abandon_cta | CTA 按钮 | Complete Your Purchase |
+| notif-email | common_footer_reason | Footer 发送原因 | You're receiving this email because... |
+| notif-email | common_help_link | 帮助中心链接文案 | Help Center |
+| notif-email | common_contact_link | 联系客服链接文案 | Contact Us |
+| notif-email | silent_reg_title | 静默注册标题 | Your looply account is ready |
+| notif-email | silent_reg_body | 静默注册说明 | We've created a looply account for you... |
+| notif-email | silent_reg_cta | 设置密码按钮 | Set Your Password |
+
+**邮件发送语言判定**：
+
+邮件发送时，系统按以下优先级确定语言：
+1. 用户账户的 preferred_language 设置（如有）
+2. 用户最近一次访问的浏览器语言偏好（Accept-Language）
+3. 兜底：英语（en）
+
+**读取与渲染规则**：
+
+- C 端页面渲染时，前端根据用户当前语言设置，通过 resource_type + field_name + language_code 从翻译服务读取对应语言文案
+- 邮件渲染时，后端按语言判定结果从翻译服务读取模板文案，变量（{{orderNo}}、{{userName}} 等）在渲染时替换，不翻译
+- 翻译缺失时降级显示英文源文本，不阻塞页面渲染或邮件发送
+- 商品名称、属性值等引用内容已由商品模块写入翻译服务，订单模块直接按用户语言读取，无需重复注册
 
 ---
 
