@@ -390,6 +390,10 @@ MODULES = {
                 'subdir': '实体关系图',
                 'pattern': r'looply-订单模块实体关系图-v(.+?)\.svg',
             },
+            'flowchart': {
+                'subdir': '系统流程图',
+                'pattern': r'looply-订单支付系统流程图-v(.+?)\.svg',
+            },
             'delivery': {
                 'subdir': '.',
                 'pattern': r'订单支付-交付开发 V(.+?)\.zip',
