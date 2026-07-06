@@ -77,10 +77,16 @@ Looply 是面向美国市场的大牌二手电商平台。首页是用户进入 
 ├── Banner CTA ──→ 活动落地页 / 品类页（landing_page 字段决定）← 跳转暂不做，结果页待设计
 ├── Collections 卡片 ──→ 合集落地页 ← 跳转暂不做，结果页待设计
 ├── Feed 商品卡 ──→ 商品详情页 ← 已有，参考商详 PRD
-├── Header 收藏图标 ──→ Favorites 页 ← 暂无
-├── Header 购物车图标 ──→ 购物车页 ← 暂无
 ├── Header Market & Language ──→ 展开 Market & Language 面板（浮层，不跳页）
+├── Header Account 图标（未登录）──→ 弹出登录引导浮层（Sign In / Create Account）
+├── Header Account 图标（已登录）──→ 展开账户菜单浮层（My Orders / My Profile / Settings / Sign Out）
 └── 底部 Tab Bar ──→ Shop / Favorites / Account
+
+> ⚠️ 首页不关注以下 Header 展开态，本期不设计、不交付：
+> - 🔍 Search bar 点击展开搜索卡（PC 端）
+> - ♡ Favorites 侧栏滑出
+> - 🛒 Cart 侧栏滑出 / 数量徽标
+> 上述交互即便在原型文件中有示意，首页 PRD 本期也不覆盖，待对应页面设计完成后再补。
 ```
 
 ### §1.6 术语说明
@@ -861,8 +867,8 @@ PC 端首页最底部展示通用 Footer。移动端首页无 Footer（由 Tab B
 | 浏览 Feed / Banner / Collections | ✅ 正常展示 | ✅ 正常展示 |
 | Feed For You 推荐 | 基于 anonymous_user_id 的行为数据（若无历史→ New Arrivals 兜底） | 基于 user_id 的行为数据 |
 | 商品卡片收藏（Heart） | 点击 → 登录引导弹窗 | 即时收藏，同步账户 |
-| Header Cart 徽标 | 本地临时购物车（无账号同步） | 账户购物车（多端同步） |
-| Header Favourite 图标 | 跳转 Favorites 页（可查看本地收藏） | 跳转 Favorites 页（账户数据） |
+| Header Cart 徽标 | — | — |
+| Header Favourite 图标 | — | — |
 | Market & Language 选择持久化 | 本地存储（30 天） | 账号 profile 永久保存 |
 
 ---
@@ -939,10 +945,12 @@ PC 端首页最底部展示通用 Footer。移动端首页无 Footer（由 Tab B
 
 - 首页移动端 + PC 端全结构
 - Market & Language 自动识别 + 手动切换面板
-- Search 展开卡（Recent Searches + Hot Trends 硬编码）；PC 端搜索框当前为占位，交互待后续补全
+- Search 展开卡（Recent Searches + Hot Trends 硬编码，仅移动端）；PC 端搜索框为占位，展开态本期不设计
 - home_banner + home_collection CMS 资源位
 - Trust Bar 硬编码（待运营文案）
-- PC 端 Navbar：Handbags / Shoes / Jewelry / Watches / Accessories / Brands 6 个一级 NavLink，含二级/三级导航展开面板（三级 Brands 面板采用版本 A：多组横排，4列，组间分割线）
+- PC 端 Navbar：NavLinks 由导航栏配置 PRD 管理；navRight 本期展示 Market & Language + Account；搜索/收藏/购物车图标本期不在首页展示，其展开态不属于首页交付范围
+- PC 端 Navbar Account 交互：未登录 → Sign In 引导浮层；已登录 → 账户菜单（My Orders / My Profile / Settings / Sign Out）；浮层外点击关闭
+- PC 端 Navbar：含二级/三级导航展开面板（三级 Brands 面板采用版本 A：多组横排，4列，组间分割线）
 - Feed 两 Tab（For You / New Arrivals），Best Sellers 和 Deals 隐藏
 - 商品卡片（无促销价）
 - PC 端 Feed 分页加载：默认 16 个，View More 追加 4 行，无页码
@@ -955,8 +963,8 @@ PC 端首页最底部展示通用 Footer。移动端首页无 Footer（由 Tab B
 | Deals Tab 上线 | v1.1 | 营销系统上线 |
 | 划线价 / 促销价展示 | v1.1 | 营销系统上线 |
 | 搜索配置后台（Hot Trends 运营化） | v1.1 | 搜索配置页开发完成 |
-| PC 端搜索框完整交互 | v1.1 | 搜推确认预置内容后实现 |
-| PC Navbar Heart/Cart 侧栏展开 | v1.1 | Favorites 页 / 购物车页完成 |
+| PC 端搜索框展开态交互 | v1.1 | 搜推确认预置内容后实现 |
+| PC Navbar Favorites / Cart 侧栏 | v1.1 | Favorites 页 / 购物车页完成后补 |
 | Trust Bar CMS 化 | v1.2 | CMS 扩展支持 trust_bar 区块 |
 | Feed Tab 顺序配置化 | v1.2 | Feed 配置后台扩展 |
 | 搜索联想词 | v1.2 | 搜索引擎接入 |
@@ -1034,6 +1042,10 @@ Feed 相关埋点的详细定义见《Looply 首页 Feed PRD v2.3》§10 行为�
 | C11 | §10 Footer 内容 | 改为「与 Shopify 默认保持一致，内容不变」，去掉硬编码列表，优先级靠后，不强制重排 | 对齐原型备注 |
 | C12 | §15.1 当前版本 | 补全 PC Navbar 导航结构、搜索框状态、Feed Tab 变更、View More 分页信息 | 对齐原型实际范围 |
 | C13 | §15.2 后续迭代 | 新增 Best Sellers Tab、PC 搜索框完整交互、PC Navbar Heart/Cart 侧栏三个迭代项 | 补全待做清单 |
+| C14 | §1.5 全局页面流转 | 删除 Header 收藏/购物车图标跳转条目，改为 Account 浮层交互（未登录引导 / 已登录菜单）；新增说明：Search 展开卡、Favorites 侧栏、Cart 侧栏展开态本期不属于首页范围 | 明确首页 MVP 边界，避免开发对 Header 展开态产生误解 |
+| C15 | §11 登录态差异矩阵 | Header Cart 徽标 / Header Favourite 图标两行改为「—」，本期首页不关注此两项 | 与 §1.5 边界对齐 |
+| C16 | §15.1 当前版本 | 补充 PC 端 Account 浮层交互说明；明确搜索/收藏/购物车图标展开态不属于首页交付范围 | 与 §1.5 边界对齐，防止开发误交付 |
+| C17 | §15.2 后续迭代 | 「PC 端搜索框完整交互」和「PC Navbar Heart/Cart 侧栏展开」描述对齐新边界说明 | 措辞清晰化 |
 
 ### v1.2 · 2026-06-18
 
