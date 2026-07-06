@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Looply CMS · 资源位管理 v4</title>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/dayjs@1.11.21/dayjs.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/antd@6.4.3/dist/antd.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/@ant-design/icons@6.2.1/dist/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.28.4/babel.min.js"></script>
+<style>
+html,body,#root{height:100%;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937}
+#root::before{content:'正在加载…';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#9CA3AF;font-size:14px}
+#root:not(:empty)::before{display:none}
+
+.lp-kpi{background:linear-gradient(180deg,#FEFCFF 0%,#F3EEFF 100%);border:1px solid #DDD6FE;border-radius:14px;padding:14px 16px}
+.lp-kpi .num{font-size:24px;font-weight:700;color:#7C3AED;line-height:1;margin-bottom:6px;font-variant-numeric:tabular-nums}
+.lp-kpi .label{font-size:12px;color:#6B7280}
+
+.lp-form-row{display:flex;gap:16px;margin-bottom:12px;align-items:flex-start}
+.lp-form-row .lp-form-label{width:96px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0;padding-top:6px}
+.lp-form-row .lp-form-label .req{color:#DC2626;margin-right:4px}
+.lp-form-row .lp-form-control{flex:1}
+.lp-helper{font-size:12px;color:#9CA3AF;margin:-4px 0 12px 112px}
+
+.lp-section{font-size:14px;font-weight:600;color:#1F2937;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #E5E7EB}
+.lp-note-sm{padding:10px 14px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:8px;font-size:12px;color:#6D28D9}
+.lp-code{font-family:Menlo,Monaco,Consolas,monospace;font-size:12px;color:#374151;background:#F3F4F6;padding:1px 6px;border-radius:4px}
+.lp-upload-zone{border:2px dashed #D1D5DB;border-radius:10px;padding:20px;text-align:center;background:#FAFAFA;cursor:pointer;transition:all .15s}
+.lp-upload-zone:hover{border-color:#7C3AED;background:#FAF5FF}
+.lp-upload-zone .hint{font-size:13px;color:#6B7280;margin-bottom:4px}
+.lp-upload-zone .sub{font-size:12px;color:#9CA3AF}
+.lp-empty{display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center}
+.lp-empty .icon{font-size:48px;margin-bottom:16px;color:#9CA3AF}
+.lp-empty .title{font-size:16px;font-weight:600;color:#1F2937;margin-bottom:8px}
+.lp-empty .desc{font-size:13px;color:#6B7280;margin-bottom:24px;max-width:360px}
+.placeholder-section{background:#F9FAFB;border:1px dashed #D1D5DB;border-radius:10px;padding:40px;text-align:center;color:#9CA3AF;font-size:13px}
+.st-tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:500}
+
+/* ── Editor split layout ── */
+.editor-wrap{display:flex;height:100%;min-height:0}
+.editor-left{width:52%;min-width:340px;max-width:660px;display:flex;flex-direction:column;overflow:hidden;background:#fff;border-right:1px solid #E5E7EB}
+.editor-right{flex:1;display:flex;flex-direction:column;align-items:center;background:#F3F4F6;padding:24px 16px;overflow-y:auto}
+
+/* ── Three-level filter bar ── */
+.filter-bar{padding:12px 16px;background:#FAFAFA;border-bottom:1px solid #E5E7EB;flex-shrink:0}
+.filter-bar-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.filter-label{font-size:12px;color:#9CA3AF;white-space:nowrap}
+.filter-chips{display:flex;gap:6px;flex-wrap:wrap}
+.fchip{padding:4px 12px;border-radius:20px;border:1px solid #D1D5DB;font-size:12px;cursor:pointer;font-weight:500;color:#6B7280;background:#fff;transition:all .15s;white-space:nowrap}
+.fchip.active{background:#7C3AED;color:#fff;border-color:#7C3AED}
+.fchip.disabled{opacity:.4;cursor:not-allowed}
+.filter-divider{width:1px;height:20px;background:#E5E7EB;margin:0 4px}
+
+/* ── Config list ── */
+.config-list-panel{flex:1;overflow-y:auto;padding:14px 16px}
+.config-zone-group{margin-bottom:20px}
+.config-zone-label{font-size:12px;font-weight:600;color:#7C3AED;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.config-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #E5E7EB;border-radius:10px;margin-bottom:6px;background:#fff;cursor:pointer;transition:all .15s}
+.config-row:hover{background:#FAF5FF;border-color:#DDD6FE}
+.config-row.active{background:#F3EEFF;border-color:#7C3AED}
+.config-thumb{width:44px;height:44px;border-radius:6px;object-fit:cover;background:#E5E7EB;flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.config-thumb img{width:100%;height:100%;object-fit:cover}
+.config-name{font-size:13px;font-weight:500;color:#1F2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+.config-tmpl{font-size:11px;color:#9CA3AF;margin-top:2px}
+.config-ops{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.order-btn{width:24px;height:24px;border-radius:4px;border:1px solid #E5E7EB;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6B7280;font-size:10px;transition:all .15s}
+.order-btn:hover{border-color:#7C3AED;color:#7C3AED}
+
+/* ── Config editor ── */
+.config-editor{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.editor-header{padding:12px 16px;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;gap:8px;flex-shrink:0;background:#FAFAFA}
+.editor-body{flex:1;overflow-y:auto;padding:16px}
+.readonly-badge{background:#F3F4F6;color:#9CA3AF;font-size:11px;padding:2px 8px;border-radius:4px;display:inline-flex;align-items:center;gap:3px}
+
+/* ── Template cards ── */
+.tmpl-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.tmpl-card{border:2px solid #E5E7EB;border-radius:10px;padding:10px 12px;cursor:pointer;transition:all .15s;background:#fff}
+.tmpl-card:hover{border-color:#DDD6FE;background:#FAF5FF}
+.tmpl-card.active{border-color:#7C3AED;background:#FAF5FF}
+.tmpl-card .tmpl-name{font-size:12px;font-weight:600;color:#1F2937;margin-bottom:2px}
+.tmpl-card .tmpl-desc{font-size:11px;color:#6B7280;line-height:1.4}
+.tmpl-badge{display:inline-block;font-size:10px;font-weight:600;padding:1px 6px;border-radius:4px;margin-bottom:4px}
+.tmpl-badge-p0{background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0}
+.tmpl-badge-p1{background:#FFFBEB;color:#D97706;border:1px solid #FDE68A}
+
+/* ── Mobile Phone Preview ── */
+.phone-frame{width:375px;background:#fff;border-radius:40px;border:8px solid #1F2937;box-shadow:0 20px 60px rgba(0,0,0,.25),inset 0 0 0 2px #374151;overflow:hidden}
+.phone-notch{height:28px;background:#1F2937;display:flex;align-items:flex-end;justify-content:center;padding-bottom:2px}
+.phone-notch-pill{width:80px;height:18px;background:#000;border-radius:9px}
+.phone-screen{height:620px;overflow-y:auto;background:#fff}
+.phone-screen::-webkit-scrollbar{display:none}
+
+.preview-navbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px 8px;background:#fff}
+.preview-nav-logo{font-size:14px;font-weight:700;color:#1F2937;letter-spacing:2px}
+
+/* Hero / banner preview */
+.preview-banner-section{position:relative;width:100%;overflow:hidden}
+.preview-banner-img{width:100%;height:200px;object-fit:cover;display:block}
+.preview-banner-placeholder{width:100%;height:200px;display:flex;align-items:center;justify-content:center}
+.preview-banner-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.55) 100%)}
+.preview-banner-text{position:absolute;bottom:0;left:0;right:0;padding:16px}
+.preview-banner-title{font-size:20px;font-weight:700;color:#fff;margin-bottom:4px;line-height:1.2}
+.preview-banner-sub{font-size:12px;color:rgba(255,255,255,.85);margin-bottom:10px}
+.preview-banner-cta{display:inline-flex;align-items:center;background:#fff;color:#1F2937;font-size:12px;font-weight:600;padding:7px 16px;border-radius:20px;gap:4px}
+.preview-banner-dots{position:absolute;bottom:8px;right:12px;display:flex;gap:4px}
+.preview-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.5)}
+.preview-dot.on{background:#fff;width:14px;border-radius:3px}
+.preview-zone-ring{box-shadow:0 0 0 2px #7C3AED,0 0 0 4px rgba(124,58,237,.15);border-radius:4px;position:relative}
+.preview-zone-label{position:absolute;top:0;left:0;background:#7C3AED;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:0 0 6px 0;z-index:5;pointer-events:none}
+
+/* Trust bar */
+.preview-trust{display:flex;padding:10px 6px;border-bottom:1px solid #F0F0F0}
+.preview-trust-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+.preview-trust-icon{font-size:15px;color:#7C3AED}
+.preview-trust-main{font-size:9px;font-weight:600;color:#1F2937;text-align:center}
+.preview-trust-sub{font-size:8px;color:#6B7280;text-align:center}
+
+/* Collection section */
+.preview-coll-section{padding:12px 0}
+.preview-coll-title{font-size:13px;font-weight:700;color:#1F2937;padding:0 14px;margin-bottom:10px}
+.preview-coll-slide{display:flex;gap:8px;overflow-x:auto;padding:0 14px 4px;scrollbar-width:none}
+.preview-coll-slide::-webkit-scrollbar{display:none}
+.preview-coll-card{flex-shrink:0;width:130px;border-radius:12px;overflow:hidden;position:relative;background:#E5E7EB}
+.preview-coll-card-img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block}
+.preview-coll-card-placeholder{width:100%;aspect-ratio:3/4;display:flex;align-items:center;justify-content:center}
+.preview-coll-overlay{position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.55))}
+.preview-coll-text{position:absolute;bottom:0;left:0;right:0;padding:8px}
+.preview-coll-name{font-size:11px;font-weight:700;color:#fff;margin-bottom:3px;line-height:1.2}
+.preview-coll-cta{font-size:9px;color:rgba(255,255,255,.85)}
+
+/* Chip */
+.preview-chip-row{display:flex;gap:6px;overflow-x:auto;padding:0 14px 6px;scrollbar-width:none}
+.preview-chip-row::-webkit-scrollbar{display:none}
+.preview-chip{background:#F3EEFF;color:#7C3AED;font-size:11px;font-weight:500;padding:5px 12px;border-radius:20px;white-space:nowrap;flex-shrink:0;border:1px solid #DDD6FE}
+
+/* Feed placeholder */
+.preview-feed{padding:12px 14px}
+.preview-feed-title{font-size:13px;font-weight:700;color:#1F2937;margin-bottom:10px}
+.preview-feed-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.preview-feed-item{border-radius:8px;overflow:hidden;aspect-ratio:3/4;position:relative}
+
+/* Preview label & badge */
+.preview-device-label{font-size:11px;color:#9CA3AF;text-align:center;margin-bottom:10px;font-weight:500}
+.preview-zone-pill{background:#7C3AED;color:#fff;font-size:10px;font-weight:600;padding:3px 10px;border-radius:0 0 8px 8px;display:inline-block;margin-bottom:12px}
+
+/* Image preview modal helper */
+.thumb-clickable{cursor:zoom-in}
+
+:focus-visible{outline:none;box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+
+const LOGO_SRC = "data:image/png;base64,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";
+const { useState, useEffect, useRef } = React;
+const { Layout, Menu, Card, Table, Button, Space, Tag, Modal, Input, Select,
+  Switch, InputNumber, DatePicker, Alert, Tooltip, Dropdown,
+  ConfigProvider, Radio, Image, Avatar, App: AntdApp, Breadcrumb } = antd;
+const { PlusOutlined, EditOutlined, CopyOutlined, DeleteOutlined,
+  UpOutlined, DownOutlined, AppstoreOutlined, FileImageOutlined,
+  VideoCameraOutlined, LinkOutlined, HomeOutlined, ShopOutlined,
+  SettingOutlined, SearchOutlined, ShoppingCartOutlined, HeartOutlined,
+  RightOutlined, SafetyOutlined, TruckOutlined, GiftOutlined, StarOutlined,
+  LockOutlined, GlobalOutlined, MobileOutlined, DesktopOutlined,
+  EyeOutlined, CheckOutlined, ClockCircleOutlined, TagsOutlined } = icons;
+
+// ── Constants ──────────────────────────────────────────────────
+const MARKETS = [{ key:'US', name:'US' }];
+const TERMINALS = [
+  { key:'app',  name:'App', note:'Mobile 端一致' },
+  { key:'pc',   name:'PC' },
+];
+const ZONES = [
+  { key:'home_banner',     page:'home', name:'首页 Banner',     maxConfigs:4 },
+  { key:'home_collection', page:'home', name:'首页 Collection', maxConfigs:8 },
+  { key:'shop_banner',     page:'shop', name:'Shop Banner',     maxConfigs:4 },
+  { key:'shop_collection', page:'shop', name:'Shop Collection', maxConfigs:6 },
+];
+const TEMPLATES = [
+  { key:'banner_image',         name:'Banner 大图',    zone:['home_banner','shop_banner'],             mvp:'P0', desc:'单素材图片，全幅展示，支持文案叠层' },
+  { key:'banner_video',         name:'Banner 视频',    zone:['home_banner','shop_banner'],             mvp:'P1', desc:'单素材视频，全幅展示' },
+  { key:'collection_card_slide',name:'合集滑动卡片',   zone:['home_collection','shop_collection'],     mvp:'P0', desc:'图片卡片 + 合集信息，横向滑动' },
+  { key:'collection_chip',      name:'文字芯片',       zone:['home_collection','shop_collection'],     mvp:'P1', desc:'纯文字 Chip，无图片素材' },
+  { key:'collection_card_small',name:'小尺寸卡片',     zone:['home_collection','shop_collection'],     mvp:'P1', desc:'小卡片横滑，图片+合集信息' },
+];
+const CFG_STATUS = {
+  not_started: { l:'未生效',  color:'#D97706', bg:'#FFFBEB' },
+  active:       { l:'生效中', color:'#16A34A', bg:'#F0FDF4' },
+  paused:       { l:'已暂停', color:'#6B7280', bg:'#F3F4F6' },
+  expired:      { l:'已失效', color:'#9CA3AF', bg:'#F3F4F6' },
+};
+const computeStatus = (cfg) => {
+  if (!cfg.online) return 'paused';
+  const now = new Date();
+  if (cfg.startTime && new Date(cfg.startTime) > now) return 'not_started';
+  if (cfg.endTime && new Date(cfg.endTime) < now) return 'expired';
+  return 'active';
+};
+const MOCK_COLLECTIONS = [
+  { id:'c1', title:'Summer Edit',    page:'Summer Edit Collection',    pageUrl:'/collections/summer-edit',    market:'US', thumb:'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=300&q=80' },
+  { id:'c2', title:'Designer Bags',  page:'Designer Bags Collection',  pageUrl:'/collections/designer-bags',  market:'US', thumb:'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=300&q=80' },
+  { id:'c3', title:'Vintage Jewelry',page:'Vintage Jewelry Collection',pageUrl:'/collections/vintage-jewelry',market:'US', thumb:'https://images.unsplash.com/photo-1611085583191-a3b181a88401?w=300&q=80' },
+  { id:'c4', title:'Street Style',   page:'Street Style Collection',   pageUrl:'/collections/street-style',   market:'US', thumb:'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=300&q=80' },
+];
+const mkCfg = (id, zone, tmpl, name, img, collId, online, start, end, order) => ({
+  id, zone, template:tmpl, name, img, collId, online, startTime:start, endTime:end, order,
+  title:'', subtitle:'', cta:'', textColor:'light',
+});
+const INIT_CONFIGS = {
+  'US:app': {
+    home_banner: [
+      mkCfg('c1','home_banner','banner_image','Summer Hero','https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=600&q=80','c1',true,'2026-06-01','2026-07-31',1),
+    ],
+    home_collection: [
+      mkCfg('c2','home_collection','collection_card_slide','Designer Bags Card','https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=300&q=80','c2',true,'2026-06-01','',1),
+      mkCfg('c3','home_collection','collection_card_slide','Vintage Jewelry Card','https://images.unsplash.com/photo-1611085583191-a3b181a88401?w=300&q=80','c3',true,'','',2),
+      mkCfg('c4','home_collection','collection_card_slide','Street Style Card','https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=300&q=80','c4',false,'','' ,3),
+    ],
+    shop_banner: [
+      mkCfg('c5','shop_banner','banner_image','Shop Banner','https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=600&q=80','c1',true,'','',1),
+    ],
+    shop_collection: [
+      mkCfg('c6','shop_collection','collection_card_slide','Shop Collections','https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=300&q=80','c1',true,'','',1),
+    ],
+  },
+  'US:pc': {
+    home_banner: [
+      mkCfg('c7','home_banner','banner_image','Summer Hero PC','https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=600&q=80','c1',true,'2026-06-01','2026-07-31',1),
+    ],
+    home_collection:[],shop_banner:[],shop_collection:[],
+  },
+};
+
+// ── Small shared components ────────────────────────────────────
+function StatusTag({ status }) {
+  const s = CFG_STATUS[status] || CFG_STATUS.paused;
+  return <span className="st-tag" style={{background:s.bg,color:s.color}}>{s.l}</span>;
+}
+function Kpi({ num, label }) {
+  return <div className="lp-kpi"><div className="num">{num}</div><div className="label">{label}</div></div>;
+}
+function FormRow({ label, required, children, help }) {
+  return (
+    <>
+      <div className="lp-form-row">
+        <div className="lp-form-label">{required && <span className="req">*</span>}{label}</div>
+        <div className="lp-form-control">{children}</div>
+      </div>
+      {help && <div className="lp-helper">{help}</div>}
+    </>
+  );
+}
+function SectionTitle({ children }) {
+  return <div className="lp-section">{children}</div>;
+}
+function UploadZone({ label, sub }) {
+  return (
+    <div className="lp-upload-zone">
+      <div style={{fontSize:24,color:'#9CA3AF',marginBottom:6}}><FileImageOutlined /></div>
+      <div className="hint">{label||'点击或拖拽上传'}</div>
+      <div className="sub">{sub||'支持 JPG / PNG / WebP'}</div>
+    </div>
+  );
+}
+function ReadonlyField({ value, href }) {
+  return (
+    <div style={{display:'flex',alignItems:'center',gap:6,padding:'5px 12px',background:'#F9FAFB',border:'1px solid #E5E7EB',borderRadius:8,fontSize:13}}>
+      <LockOutlined style={{color:'#9CA3AF',fontSize:11}} />
+      {href
+        ? <a href={href} target="_blank" rel="noreferrer" style={{color:'#7C3AED',textDecoration:'underline dotted'}}>{value}</a>
+        : <span style={{color:'#6B7280'}}>{value||'—'}</span>
+      }
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// MOBILE PREVIEW COMPONENTS
+// ══════════════════════════════════════════════════════════════
+function PreviewNavBar() {
+  return (
+    <div className="preview-navbar">
+      <div className="preview-nav-logo">LOOPLY</div>
+      <div style={{display:'flex',gap:8,color:'#6B7280'}}>
+        <SearchOutlined style={{fontSize:16}} />
+        <HeartOutlined style={{fontSize:16}} />
+        <ShoppingCartOutlined style={{fontSize:16}} />
+      </div>
+    </div>
+  );
+}
+function PreviewTrustBar() {
+  const items=[
+    {icon:<SafetyOutlined />,main:'Authenticated',sub:'Every item'},
+    {icon:<TruckOutlined />,main:'Free Shipping',sub:'$50+'},
+    {icon:<GiftOutlined />,main:'Easy Returns',sub:'14 days'},
+    {icon:<StarOutlined />,main:'Top Brands',sub:'Guaranteed'},
+  ];
+  return (
+    <div className="preview-trust">
+      {items.map((it,i)=>(
+        <div key={i} className="preview-trust-item">
+          <div className="preview-trust-icon">{it.icon}</div>
+          <div className="preview-trust-main">{it.main}</div>
+          <div className="preview-trust-sub">{it.sub}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PreviewBannerSection({ configs, activeZone, editingCfg }) {
+  const isActive = activeZone === 'home_banner' || activeZone === 'shop_banner';
+  const onlineConfigs = configs.filter(c=>computeStatus(c)==='active');
+  const displayCfgs = editingCfg ? [editingCfg] : (onlineConfigs.length > 0 ? onlineConfigs : configs.slice(0,1));
+  const [slide, setSlide] = useState(0);
+  const cfg = displayCfgs[Math.min(slide, displayCfgs.length-1)] || {};
+  const coll = cfg.collId ? MOCK_COLLECTIONS.find(c=>c.id===cfg.collId) : null;
+  const title = cfg.title || (coll ? coll.title : '');
+  const sub = cfg.subtitle || '';
+  const cta = cfg.cta || '';
+  const textDark = cfg.textColor === 'dark';
+
+  return (
+    <div className={isActive ? 'preview-zone-ring' : ''} style={{position:'relative',opacity:activeZone&&!isActive?0.4:1,transition:'opacity .2s'}}>
+      {isActive && <div className="preview-zone-label">{activeZone==='home_banner'?'首页 Banner':'Shop Banner'}</div>}
+      <div className="preview-banner-section">
+        {cfg.img
+          ? <img className="preview-banner-img" src={cfg.img} alt="" />
+          : <div className="preview-banner-placeholder" style={{background:'linear-gradient(135deg,#C4B5A0,#A89080)',height:200}}>
+              {cfg.template==='banner_video'
+                ? <VideoCameraOutlined style={{fontSize:36,color:'rgba(255,255,255,.5)'}} />
+                : <FileImageOutlined style={{fontSize:36,color:'rgba(255,255,255,.5)'}} />
+              }
+            </div>
+        }
+        <div className="preview-banner-overlay" />
+        <div className="preview-banner-text">
+          {title && <div className="preview-banner-title" style={{color:textDark?'#1F2937':'#fff'}}>{title}</div>}
+          {sub && <div className="preview-banner-sub" style={{color:textDark?'#374151':'rgba(255,255,255,.85)'}}>{sub}</div>}
+          {cta && <div className="preview-banner-cta">{cta} <RightOutlined style={{fontSize:9}} /></div>}
+        </div>
+        {displayCfgs.length > 1 && (
+          <div className="preview-banner-dots">
+            {displayCfgs.map((_,i)=>(
+              <div key={i} className={`preview-dot${i===slide?' on':''}`} onClick={()=>setSlide(i)} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PreviewCollSection({ configs, activeZone, editingCfg }) {
+  const isColl = activeZone === 'home_collection' || activeZone === 'shop_collection';
+  const onlineConfigs = configs.filter(c=>computeStatus(c)==='active');
+  const displayCfgs = editingCfg ? [...onlineConfigs.filter(c=>c.id!==editingCfg.id), editingCfg] : onlineConfigs;
+  const showChips = displayCfgs.every(c=>c.template==='collection_chip');
+
+  return (
+    <div className={isColl?'preview-zone-ring':''} style={{position:'relative',opacity:activeZone&&!isColl?0.4:1,transition:'opacity .2s'}}>
+      {isColl && <div className="preview-zone-label">{activeZone==='home_collection'?'首页 Collection':'Shop Collection'}</div>}
+      <div className="preview-coll-section">
+        <div className="preview-coll-title">Collections</div>
+        {showChips
+          ? <div className="preview-chip-row">
+              {displayCfgs.length > 0
+                ? displayCfgs.map((c,i)=>{
+                    const coll = MOCK_COLLECTIONS.find(x=>x.id===c.collId);
+                    return <div key={i} className="preview-chip">{c.title||(coll?coll.title:'Collection')}</div>;
+                  })
+                : ['Summer','Bags','Jewelry','Shoes'].map(t=><div key={t} className="preview-chip">{t}</div>)
+              }
+            </div>
+          : <div className="preview-coll-slide">
+              {displayCfgs.length > 0
+                ? displayCfgs.map((c,i)=>{
+                    const coll = MOCK_COLLECTIONS.find(x=>x.id===c.collId);
+                    const imgSrc = c.img || (coll ? coll.thumb : '');
+                    const name = c.title || (coll ? coll.title : `Collection ${i+1}`);
+                    const ctaText = c.cta || 'Explore';
+                    return (
+                      <div key={i} className="preview-coll-card" style={{outline:editingCfg&&c.id===editingCfg.id?'2px solid #7C3AED':'none'}}>
+                        {imgSrc
+                          ? <img className="preview-coll-card-img" src={imgSrc} alt="" />
+                          : <div className="preview-coll-card-placeholder" style={{background:`hsl(${i*60+200},25%,82%)`,aspectRatio:'3/4'}} />
+                        }
+                        <div className="preview-coll-overlay" />
+                        <div className="preview-coll-text">
+                          <div className="preview-coll-name">{name}</div>
+                          <div className="preview-coll-cta">{ctaText} <RightOutlined style={{fontSize:7}} /></div>
+                        </div>
+                      </div>
+                    );
+                  })
+                : [0,1,2].map(i=>(
+                    <div key={i} className="preview-coll-card">
+                      <div style={{width:'100%',aspectRatio:'3/4',background:`hsl(${i*60+200},25%,88%)`}} />
+                    </div>
+                  ))
+              }
+            </div>
+        }
+      </div>
+    </div>
+  );
+}
+
+function MobilePreview({ page, activeZone, configs, editingCfg }) {
+  const bannerZone = page==='home' ? 'home_banner' : 'shop_banner';
+  const collZone   = page==='home' ? 'home_collection' : 'shop_collection';
+  const bannerCfgs = configs[bannerZone] || [];
+  const collCfgs   = configs[collZone]   || [];
+  const editingBanner = editingCfg && (editingCfg.zone===bannerZone) ? editingCfg : null;
+  const editingColl   = editingCfg && (editingCfg.zone===collZone)   ? editingCfg : null;
+
+  return (
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center'}}>
+      <div className="preview-device-label">C 端预览 · App</div>
+      {activeZone && (
+        <div className="preview-zone-pill">
+          {ZONES.find(z=>z.key===activeZone)?.name || activeZone}
+        </div>
+      )}
+      <div className="phone-frame">
+        <div className="phone-notch"><div className="phone-notch-pill" /></div>
+        <div className="phone-screen">
+          <PreviewNavBar />
+          <PreviewBannerSection
+            configs={bannerCfgs}
+            activeZone={activeZone}
+            editingCfg={editingBanner}
+          />
+          <PreviewTrustBar />
+          <PreviewCollSection
+            configs={collCfgs}
+            activeZone={activeZone}
+            editingCfg={editingColl}
+          />
+          <div style={{opacity:activeZone?0.3:1,transition:'opacity .2s'}}>
+            <div className="preview-feed">
+              <div className="preview-feed-title">Explore Finds</div>
+              <div className="preview-feed-grid">
+                {['#E8D5C4','#D5C4E8','#C4D5E8','#E8C4D5'].map((c,i)=>(
+                  <div key={i} className="preview-feed-item" style={{background:c}}>
+                    <div style={{position:'absolute',bottom:0,left:0,right:0,padding:5,background:'linear-gradient(transparent,rgba(0,0,0,.35))'}}>
+                      <div style={{fontSize:9,color:'#fff',fontWeight:600}}>${49+i*10}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style={{marginTop:10,fontSize:11,color:'#9CA3AF',textAlign:'center'}}>实时预览 · 上线后前台同步</div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// CONFIG EDITOR (single-screen, no wizard)
+// ══════════════════════════════════════════════════════════════
+function ConfigEditor({ cfg, market, terminal, onSave, onCancel, onLiveUpdate }) {
+  const [form, setForm] = useState({ ...cfg });
+  const [tmplConfirm, setTmplConfirm] = useState({open:false,pending:null});
+  const zoneObj = ZONES.find(z=>z.key===cfg.zone)||{};
+  const allowedTmpls = TEMPLATES.filter(t=>t.zone.includes(cfg.zone));
+  const isVideo = form.template==='banner_video';
+  const isChip  = form.template==='collection_chip';
+  const up = (k,v) => { const next={...form,[k]:v}; setForm(next); onLiveUpdate && onLiveUpdate(next); };
+  const coll = form.collId ? MOCK_COLLECTIONS.find(c=>c.id===form.collId) : null;
+
+  useEffect(() => { onLiveUpdate && onLiveUpdate(form); }, []);
+
+  function selectTemplate(tkey) {
+    if (form.template && form.template!==tkey && (form.img||form.title||form.collId)) {
+      setTmplConfirm({open:true,pending:tkey});
+    } else {
+      up('template',tkey);
+    }
+  }
+
+  return (
+    <div className="config-editor">
+      {/* Header */}
+      <div className="editor-header">
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:11,color:'#9CA3AF',marginBottom:1}}>{market} · {terminal==='app'?'App':'PC'} · {zoneObj.name}</div>
+          <Input
+            value={form.name||''}
+            onChange={e=>up('name',e.target.value)}
+            placeholder="配置名称（内部备注）"
+            bordered={false}
+            style={{padding:0,fontSize:14,fontWeight:600,color:'#1F2937'}}
+          />
+        </div>
+        <StatusTag status={computeStatus(form)} />
+        <Button size="small" onClick={onCancel}>取消</Button>
+        <Button type="primary" size="small" icon={<CheckOutlined />} onClick={()=>onSave(form)}>保存</Button>
+      </div>
+
+      <div className="editor-body">
+        {/* Section 1 — locked context */}
+        <SectionTitle>基本信息（已锁定）</SectionTitle>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:16}}>
+          <div>
+            <div style={{fontSize:11,color:'#9CA3AF',marginBottom:4}}>市场</div>
+            <ReadonlyField value={market} />
+          </div>
+          <div>
+            <div style={{fontSize:11,color:'#9CA3AF',marginBottom:4}}>终端</div>
+            <ReadonlyField value={terminal==='app'?'App（Mobile）':'PC'} />
+          </div>
+          <div>
+            <div style={{fontSize:11,color:'#9CA3AF',marginBottom:4}}>坑位</div>
+            <ReadonlyField value={zoneObj.name} />
+          </div>
+        </div>
+
+        {/* Section 2 — Template */}
+        <SectionTitle>模板样式</SectionTitle>
+        <div className="tmpl-grid">
+          {allowedTmpls.map(t=>(
+            <div key={t.key} className={`tmpl-card${form.template===t.key?' active':''}`} onClick={()=>selectTemplate(t.key)}>
+              <span className={`tmpl-badge ${t.mvp==='P0'?'tmpl-badge-p0':'tmpl-badge-p1'}`}>{t.mvp}</span>
+              <div className="tmpl-name">{t.name}</div>
+              <div className="tmpl-desc">{t.desc}</div>
+            </div>
+          ))}
+        </div>
+
+        {form.template && (<>
+          {/* Section 3 — Asset & Content */}
+          <SectionTitle>素材与内容</SectionTitle>
+
+          {/* Asset upload */}
+          {isVideo ? (<>
+            <FormRow label="视频素材" required>
+              <UploadZone label="上传视频" sub="MP4，建议 ≤ 20MB" />
+            </FormRow>
+            <FormRow label="封面帧" required>
+              {form.img
+                ? <div style={{position:'relative',display:'inline-block'}}>
+                    <img src={form.img} alt="" style={{width:80,height:50,borderRadius:6,objectFit:'cover',border:'1px solid #E5E7EB'}} />
+                    <Button size="small" type="text" danger style={{position:'absolute',top:1,right:1,padding:2,height:'auto',minWidth:'auto'}} onClick={()=>up('img','')}>✕</Button>
+                  </div>
+                : <UploadZone label="上传封面帧" sub="视频加载前展示" />
+              }
+            </FormRow>
+          </>) : !isChip ? (
+            <FormRow label="素材图片" required>
+              {form.img
+                ? <div style={{position:'relative',display:'inline-block'}}>
+                    <img src={form.img} alt="" style={{width:80,height:80,borderRadius:6,objectFit:'cover',border:'1px solid #E5E7EB'}} />
+                    <Button size="small" type="text" danger style={{position:'absolute',top:1,right:1,padding:2,height:'auto',minWidth:'auto'}} onClick={()=>up('img','')}>✕</Button>
+                  </div>
+                : <UploadZone label="上传图片" sub="JPG/PNG/WebP，规格见 §6.1" />
+              }
+            </FormRow>
+          ) : null}
+
+          {/* Collection */}
+          <FormRow label="关联合集" required>
+            <Select
+              style={{width:'100%'}}
+              placeholder="选择合集（按市场过滤）…"
+              value={form.collId||undefined}
+              onChange={v=>{ up('collId',v); }}
+              options={MOCK_COLLECTIONS.filter(c=>c.market===market).map(c=>({value:c.id,label:c.title}))}
+            />
+          </FormRow>
+          {coll && (
+            <FormRow label="落地页">
+              <ReadonlyField value={coll.page} href={coll.pageUrl} />
+              <div className="lp-helper" style={{margin:'4px 0 0'}}>自动从合集读取，点击名称可预览跳转</div>
+            </FormRow>
+          )}
+
+          {/* Text fields */}
+          <FormRow label="标题">
+            <Input value={form.title||''} placeholder="标题文案（字符数限制待定）" onChange={e=>up('title',e.target.value)} />
+          </FormRow>
+          {!isChip && (
+            <FormRow label="副标题">
+              <Input value={form.subtitle||''} placeholder="副标题（字符数限制待定）" onChange={e=>up('subtitle',e.target.value)} />
+            </FormRow>
+          )}
+          {!isChip && (
+            <FormRow label="按钮文案" help="留空不渲染按钮">
+              <Input value={form.cta||''} placeholder="留空不显示" onChange={e=>up('cta',e.target.value)} />
+            </FormRow>
+          )}
+          {!isChip && (
+            <FormRow label="文字颜色">
+              <Radio.Group value={form.textColor||'light'} onChange={e=>up('textColor',e.target.value)} size="small" buttonStyle="solid">
+                <Radio.Button value="light">浅色（白）</Radio.Button>
+                <Radio.Button value="dark">深色（黑）</Radio.Button>
+              </Radio.Group>
+            </FormRow>
+          )}
+
+          {/* Section 4 — Time */}
+          <SectionTitle>生效时间</SectionTitle>
+          <FormRow label="开始时间" help="留空 = 上线开关打开即生效">
+            <DatePicker showTime style={{width:'100%'}} placeholder="留空立即生效" />
+          </FormRow>
+          <FormRow label="结束时间" help="留空 = 永久有效">
+            <DatePicker showTime style={{width:'100%'}} placeholder="留空永久有效" />
+          </FormRow>
+          <div className="lp-note-sm">保存后需在配置列表手动打开上线开关，配置才会在 C 端展示。</div>
+        </>)}
+      </div>
+
+      {/* Template switch confirm */}
+      <Modal open={tmplConfirm.open} title="切换模板" closable={false} maskClosable={false} centered={true}
+        footer={[
+          <Button key="c" onClick={()=>setTmplConfirm({open:false,pending:null})}>取消</Button>,
+          <Button key="ok" type="primary" danger onClick={()=>{
+            const next={...form,template:tmplConfirm.pending,img:'',title:'',subtitle:'',cta:'',collId:''};
+            setForm(next); onLiveUpdate&&onLiveUpdate(next);
+            setTmplConfirm({open:false,pending:null});
+          }}>确认切换</Button>,
+        ]}>
+        <p>切换模板将<strong>清空</strong>已填参数，确认继续？</p>
+      </Modal>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// ZONE EDITOR PAGE — three-level filter + config list + editor + preview
+// ══════════════════════════════════════════════════════════════
+function ZoneEditorPage({ page }) {
+  const [market,   setMarket]   = useState('US');
+  const [terminal, setTerminal] = useState('app');
+  const [selZones, setSelZones] = useState(()=>[ZONES.filter(z=>z.page===page)[0]?.key||'']);
+  const [configs, setConfigs]   = useState(()=>{
+    // Deep clone init data
+    const src = INIT_CONFIGS[`${market}:${terminal}`] || {};
+    const out = {};
+    ZONES.filter(z=>z.page===page).forEach(z=>{ out[z.key]=(src[z.key]||[]).map(c=>({...c})); });
+    return out;
+  });
+  const [editingId,   setEditingId]   = useState(null);
+  const [editingZone, setEditingZone] = useState(null);
+  const [livePreview, setLivePreview] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({open:false,id:null,zone:null});
+  const [imgPreview,  setImgPreview]  = useState(null);
+
+  const pageZones = ZONES.filter(z=>z.page===page);
+  const visibleZones = pageZones.filter(z=>selZones.includes(z.key));
+  const sessionKey = `${market}:${terminal}`;
+
+  // When market/terminal changes, reload configs
+  useEffect(()=>{
+    const src = INIT_CONFIGS[sessionKey]||{};
+    const out={};
+    pageZones.forEach(z=>{ out[z.key]=(src[z.key]||[]).map(c=>({...c})); });
+    setConfigs(out);
+    setEditingId(null); setEditingZone(null); setLivePreview(null);
+  }, [market, terminal]);
+
+  const allConfigs = Object.values(configs).flat();
+  const onlineCount = allConfigs.filter(c=>computeStatus(c)==='active').length;
+
+  function startEdit(id, zone) {
+    const cfg = (configs[zone]||[]).find(c=>c.id===id);
+    if (!cfg) return;
+    setEditingId(id); setEditingZone(zone); setLivePreview({...cfg});
+  }
+  function startNew(zone) {
+    const newId = 'new_'+Date.now();
+    const newCfg = { id:newId, zone, template:'', name:'', img:'', collId:'', online:false,
+      startTime:'', endTime:'', title:'', subtitle:'', cta:'', textColor:'light',
+      order:(configs[zone]||[]).length+1 };
+    setConfigs(p=>({...p,[zone]:[...(p[zone]||[]),newCfg]}));
+    setEditingId(newId); setEditingZone(zone); setLivePreview({...newCfg});
+  }
+  function handleSave(updated) {
+    setConfigs(p=>({...p,[updated.zone]:(p[updated.zone]||[]).map(c=>c.id===updated.id?{...updated}:c)}));
+    setEditingId(null); setEditingZone(null); setLivePreview(null);
+    message.success('保存成功');
+  }
+  function handleCancel() {
+    // Remove if new unsaved
+    if (editingId&&editingId.startsWith('new_')) {
+      setConfigs(p=>({...p,[editingZone]:(p[editingZone]||[]).filter(c=>c.id!==editingId)}));
+    }
+    setEditingId(null); setEditingZone(null); setLivePreview(null);
+  }
+  function toggleOnline(id, zone) {
+    setConfigs(p=>({...p,[zone]:(p[zone]||[]).map(c=>c.id===id?{...c,online:!c.online}:c)}));
+  }
+  function moveOrder(id, zone, dir) {
+    setConfigs(p=>{
+      const arr=[...(p[zone]||[])];
+      const idx=arr.findIndex(c=>c.id===id);
+      if(idx<0) return p;
+      if(dir==='up'&&idx===0) return p;
+      if(dir==='down'&&idx===arr.length-1) return p;
+      const swap=dir==='up'?idx-1:idx+1;
+      [arr[idx],arr[swap]]=[arr[swap],arr[idx]];
+      return {...p,[zone]:arr};
+    });
+  }
+  function handleDelete(id, zone) {
+    setConfigs(p=>({...p,[zone]:(p[zone]||[]).filter(c=>c.id!==id)}));
+    setDeleteModal({open:false,id:null,zone:null});
+    message.success('已删除');
+  }
+  function handleDuplicate(id, zone) {
+    const src=(configs[zone]||[]).find(c=>c.id===id);
+    if(!src) return;
+    const clone={...src,id:'dup_'+Date.now(),name:(src.name?src.name+' (副本)':'副本'),online:false};
+    setConfigs(p=>({...p,[zone]:[...(p[zone]||[]),clone]}));
+    message.success('已复制');
+  }
+
+  const editingCfgForPreview = editingId&&livePreview ? livePreview : null;
+  const previewActiveZone = editingZone || selZones[0] || null;
+
+  return (
+    <div className="editor-wrap" style={{height:'100%'}}>
+      {/* ── Left ── */}
+      <div className="editor-left">
+        {/* Three-level filter bar */}
+        <div className="filter-bar">
+          <div className="filter-bar-row" style={{marginBottom:6}}>
+            <span className="filter-label">市场</span>
+            <div className="filter-chips">
+              {MARKETS.map(m=>(
+                <div key={m.key} className={`fchip${market===m.key?' active':''}`}
+                  onClick={()=>{ setMarket(m.key); }}>
+                  <GlobalOutlined style={{marginRight:3,fontSize:10}} />{m.name}
+                </div>
+              ))}
+            </div>
+            <div className="filter-divider" />
+            <span className="filter-label">终端</span>
+            <div className="filter-chips">
+              {TERMINALS.map(t=>(
+                <Tooltip key={t.key} title={t.note||''}>
+                  <div className={`fchip${terminal===t.key?' active':''}`}
+                    onClick={()=>{ setTerminal(t.key); }}>
+                    {t.key==='app'?<MobileOutlined style={{marginRight:3,fontSize:10}}/>:<DesktopOutlined style={{marginRight:3,fontSize:10}}/>}{t.name}
+                  </div>
+                </Tooltip>
+              ))}
+            </div>
+          </div>
+          <div className="filter-bar-row">
+            <span className="filter-label">坑位</span>
+            <div className="filter-chips">
+              {pageZones.map(z=>(
+                <div key={z.key}
+                  className={`fchip${selZones[0]===z.key?' active':''}`}
+                  onClick={()=>setSelZones([z.key])}>
+                  {z.name}
+                  <span style={{marginLeft:3,opacity:.7,fontSize:10}}>
+                    ({(configs[z.key]||[]).filter(c=>computeStatus(c)==='active').length})
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Config list or editor */}
+        {editingId && editingZone
+          ? <ConfigEditor
+              cfg={(configs[editingZone]||[]).find(c=>c.id===editingId)||{id:editingId,zone:editingZone}}
+              market={market} terminal={terminal}
+              onSave={handleSave} onCancel={handleCancel}
+              onLiveUpdate={(upd)=>setLivePreview(upd)}
+            />
+          : <div className="config-list-panel">
+              {/* KPI row */}
+              <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:14}}>
+                <Kpi num={onlineCount} label="生效中" />
+                <Kpi num={allConfigs.filter(c=>computeStatus(c)==='paused').length} label="已暂停" />
+                <Kpi num={allConfigs.length} label="配置总数" />
+              </div>
+
+              {visibleZones.map(zone=>{
+                const zoneCfgs = configs[zone.key]||[];
+                const maxReached = zoneCfgs.length >= zone.maxConfigs;
+                return (
+                  <div key={zone.key} className="config-zone-group">
+                    <div className="config-zone-label">
+                      <AppstoreOutlined />
+                      {zone.name}
+                      <span style={{color:'#9CA3AF',fontWeight:400,fontSize:11}}>
+                        · {zoneCfgs.filter(c=>computeStatus(c)==='active').length} 生效 / 上限 {zone.maxConfigs}
+                      </span>
+                      <Button
+                        type="primary" size="small" icon={<PlusOutlined />}
+                        disabled={maxReached}
+                        title={maxReached?'已达配置上限，需先下线一个现有配置':''}
+                        onClick={()=>startNew(zone.key)}
+                        style={{marginLeft:'auto'}}>
+                        新建配置
+                      </Button>
+                    </div>
+                    {zoneCfgs.length===0
+                      ? <div style={{padding:'20px 0',textAlign:'center',color:'#9CA3AF',fontSize:12,border:'1px dashed #E5E7EB',borderRadius:8}}>
+                          暂无配置 · 点击「新建配置」开始
+                        </div>
+                      : zoneCfgs.map((cfg,i)=>{
+                          const status=computeStatus(cfg);
+                          const coll=MOCK_COLLECTIONS.find(c=>c.id===cfg.collId);
+                          const tmplObj=TEMPLATES.find(t=>t.key===cfg.template);
+                          return (
+                            <div key={cfg.id} className={`config-row${editingId===cfg.id?' active':''}`}
+                              onClick={()=>startEdit(cfg.id,zone.key)}>
+                              {/* Thumbnail */}
+                              <div className="config-thumb" onClick={e=>{
+                                if(cfg.img){e.stopPropagation();setImgPreview(cfg.img);}
+                              }}>
+                                {cfg.img
+                                  ? <img src={cfg.img} alt="" className={cfg.img?'thumb-clickable':''} />
+                                  : <FileImageOutlined style={{color:'#D1D5DB',fontSize:16}} />
+                                }
+                              </div>
+                              {/* Info */}
+                              <div style={{flex:1,minWidth:0}}>
+                                <div className="config-name">{cfg.name||'(未命名)'}</div>
+                                <div className="config-tmpl">{tmplObj?tmplObj.name:'未选模板'}{coll?' · '+coll.title:''}</div>
+                              </div>
+                              <StatusTag status={status} />
+                              {/* Ops */}
+                              <div className="config-ops" onClick={e=>e.stopPropagation()}>
+                                <Tooltip title={cfg.online?'点击下线':'点击上线'}>
+                                  <Switch
+                                    size="small"
+                                    checked={cfg.online}
+                                    onChange={()=>toggleOnline(cfg.id,zone.key)}
+                                  />
+                                </Tooltip>
+                                <Tooltip title="上移"><div className="order-btn" onClick={()=>moveOrder(cfg.id,zone.key,'up')}><UpOutlined /></div></Tooltip>
+                                <Tooltip title="下移"><div className="order-btn" onClick={()=>moveOrder(cfg.id,zone.key,'down')}><DownOutlined /></div></Tooltip>
+                                {status !== 'active' && (
+                                  <Tooltip title="删除">
+                                    <Button size="small" danger icon={<DeleteOutlined />}
+                                      onClick={()=>setDeleteModal({open:true,id:cfg.id,zone:zone.key})} />
+                                  </Tooltip>
+                                )}
+                                <Tooltip title="编辑">
+                                  <Button size="small" icon={<EditOutlined />}
+                                    onClick={()=>startEdit(cfg.id,zone.key)} />
+                                </Tooltip>
+                              </div>
+                            </div>
+                          );
+                        })
+                    }
+                  </div>
+                );
+              })}
+            </div>
+        }
+      </div>
+
+      {/* ── Right: preview ── */}
+      <div className="editor-right">
+        <MobilePreview
+          page={page}
+          activeZone={previewActiveZone}
+          configs={configs}
+          editingCfg={editingCfgForPreview}
+        />
+      </div>
+
+      {/* Modals */}
+      <Modal open={deleteModal.open} title="删除配置" closable={false} maskClosable={false} centered={true}
+        footer={[
+          <Button key="c" onClick={()=>setDeleteModal({open:false,id:null,zone:null})}>取消</Button>,
+          <Button key="ok" danger type="primary" onClick={()=>handleDelete(deleteModal.id,deleteModal.zone)}>确认删除</Button>,
+        ]}>
+        <p>删除后<strong>不可恢复</strong>，确认删除该配置？</p>
+      </Modal>
+      <Modal open={!!imgPreview} title="素材预览" closable={false} maskClosable={false} centered={true}
+        onCancel={()=>setImgPreview(null)}
+        footer={[<Button key="c" onClick={()=>setImgPreview(null)}>关闭</Button>]}
+        width={600}>
+        {imgPreview && <img src={imgPreview} alt="" style={{width:'100%',borderRadius:8}} />}
+      </Modal>
+    </div>
+  );
+}
+/* CHUNK_7_END */
+
+// ══════════════════════════════════════════════════════════════
+// PLACEHOLDER PAGES (待上线)
+// ══════════════════════════════════════════════════════════════
+function ComingSoonPage({ title }) {
+  return (
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+      height:'100%',minHeight:400,color:'#6B7280',gap:16}}>
+      <div style={{width:64,height:64,borderRadius:16,background:'linear-gradient(135deg,#EDE9FE,#DDD6FE)',
+        display:'flex',alignItems:'center',justifyContent:'center',fontSize:28}}>
+        <ClockCircleOutlined style={{color:'#7C3AED'}} />
+      </div>
+      <div style={{fontSize:18,fontWeight:600,color:'#374151'}}>{title}</div>
+      <Tag color="warning" style={{fontSize:13,padding:'2px 12px'}}>【待上线】</Tag>
+      <div style={{fontSize:13,color:'#9CA3AF',textAlign:'center',maxWidth:320,lineHeight:1.8}}>
+        本模块已在独立系统实现，CMS 集成版本 V2 启用。<br/>
+        如需操作请联系运营技术团队。
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// THEME TOKEN
+// ══════════════════════════════════════════════════════════════
+const looplyTheme = {
+  token: {
+    colorPrimary: '#7C3AED',
+    colorPrimaryHover: '#6D28D9',
+    colorPrimaryActive: '#5B21B6',
+    colorLink: '#7C3AED',
+    colorLinkHover: '#6D28D9',
+    borderRadius: 8,
+    borderRadiusLG: 12,
+    fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+    fontSize: 14,
+    colorBgContainer: '#FFFFFF',
+    colorBorder: '#E5E7EB',
+    colorText: '#111827',
+    colorTextSecondary: '#6B7280',
+    colorFillAlter: '#F9FAFB',
+    controlHeight: 36,
+    controlHeightLG: 44,
+    controlHeightSM: 28,
+    wireframe: false,
+  },
+  components: {
+    Menu: {
+      itemBorderRadius: 8,
+      itemHeight: 40,
+      subMenuItemBg: 'transparent',
+      itemSelectedBg: '#EDE9FE',
+      itemSelectedColor: '#7C3AED',
+      itemHoverBg: '#F5F3FF',
+      itemHoverColor: '#7C3AED',
+      groupTitleColor: '#9CA3AF',
+    },
+    Button: { borderRadius: 8 },
+    Card: { borderRadius: 16 },
+    Input: { borderRadius: 8 },
+    Select: { borderRadius: 8 },
+    Modal: { borderRadius: 16 },
+    Tag: { borderRadius: 6 },
+    Switch: { colorPrimary: '#7C3AED' },
+  },
+};
+
+// ══════════════════════════════════════════════════════════════
+// APP ROOT
+// ══════════════════════════════════════════════════════════════
+function MessageBridge({ onReady }) {
+  const app = AntdApp.useApp();
+  React.useEffect(()=>{ onReady(app.message); }, []);
+  return null;
+}
+
+let message = {
+  success: (s) => console.log('[msg]', s),
+  error:   (s) => console.error('[msg]', s),
+  warning: (s) => console.warn('[msg]', s),
+};
+
+function App() {
+  const [currentPage, setCurrentPage] = React.useState('zone-home');
+
+  const menuItems = [
+    {
+      key: 'zone-management',
+      icon: React.createElement(AppstoreOutlined),
+      label: '资源位管理',
+      children: [
+        { key:'zone-home', icon:React.createElement(HomeOutlined),  label:'首页' },
+        { key:'zone-shop', icon:React.createElement(ShopOutlined),  label:'Shop 页' },
+      ],
+    },
+    {
+      key: 'collections',
+      icon: React.createElement(TagsOutlined),
+      label: React.createElement('span', null,
+        '合集管理',
+        React.createElement(Tag,{color:'warning',style:{marginLeft:6,fontSize:10,padding:'0 4px',lineHeight:'16px',verticalAlign:'middle'}},'待上线')
+      ),
+      disabled: true,
+    },
+    {
+      key: 'global-config',
+      icon: React.createElement(SettingOutlined),
+      label: React.createElement('span', null,
+        '全局配置',
+        React.createElement(Tag,{color:'warning',style:{marginLeft:6,fontSize:10,padding:'0 4px',lineHeight:'16px',verticalAlign:'middle'}},'待上线')
+      ),
+      disabled: true,
+    },
+    {
+      key: 'search-config',
+      icon: React.createElement(SearchOutlined),
+      label: React.createElement('span', null,
+        '搜索配置',
+        React.createElement(Tag,{color:'warning',style:{marginLeft:6,fontSize:10,padding:'0 4px',lineHeight:'16px',verticalAlign:'middle'}},'待上线')
+      ),
+      disabled: true,
+    },
+  ];
+
+  const pageLabel = {
+    'zone-home':'首页资源位','zone-shop':'Shop 页资源位',
+    'collections':'合集管理','global-config':'全局配置','search-config':'搜索配置',
+  };
+
+  function renderPage() {
+    switch (currentPage) {
+      case 'zone-home':     return <ZoneEditorPage page="home" />;
+      case 'zone-shop':     return <ZoneEditorPage page="shop" />;
+      case 'collections':   return <ComingSoonPage title="合集管理" />;
+      case 'global-config': return <ComingSoonPage title="全局配置" />;
+      case 'search-config': return <ComingSoonPage title="搜索配置" />;
+      default: return <ZoneEditorPage page="home" />;
+    }
+  }
+
+  return (
+    <ConfigProvider theme={looplyTheme}>
+      <AntdApp>
+        <MessageBridge onReady={(api)=>{ message=api; }} />
+        <Layout style={{minHeight:'100vh'}}>
+          <Layout.Header style={{
+            background:'#fff',borderBottom:'1px solid #E5E7EB',
+            padding:'0 24px',height:60,lineHeight:'60px',
+            display:'flex',alignItems:'center',gap:12,
+            position:'sticky',top:0,zIndex:100,boxShadow:'0 1px 0 #E5E7EB',
+          }}>
+            <img src={LOGO_SRC} alt="Looply" style={{height:28}}
+              onError={e=>{ e.target.style.display='none'; }} />
+            <div style={{width:1,height:20,background:'#E5E7EB',margin:'0 4px'}} />
+            <span style={{fontWeight:700,color:'#374151',fontSize:15,letterSpacing:.3}}>CMS 后台</span>
+            <div style={{flex:1}} />
+            <span style={{fontSize:12,color:'#9CA3AF',marginRight:12}}>资源位管理 · PRD v2.5</span>
+            <Tooltip title="运营 Admin">
+              <Avatar size={32}
+                style={{background:'linear-gradient(135deg,#7C3AED,#A78BFA)',cursor:'pointer',fontSize:13}}>
+                OP
+              </Avatar>
+            </Tooltip>
+          </Layout.Header>
+          <Layout>
+            <Layout.Sider width={220}
+              style={{background:'#fff',borderRight:'1px solid #E5E7EB',overflow:'auto',minHeight:'calc(100vh - 60px)'}}>
+              <Menu
+                mode="inline"
+                selectedKeys={[currentPage]}
+                defaultOpenKeys={['zone-management']}
+                items={menuItems}
+                style={{border:'none',paddingTop:8}}
+                onClick={({key})=>{
+                  if(!['collections','global-config','search-config'].includes(key)) setCurrentPage(key);
+                }}
+              />
+            </Layout.Sider>
+            <Layout.Content style={{background:'#F9FAFB',display:'flex',flexDirection:'column',overflow:'auto'}}>
+              <div style={{padding:'10px 24px',background:'#fff',borderBottom:'1px solid #E5E7EB',
+                display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
+                <Breadcrumb items={[
+                  {title:React.createElement(HomeOutlined)},
+                  {title:'资源位管理'},
+                  {title:pageLabel[currentPage]||''},
+                ]} style={{fontSize:13}} />
+              </div>
+              <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+                {renderPage()}
+              </div>
+            </Layout.Content>
+          </Layout>
+        </Layout>
+      </AntdApp>
+    </ConfigProvider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+/* CHUNK_8_END */
+
+
+
+</script></body></html>

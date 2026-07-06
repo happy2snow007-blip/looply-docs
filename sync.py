@@ -400,6 +400,33 @@ MODULES = {
             },
         },
     },
+    'shop': {
+        'name': 'Shop页导航',
+        'default_source': '$HOME/looply/shop',
+        'target': 'docs-shop页',
+        'keywords': ['shop', 'Shop', '导航'],
+        'config_key': 'shop',
+        'artifacts': {
+            'prototype': {
+                'subdir': '后台原型',
+                'pattern': r'looply-shop页导航栏配置-后台原型-v(.+?)-antd\.html',
+                'exclude': r'(backup|PC)',
+            },
+            'prototype_app': {
+                'subdir': '原型',
+                'pattern': r'looply-shop-app-v(.+?)\.html',
+                'exclude': r'(backup|奢侈品)',
+            },
+            'prd': {
+                'subdir': 'PRD',
+                'pattern': r'looply-shop-app-prd-v(.+?)\.md',
+            },
+            'prd_html': {
+                'subdir': 'PRD',
+                'pattern': r'looply-shop-app-PRD\.html',
+            },
+        },
+    },
     'social_share': {
         'name': '社媒分享管理',
         'default_source': '$HOME/Desktop/社媒分享',
