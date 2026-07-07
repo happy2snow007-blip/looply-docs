@@ -356,39 +356,34 @@ function MenuItemDrawer({ open, item, navId, navLevels, navItems, globalMarket, 
   const level = isL3 ? '三级导航' : '二级导航';
   const isNew = !item;
   const canHaveL3 = !isL3 && navLevels === '3';
-  // 三级结构下二级强制为列头，is_leaf 不可选
-  const l2ForceHeader = canHaveL3;
   const [form, setForm] = React.useState({
     name:'', collection_id:'', target_url:'', target_type:'',
-    is_leaf: l2ForceHeader ? false : true, enabled:true, selectedNavId: navId || '',
+    is_leaf: true, enabled:true, selectedNavId: navId || '',
   });
 
   React.useEffect(() => {
     if (item) {
       setForm({ name:item.name, collection_id:item.collection_id||'', target_url:item.target_url||'',
-        target_type:item.target_type||'', is_leaf: l2ForceHeader ? false : (item.is_leaf!==false),
+        target_type:item.target_type||'', is_leaf: item.is_leaf!==false,
         enabled:item.enabled, selectedNavId: item.nav_id || navId || '' });
     } else {
-      setForm({ name:'', collection_id:'', target_url:'', target_type:'', is_leaf: l2ForceHeader ? false : true, enabled:true, selectedNavId:navId||'' });
+      setForm({ name:'', collection_id:'', target_url:'', target_type:'', is_leaf: true, enabled:true, selectedNavId:navId||'' });
     }
   }, [item, navId, open]);
 
   const sameCtxNavs = navItems.filter(n => n.market===globalMarket && n.channel===globalChannel && n.terminal==='web')
     .map(n => ({ value:n.id, label:n.name }));
   const selectedCol = colById(form.collection_id);
-  const isHeader = l2ForceHeader || (canHaveL3 && !form.is_leaf);
 
   function handleSave() {
     if (!form.name.trim()) { message.warning('名称不能为空'); return; }
-    if (!isHeader) {
-      if (!form.target_type) { message.warning('请选择目标类型'); return; }
-      if (form.target_type === 'collection' && !form.collection_id) { message.warning('请选择关联合集'); return; }
-      if (form.target_type === 'custom' && !form.target_url.trim()) { message.warning('请填写目标 URL'); return; }
-    }
+    if (!form.target_type) { message.warning('请选择目标类型'); return; }
+    if (form.target_type === 'collection' && !form.collection_id) { message.warning('请选择关联合集'); return; }
+    if (form.target_type === 'custom' && !form.target_url.trim()) { message.warning('请填写目标 URL'); return; }
     onSave({
       name: form.name.trim(), collection_id: form.collection_id,
-      target_url: isHeader ? '' : form.target_url,
-      target_type: isHeader ? '' : form.target_type,
+      target_url: form.target_url,
+      target_type: form.target_type,
       is_leaf: canHaveL3 ? form.is_leaf : true, enabled: form.enabled,
       nav_id: form.selectedNavId || navId,
     });
@@ -433,16 +428,15 @@ function MenuItemDrawer({ open, item, navId, navLevels, navItems, globalMarket, 
           <div className="lp-form-control">
             <div style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'5px 12px', background:'#F5F3FF', border:'1px solid #DDD6FE', borderRadius:6, fontSize:13, color:'#6D28D9' }}>
               <LockOutlined style={{ fontSize:12 }} />
-              有 L3 子目录（列头）
+              有 L3 子目录（Mega Menu）
             </div>
             <div style={{ fontSize:11, color:'#9CA3AF', marginTop:4 }}>
-              一级导航已选三级结构，二级导航自动作为 Mega Menu 列头，无需配置跳转链接
+              该二级导航作为 Mega Menu 列头，同时需配置自身跳转链接
             </div>
           </div>
         </div>
       )}
-      {!isHeader && (
-        <>
+      <div className="lp-form-row">
           <div className="lp-form-row">
             <span className="lp-form-label"><span style={{color:'#DC2626'}}>* </span>目标类型</span>
             <div className="lp-form-control">
@@ -482,8 +476,6 @@ function MenuItemDrawer({ open, item, navId, navLevels, navItems, globalMarket, 
               </div>
             </div>
           )}
-        </>
-      )}
       <div className="lp-form-row">
         <span className="lp-form-label">状态</span>
         <div className="lp-form-control">
