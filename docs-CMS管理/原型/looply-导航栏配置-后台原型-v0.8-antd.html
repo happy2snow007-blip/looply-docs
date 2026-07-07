@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Looply CMS · 导航配置（PC） v0.8</title>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/dayjs@1.11.21/dayjs.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/antd@6.4.3/dist/antd.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/@ant-design/icons@6.2.1/dist/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.28.4/babel.min.js"></script>
+<style>
+html,body,#root{height:100%;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937}
+#root::before{content:'Loading...';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#9CA3AF;font-size:14px}
+#root:not(:empty)::before{display:none}
+.lp-form-row{display:flex;gap:16px;margin-bottom:14px;align-items:flex-start}
+.lp-form-row .lp-form-label{width:130px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0;padding-top:6px}
+.lp-form-row .lp-form-control{flex:1}
+.dim-badge{display:inline-flex;align-items:center;font-size:12px;font-weight:600;padding:3px 12px;border-radius:999px;letter-spacing:0.2px;white-space:nowrap}
+.dim-badge-web{background:#2563EB;color:#fff}
+.pc-shell{width:560px;min-width:560px;border-radius:12px;background:#E5E7EB;padding:6px;box-shadow:0 12px 40px rgba(0,0,0,.15);position:sticky;top:24px;align-self:flex-start}
+.pc-screen{border-radius:8px;overflow:hidden;background:#fff;display:flex;flex-direction:column}
+.pc-topbar{height:28px;background:#F3F4F6;display:flex;align-items:center;padding:0 10px;gap:6px}
+.pc-dot{width:9px;height:9px;border-radius:50%}
+.pc-url-bar{flex:1;background:#fff;border-radius:4px;height:16px;margin:0 8px;font-size:10px;color:#9CA3AF;display:flex;align-items:center;padding:0 6px}
+.pc-header{padding:10px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #F3F4F6}
+.pc-nav{display:flex;align-items:center;border-bottom:1px solid #F3F4F6;padding:0 16px;position:relative}
+.pc-nav-item{padding:8px 12px;font-size:12px;cursor:pointer;color:#374151;border-bottom:2px solid transparent;white-space:nowrap}
+.pc-nav-item:hover,.pc-nav-item.active{color:#7C3AED;border-bottom-color:#7C3AED}
+.pc-dropdown{position:absolute;top:100%;left:0;background:#fff;border:1px solid #E5E7EB;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:10;min-width:180px;padding:8px 0}
+.pc-dropdown-item{padding:7px 16px;font-size:12px;color:#374151;cursor:pointer}
+.pc-dropdown-item:hover{background:#F5F3FF;color:#7C3AED}
+.pc-mega{display:flex;gap:0;padding:12px}
+.pc-mega-col{min-width:120px;padding:0 12px}
+.pc-mega-col-title{font-size:11px;font-weight:600;color:#7C3AED;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #EDE9FE}
+.pc-mega-col-item{padding:4px 0;font-size:12px;color:#374151;cursor:pointer}
+.pc-mega-col-item:hover{color:#7C3AED}
+.pc-content{flex:1;background:#F9FAFB;min-height:160px;display:flex;align-items:center;justify-content:center;color:#D1D5DB;font-size:12px}
+.nav-expand-wrap{background:#F8F7FF;border-radius:10px;padding:16px 20px;margin:2px 0}
+.nav-expand-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.nav-expand-title{font-size:13px;font-weight:600;color:#7C3AED}
+.l2-indent{display:flex;align-items:center;gap:6px;padding-left:12px;border-left:2px solid #C4B5FD}
+.items-count-link{background:rgba(124,58,237,.08);border:none;padding:2px 10px;border-radius:999px;color:#7C3AED;font-size:11px;cursor:pointer;white-space:nowrap;transition:background .15s}
+.items-count-link:hover{background:rgba(124,58,237,.18)}
+:focus-visible{outline:none;box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useRef, useEffect } = React;
+const {
+  ConfigProvider, Layout, Card, Button, Input, Select, Radio,
+  Space, Switch, Table, Drawer, Tag, Popconfirm, Tooltip, message, Menu, Breadcrumb,
+} = antd;
+const {
+  PlusOutlined, DeleteOutlined, EditOutlined, HolderOutlined,
+  DownOutlined, RightOutlined,
+  GlobalOutlined, LinkOutlined, EyeOutlined,
+  HomeOutlined, TagsOutlined, SettingOutlined, SearchOutlined,
+  LockOutlined,
+} = icons;
+
+const LOGO_SRC = "data:image/png;base64,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";
+
+/* ── Theme ── */
+const looplyTheme = {
+  token: {
+    colorPrimary: '#7C3AED', colorInfo: '#7C3AED',
+    colorBgLayout: '#F9FAFB', colorBgContainer: '#FFFFFF',
+    colorText: '#1F2937', colorTextSecondary: '#374151',
+    colorTextTertiary: '#4B5563', colorTextDescription: '#6B7280',
+    colorTextPlaceholder: '#9CA3AF',
+    colorBorder: '#E5E7EB', colorBorderSecondary: '#F3F4F6',
+    colorSuccess: '#16A34A', colorWarning: '#D97706', colorError: '#DC2626',
+    borderRadius: 8, borderRadiusLG: 14, borderRadiusSM: 6,
+    fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+    fontSize: 14, controlHeight: 34, controlHeightSM: 28,
+  },
+  components: {
+    Layout: { headerBg: '#FFFFFF', headerHeight: 60, headerPadding: '0 24px', bodyBg: '#F9FAFB' },
+    Card: { borderRadiusLG: 16, paddingLG: 28 },
+    Table: {
+      headerBg: '#FFFFFF', headerColor: '#6B7280',
+      rowHoverBg: '#FAF5FF', borderColor: '#E5E7EB', headerSplitColor: 'transparent',
+    },
+    Input: { controlHeight: 34 }, Select: { controlHeight: 34 },
+    Modal: { borderRadiusLG: 16 },
+  },
+};
+
+const CARD_STYLE = { boxShadow: '0 8px 24px rgba(16,24,40,.06)', marginBottom: 0 };
+const TABLE_STYLES = { root: { borderRadius: 14, border: '1px solid #E5E7EB', overflow: 'hidden' } };
+
+/* ── Constants ── */
+const MARKETS  = [{ value: 'US', label: '🇺🇸 US' }];
+const CHANNELS = [{ value: 'official', label: '官方站' }];
+const URL_TYPES = [
+  { value: 'collection', label: 'Collection' },
+  { value: 'custom',     label: '自定义链接' },
+];
+const ALL_COLLECTIONS = [
+  { id:'col_bags',    name:'Bags',    slug:'bags' },
+  { id:'col_wallets', name:'Wallets', slug:'wallets' },
+  { id:'col_jewelry', name:'Jewelry', slug:'jewelry' },
+  { id:'col_watches', name:'Watches', slug:'watches' },
+  { id:'col_shoes',   name:'Shoes',   slug:'shoes' },
+  { id:'col_sale',    name:'On Sale', slug:'on-sale' },
+];
+
+const colById = id => ALL_COLLECTIONS.find(c => c.id === id) || null;
+const genId = prefix => prefix + '_' + Math.random().toString(36).slice(2, 8);
+const levelsFromNav = n => n ? (n.levels || (n.is_leaf ? '1' : '2')) : '2';
+const now = () => new Date().toISOString();
+
+/* ── Initial data ── */
+const INIT_NAVS = [
+  { id:'nav_w_new',     name:'New In',  market:'US', channel:'official', terminal:'web', enabled:true, order:1, is_leaf:true,  levels:'1', target_url:'/collections/new-in', target_type:'collection', created_at:'2026-01-01T00:00:00Z', updated_at:'2026-01-01T00:00:00Z' },
+  { id:'nav_w_bags',    name:'Bags',    market:'US', channel:'official', terminal:'web', enabled:true, order:2, is_leaf:false, levels:'3', target_url:'/collections/bags', target_type:'collection', collection_id:'col_bags', created_at:'2026-01-01T00:00:00Z', updated_at:'2026-01-01T00:00:00Z' },
+  { id:'nav_w_jewelry', name:'Jewelry', market:'US', channel:'official', terminal:'web', enabled:true, order:3, is_leaf:false, levels:'2', target_url:'/collections/jewelry', target_type:'collection', collection_id:'col_jewelry', created_at:'2026-01-01T00:00:00Z', updated_at:'2026-01-01T00:00:00Z' },
+  { id:'nav_w_sale',    name:'Sale',    market:'US', channel:'official', terminal:'web', enabled:true, order:4, is_leaf:true,  levels:'1', target_url:'/collections/on-sale', target_type:'collection', created_at:'2026-01-01T00:00:00Z', updated_at:'2026-01-01T00:00:00Z' },
+];
+
+function buildInitMenuItems() {
+  return [
+    { id:'wmi_bags_l1_type',  nav_id:'nav_w_bags', parent_id:null,              name:'By Type',       collection_id:'col_bags', enabled:true, order:1, is_leaf:false, target_url:'/collections/bags', target_type:'collection', created_at:'2026-01-01T00:00:00Z', updated_at:'2026-01-01T00:00:00Z' },
+    { id:'wmi_bags_l1_brand', nav_id:'nav_w_bags', parent_id:null,              name:'By Brand',      collection_id:'col_bags', enabled:true, order:2, is_leaf:false, target_url:'/collections/bags', target_type:'collection', created_at:'2026-01-01T00:00:00Z', updated_at:'2026-01-01T00:00:00Z' },
+    { id:'wmi_bags_l1_sale',  nav_id:'nav_w_bags', parent_id:null,              name:'On Sale',       collection_id:'col_sale', enabled:true, order:3, is_leaf:false, target_url:'/collections/bags-sale', target_type:'collection', created_at:'2026-01-01T00:00:00Z', updated_at:'2026-01-01T00:00:00Z' },
+    { id:'wmi_bags_l2_shldr', nav_id:'nav_w_bags', parent_id:'wmi_bags_l1_type',  name:'Shoulder Bags', collection_id:'col_bags', enabled:true, order:1, is_leaf:true, target_url:'/collections/shoulder-bags', target_type:'collection', created_at:'2026-01-01T00:00:00Z', updated_at:'2026-01-01T00:00:00Z' },
+    { id:'wmi_bags_l2_tote',  nav_id:'nav_w_bags', parent_id:'wmi_bags_l1_type',  name:'Tote Bags',     collection_id:'col_bags', enabled:true, order:2, is_leaf:true, target_url:'/collections/tote-bags', target_type:'collection', created_at:'2026-01-01T00:00:00Z', updated_at:'2026-01-01T00:00:00Z' },
+    { id:'wmi_bags_l2_cross', nav_id:'nav_w_bags', parent_id:'wmi_bags_l1_type',  name:'Crossbody',     collection_id:'col_bags', enabled:true, order:3, is_leaf:true, target_url:'/collections/crossbody', target_type:'collection', created_at:'2026-01-01T00:00:00Z', updated_at:'2026-01-01T00:00:00Z' },
+    { id:'wmi_bags_l2_lv',    nav_id:'nav_w_bags', parent_id:'wmi_bags_l1_brand', name:'Louis Vuitton', collection_id:'', enabled:true, order:1, is_leaf:true, target_url:'/collections/louis-vuitton', target_type:'brand', created_at:'2026-01-01T00:00:00Z', updated_at:'2026-01-01T00:00:00Z' },
+    { id:'wmi_bags_l2_ch',    nav_id:'nav_w_bags', parent_id:'wmi_bags_l1_brand', name:'Chanel',        collection_id:'', enabled:true, order:2, is_leaf:true, target_url:'/collections/chanel', target_type:'brand', created_at:'2026-01-01T00:00:00Z', updated_at:'2026-01-01T00:00:00Z' },
+    { id:'wmi_bags_l2_gu',    nav_id:'nav_w_bags', parent_id:'wmi_bags_l1_brand', name:'Gucci',         collection_id:'', enabled:true, order:3, is_leaf:true, target_url:'/collections/gucci', target_type:'brand', created_at:'2026-01-01T00:00:00Z', updated_at:'2026-01-01T00:00:00Z' },
+    { id:'wmi_bags_l2_sale1', nav_id:'nav_w_bags', parent_id:'wmi_bags_l1_sale',  name:'Bags Under $500', collection_id:'col_sale', enabled:true, order:1, is_leaf:true, target_url:'/collections/bags-sale-under-500', target_type:'collection', created_at:'2026-01-01T00:00:00Z', updated_at:'2026-01-01T00:00:00Z' },
+    { id:'wmi_bags_l2_sale2', nav_id:'nav_w_bags', parent_id:'wmi_bags_l1_sale',  name:'Bags Under $200', collection_id:'col_sale', enabled:true, order:2, is_leaf:true, target_url:'/collections/bags-sale-under-200', target_type:'collection', created_at:'2026-01-01T00:00:00Z', updated_at:'2026-01-01T00:00:00Z' },
+    { id:'wmi_jew_l1_type',   nav_id:'nav_w_jewelry', parent_id:null, name:'Necklaces', collection_id:'col_jewelry', enabled:true, order:1, is_leaf:true, target_url:'/collections/necklaces', target_type:'collection', created_at:'2026-01-01T00:00:00Z', updated_at:'2026-01-01T00:00:00Z' },
+    { id:'wmi_jew_l1_rings',  nav_id:'nav_w_jewelry', parent_id:null, name:'Rings',     collection_id:'col_jewelry', enabled:true, order:2, is_leaf:true, target_url:'/collections/rings', target_type:'collection', created_at:'2026-01-01T00:00:00Z', updated_at:'2026-01-01T00:00:00Z' },
+  ];
+}
+
+/* ── DimBadge ── */
+function DimBadge({ market, channel }) {
+  return <span className="dim-badge dim-badge-web">{market || 'US'} &middot; {channel || 'official'} &middot; 🖥 Web</span>;
+}
+
+/* ── PCPreview ── */
+function PCPreview({ enabledNavs, menuItems, previewNavId, setPreviewNavId }) {
+  const activeNav = enabledNavs.find(n => n.id === previewNavId) || null;
+  const l1Items = activeNav ? menuItems.filter(m => m.nav_id === activeNav.id && m.parent_id === null && m.enabled) : [];
+  const hasL2 = l1Items.some(l1 => menuItems.some(m => m.parent_id === l1.id && m.enabled));
+
+  function renderDropdown() {
+    if (!activeNav || activeNav.is_leaf || l1Items.length === 0) return null;
+    if (hasL2) {
+      return (
+        <div className="pc-dropdown">
+          <div className="pc-mega">
+            {l1Items.map(l1 => {
+              const l2s = menuItems.filter(m => m.parent_id === l1.id && m.enabled);
+              return (
+                <div key={l1.id} className="pc-mega-col">
+                  <div className="pc-mega-col-title">{l1.name}</div>
+                  {l2s.map(l2 => <div key={l2.id} className="pc-mega-col-item">{l2.name}</div>)}
+                  {l2s.length === 0 && <div style={{ fontSize:11, color:'#C4B5FD', padding:'2px 0' }}>no items</div>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="pc-dropdown">
+        {l1Items.map(l1 => <div key={l1.id} className="pc-dropdown-item">{l1.name}</div>)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="pc-shell">
+      <div className="pc-screen">
+        <div className="pc-topbar">
+          <div className="pc-dot" style={{ background:'#EF4444' }} />
+          <div className="pc-dot" style={{ background:'#F59E0B' }} />
+          <div className="pc-dot" style={{ background:'#10B981' }} />
+          <div className="pc-url-bar">
+            <GlobalOutlined style={{ fontSize:8, marginRight:4 }} />looply.com
+          </div>
+        </div>
+        <div className="pc-header">
+          <img src={LOGO_SRC} alt="Looply" style={{ height:16, display:'block' }} onError={e => { e.target.style.display='none'; }} />
+          <div style={{ flex:1 }} />
+          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+            <EyeOutlined style={{ fontSize:12, color:'#9CA3AF' }} />
+            <LinkOutlined style={{ fontSize:12, color:'#9CA3AF' }} />
+            <div style={{ width:20, height:20, borderRadius:'50%', background:'#E5E7EB', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <span style={{ fontSize:8, color:'#9CA3AF' }}>A</span>
+            </div>
+          </div>
+        </div>
+        <div className="pc-nav">
+          {enabledNavs.map(nav => (
+            <div key={nav.id} className={'pc-nav-item' + (previewNavId === nav.id ? ' active' : '')} onClick={() => setPreviewNavId(nav.id)}>
+              {nav.name}
+            </div>
+          ))}
+          {activeNav && renderDropdown()}
+        </div>
+        <div className="pc-content">
+          {enabledNavs.length === 0 ? '暂无启用导航' : 'Page content area'}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── NavDrawer ── */
+function NavDrawer({ open, nav, navItems, globalMarket, globalChannel, onClose, onSave }) {
+  const isNew = !nav;
+  const LEVEL_INFO = {
+    '1': { color:'blue', label:'直跳', hint:'点击后直接跳转目标页，无下级导航' },
+    '2': { color:'purple', label:'两级', hint:'点击展开二级下拉列表，L2 全部为直跳叶子' },
+    '3': { color:'volcano', label:'三级（Mega）', hint:'点击展开 Mega Menu：L2 列头 + L3 子目录' },
+  };
+  const [form, setForm] = React.useState({ name:'', levels:'2', target_url:'', target_type:'', collection_id:'', enabled:false });
+
+  React.useEffect(() => {
+    if (nav) {
+      setForm({ name:nav.name, levels:levelsFromNav(nav), target_url:nav.target_url||'', target_type:nav.target_type||'', collection_id:nav.collection_id||'', enabled:nav.enabled });
+    } else {
+      setForm({ name:'', levels:'2', target_url:'', target_type:'', collection_id:'', enabled:false });
+    }
+  }, [nav, open]);
+
+  function handleSave() {
+    if (!form.name.trim()) { message.warning('名称不能为空'); return; }
+    if (!form.target_type) { message.warning('请选择目标类型'); return; }
+    if (form.target_type === 'collection' && !form.collection_id) { message.warning('请选择关联合集'); return; }
+    if (form.target_type === 'custom' && !form.target_url.trim()) { message.warning('请填写目标 URL'); return; }
+    const dup = navItems.find(n => {
+      if (nav && n.id === nav.id) return false;
+      return n.market===globalMarket && n.channel===globalChannel && n.terminal==='web'
+        && n.name.toLowerCase()===form.name.trim().toLowerCase();
+    });
+    if (dup) { message.error('当前维度下已存在同名导航'); return; }
+    onSave({
+      name: form.name.trim(), levels: form.levels, is_leaf: form.levels==='1',
+      target_url: form.target_url, target_type: form.target_type, collection_id: form.collection_id,
+      enabled: form.enabled, updated_at: new Date().toISOString(),
+    });
+  }
+
+  const selectedCol = ALL_COLLECTIONS.find(c => c.id === form.collection_id);
+  const li = LEVEL_INFO[form.levels] || {};
+
+  return (
+    <Drawer open={open} title={isNew ? '新增一级导航' : '编辑一级导航'} width={480} onClose={onClose}
+      footer={<Space style={{ justifyContent:'flex-end', width:'100%' }}><Button onClick={onClose}>取消</Button><Button type="primary" onClick={handleSave}>保存</Button></Space>}
+    >
+      <div className="lp-form-row">
+        <span className="lp-form-label">市场 (Market)</span>
+        <div className="lp-form-control"><Select value={globalMarket} options={MARKETS} disabled style={{ width:'100%' }} /></div>
+      </div>
+      <div className="lp-form-row">
+        <span className="lp-form-label">渠道 (Channel)</span>
+        <div className="lp-form-control"><Select value={globalChannel} options={CHANNELS} disabled style={{ width:'100%' }} /></div>
+      </div>
+      <div className="lp-form-row">
+        <span className="lp-form-label">终端 (Terminal)</span>
+        <div className="lp-form-control">
+          <span style={{ display:'inline-flex', alignItems:'center', padding:'1px 10px', background:'#f5f5f5', border:'1px solid #d9d9d9', borderRadius:6, color:'#595959', fontSize:13, height:34 }}>🖥 PC</span>
+        </div>
+      </div>
+      <div className="lp-form-row">
+        <span className="lp-form-label"><span style={{color:'#DC2626'}}>* </span>名称 (Name)</span>
+        <div className="lp-form-control">
+          <Input value={form.name} onChange={e => setForm(f => ({ ...f, name:e.target.value }))} placeholder="e.g. Bags" />
+        </div>
+      </div>
+      <div className="lp-form-row">
+        <span className="lp-form-label"><span style={{color:'#DC2626'}}>* </span>导航层级</span>
+        <div className="lp-form-control">
+          {isNew ? (
+            <>
+              <Radio.Group value={form.levels} onChange={e => setForm(f => ({ ...f, levels:e.target.value }))}>
+                <Radio value="1">直跳</Radio>
+                <Radio value="2">两级</Radio>
+                <Radio value="3">三级（Mega）</Radio>
+              </Radio.Group>
+              <div style={{ fontSize:11, color:'#9CA3AF', marginTop:4 }}>{li.hint}</div>
+            </>
+          ) : (
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <Tag color={li.color} style={{ fontSize:12 }}>{li.label}</Tag>
+              <span style={{ fontSize:12, color:'#9CA3AF' }}>层级在创建后不可修改</span>
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="lp-form-row">
+        <span className="lp-form-label"><span style={{color:'#DC2626'}}>* </span>目标类型</span>
+        <div className="lp-form-control">
+          <Select value={form.target_type || undefined} options={URL_TYPES} placeholder="选择目标类型..."
+            onChange={v => setForm(f => ({ ...f, target_type:v||'', collection_id:'', target_url:'' }))} style={{ width:'100%' }} />
+        </div>
+      </div>
+      {form.target_type === 'collection' && (
+        <div className="lp-form-row">
+          <span className="lp-form-label"><span style={{color:'#DC2626'}}>* </span>关联合集</span>
+          <div className="lp-form-control">
+            <Select showSearch allowClear value={form.collection_id || undefined} placeholder="搜索合集..." style={{ width:'100%' }}
+              options={ALL_COLLECTIONS.map(c => ({ value:c.id, label:c.name }))}
+              filterOption={(input, opt) => (opt.label||'').toLowerCase().includes(input.toLowerCase())}
+              onChange={v => {
+                const col = ALL_COLLECTIONS.find(c => c.id===v);
+                setForm(f => ({ ...f, collection_id:v||'', target_url: col ? '/collections/'+col.slug : '' }));
+              }}
+            />
+            {selectedCol && (
+              <div style={{ marginTop:6, padding:'8px 12px', background:'#F0FDF4', border:'1px solid #BBF7D0', borderRadius:6, display:'flex', alignItems:'center', gap:8 }}>
+                <LinkOutlined style={{ color:'#16A34A', fontSize:12 }} />
+                <span style={{ fontSize:12, color:'#16A34A', fontWeight:500 }}>/collections/{selectedCol.slug}</span>
+                <span style={{ fontSize:11, color:'#9CA3AF' }}>（不可修改）</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {form.target_type === 'custom' && (
+        <div className="lp-form-row">
+          <span className="lp-form-label"><span style={{color:'#DC2626'}}>* </span>目标 URL</span>
+          <div className="lp-form-control">
+            <Input value={form.target_url} onChange={e => setForm(f => ({ ...f, target_url:e.target.value }))}
+              placeholder="https://... 或 /path/..." prefix={<LinkOutlined style={{ color:'#9CA3AF' }} />} />
+          </div>
+        </div>
+      )}
+      <div className="lp-form-row">
+        <span className="lp-form-label">状态</span>
+        <div className="lp-form-control">
+          <Space>
+            <Switch checked={form.enabled} onChange={v => setForm(f => ({ ...f, enabled:v }))} checkedChildren="启用" unCheckedChildren="停用" />
+            <span style={{ fontSize:13, color: form.enabled ? '#16A34A' : '#6B7280' }}>{form.enabled ? '启用 (Active)' : '停用 (Inactive)'}</span>
+          </Space>
+        </div>
+      </div>
+    </Drawer>
+  );
+}
+
+/* ── MenuItemDrawer ── */
+function MenuItemDrawer({ open, item, navId, navLevels, navItems, globalMarket, globalChannel, menuItems, parentId, onClose, onSave }) {
+  const isL3 = parentId != null;
+  const level = isL3 ? '三级导航' : '二级导航';
+  const isNew = !item;
+  const canHaveL3 = !isL3 && navLevels === '3';
+  const [form, setForm] = React.useState({
+    name:'', collection_id:'', target_url:'', target_type:'',
+    is_leaf: canHaveL3 ? false : true, enabled:true, selectedNavId: navId || '',
+  });
+
+  React.useEffect(() => {
+    if (item) {
+      setForm({ name:item.name, collection_id:item.collection_id||'', target_url:item.target_url||'',
+        target_type:item.target_type||'', is_leaf: canHaveL3 ? false : item.is_leaf!==false,
+        enabled:item.enabled, selectedNavId: item.nav_id || navId || '' });
+    } else {
+      setForm({ name:'', collection_id:'', target_url:'', target_type:'', is_leaf: canHaveL3 ? false : true, enabled:true, selectedNavId:navId||'' });
+    }
+  }, [item, navId, open]);
+
+  const sameCtxNavs = navItems.filter(n => n.market===globalMarket && n.channel===globalChannel && n.terminal==='web')
+    .map(n => ({ value:n.id, label:n.name }));
+  const selectedCol = colById(form.collection_id);
+
+  function handleSave() {
+    if (!form.name.trim()) { message.warning('名称不能为空'); return; }
+    if (!form.target_type) { message.warning('请选择目标类型'); return; }
+    if (form.target_type === 'collection' && !form.collection_id) { message.warning('请选择关联合集'); return; }
+    if (form.target_type === 'custom' && !form.target_url.trim()) { message.warning('请填写目标 URL'); return; }
+    onSave({
+      name: form.name.trim(), collection_id: form.collection_id,
+      target_url: form.target_url,
+      target_type: form.target_type,
+      is_leaf: canHaveL3 ? form.is_leaf : true, enabled: form.enabled,
+      nav_id: form.selectedNavId || navId,
+    });
+  }
+
+  return (
+    <Drawer open={open}
+      title={<Space>{isNew ? '新增导航项' : '编辑导航项'}<Tag color={isL3 ? 'blue' : 'purple'}>{level}</Tag></Space>}
+      width={500} onClose={onClose}
+      footer={<Space style={{ justifyContent:'flex-end', width:'100%' }}><Button onClick={onClose}>取消</Button><Button type="primary" onClick={handleSave}>保存</Button></Space>}
+    >
+      <div className="lp-form-row">
+        <span className="lp-form-label">市场 (Market)</span>
+        <div className="lp-form-control"><Select value={globalMarket} options={MARKETS} disabled style={{ width:'100%' }} /></div>
+      </div>
+      <div className="lp-form-row">
+        <span className="lp-form-label">渠道 (Channel)</span>
+        <div className="lp-form-control"><Select value={globalChannel} options={CHANNELS} disabled style={{ width:'100%' }} /></div>
+      </div>
+      <div className="lp-form-row">
+        <span className="lp-form-label">终端 (Terminal)</span>
+        <div className="lp-form-control">
+          <span style={{ display:'inline-flex', alignItems:'center', padding:'1px 10px', background:'#f5f5f5', border:'1px solid #d9d9d9', borderRadius:6, color:'#595959', fontSize:13, height:34 }}>🖥 PC</span>
+        </div>
+      </div>
+      <div className="lp-form-row">
+        <span className="lp-form-label"><span style={{color:'#DC2626'}}>* </span>所属导航</span>
+        <div className="lp-form-control">
+          <Select value={form.selectedNavId || undefined} options={sameCtxNavs}
+            onChange={v => setForm(f => ({ ...f, selectedNavId:v }))} style={{ width:'100%' }} placeholder="选择导航..." />
+        </div>
+      </div>
+      <div className="lp-form-row">
+        <span className="lp-form-label"><span style={{color:'#DC2626'}}>* </span>名称 (Name)</span>
+        <div className="lp-form-control">
+          <Input value={form.name} onChange={e => setForm(f => ({ ...f, name:e.target.value }))} placeholder="e.g. Shoulder Bags" />
+        </div>
+      </div>
+      {canHaveL3 && (
+        <div className="lp-form-row">
+          <span className="lp-form-label">导航行为</span>
+          <div className="lp-form-control">
+            <div style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'5px 12px', background:'#F5F3FF', border:'1px solid #DDD6FE', borderRadius:6, fontSize:13, color:'#6D28D9' }}>
+              <LockOutlined style={{ fontSize:12 }} />
+              有 L3 子目录（Mega Menu）
+            </div>
+            <div style={{ fontSize:11, color:'#9CA3AF', marginTop:4 }}>
+              该二级导航作为 Mega Menu 列头，同时需配置自身跳转链接
+            </div>
+          </div>
+        </div>
+      )}
+      <div className="lp-form-row">
+        <span className="lp-form-label"><span style={{color:'#DC2626'}}>* </span>目标类型</span>
+        <div className="lp-form-control">
+          <Select value={form.target_type || undefined} options={URL_TYPES} placeholder="选择目标类型..."
+            onChange={v => setForm(f => ({ ...f, target_type:v||'', collection_id:'', target_url:'' }))} style={{ width:'100%' }} />
+        </div>
+      </div>
+          {form.target_type === 'collection' && (
+            <div className="lp-form-row">
+              <span className="lp-form-label"><span style={{color:'#DC2626'}}>* </span>关联合集</span>
+              <div className="lp-form-control">
+                <Select showSearch allowClear value={form.collection_id || undefined} placeholder="搜索合集..."
+                  style={{ width:'100%' }}
+                  options={ALL_COLLECTIONS.map(c => ({ value:c.id, label:c.name }))}
+                  filterOption={(input, opt) => (opt.label||'').toLowerCase().includes(input.toLowerCase())}
+                  onChange={v => {
+                    const col = colById(v);
+                    setForm(f => ({ ...f, collection_id:v||'', target_url: col ? '/collections/'+col.slug : '' }));
+                  }}
+                />
+                {selectedCol && (
+                  <div style={{ marginTop:6, padding:'8px 12px', background:'#F0FDF4', border:'1px solid #BBF7D0', borderRadius:6, display:'flex', alignItems:'center', gap:8 }}>
+                    <LinkOutlined style={{ color:'#16A34A', fontSize:12 }} />
+                    <span style={{ fontSize:12, color:'#16A34A', fontWeight:500 }}>/collections/{selectedCol.slug}</span>
+                    <span style={{ fontSize:11, color:'#9CA3AF' }}>（不可修改）</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          {form.target_type === 'custom' && (
+            <div className="lp-form-row">
+              <span className="lp-form-label"><span style={{color:'#DC2626'}}>* </span>目标 URL</span>
+              <div className="lp-form-control">
+                <Input value={form.target_url} onChange={e => setForm(f => ({ ...f, target_url:e.target.value }))}
+                  placeholder="https://... 或 /path/..." prefix={<LinkOutlined style={{ color:'#9CA3AF' }} />} />
+              </div>
+            </div>
+          )}
+      <div className="lp-form-row">
+        <span className="lp-form-label">状态</span>
+        <div className="lp-form-control">
+          <Space>
+            <Switch checked={form.enabled} onChange={v => setForm(f => ({ ...f, enabled:v }))} checkedChildren="启用" unCheckedChildren="停用" />
+            <span style={{ fontSize:13, color: form.enabled ? '#16A34A' : '#6B7280' }}>{form.enabled ? '启用 (Active)' : '停用 (Inactive)'}</span>
+          </Space>
+        </div>
+      </div>
+    </Drawer>
+  );
+}
+
+/* ── MenuItemsExpanded ── */
+function MenuItemsExpanded({ navId, navName, globalMarket, globalChannel, navItems, menuItems, setMenuItems, onDrillL1 }) {
+  const [menuDrawerOpen, setMenuDrawerOpen] = React.useState(false);
+  const [editingItem, setEditingItem] = React.useState(null);
+  const [drawerParentId, setDrawerParentId] = React.useState(null);
+  const [dragId, setDragId] = React.useState(null);
+
+  const l1Items = menuItems.filter(m => m.nav_id === navId && m.parent_id === null);
+  const parentNav = navItems.find(n => n.id === navId);
+  const navLevels = parentNav ? levelsFromNav(parentNav) : '2';
+
+  function openAdd(pid) { setDrawerParentId(pid || null); setEditingItem(null); setMenuDrawerOpen(true); }
+  function openEdit(it) { setDrawerParentId(it.parentId || null); setEditingItem(it); setMenuDrawerOpen(true); }
+
+  function handleSaveItem(form) {
+    const targetNavId = form.navId || navId;
+    if (editingItem) {
+      setMenuItems(prev => prev.map(m => m.id === editingItem.id ? { ...m, ...form, nav_id:targetNavId } : m));
+      message.success('已保存');
+    } else {
+      setMenuItems(prev => [...prev, { id:genId('mi'), nav_id:targetNavId, parent_id:drawerParentId||null,
+        name:form.name, collection_id:form.collection_id||'', target_url:form.target_url||'',
+        target_type:form.target_type||'collection', is_leaf:form.is_leaf, enabled:form.enabled, order:999,
+        created_at:new Date().toISOString(), updated_at:new Date().toISOString() }]);
+      message.success('已添加');
+    }
+    setMenuDrawerOpen(false);
+  }
+
+  function handleToggle(id, v) { setMenuItems(prev => prev.map(m => m.id===id ? { ...m, enabled:v } : m)); }
+  function handleDelete(id) { setMenuItems(prev => prev.filter(m => m.id !== id && m.parentId !== id)); message.success('已删除'); }
+
+  function reorderL2(fromId, toId) {
+    setMenuItems(prev => {
+      const sibs = prev.filter(m => m.navId === navId && m.parentId === null);
+      const fi = sibs.findIndex(m => m.id === fromId);
+      const ti = sibs.findIndex(m => m.id === toId);
+      if (fi < 0 || ti < 0 || fi === ti) return prev;
+      const arr = [...sibs];
+      const [moved] = arr.splice(fi, 1);
+      arr.splice(ti, 0, moved);
+      const sibIds = new Set(arr.map(m => m.id));
+      return prev.filter(m => !sibIds.has(m.id)).concat(arr);
+    });
+  }
+
+  const thS = { background:'#EDE9FE', color:'#6B7280', fontWeight:600, padding:'7px 10px', textAlign:'left', borderBottom:'1px solid #DDD6FE' };
+  const tdS = { padding:'8px 10px', borderBottom:'1px solid #EDE9FE' };
+
+  return (
+    <div className="nav-expand-wrap">
+      <div className="nav-expand-header">
+        <span className="nav-expand-title">
+          {navName} — 二级导航
+          <span style={{ marginLeft:8, fontSize:12, color:'#9CA3AF', fontWeight:400 }}>共 {l1Items.length} 项</span>
+        </span>
+        <Button size="small" type="primary" icon={<PlusOutlined />} onClick={() => openAdd(null)}>新增二级导航</Button>
+      </div>
+
+      {l1Items.length === 0 && (
+        <div style={{ textAlign:'center', padding:'20px', color:'#9CA3AF', fontSize:13 }}>暂无二级导航</div>
+      )}
+
+      {l1Items.length > 0 && (
+        <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
+          <thead>
+            <tr>
+              <th style={{ ...thS, width:40 }}>排序</th>
+              <th style={thS}>名称</th>
+              <th style={{ ...thS, width:100 }}>状态</th>
+              <th style={{ ...thS, width:160 }}>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {l1Items.map((l1, idx) => {
+              return (
+                <React.Fragment key={l1.id}>
+                  <tr style={{ background: dragId===l1.id ? '#FAF5FF' : '#fff', cursor:'default' }}
+                    draggable={true}
+                    onDragStart={() => setDragId(l1.id)}
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={() => { if (dragId && dragId !== l1.id) reorderL2(dragId, l1.id); setDragId(null); }}
+                    onDragEnd={() => setDragId(null)}
+                  >
+                    <td style={{ ...tdS, width:40, textAlign:'center' }}>
+                      <HolderOutlined style={{ cursor:'grab', color:'#9CA3AF', fontSize:13 }} />
+                    </td>
+                    <td style={tdS}>
+                      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                        {!l1.is_leaf && onDrillL1
+                          ? <a style={{ fontWeight:600, color:'#7C3AED', cursor:'pointer' }} onClick={() => onDrillL1(l1)}>{l1.name} <RightOutlined style={{ fontSize:10 }} /></a>
+                          : <span style={{ fontWeight:500 }}>{l1.name}</span>
+                        }
+                        {l1.is_leaf && <Tag color="blue" style={{ fontSize:10, padding:'0 4px' }}>直跳</Tag>}
+                      </div>
+                    </td>
+                    <td style={tdS}>
+                      <Switch size="small" checked={l1.enabled} onChange={v => handleToggle(l1.id,v)} checkedChildren="启用" unCheckedChildren="停用" />
+                    </td>
+                    <td style={tdS}>
+                      <Space size={4}>
+                        <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(l1)}>编辑</Button>
+                        {l1.enabled ? (
+                          <Tooltip title="请先停用再删除">
+                            <Button size="small" danger icon={<DeleteOutlined />} disabled />
+                          </Tooltip>
+                        ) : (
+                          <Popconfirm title={'删除 "'+l1.name+'"？'} description={!l1.is_leaf ? '同步删除其下三级导航' : undefined}
+                            onConfirm={() => handleDelete(l1.id)} okText="删除" okButtonProps={{ danger:true }} cancelText="取消">
+                            <Button size="small" danger icon={<DeleteOutlined />} />
+                          </Popconfirm>
+                        )}
+                      </Space>
+                    </td>
+                  </tr>
+
+                </React.Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+
+      <MenuItemDrawer open={menuDrawerOpen} item={editingItem} navId={navId} navLevels={navLevels} navItems={navItems}
+        globalMarket={globalMarket} globalChannel={globalChannel} menuItems={menuItems}
+        parentId={drawerParentId} onClose={() => setMenuDrawerOpen(false)} onSave={handleSaveItem} />
+    </div>
+  );
+}
+
+/* ── NavigationPage ── */
+function NavigationPage() {
+  const [market, setMarket] = React.useState('US');
+  const [channel, setChannel] = React.useState('official');
+  const globalMarket = market;
+  const globalChannel = channel;
+  const [navItems, setNavItems] = React.useState(INIT_NAVS);
+  const [menuItems, setMenuItems] = React.useState(() => buildInitMenuItems());
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const [editingNav, setEditingNav] = React.useState(null);
+  const [previewNavId, setPreviewNavId] = React.useState(null);
+  const [drillNav, setDrillNav] = React.useState(null);
+  const [drillL1, setDrillL1] = React.useState(null);
+  const [drillL1DrawerOpen, setDrillL1DrawerOpen] = React.useState(false);
+  const [drillL1EditItem, setDrillL1EditItem] = React.useState(null);
+  const [dragNavKey, setDragNavKey] = React.useState(null);
+  const [dragL3Id, setDragL3Id] = React.useState(null);
+
+  const displayedNavs = navItems.filter(n => n.market === globalMarket && n.channel === globalChannel && n.terminal === 'web');  const enabledNavs = displayedNavs.filter(n => n.enabled);
+
+  React.useEffect(() => {
+    const first = enabledNavs[0];
+    setPreviewNavId(first ? first.id : null);
+    setDrillNav(null);
+    setDrillL1(null);
+  }, [globalMarket, globalChannel]);
+
+  function handleAddNav() { setEditingNav(null); setDrawerOpen(true); }
+  function handleEditNav(nav) { setEditingNav(nav); setDrawerOpen(true); }
+
+  function handleSaveNav(form) {
+    if (editingNav) {
+      setNavItems(prev => prev.map(n => n.id === editingNav.id ? { ...n, ...form } : n));
+      message.success('导航已更新');
+    } else {
+      setNavItems(prev => [...prev, { id:genId('nav'), market:globalMarket, channel:globalChannel, terminal:'web', order:displayedNavs.length+1, created_at:new Date().toISOString(), ...form }]);
+      message.success('导航已添加');
+    }
+    setDrawerOpen(false);
+  }
+
+  function handleDeleteNav(navId) {
+    setNavItems(prev => prev.filter(n => n.id !== navId));
+    setMenuItems(prev => prev.filter(m => m.navId !== navId));
+    message.success('导航已删除');
+  }
+
+  function handleToggleNav(navId, enabled) { setNavItems(prev => prev.map(n => n.id === navId ? { ...n, enabled } : n)); }
+
+  function reorderNavs(fromId, toId) {
+    setNavItems(prev => {
+      const filtered = prev.filter(n => n.market===globalMarket && n.channel===globalChannel && n.terminal==='web');
+      const others = prev.filter(n => !(n.market===globalMarket && n.channel===globalChannel && n.terminal==='web'));
+      const fi = filtered.findIndex(n => n.id === fromId);
+      const ti = filtered.findIndex(n => n.id === toId);
+      if (fi < 0 || ti < 0 || fi === ti) return prev;
+      const arr = [...filtered];
+      const [moved] = arr.splice(fi, 1);
+      arr.splice(ti, 0, moved);
+      return [...others, ...arr.map((n, i) => ({ ...n, order:i+1 }))];
+    });
+  }
+
+  function reorderL3(fromId, toId, parentId, navId) {
+    setMenuItems(prev => {
+      const sibs = prev.filter(m => m.navId === navId && m.parentId === parentId);
+      const fi = sibs.findIndex(m => m.id === fromId);
+      const ti = sibs.findIndex(m => m.id === toId);
+      if (fi < 0 || ti < 0 || fi === ti) return prev;
+      const arr = [...sibs];
+      const [moved] = arr.splice(fi, 1);
+      arr.splice(ti, 0, moved);
+      const sibIds = new Set(arr.map(m => m.id));
+      return prev.filter(m => !sibIds.has(m.id)).concat(arr);
+    });
+  }
+
+
+
+  const LEVEL_TAG = { '1': ['blue','直跳'], '2': ['purple','两级'], '3': ['volcano','三级'] };
+
+  const columns = [
+    {
+      title: '', key:'order', width:40,
+      render: () => <HolderOutlined style={{ cursor:'grab', color:'#9CA3AF', fontSize:14 }} />,
+    },
+    {
+      title: '名称 (Name)', key:'name',
+      render: (_, record) => (
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          {!record.is_leaf
+            ? <a style={{ fontWeight:600, fontSize:13, color:'#7C3AED', cursor:'pointer' }} draggable={false} onDragStart={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); setDrillNav(record); }}>{record.name}</a>
+            : <span style={{ fontWeight:500, fontSize:13, color:'#1F2937' }}>{record.name}</span>
+          }
+          {!record.is_leaf && <RightOutlined style={{ fontSize:10, color:'#C4B5FD' }} />}
+        </div>
+      ),
+    },
+    {
+      title: '层级', key:'levels', width:80,
+      render: (_, record) => {
+        const lv = levelsFromNav(record);
+        const [color, text] = LEVEL_TAG[lv] || ['default', lv];
+        return <Tag color={color} style={{ fontSize:11 }}>{text}</Tag>;
+      },
+    },
+
+    {
+      title: '状态', key:'status', width:110,
+      render: (_, record) => (
+        <Switch size="small" checked={record.enabled} onChange={v => handleToggleNav(record.id,v)} checkedChildren="启用" unCheckedChildren="停用" />
+      ),
+    },
+    {
+      title: '操作', key:'actions', width:120,
+      render: (_, record) => (
+        <Space size={6}>
+          <Button size="small" icon={<EditOutlined />} onClick={() => handleEditNav(record)}>编辑</Button>
+          {record.enabled ? (
+            <Tooltip title="请先停用再删除">
+              <Button size="small" danger icon={<DeleteOutlined />} disabled />
+            </Tooltip>
+          ) : (
+            <Popconfirm title={'删除 "'+record.name+'"？'} description="将同步删除该导航下所有二级/三级项。"
+              onConfirm={() => handleDeleteNav(record.id)} okText="删除" okButtonProps={{ danger:true }} cancelText="取消">
+              <Button size="small" danger icon={<DeleteOutlined />} />
+            </Popconfirm>
+          )}
+        </Space>
+      ),
+    },
+  ];
+
+  /* ── L3 drill view ── */
+  if (drillNav && drillL1) {
+    const l2Items = menuItems.filter(m => m.nav_id === drillNav.id && m.parent_id === drillL1.id);
+    return (
+      <div>
+        <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:20 }}>
+          <a style={{ color:'#7C3AED', cursor:'pointer', fontSize:13 }} onClick={() => { setDrillNav(null); setDrillL1(null); }}>导航配置（PC）</a>
+          <span style={{ color:'#9CA3AF', fontSize:13 }}>/</span>
+          <a style={{ color:'#7C3AED', cursor:'pointer', fontSize:13 }} onClick={() => setDrillL1(null)}>{drillNav.name}</a>
+          <span style={{ color:'#9CA3AF', fontSize:13 }}>/</span>
+          <span style={{ fontSize:13, fontWeight:600, color:'#1F2937' }}>{drillL1.name}</span>
+          <DimBadge market={globalMarket} channel={globalChannel} />
+        </div>
+        <div style={{ display:'flex', flexDirection:'row', gap:24, alignItems:'flex-start' }}>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div className="nav-expand-wrap">
+              <div className="nav-expand-header">
+                <span className="nav-expand-title">
+                  {drillL1.name} — 三级导航
+                  <span style={{ marginLeft:8, fontSize:12, color:'#9CA3AF', fontWeight:400 }}>共 {l2Items.length} 项</span>
+                </span>
+                <Button size="small" type="primary" icon={<PlusOutlined />} onClick={() => { setDrillL1EditItem(null); setDrillL1DrawerOpen(true); }}>新增三级导航</Button>
+              </div>
+              {l2Items.length === 0 && (
+                <div style={{ textAlign:'center', padding:'20px', color:'#9CA3AF', fontSize:13 }}>暂无三级导航，点击「新增三级导航」添加</div>
+              )}
+              {l2Items.length > 0 && (
+                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
+                  <thead>
+                    <tr>
+                      {['排序','三级导航名称','状态','操作'].map((t, i) => (
+                        <th key={t} style={{ background:'#EDE9FE', color:'#6B7280', fontWeight:600, padding:'7px 10px', textAlign:'left', borderBottom:'1px solid #DDD6FE', width:i===0?80:i===2?100:i===3?110:undefined }}>{t}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {l2Items.map((l2, idx) => (
+                      <tr key={l2.id}
+                        style={{ background: dragL3Id===l2.id ? '#FAF5FF' : '#fff', cursor:'default' }}
+                        draggable={true}
+                        onDragStart={() => setDragL3Id(l2.id)}
+                        onDragOver={e => e.preventDefault()}
+                        onDrop={() => { if (dragL3Id && dragL3Id !== l2.id) reorderL3(dragL3Id, l2.id, drillL1.id, drillNav.id); setDragL3Id(null); }}
+                        onDragEnd={() => setDragL3Id(null)}
+                      >
+                        <td style={{ padding:'8px 10px', borderBottom:'1px solid #EDE9FE', width:40, textAlign:'center' }}>
+                          <HolderOutlined style={{ cursor:'grab', color:'#9CA3AF', fontSize:13 }} />
+                        </td>
+                        <td style={{ padding:'8px 10px', borderBottom:'1px solid #EDE9FE' }}>
+                          <div className="l2-indent">
+                            <span style={{ fontWeight:500 }}>{l2.name}</span>
+                            {l2.targetUrl && <span style={{ fontSize:10, color:'#9CA3AF', marginLeft:4 }}>{l2.targetUrl}</span>}
+                          </div>
+                        </td>
+                        <td style={{ padding:'8px 10px', borderBottom:'1px solid #EDE9FE' }}>
+                          <Switch size="small" checked={l2.enabled}
+                            onChange={v => setMenuItems(prev => prev.map(m => m.id===l2.id ? {...m,enabled:v} : m))}
+                            checkedChildren="启用" unCheckedChildren="停用" />
+                        </td>
+                        <td style={{ padding:'8px 10px', borderBottom:'1px solid #EDE9FE' }}>
+                          <Space size={4}>
+                            <Button size="small" icon={<EditOutlined />} onClick={() => { setDrillL1EditItem(l2); setDrillL1DrawerOpen(true); }}>编辑</Button>
+                            {l2.enabled ? (
+                              <Tooltip title="请先停用再删除">
+                                <Button size="small" danger icon={<DeleteOutlined />} disabled />
+                              </Tooltip>
+                            ) : (
+                              <Popconfirm title={'删除 "'+l2.name+'"？'} onConfirm={() => setMenuItems(prev=>prev.filter(m=>m.id!==l2.id))} okText="删除" okButtonProps={{ danger:true }} cancelText="取消">
+                                <Button size="small" danger icon={<DeleteOutlined />} />
+                              </Popconfirm>
+                            )}
+                          </Space>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            <MenuItemDrawer open={drillL1DrawerOpen} item={drillL1EditItem} navId={drillNav.id} navLevels='3'
+              navItems={navItems} globalMarket={globalMarket} globalChannel={globalChannel}
+              menuItems={menuItems} parentId={drillL1.id}
+              onClose={() => { setDrillL1DrawerOpen(false); setDrillL1EditItem(null); }}
+              onSave={form => {
+                const targetNavId = form.navId || drillNav.id;
+                if (drillL1EditItem) {
+                  setMenuItems(prev => prev.map(m => m.id===drillL1EditItem.id ? {...m,...form,nav_id:targetNavId} : m));
+                  message.success('已更新');
+                } else {
+                  setMenuItems(prev => [...prev, { id:genId('mi'), nav_id:targetNavId, parent_id:drillL1.id,
+                    name:form.name, collection_id:form.collection_id||'', target_url:form.target_url||'',
+                    target_type:form.target_type||'collection', is_leaf:true, enabled:form.enabled, order:999,
+                    created_at:new Date().toISOString(), updated_at:new Date().toISOString() }]);
+                  message.success('已添加');
+                }
+                setDrillL1DrawerOpen(false); setDrillL1EditItem(null);
+              }}
+            />
+          </div>
+          <div style={{ flexShrink:0 }}>
+            <PCPreview enabledNavs={enabledNavs} menuItems={menuItems} previewNavId={drillNav.id} setPreviewNavId={setPreviewNavId} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── L2 drill view ── */
+  if (drillNav) {
+    return (
+      <div>
+        <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:20 }}>
+          <a style={{ color:'#7C3AED', cursor:'pointer', fontSize:13 }} onClick={() => setDrillNav(null)}>导航配置（PC）</a>
+          <span style={{ color:'#9CA3AF', fontSize:13 }}>/</span>
+          <span style={{ fontSize:13, fontWeight:600, color:'#1F2937' }}>{drillNav.name}</span>
+          <DimBadge market={globalMarket} channel={globalChannel} />
+        </div>
+        <div style={{ display:'flex', flexDirection:'row', gap:24, alignItems:'flex-start' }}>
+          <div style={{ flex:1, minWidth:0 }}>
+            <MenuItemsExpanded navId={drillNav.id} navName={drillNav.name}
+              globalMarket={globalMarket} globalChannel={globalChannel}
+              navItems={navItems} menuItems={menuItems} setMenuItems={setMenuItems}
+              onDrillL1={l1 => setDrillL1(l1)}
+            />
+          </div>
+          <div style={{ flexShrink:0 }}>
+            <PCPreview enabledNavs={enabledNavs} menuItems={menuItems} previewNavId={drillNav.id} setPreviewNavId={setPreviewNavId} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── L1 list view ── */
+  return (
+    <div>
+      <div style={{ display:'flex', alignItems:'center', gap:20, padding:'12px 0 20px', borderBottom:'1px solid #E5E7EB', marginBottom:24 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <span style={{ fontSize:12, color:'#6B7280', whiteSpace:'nowrap' }}>市场</span>
+          <Select value={market} options={MARKETS} onChange={setMarket} style={{ width:100 }} size="small" />
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <span style={{ fontSize:12, color:'#6B7280', whiteSpace:'nowrap' }}>渠道</span>
+          <Select value={channel} options={CHANNELS} onChange={setChannel} style={{ width:100 }} size="small" />
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <span style={{ fontSize:12, color:'#6B7280', whiteSpace:'nowrap' }}>终端</span>
+          <span style={{ display:'inline-flex', alignItems:'center', padding:'1px 10px', background:'#f5f5f5', border:'1px solid #d9d9d9', borderRadius:6, color:'#595959', fontSize:13, height:24 }}>🖥 PC</span>
+        </div>
+      </div>
+      <div style={{ marginBottom:20 }}>
+        <div style={{ fontSize:20, fontWeight:700, color:'#1F2937', marginBottom:4 }}>导航配置（PC）</div>
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <span style={{ fontSize:13, color:'#6B7280' }}>PC 端顶部导航，点击名称进入二级配置</span>
+          <DimBadge market={globalMarket} channel={globalChannel} />
+        </div>
+      </div>
+
+      <div style={{ display:'flex', flexDirection:'row', gap:24, alignItems:'flex-start' }}>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+            <span style={{ fontSize:14, fontWeight:600, color:'#374151' }}>顶部导航 ({displayedNavs.length})</span>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleAddNav}>新增一级导航</Button>
+          </div>
+          <Card style={CARD_STYLE} styles={{ body:{ padding:0 } }}>
+            <Table
+              rowKey="id"
+              dataSource={displayedNavs}
+              columns={columns}
+              pagination={false}
+              styles={TABLE_STYLES}
+              onRow={record => ({
+              draggable: true,
+              onDragStart: () => setDragNavKey(record.id),
+              onDragOver: e => e.preventDefault(),
+              onDrop: () => { if (dragNavKey && dragNavKey !== record.id) reorderNavs(dragNavKey, record.id); setDragNavKey(null); },
+              onDragEnd: () => setDragNavKey(null),
+              onMouseEnter: () => setPreviewNavId(record.id),
+            })}
+
+              locale={{ emptyText: (
+                <div style={{ padding:'40px 20px', textAlign:'center' }}>
+                  <GlobalOutlined style={{ fontSize:32, color:'#D1D5DB', marginBottom:12, display:'block' }} />
+                  <div style={{ fontSize:14, fontWeight:600, color:'#1F2937', marginBottom:6 }}>暂无导航</div>
+                  <div style={{ fontSize:13, color:'#6B7280' }}>当前维度下尚未添加导航。</div>
+                </div>
+              ) }}
+            />
+          </Card>
+          <NavDrawer open={drawerOpen} nav={editingNav} navItems={navItems}
+            globalMarket={globalMarket} globalChannel={globalChannel}
+            onClose={() => setDrawerOpen(false)} onSave={handleSaveNav}
+          />
+        </div>
+        <div style={{ flexShrink:0 }}>
+          <div style={{ fontSize:11, color:'#9CA3AF', marginBottom:6, textAlign:'center' }}>PC 预览 — 悬停行更新</div>
+          <PCPreview enabledNavs={enabledNavs} menuItems={menuItems} previewNavId={previewNavId} setPreviewNavId={setPreviewNavId} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── App ── */
+function App() {
+  return (
+    <ConfigProvider theme={looplyTheme}>
+      <Layout style={{ minHeight:'100vh' }}>
+        <Layout.Header style={{
+          background:'#fff', borderBottom:'1px solid #E5E7EB',
+          display:'flex', alignItems:'center', justifyContent:'space-between',
+          position:'sticky', top:0, zIndex:100, padding:'0 24px',
+        }}>
+          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+            <img src={LOGO_SRC} alt="Looply" style={{ height:28, display:'block' }} onError={e => { e.target.style.display='none'; }} />
+            <span style={{ fontSize:12, color:'#9CA3AF', borderLeft:'1px solid #E5E7EB', paddingLeft:12 }}>CMS 后台</span>
+          </div>
+        </Layout.Header>
+
+        <Layout style={{ flex:1, overflow:'hidden' }}>
+          <Layout.Sider width={220} style={{ background:'#fff', borderRight:'1px solid #E5E7EB', overflow:'auto' }}>
+            <Menu
+              mode="inline"
+              selectedKeys={['nav-config']}
+              items={[
+                { key:'nav-config', icon: React.createElement(GlobalOutlined), label: '导航配置（PC）' },
+                { key:'collections', icon: React.createElement(TagsOutlined), label: React.createElement('span', null, '合集管理', React.createElement(Tag, {color:'warning', style:{marginLeft:6,fontSize:10,padding:'0 4px',lineHeight:'16px',verticalAlign:'middle'}}, '待上线')), disabled:true },
+                { key:'global-config', icon: React.createElement(SettingOutlined), label: React.createElement('span', null, '全局配置', React.createElement(Tag, {color:'warning', style:{marginLeft:6,fontSize:10,padding:'0 4px',lineHeight:'16px',verticalAlign:'middle'}}, '待上线')), disabled:true },
+                { key:'search-config', icon: React.createElement(SearchOutlined), label: React.createElement('span', null, '搜索配置', React.createElement(Tag, {color:'warning', style:{marginLeft:6,fontSize:10,padding:'0 4px',lineHeight:'16px',verticalAlign:'middle'}}, '待上线')), disabled:true },
+              ]}
+              style={{ border:'none', paddingTop:8 }}
+            />
+          </Layout.Sider>
+          <Layout.Content style={{ background:'#F9FAFB', display:'flex', flexDirection:'column', overflow:'auto' }}>
+            <div style={{ padding:'10px 24px', background:'#fff', borderBottom:'1px solid #E5E7EB', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+              <Breadcrumb items={[
+                { title: React.createElement(HomeOutlined) },
+                { title: '导航配置（PC）' },
+              ]} style={{ fontSize:13 }} />
+            </div>
+            <div style={{ flex:1, overflowY:'auto', padding:28 }}>
+              <NavigationPage />
+            </div>
+          </Layout.Content>
+        </Layout>
+      </Layout>
+    </ConfigProvider>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
