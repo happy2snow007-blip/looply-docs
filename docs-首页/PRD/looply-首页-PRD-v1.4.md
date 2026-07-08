@@ -109,31 +109,54 @@ Looply 是面向美国市场的大牌二手电商平台。首页是用户进入 
 
 ### §2.1 市场（Market）自动识别机制
 
-系统按以下优先级逐级判断，取第一个成功匹配的结果：
+用户所在的 **country** 决定 **market**：每个 country 唯一隶属于一个 market（`market_country` 表），系统先确定 `country_code`，再映射至唯一的 `market_id`。
+
+App 端和 Web 端可获取的信号不同，优先级分别如下：
+
+**App 端**
 
 | 优先级 | 来源 | 说明 |
 |--------|------|------|
-| 1 | 用户已保存的选择 | 从本地持久化存储（见 §2.4）读取 `saved_market_id` |
-| 2 | IP 地理位置 | 服务端通过请求 IP → GeoIP 库 → `country_code` → Market 系统映射 `market_id`；仅取"running"状态的 market |
-| 3 | 设备 WiFi / 位置权限 | App 侧：若用户已授予位置权限，取设备 GPS/WiFi 所在国家 `country_code` → 同上映射；Web 侧不适用 |
-| 4 | 浏览器语言首选项 | 从 `Accept-Language` 或 `navigator.language` 提取 `language_code` → Market 系统中首选语言为该语言的 market；多个 market 匹配时取 priority 最高的 |
-| 5 | 默认兜底 | 使用 US 市场（`market_id` 对应美国），货币 USD |
+| 1 | 用户已保存的选择 | 持久化存储（见 §2.4）中的 `saved_country_code` → 映射 `market_id` |
+| 2 | 设备位置 | 用户已授权时，系统 Location API（GPS + WiFi 融合）取经纬度 → 反解 `country_code` |
+| 3 | IP 地理位置 | 服务端请求 IP → GeoIP 库 → `country_code`；VPN/代理场景可能偏差 |
+| 4 | 语言推断 | 系统首选语言 → `market_language.default_language_code` 匹配的 market；多个匹配取 `market.priority` 最高的 |
+| 5 | 默认兜底 | US 市场，货币 USD |
+
+**Web 端**
+
+| 优先级 | 来源 | 说明 |
+|--------|------|------|
+| 1 | 用户已保存的选择 | localStorage 中的 `saved_country_code` → 映射 `market_id` |
+| 2 | IP 地理位置 | 服务端请求 IP → GeoIP 库 → `country_code`；VPN/代理场景可能偏差 |
+| 3 | 语言推断 | `Accept-Language` / `navigator.language` 首项 → `market_language.default_language_code` 匹配的 market；多个匹配取 `market.priority` 最高的 |
+| 4 | 默认兜底 | US 市场，货币 USD |
 
 **country_code → market_id 映射规则**（来自 Market PRD v1.2）：
-- 查 `market_countries` 表，找 `country_code` 匹配且 `market.status = 'running'` 的记录
-- 若一个国家对应多个 market（通常不会），取 `market.priority` 最高的
+- 查 `market_country` 表，找 `country_code` 匹配且 `market.status = 'running'` 的记录
+- 每个 country 唯一隶属于一个 market，无多映射情况
 
 **时机**：首页 SSR/初始化请求时由服务端完成判断，结果通过 `market_id` + `currency_code` 随页面数据下发。客户端不重复检测。
 
 ### §2.2 语言（Language）自动识别机制
 
+**App 端**
+
 | 优先级 | 来源 | 说明 |
 |--------|------|------|
-| 1 | 用户已保存的选择 | 用户在 Header Market & Language 面板中手动选择并确认（点击 Apply）后持久化的 `saved_language_code` |
-| 2 | 设备系统输入法语言 | App 侧：读取系统首选语言（iOS: `preferredLanguages[0]`；Android: `Locale.getDefault()`） |
-| 3 | 浏览器语言 | Web 侧：`navigator.language` 或 `Accept-Language` 第一项 |
-| 4 | 当前 Market 的默认语言 | Market PRD 中 market 对应的 `default_language_code` |
-| 5 | 默认兜底 | `en`（英文） |
+| 1 | 用户已保存的选择 | 持久化存储（见 §2.4）中的 `saved_language_code` |
+| 2 | 系统首选语言 | iOS: `preferredLanguages[0]`；Android: `Locale.getDefault()` |
+| 3 | Market 默认语言 | 当前 market 的 `default_language_code` |
+| 4 | 默认兜底 | `en` |
+
+**Web 端**
+
+| 优先级 | 来源 | 说明 |
+|--------|------|------|
+| 1 | 用户已保存的选择 | localStorage 中的 `saved_language_code` |
+| 2 | 浏览器语言 | `navigator.language` 或 `Accept-Language` 首项 |
+| 3 | Market 默认语言 | 当前 market 的 `default_language_code` |
+| 4 | 默认兜底 | `en` |
 
 ### §2.3 Market & Language 切换面板
 
@@ -151,13 +174,13 @@ Looply 是面向美国市场的大牌二手电商平台。首页是用户进入 
 - 移动端：[移动端设计稿 · Market & Language 面板](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=452-127&p=f&t=RlXBrpSFytzKCkEh-0)
 - PC 端：[PC 端 Header & Footer](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=1378-22993&p=f&t=RlXBrpSFytzKCkEh-0)
 
-**面板结构（先语言，后市场）**：上部为 Language 单选列表，下部为 Market 单选列表（国旗 + 国家名 + 货币代码），底部 Apply 按钮。
+**面板结构（先语言，后国家）**：上部为 Language 单选列表，下部为 Country 单选列表（国旗 + 国家名 + 该国所属 market 货币代码），底部 Apply 按钮。
 
 **交互规则**：
-1. 语言变更后，Market 候选列表立即根据新语言过滤并重新渲染（展示语言本地化名称）
+1. 语言变更后，Country 候选列表立即根据新语言重新渲染（国家名展示当前语言版本）
 2. 两者均为单选
-3. 市场候选项包含：国旗 emoji（由 `country_code` 映射）+ 国家名称 + 货币代码；仅展示 `market.status = 'running'` 的 market
-4. 选择完成后点击"Apply"/"Save"按钮确认，浮层关闭，页面以新 `market_id` 刷新首页资源位内容
+3. Country 候选项：国旗 emoji（由 `country_code` 映射）+ 国家名称 + 货币代码；仅展示 `market.status = 'running'` 的 market 下属的所有 country
+4. 选择完成后点击 Apply 确认：系统通过 `market_country` 表将所选 `country_code` 映射至 `market_id`，浮层关闭，页面以新 `market_id` 刷新首页资源位内容
 5. 关闭浮层未点击 Apply → 不保存，恢复原值
 
 **字段映射**（来自 Market PRD v1.2）：
@@ -165,16 +188,16 @@ Looply 是面向美国市场的大牌二手电商平台。首页是用户进入 
 | 面板展示 | 字段来源 |
 |----------|---------|
 | Language 选项文本 | `language.local_name` |
-| Market 国旗 | 由 `market.primary_country_code` → Unicode 国旗 emoji 计算得出 |
-| Market 国家名称 | `country.country_name`（当前语言版本） |
-| Market 货币 | `market.default_currency_code` |
+| Country 国旗 | `country_code` → Unicode 国旗 emoji |
+| Country 名称 | `country.country_name`（当前语言版本）|
+| Country 货币 | `country` 所属 market 的 `default_currency_code` |
 
 ### §2.4 持久化策略
 
 | 数据 | 存储位置 | 生命周期 |
 |------|----------|---------|
-| 已登录用户的语言和市场选择 | 用户账号 profile（服务端） | 永久，直至用户再次修改 |
-| 未登录访客的语言和市场选择 | 客户端本地（App: UserDefaults/SharedPreferences；Web: localStorage） | 30 天 |
+| 已登录用户的语言和国家选择（`saved_language_code` + `saved_country_code`） | 用户账号 profile（服务端） | 永久，直至用户再次修改 |
+| 未登录访客的语言和国家选择 | 客户端本地（App: UserDefaults/SharedPreferences；Web: localStorage） | 30 天 |
 
 ---
 
@@ -703,7 +726,7 @@ PC 端首页最底部展示通用 Footer。移动端首页无 Footer（由 Tab B
 | `product_card_click` | 点击商品卡片（跳商详） | `listing_id`, `tab`, `position`, `rec_source` |
 | `product_favorite_toggle` | 点击收藏心形 | `listing_id`, `action`（add/remove）, `logged_in` |
 | `market_language_panel_open` | 点击 Globe 图标 | — |
-| `market_language_save` | 点击面板 Apply | `new_language_code`, `new_market_id` |
+| `market_language_save` | 点击面板 Apply | `new_language_code`, `new_country_code`, `new_market_id` |
 
 ### §16.2 Feed 行为数据
 
@@ -746,6 +769,10 @@ Feed 相关埋点的详细定义见《Looply 首页 Feed PRD v2.3》§10 行为�
 | C30 | 全文 | 删除所有像素值、尺寸数字、颜色色值、字号、边距等视觉规范描述（`52px`、`320px`、`#6432FC`、`14px`、`border-radius: 18px`、`$color-ink-primary` 等） | 视觉规范由 Figma 承载，PRD 负责功能逻辑，不应描述设计师职责范围内的内容 |
 | C31 | §8.1 Feed Tab | 新增 Tab 吸顶行为：滚动至 Tab 行触顶时开始 sticky，移动端吸于 Header 下方，PC 端吸于 Navbar 下方，回滚至 Feed 区域上方后恢复 | 保证深度浏览时用户始终可切换 Tab，无需回滚顶部 |
 | C32 | §4 搜索功能 | 在章节顶部新增免责说明：搜索展开样式及内容策略由搜推团队负责；开发阶段暂仅保留搜索 icon 占位，展开态留白待搜推补充 | 避免开发按 PRD 示例实现搜索展开 UI，造成后续搜推方案接入困难 |
+| C33 | §2.1 市场识别机制 | 重写：明确用户选择 country（而非 market），每个 country 唯一隶属于一个 market；App/Web 优先级分列两表；App 侧设备位置调至 IP 之前；持久化字段改为 `saved_country_code`；删除"一国对应多个 market"兼容注释 | country → market 是一对一映射，原写法混淆了用户感知对象（country）和系统内部对象（market） |
+| C34 | §2.2 语言识别机制 | 重写：App/Web 优先级分列两表，明确 App 读系统首选语言、Web 读 navigator.language；去掉混写的单表结构 | App 和 Web 语言信号来源不同，混表描述导致开发理解歧义 |
+| C35 | §2.3 切换面板 | 面板下部从"Market 单选列表"改为"Country 单选列表"；候选项改为展示 running market 下属所有 country；Apply 动作说明改为 country_code → market_id 映射；字段映射表相应更新 | 用户实际选择的是国家，不是 market；market 由 country 唯一推导 |
+| C36 | §2.4 持久化 / §16.1 埋点 | 持久化字段改为 `saved_country_code`；`market_language_save` 埋点增加 `new_country_code` 参数 | 对齐 C33/C35 变更 |
 
 ### v1.3 · 2026-07-02
 
