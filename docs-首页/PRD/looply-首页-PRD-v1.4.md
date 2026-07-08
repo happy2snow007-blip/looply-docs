@@ -145,7 +145,7 @@ Looply 是面向美国市场的大牌二手电商平台。首页是用户进入 
 
 **面板形态**：
 - 移动端：从 Header 下方向下展开（dropdown），背景遮罩
-- PC 端：下拉浮层，宽 320px，出现在 Globe 图标正下方
+- PC 端：下拉浮层，出现在 Globe 图标正下方
 
 **视觉设计**：见 Figma 设计稿
 - 移动端：[移动端设计稿 · Market & Language 面板](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=452-127&p=f&t=RlXBrpSFytzKCkEh-0)
@@ -182,81 +182,25 @@ Looply 是面向美国市场的大牌二手电商平台。首页是用户进入 
 
 ### §3.1 移动端 Header
 
-**尺寸**：高度 52px，横向 full-width，背景色白色，底部无分割线（与 Banner 无缝连接）。
-
 **视觉设计**：[移动端设计稿 · Header](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=452-127&p=f&t=RlXBrpSFytzKCkEh-0)
 
-**布局（从左到右）**：
-
-| 元素 | 规格 | 说明 |
-|------|------|------|
-| Logo | Playfair Display Italic，约 18px，`LOOPLY` | 左对齐，点击返回首页 |
-| Search Pill | 胶囊形（border-radius: 18px），高度 36px，fill: 背景灰（`$color-surface-secondary`），占据大部分中间空间 | 内含搜索图标 + 预埋占位词；点击进入搜索展开态 |
-| Market & Language 图标（🌐） | 24×24px，globe 形 | 点击展开 Market & Language 面板（见 §2.3） |
+**布局（从左到右）**：Logo（左对齐，点击返回首页）→ Search Pill（居中，内含搜索图标 + 预埋占位词，点击进入搜索展开态）→ Market & Language 图标（点击展开面板，见 §2.3）
 
 **Search Pill 预埋占位词**：
 - MVP 一期：前端硬编码轮播词列表：`["Chanel", "bags", "iPhone", "Gucci", "cameras", "Prada", "watches"]`
 - 展示方式：每隔 3 秒切换到下一个词，淡入淡出动画；切换时显示为灰色占位文字（非实际输入内容）
 - 后续迭代：词库由运营后台配置（搜索配置页）+ 算法策略动态生成
 
-**Header 滚动行为**：
-- 向下滚动时：Header 保持 sticky（吸顶），始终可见
-- 向上滚动时：Header 无额外动画，始终可见
+**Header 滚动行为**：sticky 吸顶，始终可见。
 
 ### §3.2 PC 端 Header
 
-**PC 端分为两层**：Announcement Bar + Navbar。样式与交互见 [PC 端 Header & Footer 设计稿](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=1378-22993&p=f&t=RlXBrpSFytzKCkEh-0)。
+PC 端 Header 包含 Announcement Bar + Navbar，导航内容与结构详见[导航栏配置 PRD v1.2](looply-导航栏配置-PRD-v1.2.html)。样式见 [PC 端 Header & Footer 设计稿](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=1378-22993&p=f&t=RlXBrpSFytzKCkEh-0)。
 
-#### §3.2.1 Announcement Bar（公告条）
-
-- **高度**：40px
-- **背景色**：`#6432FC`（品牌紫）
-- **内容**：文字公告，MVP 一期前端硬编码文案（正式文案由运营提供）
-- **文字**：14px，白色，居中
-- **可关闭**：MVP 不做关闭按钮，始终展示
-
-#### §3.2.2 Navbar
-
-- **高度**：72px，背景色白色，底部 `1px solid #e5e7eb`
-- **三栏布局**：navLeft（Logo + NavLinks）/ searchBar（320px 居中）/ navRight（图标组）
-
-**navLeft（左栏）**：
-- Logo：Playfair Display Italic，`LOOPLY`，点击返回首页
-- NavLinks：一级导航入口列表，**内容与顺序由 CMS 导航栏配置统一管理**，非首页独有需求，详见[导航栏配置 PRD v1.2](looply-导航栏配置-PRD-v1.2.html)；字号 14px，Regular；hover 下划线；active 态文字加粗 + 品牌紫下划线
-
-**searchBar（中栏）**：
-- 宽度 320px，胶囊形，背景灰，内含搜索图标 + 占位词
-- MVP 阶段搜索框为占位，交互设计优先级靠后；预置搜索内容待搜推确认后再做
-- 点击后交互逻辑见 §4
-
-**navRight（右栏）**：
-- 图标样式与顺序以原型为准
-- 本期展示：**Market & Language 入口**（点击展开下拉浮层，见 §2.3）、**我的（Account）**（已登录 → hover 展开个人中心菜单；未登录 → 点击跳转登录页）
-- 搜索、收藏、购物车等其他图标**本期不在此处展示**
-
-**Navbar 滚动行为**：向下滚动后 Navbar sticky 吸顶（Announcement Bar 可滚动消失）。
-
-#### §3.2.3 PC 端导航下拉面板
-
-PC 端 Navbar 各 NavLink hover 时触发对应级别的下拉面板，浮于页面内容上方。
-
-**一级导航（无子分类，如 New Arrivals）**：
-- 点击高亮（文字加粗 + 品牌紫下划线）
-- 无下拉面板，直接跳转对应页面
-
-**二级导航（有子分类，如 Handbags）**：
-- hover 触发浮动白卡，从 Navbar 底部向下展开
-- 内容：2 列平铺子分类链接，无分组标题
-- 宽度约 460px，8px 圆角，阴影
-- 示例链接：Shop All Bags / Bucket Bag / Tote Bag / Crossbody Bag / Shoulder Bag / Clutch / Top Handle Bag / Belt Bag / Backpack / Luggage
-
-**三级导航（有品牌分组，如 Brands）—— MVP 采用版本 A**：
-- hover 触发全宽白色面板（full-width），紧贴 Navbar 底部向下展开，覆盖页面内容
-- 按二级目录分组，每组：组标题（粗体）+ 水平分割线 + 三级品牌名多列平铺（每组 4 列）
-- 组间有间距分割，品牌数量多的组自动增加行高
-- 待定：二级目录标题是否支持点击跳转，需产品确认
-
-> 📌 原型中保留了版本 B 方案（左侧二级分类竖向 Tab，hover 切换，右侧显示对应品牌列表）作为备选，MVP 阶段采用版本 A。
+**首页相关的补充说明**：
+- Announcement Bar：MVP 一期文案前端硬编码，正式文案由运营提供
+- Navbar 右侧（navRight）：本期展示 Market & Language 入口（见 §2.3）+ Account 入口（已登录 → hover 展开账户菜单；未登录 → 点击跳转登录页）；搜索、收藏、购物车图标本期不在首页展示
+- Navbar 滚动行为：向下滚动后 Navbar sticky 吸顶，Announcement Bar 可随页面滚动消失
 
 ---
 
@@ -298,7 +242,7 @@ PC 端 Navbar 各 NavLink hover 时触发对应级别的下拉面板，浮于页
 - MVP 一期：前端硬编码，内容如下：
   - 品类标签（Row 1，5 个）：`Luxury Bags`、`Watches`、`Jewelry`、`Smartphones`、`Cameras`
   - 品牌标签（Row 2，5 个）：`Gucci`、`Prada`、`Fendi`、`Leica`、`Sony`
-- 标签样式：浅色填充胶囊，14px，可点击；品类与品牌标签可用不同填充色区分
+- 标签样式：浅色填充胶囊，可点击；品类与品牌标签可用不同填充色区分
 - 点击标签：以标签文字为关键词提交搜索，记录到搜索历史，跳转搜索结果页
 - 后续迭代：支持运营后台配置 + 算法策略动态生成
 
@@ -346,17 +290,14 @@ Banner 是首页最顶部的视觉焦点，内容由 CMS 系统控制（见 CMS 
 
 **视觉设计**：[移动端设计稿 · Banner](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=452-127&p=f&t=RlXBrpSFytzKCkEh-0)
 
-- **尺寸**：full-width，高度 320px
 - **多条 Banner**：分页展示（Carousel / Swiper），底部居中分页圆点指示器
 - **自动轮播**：默认间隔 4 秒（可配置），点击暂停
-- **覆盖层**：图片下方从底部向上渐变黑色遮罩（用于文字可读性）
+- **覆盖层**：图片下方从底部向上渐变遮罩（用于文字可读性）
 - **文字排布**（从下到上）：`cta_text` 按钮 → `subtitle` → `title`；文字左对齐，文字颜色读取 `text_color`
 - **点击**：点击 Banner 任意区域（含 CTA 按钮）→ 跳转 `landing_page`
 
 ### §5.3 PC 端 Banner 展示规则
 
-- **尺寸**：full-width，高度 400px（原型稿定值）
-- CTA 按钮 padding 比移动端更宽
 - 其余规则同移动端（轮播、自动播放、点击跳转 `landing_page`）
 
 ### §5.4 降级策略
@@ -364,7 +305,7 @@ Banner 是首页最顶部的视觉焦点，内容由 CMS 系统控制（见 CMS 
 | 场景 | 处理 |
 |------|------|
 | 当前 market 无 active Banner 配置 | 隐藏 Banner 区域，页面从 Trust Bar 开始 |
-| 图片加载失败 | 显示品牌色填充背景（`#6432FC`），文字和 CTA 按钮正常显示 |
+| 图片加载失败 | 显示品牌色填充背景，文字和 CTA 按钮正常显示 |
 | 视频加载失败 | 自动降级展示 `asset_image`；若 `asset_image` 也加载失败，处理方式同图片加载失败 |
 
 ---
@@ -425,12 +366,12 @@ PC 端（4×1 横排）：
 
 > ⚠️ **文案待最终确认**：以上文案来自设计稿占位内容，运营提供最终版本后直接替换硬编码值。
 
-每个条目配有一张缩略图（约 60×60px），图片资源由设计同步提供，前端静态引入。
+每个条目配有一张缩略图，图片资源由设计同步提供，前端静态引入。
 
 ### §6.2 展示规则
 
 - **移动端**：2 列 × 2 行网格，每格显示图标 + 标题 + 副文案
-- **PC 端**：4 列 × 1 行网格，布局更宽松
+- **PC 端**：4 列 × 1 行横排
 - Trust Bar 区域不可点击（无跳转行为）
 - Trust Bar 不受 market_id 影响，全市场统一内容
 
@@ -469,18 +410,15 @@ Curated Collections
  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
  │          │  │          │  │          │  │  ...     │
  │  封面图   │  │  封面图   │  │  封面图   │  │  (更多)  │
- │  180px   │  │  180px   │  │  180px   │  │          │
  │          │  │          │  │          │  │          │
  │  Title   │  │  Title   │  │  Title   │  │  Title   │
  └──────────┘  └──────────┘  └──────────┘  └──────────┘
-  180×220px，圆角12px，点击→ landing_page，最多8张
+  横向滚动，点击→ landing_page，最多8张
 ```
 
 **Section 标题**：`Curated Collections`（前端固定文案）
 
 - 布局：横向单行滚动（horizontal scroll），左右滑动浏览更多
-- 每张卡片：宽度 180px，高度约 220px，图片 + 标题
-- 卡片圆角：12px
 - 最多展示 8 张（由 CMS 活跃配置数决定）
 - 点击卡片：跳转 `landing_page`
 
@@ -488,8 +426,7 @@ Curated Collections
 
 **Section 标题**：`Curated Collections` 或 `Explore Our Collection`（跟随设计稿确定）
 
-- 布局：多列网格（3-4 列），不横向滚动
-- 卡片尺寸比移动端大，图片 aspect-ratio 16:9 或 4:3
+- 布局：多列网格，不横向滚动
 - 悬停（hover）：封面图轻微缩放效果
 - 其余规则同移动端
 
@@ -511,7 +448,7 @@ Feed 流展示平台上的个性化推荐商品，位于 Collections 下方，�
 **视觉设计**：[移动端设计稿 · Feed Tab](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=452-127&p=f&t=RlXBrpSFytzKCkEh-0)
 
 **Tab 样式**：胶囊式（pill style）
-- 激活 Tab：深色背景填充（`$color-ink-primary`），白色文字
+- 激活 Tab：深色背景填充，白色文字
 - 未激活 Tab：透明背景，深色文字，边框
 - Tab 容器：横向排列，左对齐，可横向滚动（如 Tab 超出宽度）
 
@@ -535,8 +472,8 @@ Feed 流展示平台上的个性化推荐商品，位于 Collections 下方，�
 ### §8.2 商品卡片规格
 
 **布局**：
-- 移动端：2 列等宽网格，列间距 8px，行间距 12px
-- PC 端：4 列等宽网格，列间距 12px，行间距 16px
+- 移动端：2 列等宽网格
+- PC 端：4 列等宽网格
 
 **卡片字段**：
 
@@ -578,8 +515,8 @@ Feed 流展示平台上的个性化推荐商品，位于 Collections 下方，�
 - 加载中：View More 按钮显示 loading 状态
 - 所有商品加载完毕：隐藏 View More 按钮，显示"You've seen it all"
 
-**移动端**保持原有无限滚动逻辑（见原 §8.4）：
-- 首屏约 20 个商品，滚动至距底部约 200px 触发加载下一页
+**移动端**保持原有无限滚动逻辑：
+- 首屏约 20 个商品，滚动至接近底部时触发加载下一页
 - 加载失败：底部显示 Retry 按钮
 
 **Section 标题**：`Explore Finds`（前端固定文案），紧贴 Tab 行上方。
@@ -590,21 +527,18 @@ Feed 流展示平台上的个性化推荐商品，位于 Collections 下方，�
 
 **视觉设计**：[移动端设计稿 · Tab Bar](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=452-127&p=f&t=RlXBrpSFytzKCkEh-0)
 
-**高度**：60px（含安全区域底部 inset 自适应）
-**背景**：毛玻璃效果（backdrop-filter: blur），半透明白色
-**位置**：fixed 吸底，内容页面可滚动穿透 Tab Bar 下方
+**位置**：fixed 吸底，内容页面可滚动穿透 Tab Bar 下方。
 
 **Tab 列表**：
 
-| Tab | 图标 | 激活状态 |
-|-----|------|---------|
-| Home | house 形 | filled icon，标签文字加粗 |
-| Shop | grid / search 形 | filled icon，标签文字加粗 |
-| Favorites | heart 形 | filled icon，标签文字加粗 |
-| Account | person 形 | filled icon，标签文字加粗 |
+| Tab | 激活状态 |
+|-----|---------|
+| Home | filled icon，品牌色 |
+| Shop | filled icon |
+| Favorites | filled icon |
+| Account | filled icon |
 
-- 图标 24×24px，标签文字 10px
-- 激活 Tab：filled 图标 + 加粗文字 + 品牌色（`$color-brand-primary`）
+- 激活 Tab：filled 图标 + 加粗文字 + 品牌色
 - 非激活：outline 图标 + 灰色
 
 **首页对应**：Tab Bar 中 Home 为激活态
@@ -617,14 +551,13 @@ PC 端首页最底部展示通用 Footer。移动端首页无 Footer（由 Tab B
 
 **视觉设计**：[PC 端设计稿 · 首页全页](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=1474-30799&p=f&t=RlXBrpSFytzKCkEh-0)
 
-**页面纵向结构**（从上到下）：Announcement Bar（40px）→ Navbar（72px，sticky）→ Banner（400px）→ Trust Bar（4列横排）→ Curated Collections（3-4列网格）→ Explore Finds（4列网格，默认 16 个，View More 追加加载）→ Footer（深色背景）
+**页面纵向结构**（从上到下）：Announcement Bar → Navbar（sticky）→ Banner → Trust Bar → Curated Collections → Explore Finds（View More 追加加载）→ Footer
 
 **Footer 内容（MVP 版）**：
 
 > ℹ️ MVP 阶段 Footer 内容与 Shopify 默认保持一致，内容不变。参考【Footer截图（shopify）】。Footer 内所有交互、跳转、二级页面暂不设计。如有余力可重新排版，优先级靠后，不强制。
 
-- Footer 背景色：深色（`#1a1a2e` 或设计稿定义值）
-- 文字颜色：白色
+- Footer 背景色：深色（见设计稿）
 - 底部版权：`© 2026 Looply. All rights reserved.`
 
 ---
@@ -717,9 +650,9 @@ PC 端首页最底部展示通用 Footer。移动端首页无 Footer（由 Tab B
 - Search 展开卡（Recent Searches + Hot Trends 硬编码，仅移动端）；PC 端搜索框为占位，展开态本期不设计
 - home_banner + home_collection CMS 资源位
 - Trust Bar 硬编码（待运营文案）
-- PC 端 Navbar：NavLinks 由导航栏配置 PRD 管理；navRight 本期展示 Market & Language + Account；搜索/收藏/购物车图标本期不在首页展示，其展开态不属于首页交付范围
+- PC 端 Navbar：NavLinks 内容与结构见[导航栏配置 PRD v1.2](looply-导航栏配置-PRD-v1.2.html)；navRight 本期展示 Market & Language + Account；搜索/收藏/购物车图标本期不在首页展示，其展开态不属于首页交付范围
 - PC 端 Navbar Account 交互：未登录 → Sign In 引导浮层；已登录 → 账户菜单（My Orders / My Profile / Settings / Sign Out）；浮层外点击关闭
-- PC 端 Navbar：含二级/三级导航展开面板（三级 Brands 面板采用版本 A：多组横排，4列，组间分割线）
+- PC 端 Navbar：含二级/三级导航展开面板（结构见导航栏配置 PRD，Brands Mega Menu MVP 采用版本 A）
 - Feed 两 Tab（For You / New Arrivals），Best Sellers 和 Deals 隐藏
 - 商品卡片（无促销价）
 - PC 端 Feed 分页加载：默认 16 个，View More 追加 4 行，无页码
@@ -800,6 +733,8 @@ Feed 相关埋点的详细定义见《Looply 首页 Feed PRD v2.3》§10 行为�
 | C26 | §8.2 价格展示规则 | 删除「❌ 不展示促销价（营销系统未就绪）」一行 | 避免与已实现的双价格逻辑产生混淆 |
 | C27 | §2.3 / §3.1 / §4.1 / §4.2 / §5.2 / §8.1 / §8.3 / §9 / §10 | 删除各章节 ASCII 线框图；替换为对应 Figma 链接（移动端全页 / PC 端全页 / PC 端 Header & Footer） | 线框图由手绘维护成本高且易与设计稿失同步，统一以 Figma 为唯一视觉基准 |
 | C28 | §17 附录 — 设计稿索引 | 更新设计稿索引，全部替换为用户提供的 Figma 链接（PC 全页 / PC Header & Footer / 移动端全页） | 原索引指向已过期的 Untitled Figma 文件和本地 .pen 文件，对齐最新设计稿 |
+| C29 | §3 顶部导航 Header | §3.2 PC 端 Header 大幅精简：删除 §3.2.1 Announcement Bar 详细规格、§3.2.2 Navbar 三栏尺寸布局描述、§3.2.3 导航下拉面板全部内容；改为「详见导航栏配置 PRD v1.2」链接，仅保留首页专有的补充说明（Announcement Bar 文案策略、navRight 本期展示范围、滚动行为） | 导航结构在导航栏配置 PRD 中已完整定义，首页 PRD 不重复 |
+| C30 | 全文 | 删除所有像素值、尺寸数字、颜色色值、字号、边距等视觉规范描述（`52px`、`320px`、`#6432FC`、`14px`、`border-radius: 18px`、`$color-ink-primary` 等） | 视觉规范由 Figma 承载，PRD 负责功能逻辑，不应描述设计师职责范围内的内容 |
 
 ### v1.3 · 2026-07-02
 
