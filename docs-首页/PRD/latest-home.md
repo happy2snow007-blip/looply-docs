@@ -105,40 +105,11 @@ Looply 是面向美国市场的大牌二手电商平台。首页是用户进入 
 
 ## §2 全局上下文 — Market & Language
 
-首页加载时，系统需确定当前用户所在的 Market 以及使用的语言。此上下文影响资源位内容、货币显示。
+首页加载时，系统需确定当前用户的语言和所在 Market。执行顺序：**先判断语言**（客户端信号随时可得），**再判断国家 → 推导市场**（需服务端参与）。
 
-### §2.1 市场（Market）自动识别机制
+### §2.1 语言（Language）自动识别机制
 
-用户所在的 **country** 决定 **market**：每个 country 唯一隶属于一个 market（`market_country` 表），系统先确定 `country_code`，再映射至唯一的 `market_id`。
-
-App 端和 Web 端可获取的信号不同，优先级分别如下：
-
-**App 端**
-
-| 优先级 | 来源 | 说明 |
-|--------|------|------|
-| 1 | 用户已保存的选择 | 持久化存储（见 §2.4）中的 `saved_country_code` → 映射 `market_id` |
-| 2 | 设备位置 | 用户已授权时，系统 Location API（GPS + WiFi 融合）取经纬度 → 反解 `country_code` |
-| 3 | IP 地理位置 | 服务端请求 IP → GeoIP 库 → `country_code`；VPN/代理场景可能偏差 |
-| 4 | 语言推断 | 系统首选语言 → `market_language.default_language_code` 匹配的 market；多个匹配取 `market.priority` 最高的 |
-| 5 | 默认兜底 | US 市场，货币 USD |
-
-**Web 端**
-
-| 优先级 | 来源 | 说明 |
-|--------|------|------|
-| 1 | 用户已保存的选择 | localStorage 中的 `saved_country_code` → 映射 `market_id` |
-| 2 | IP 地理位置 | 服务端请求 IP → GeoIP 库 → `country_code`；VPN/代理场景可能偏差 |
-| 3 | 语言推断 | `Accept-Language` / `navigator.language` 首项 → `market_language.default_language_code` 匹配的 market；多个匹配取 `market.priority` 最高的 |
-| 4 | 默认兜底 | US 市场，货币 USD |
-
-**country_code → market_id 映射规则**（来自 Market PRD v1.2）：
-- 查 `market_country` 表，找 `country_code` 匹配且 `market.status = 'running'` 的记录
-- 每个 country 唯一隶属于一个 market，无多映射情况
-
-**时机**：首页 SSR/初始化请求时由服务端完成判断，结果通过 `market_id` + `currency_code` 随页面数据下发。客户端不重复检测。
-
-### §2.2 语言（Language）自动识别机制
+语言信号来自客户端，不依赖任何服务端查询，优先于国家/市场识别执行。
 
 **App 端**
 
@@ -155,6 +126,37 @@ App 端和 Web 端可获取的信号不同，优先级分别如下：
 | 1 | 用户已保存的选择 | localStorage 中的 `saved_language_code` |
 | 2 | 浏览器语言 | `navigator.language` 或 `Accept-Language` 首项 |
 | 3 | 默认兜底 | `en` |
+
+### §2.2 国家与市场（Country & Market）自动识别机制
+
+**国家永远先于市场确定**：系统所有信号给出的都是 `country_code`，market 只能通过 `market_country` 表查询得出，不存在"不知道国家但直接知道市场"的情况。
+
+**第一步：确定 country_code**
+
+App 端和 Web 端可用信号不同：
+
+**App 端**
+
+| 优先级 | 来源 | 说明 |
+|--------|------|------|
+| 1 | 用户已保存的选择 | 持久化存储（见 §2.4）中的 `saved_country_code` |
+| 2 | 设备位置 | 用户已授权时，系统 Location API（GPS + WiFi 融合）取经纬度 → 反解 `country_code` |
+| 3 | IP 地理位置 | 服务端请求 IP → GeoIP 库 → `country_code`；VPN/代理场景可能偏差 |
+| 4 | 默认兜底 | `US` |
+
+**Web 端**
+
+| 优先级 | 来源 | 说明 |
+|--------|------|------|
+| 1 | 用户已保存的选择 | localStorage 中的 `saved_country_code` |
+| 2 | IP 地理位置 | 服务端请求 IP → GeoIP 库 → `country_code`；VPN/代理场景可能偏差 |
+| 3 | 默认兜底 | `US` |
+
+**第二步：country_code → market_id**
+
+查 `market_country` 表，找 `country_code` 匹配且 `market.status = 'running'` 的记录。每个 country 唯一隶属于一个 market，无歧义。若 country 不在任何 running market 下（如来自未上线地区），使用 US market 兜底。
+
+**时机**：首页 SSR/初始化请求时由服务端完成，结果通过 `market_id` + `currency_code` 随页面数据下发。客户端不重复检测。
 
 ### §2.3 Market & Language 切换面板
 
@@ -772,6 +774,7 @@ Feed 相关埋点的详细定义见《Looply 首页 Feed PRD v2.3》§10 行为�
 | C35 | §2.3 切换面板 | 面板下部从"Market 单选列表"改为"Country 单选列表"；候选项改为展示 running market 下属所有 country；Apply 动作说明改为 country_code → market_id 映射；字段映射表相应更新 | 用户实际选择的是国家，不是 market；market 由 country 唯一推导 |
 | C36 | §2.4 持久化 / §16.1 埋点 | 持久化字段改为 `saved_country_code`；`market_language_save` 埋点增加 `new_country_code` 参数 | 对齐 C33/C35 变更 |
 | C37 | §2.2 语言识别机制 | 删除"Market 默认语言"兜底档（App 第 3 档 / Web 第 3 档）；语言判断只依赖自身信号，不引入市场字段 | 语言和市场互相兜底是循环依赖，逻辑错误；语言信号（系统语言/浏览器语言）足以兜底，无需绕回市场 |
+| C38 | §2 整体结构重排 | §2.1/§2.2 互换位置：语言识别调至 §2.1（先执行），国家与市场识别调至 §2.2（后执行）；§2.2 标题改为"国家与市场自动识别机制"，明确两步流程：先取 country_code，再查表得 market_id；删除语言推断兜底；删除"未上线地区兜底 US market"补充说明 | 语言信号客户端立即可得，国家需服务端参与，执行顺序应反映真实依赖；"不知道国家直接知道市场"不存在，原语言推断 market 逻辑不合理一并删除 |
 
 ### v1.3 · 2026-07-02
 
