@@ -414,11 +414,38 @@ interface HomeSeoConfig {
 
 ---
 
-## 十五、版本变更日志
+## 十五、翻译模块对接清单
+
+> V1.0 上线（美国英语单市场）全部内容英文硬编码，**无需实际翻译**。本节为预对接需求：提前向翻译侧注册 resource_type 和字段清单，多语言启动时 CMS 写入接口直接对接，无需临时补设计。
+
+### 15.1 需要提给翻译侧的（CMS 运营动态配置内容）
+
+| 内容 | resource_type | field_name | 说明 |
+|------|--------------|------------|------|
+| Banner 标题 | `cms_home_banner` | `title` | 运营在 CMS 填写，每条配置独立；resource_id = config.id |
+| Banner 副标题 | `cms_home_banner` | `subtitle` | 同上 |
+| Collection 标题 | `cms_home_collection` | `title` | 同上 |
+| Collection 副标题 | `cms_home_collection` | `subtitle` | 同上 |
+| 首页 SEO Meta Title | `cms_home_seo` | `meta_title` | 首页级别，resource_id = market_id |
+| 首页 SEO Meta Description | `cms_home_seo` | `meta_desc` | 同上 |
+
+> 以上 resource_type 命名需与翻译侧确认后在 `translatable_field_config` 表注册。翻译模块 PRD v3.1 §3.2 将「Banner / 运营配置」标注为「模块未设计」，这是首次提出对接需求。
+
+### 15.2 不需要提给翻译侧的
+
+| 内容 | 类型 | 说明 |
+|------|------|------|
+| 配置名称（config_name） | 不翻译 | 运营内部备注，不对外展示 |
+| CMS 后台界面文字 | 不翻译 | 运营使用，固定语言 |
+| OG 分享图 | 不翻译 | 图片不区分语言 |
+
+---
+
+## 十六、版本变更日志
 
 ### v1.2（2026-07-08）
 
-基于原型 v1.4 更新，新增首页 SEO 配置模块。
+基于原型 v1.4 更新。
 
 | # | 章节 | 变更内容 | 变更原因 |
 |---|------|---------|---------|
@@ -426,6 +453,8 @@ interface HomeSeoConfig {
 | 2 | 新增 §九 SEO 配置 | 全新章节：入口、字段（Meta Title / Meta Description / OG 图）、Google 预览、保存逻辑、市场维度说明 | 需要让运营可配置首页 SEO 元数据 |
 | 3 | §九–§十四 章节编号 | 原 §九 预览面板 → §十；原 §十–§十四 依次 +1 | 新增 §九 SEO 章节后顺序后移 |
 | 4 | §十四 数据结构 | 新增 `HomeSeoConfig` 接口 | 同 §九 SEO 配置新增 |
+| 5 | 新增 §十五 翻译模块对接清单 | 明确需提给翻译侧的 CMS 动态内容字段（Banner/Collection/SEO，resource_type + field_name）；不需翻译侧介入的内容单独列出 | 与翻译模块预对接，多语言启动时无需临时补设计 |
+| 6 | §十五→§十六 章节编号 | 原 §十五 版本变更日志 → §十六 | 新增 §十五 翻译对接章节后顺序后移 |
 
 ---
 
