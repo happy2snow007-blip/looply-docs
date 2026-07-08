@@ -161,18 +161,12 @@ App 端和 Web 端可用信号不同：
 ### §2.3 Market & Language 切换面板
 
 **入口**：
-- 移动端：Header 右侧 Globe 图标（市场与语言设置）
-- PC 端：Navbar 右侧 Globe 图标
+- 移动端：入口位于"我的"页面的 Settings 中，具体位置和交互以"我的"页面设计稿为准（设计稿暂未上传，待补充）
+- PC 端：Navbar 右侧 Globe 图标，点击展开下拉浮层
 
-> ⚠️ 当前方案：语言和市场设置入口在 Globe 图标。后续建议收口到 Account 页进行手动设置（Account 功能待设计）。
+**PC 端面板**
 
-**面板形态**：
-- 移动端：从 Header 下方向下展开（dropdown），背景遮罩
-- PC 端：下拉浮层，出现在 Globe 图标正下方
-
-**视觉设计**：见 Figma 设计稿
-- 移动端：[移动端设计稿 · Market & Language 面板](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=452-127&p=f&t=RlXBrpSFytzKCkEh-0)
-- PC 端：[PC 端 Header & Footer](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=1378-22993&p=f&t=RlXBrpSFytzKCkEh-0)
+视觉设计：[PC 端 Header & Footer](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=1378-22993&p=f&t=RlXBrpSFytzKCkEh-0)
 
 **面板结构（先语言，后国家）**：上部为 Language 单选列表，下部为 Country 单选列表（国旗 + 国家名 + 该国所属 market 货币代码），底部 Apply 按钮。
 
@@ -775,6 +769,7 @@ Feed 相关埋点的详细定义见《Looply 首页 Feed PRD v2.3》§10 行为�
 | C36 | §2.4 持久化 / §16.1 埋点 | 持久化字段改为 `saved_country_code`；`market_language_save` 埋点增加 `new_country_code` 参数 | 对齐 C33/C35 变更 |
 | C37 | §2.2 语言识别机制 | 删除"Market 默认语言"兜底档（App 第 3 档 / Web 第 3 档）；语言判断只依赖自身信号，不引入市场字段 | 语言和市场互相兜底是循环依赖，逻辑错误；语言信号（系统语言/浏览器语言）足以兜底，无需绕回市场 |
 | C38 | §2 整体结构重排 | §2.1/§2.2 互换位置：语言识别调至 §2.1（先执行），国家与市场识别调至 §2.2（后执行）；§2.2 标题改为"国家与市场自动识别机制"，明确两步流程：先取 country_code，再查表得 market_id；删除语言推断兜底；删除"未上线地区兜底 US market"补充说明 | 语言信号客户端立即可得，国家需服务端参与，执行顺序应反映真实依赖；"不知道国家直接知道市场"不存在，原语言推断 market 逻辑不合理一并删除 |
+| C39 | §2.3 切换面板 | 移动端入口改为"我的"页面 Settings，删除 Header Globe 图标描述及移动端 Figma 链接（设计稿未上传）；PC 端保留原有描述；交互规则/字段映射不变 | 移动端设计稿未上传，原 Figma 链接和入口描述均为错误信息 |
 
 ### v1.3 · 2026-07-02
 
