@@ -206,6 +206,9 @@ PC 端 Header 包含 Announcement Bar + Navbar，导航内容与结构详见[导
 
 ## §4 搜索功能
 
+> ⚠️ **本章节为搜索功能框架说明，搜索展开样式、内容策略（Hot Trends 词库、联想词逻辑）均由搜推团队负责设计与实现，首页 PRD 不定义具体搜索逻辑。**
+> **开发阶段暂时只保留搜索 icon 占位，展开态留白，待搜推团队补充设计后统一接入。**
+
 ### §4.1 搜索栏状态机
 
 **状态转换图**：[移动端设计稿 · 搜索展开态](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=452-127&p=f&t=RlXBrpSFytzKCkEh-0)
@@ -446,6 +449,12 @@ Feed 流展示平台上的个性化推荐商品，位于 Collections 下方，�
 ### §8.1 Tab 结构
 
 **视觉设计**：[移动端设计稿 · Feed Tab](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=452-127&p=f&t=RlXBrpSFytzKCkEh-0)
+
+**Tab 吸顶行为**：
+- 页面向下滚动，当 Feed Tab 行到达顶部（移动端为 Header 底部，PC 端为 Navbar 底部）时，Tab 行开始 sticky 吸顶
+- 吸顶期间 Tab 始终可见，用户可随时切换 For You / New Arrivals，不需要回滚到顶部
+- 移动端吸顶时 Tab 行叠加在 Header 正下方；PC 端叠加在 Navbar 正下方
+- 滚动回到 Feed 区域顶部以上时，Tab 行恢复原始位置（不再吸顶）
 
 **Tab 样式**：胶囊式（pill style）
 - 激活 Tab：深色背景填充，白色文字
@@ -735,6 +744,8 @@ Feed 相关埋点的详细定义见《Looply 首页 Feed PRD v2.3》§10 行为�
 | C28 | §17 附录 — 设计稿索引 | 更新设计稿索引，全部替换为用户提供的 Figma 链接（PC 全页 / PC Header & Footer / 移动端全页） | 原索引指向已过期的 Untitled Figma 文件和本地 .pen 文件，对齐最新设计稿 |
 | C29 | §3 顶部导航 Header | §3.2 PC 端 Header 大幅精简：删除 §3.2.1 Announcement Bar 详细规格、§3.2.2 Navbar 三栏尺寸布局描述、§3.2.3 导航下拉面板全部内容；改为「详见导航栏配置 PRD v1.2」链接，仅保留首页专有的补充说明（Announcement Bar 文案策略、navRight 本期展示范围、滚动行为） | 导航结构在导航栏配置 PRD 中已完整定义，首页 PRD 不重复 |
 | C30 | 全文 | 删除所有像素值、尺寸数字、颜色色值、字号、边距等视觉规范描述（`52px`、`320px`、`#6432FC`、`14px`、`border-radius: 18px`、`$color-ink-primary` 等） | 视觉规范由 Figma 承载，PRD 负责功能逻辑，不应描述设计师职责范围内的内容 |
+| C31 | §8.1 Feed Tab | 新增 Tab 吸顶行为：滚动至 Tab 行触顶时开始 sticky，移动端吸于 Header 下方，PC 端吸于 Navbar 下方，回滚至 Feed 区域上方后恢复 | 保证深度浏览时用户始终可切换 Tab，无需回滚顶部 |
+| C32 | §4 搜索功能 | 在章节顶部新增免责说明：搜索展开样式及内容策略由搜推团队负责；开发阶段暂仅保留搜索 icon 占位，展开态留白待搜推补充 | 避免开发按 PRD 示例实现搜索展开 UI，造成后续搜推方案接入困难 |
 
 ### v1.3 · 2026-07-02
 
