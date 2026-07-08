@@ -1,0 +1,320 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1088pt" height="545pt" viewBox="0.00 0.00 1088.00 545.00">
+<metadata><er-schema format="json" version="1.0">
+{
+  "title": "looply · 购物车 实体关系图",
+  "version": "v1.2 · 2026-06-29",
+  "tables": [
+    {
+      "name": "cart_item",
+      "comment": "购物车项",
+      "columns": [
+        {
+          "name": "id",
+          "comment": "主键",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "user_id",
+          "comment": "用户ID（登录用户，nullable）",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "device_token",
+          "comment": "匿名设备标识（cookie UUID，nullable）",
+          "constraint": ""
+        },
+        {
+          "name": "listing_id",
+          "comment": "渠道商品ID",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "quantity",
+          "comment": "数量（默认1）",
+          "constraint": ""
+        },
+        {
+          "name": "selected",
+          "comment": "是否勾选（默认true，持久化）",
+          "constraint": ""
+        },
+        {
+          "name": "price_at_added",
+          "comment": "加入时价格（来源 listing_price）",
+          "constraint": ""
+        },
+        {
+          "name": "added_at",
+          "comment": "加入时间",
+          "constraint": ""
+        },
+        {
+          "name": "updated_at",
+          "comment": "更新时间",
+          "constraint": ""
+        }
+      ],
+      "note": "匿名用户通过 device_token 识别，登录后合并到 user_id；删除即硬删除；售罄由 listing 实时状态判定"
+    },
+    {
+      "name": "user",
+      "comment": "用户（外部）",
+      "columns": [
+        {
+          "name": "id",
+          "comment": "用户ID",
+          "constraint": "PRIMARY KEY"
+        }
+      ],
+      "note": "来自登录注册模块，购物车只读取 user_id"
+    },
+    {
+      "name": "listing",
+      "comment": "渠道商品（外部）",
+      "columns": [
+        {
+          "name": "listing_id",
+          "comment": "渠道商品ID",
+          "constraint": "PRIMARY KEY"
+        }
+      ],
+      "note": "来自商品模块，购物车读取 listing_id + listing_price + 实时库存/上架状态"
+    }
+  ],
+  "relations": [
+    {
+      "from": "cart_item",
+      "to": "user",
+      "type": "N:1",
+      "label": "所属用户",
+      "color": "#1565C0",
+      "penwidth": 1.4
+    },
+    {
+      "from": "cart_item",
+      "to": "listing",
+      "type": "N:1",
+      "label": "关联渠道商品",
+      "color": "#1565C0",
+      "penwidth": 1.4
+    }
+  ],
+  "design_rules": {
+    "anonymous_cart": "匿名用户通过 device_token（cookie 存储的 UUID）识别，购物车数据存服务端，支持匿名阶段库存校验",
+    "login_merge": "登录时将 device_token 关联的购物车项合并到 user_id 下：同一 listing 已存在则保留已登录侧、删除匿名侧；不冲突则迁移",
+    "owner_rule": "user_id 和 device_token 二选一非空：已登录用户 user_id 非空 + device_token 为空，匿名用户反之",
+    "quantity_default_1": "二手单库存场景 quantity 默认为 1；字段保留是为了数据模型标准化和未来扩品类",
+    "selected_persist": "selected 勾选状态持久化到数据库（default true），用户下次进入购物车保持上次勾选状态",
+    "no_status": "无 status 字段，删除购物车项 = 硬删除行（无软删除需求）",
+    "no_timeout_cleanup": "不做购物车超时清理，商品下架/售出后通过 listing 实时状态自然变为 Sold Out",
+    "sold_out_realtime": "售罄判定基于 listing 实时库存/上架状态查询，不在 cart_item 表冗余存储",
+    "price_at_added": "记录加入时价格（来源 listing_price），用于前端展示\"价格已变动\"提示（二手商品价格调整频繁）",
+    "stock_recheck": "结算页两次库存校验：进入结算页时提示已售商品，下单时最终锁库存",
+    "uk_user_listing": "唯一约束分两套：已登录 user_id + listing_id 联合唯一，匿名 device_token + listing_id 联合唯一",
+    "cart_limit": "单用户购物车上限 100 件（登录/匿名各自独立计数）；达到上限时加购提示 \"Your cart is full (100 items). Remove or move items to your Wishlist to add more.\""
+  }
+}
+</er-schema><er-tech-spec format="yaml"><![CDATA[
+title: looply · 购物车 实体关系图
+version: v1.2 · 2026-06-29
+tables:
+- name: cart_item
+  comment: 购物车项
+  note: 匿名用户通过 device_token 识别，登录后合并到 user_id；删除即硬删除；售罄由 listing 实时状态判定
+  columns:
+  - name: id
+    comment: 主键
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: user_id
+    comment: 用户ID（登录用户，nullable）
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: device_token
+    comment: 匿名设备标识（cookie UUID，nullable）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: listing_id
+    comment: 渠道商品ID
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: quantity
+    comment: 数量（默认1）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: selected
+    comment: 是否勾选（默认true，持久化）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: price_at_added
+    comment: 加入时价格（来源 listing_price）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: added_at
+    comment: 加入时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: updated_at
+    comment: 更新时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: user
+  comment: 用户（外部）
+  note: 来自登录注册模块，购物车只读取 user_id
+  columns:
+  - name: id
+    comment: 用户ID
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: listing
+  comment: 渠道商品（外部）
+  note: 来自商品模块，购物车读取 listing_id + listing_price + 实时库存/上架状态
+  columns:
+  - name: listing_id
+    comment: 渠道商品ID
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+relations:
+- from: cart_item
+  to: user
+  type: N:1
+  label: 所属用户
+  color: '#1565C0'
+  penwidth: 1.4
+- from: cart_item
+  to: listing
+  type: N:1
+  label: 关联渠道商品
+  color: '#1565C0'
+  penwidth: 1.4
+design_rules:
+  anonymous_cart: 匿名用户通过 device_token（cookie 存储的 UUID）识别，购物车数据存服务端，支持匿名阶段库存校验
+  login_merge: 登录时将 device_token 关联的购物车项合并到 user_id 下：同一 listing 已存在则保留已登录侧、删除匿名侧；不冲突则迁移
+  owner_rule: user_id 和 device_token 二选一非空：已登录用户 user_id 非空 + device_token 为空，匿名用户反之
+  quantity_default_1: 二手单库存场景 quantity 默认为 1；字段保留是为了数据模型标准化和未来扩品类
+  selected_persist: selected 勾选状态持久化到数据库（default true），用户下次进入购物车保持上次勾选状态
+  no_status: 无 status 字段，删除购物车项 = 硬删除行（无软删除需求）
+  no_timeout_cleanup: 不做购物车超时清理，商品下架/售出后通过 listing 实时状态自然变为 Sold Out
+  sold_out_realtime: 售罄判定基于 listing 实时库存/上架状态查询，不在 cart_item 表冗余存储
+  price_at_added: 记录加入时价格（来源 listing_price），用于前端展示"价格已变动"提示（二手商品价格调整频繁）
+  stock_recheck: 结算页两次库存校验：进入结算页时提示已售商品，下单时最终锁库存
+  uk_user_listing: 唯一约束分两套：已登录 user_id + listing_id 联合唯一，匿名 device_token + listing_id 联合唯一
+  cart_limit: 单用户购物车上限 100 件（登录/匿名各自独立计数）；达到上限时加购提示 "Your cart is full (100 items). Remove or move items to your Wishlist
+    to add more."
+]]></er-tech-spec></metadata><g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(57.6 487.6)">
+<title>ER</title>
+<polygon fill="#f8f9fc" stroke="none" points="-57.6,57.6 -57.6,-487.6 1030.1,-487.6 1030.1,57.6 -57.6,57.6" />
+<g id="clust1" class="cluster">
+<title>cluster_cart</title>
+<path fill="#ebf3fb" stroke="#a3c4e9" stroke-width="2.5" d="M20,-8C20,-8 490.25,-8 490.25,-8 496.25,-8 502.25,-14 502.25,-20 502.25,-20 502.25,-410 502.25,-410 502.25,-416 496.25,-422 490.25,-422 490.25,-422 20,-422 20,-422 14,-422 8,-416 8,-410 8,-410 8,-20 8,-20 8,-14 14,-8 20,-8" />
+<text xml:space="preserve" text-anchor="start" x="233.75" y="-405.7" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="#4a90d9">购物车</text>
+</g>
+<g id="clust2" class="cluster">
+<title>cluster_external</title>
+<path fill="#f5f5f5" stroke="#bdbdbd" stroke-width="2.5" d="M606,-68C606,-68 952.5,-68 952.5,-68 958.5,-68 964.5,-74 964.5,-80 964.5,-80 964.5,-330 964.5,-330 964.5,-336 958.5,-342 952.5,-342 952.5,-342 606,-342 606,-342 600,-342 594,-336 594,-330 594,-330 594,-80 594,-80 594,-74 600,-68 606,-68" />
+<text xml:space="preserve" text-anchor="start" x="708" y="-325.7" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="#757575">外部引用（其他模块）</text>
+</g>
+
+<g id="node1" class="node">
+<title>cart_item</title>
+<polygon fill="#4a90d9" stroke="none" points="26,-343.5 26,-375.75 413,-375.75 413,-343.5 26,-343.5" />
+<text xml:space="preserve" text-anchor="start" x="157.25" y="-357.45" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">购物车项 cart_item</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-322.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 主键</text>
+<text xml:space="preserve" text-anchor="start" x="434.75" y="-322.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-290.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">user_id 用户ID（登录用户，nullable）</text>
+<text xml:space="preserve" text-anchor="start" x="435.12" y="-290.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-258" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">device_token 匿名设备标识（cookie UUID，nullable）</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-225.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">listing_id 渠道商品ID</text>
+<text xml:space="preserve" text-anchor="start" x="435.12" y="-225.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-193.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">quantity 数量（默认1）</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-161.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">selected 是否勾选（默认true，持久化）</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-129" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">price_at_added 加入时价格（来源 listing_price）</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-96.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">added_at 加入时间</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-64.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">updated_at 更新时间</text>
+<polygon fill="#e3f2fd" stroke="none" points="26,-26.25 26,-53.25 484.25,-53.25 484.25,-26.25 26,-26.25" />
+<text xml:space="preserve" text-anchor="start" x="32" y="-38.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">匿名用户通过 device_token 识别，登录后合并到 user_id；删除即硬删除；售罄由 listing 实时状态判定</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="25,-25.25 25,-376.75 485.25,-376.75 485.25,-25.25 25,-25.25" />
+</g>
+
+<g id="node2" class="node">
+<title>user</title>
+<polygon fill="#9e9e9e" stroke="none" points="682.12,-263.5 682.12,-295.75 825,-295.75 825,-263.5 682.12,-263.5" />
+<text xml:space="preserve" text-anchor="start" x="693.94" y="-277.45" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">用户（外部） user</text>
+<text xml:space="preserve" text-anchor="start" x="688.12" y="-242.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 用户ID</text>
+<text xml:space="preserve" text-anchor="start" x="836.81" y="-242.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<polygon fill="#e3f2fd" stroke="none" points="682.12,-204.25 682.12,-231.25 876.38,-231.25 876.38,-204.25 682.12,-204.25" />
+<text xml:space="preserve" text-anchor="start" x="688.12" y="-216.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">来自登录注册模块，购物车只读取 user_id</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="681.12,-203.25 681.12,-296.75 877.38,-296.75 877.38,-203.25 681.12,-203.25" />
+</g>
+
+<g id="edge1" class="edge">
+<title>cart_item-&gt;user</title>
+<path fill="none" stroke="#1565c0" stroke-width="1.4" d="M485.9,-222.56C550.56,-228.63 617.82,-234.94 671.5,-239.98" />
+<polygon fill="#1565c0" stroke="#1565c0" stroke-width="1.4" points="671.03,-242.4 678.23,-240.61 671.49,-237.52 671.03,-242.4" />
+<text xml:space="preserve" text-anchor="middle" x="548.12" y="-236.83" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#1565c0">N:1 所属用户</text>
+</g>
+
+<g id="node3" class="node">
+<title>listing</title>
+<polygon fill="#9e9e9e" stroke="none" points="612,-145.5 612,-177.75 844.88,-177.75 844.88,-145.5 612,-145.5" />
+<text xml:space="preserve" text-anchor="start" x="648.94" y="-159.45" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">渠道商品（外部） listing</text>
+<text xml:space="preserve" text-anchor="start" x="618" y="-124.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">listing_id 渠道商品ID</text>
+<text xml:space="preserve" text-anchor="start" x="881.81" y="-124.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<polygon fill="#e3f2fd" stroke="none" points="612,-86.25 612,-113.25 946.5,-113.25 946.5,-86.25 612,-86.25" />
+<text xml:space="preserve" text-anchor="start" x="618" y="-98.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">来自商品模块，购物车读取 listing_id + listing_price + 实时库存/上架状态</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="611,-85.25 611,-178.75 947.5,-178.75 947.5,-85.25 611,-85.25" />
+</g>
+
+<g id="edge2" class="edge">
+<title>cart_item-&gt;listing</title>
+<path fill="none" stroke="#1565c0" stroke-width="1.4" d="M485.9,-170.64C524.65,-165.51 564.34,-160.27 601.47,-155.36" />
+<polygon fill="#1565c0" stroke="#1565c0" stroke-width="1.4" points="601.63,-157.81 608.25,-154.47 600.99,-152.95 601.63,-157.81" />
+<text xml:space="preserve" text-anchor="middle" x="548.12" y="-172" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#1565c0">N:1 关联渠道商品</text>
+</g>
+</g>
+</svg>

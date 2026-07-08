@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>looply APP Shopping Cart</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0f172a;color:#e2e8f0;line-height:1.6}
+
+/* Page header */
+.page-header{padding:32px 40px 24px;max-width:1200px;margin:0 auto}
+.page-header h1{font-size:22px;font-weight:700;color:#fff;margin-bottom:4px}
+.page-header .meta{font-size:13px;color:#94a3b8}
+
+/* Layout */
+.layout{display:flex;gap:32px;max-width:1200px;margin:0 auto;padding:0 40px 60px;align-items:flex-start}
+
+/* Phone column */
+.phone-col{flex-shrink:0;position:sticky;top:24px}
+.phone{width:375px;background:#fff;border-radius:32px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.5);border:8px solid #1e293b;position:relative}
+.phone-screen{height:780px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;scrollbar-width:thin}
+.phone-screen::-webkit-scrollbar{width:4px}
+.phone-screen::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px}
+
+/* Annotation column */
+.anno-col{flex:1;min-width:0;padding:0 0 60px}
+
+/* Module card */
+.module{background:#1e293b;border:1px solid #334155;border-radius:12px;margin-bottom:16px;overflow:hidden;transition:all .2s}
+.module:hover{border-color:#6432FC}
+.module-header{display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;user-select:none}
+.module-num{width:28px;height:28px;border-radius:8px;background:#6432FC;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.module-title{font-size:14px;font-weight:700;color:#f1f5f9;flex:1}
+.module-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px}
+.badge-core{background:#dcfce7;color:#166534}
+.badge-info{background:#e0e7ff;color:#3730a3}
+.badge-nav{background:#f1f5f9;color:#475569}
+.badge-action{background:#fef3c7;color:#92400e}
+.module-chevron{color:#64748b;font-size:14px;transition:transform .2s}
+.module.open .module-chevron{transform:rotate(180deg)}
+.module-body{display:none;border-top:1px solid #293548;padding:16px 18px}
+.module.open .module-body{display:block}
+
+/* Interaction row */
+.ix{margin-bottom:14px}
+.ix:last-child{margin-bottom:0}
+.ix-label{font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.ix-label .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.dot-tap{background:#3b82f6}
+.dot-state{background:#f59e0b}
+.dot-gesture{background:#6432FC}
+.dot-edge{background:#ef4444}
+.ix-content{font-size:13px;color:#cbd5e1;line-height:1.7}
+.ix-content strong{color:#f1f5f9;font-weight:600}
+.ix-content code{background:#293548;padding:1px 5px;border-radius:3px;font-size:11px;color:#94a3b8;font-family:"SF Mono","Fira Code",monospace}
+.ix-sub{margin-top:4px;padding-left:12px;border-left:2px solid #293548;font-size:12px;color:#94a3b8;line-height:1.6}
+
+/* Legend */
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:20px;padding:12px 16px;background:#1e293b;border-radius:8px;border:1px solid #334155}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:#94a3b8;font-weight:500}
+
+/* Section divider */
+.section-divider{text-align:center;padding:16px 0;font-size:11px;color:#475569;font-weight:600;letter-spacing:1px;text-transform:uppercase}
+
+/* ===== Phone inner styles ===== */
+.ph-statusbar{height:50px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#1a1a1a;background:#fff;position:sticky;top:0;z-index:50}
+.ph-header{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 4px;background:#fff;border-bottom:1px solid #e5e7eb;position:sticky;top:50px;z-index:50}
+.ph-header .back{width:38px;height:38px;display:flex;align-items:center;justify-content:center}
+.ph-header .back svg{width:20px;height:20px;color:#1a1a1a;fill:none;stroke:currentColor;stroke-width:1.5}
+.ph-header .title{font-size:16px;font-weight:700;color:#1a1a1a}
+.ph-header .icons{display:flex;gap:2px}
+.ph-icon{width:38px;height:38px;display:flex;align-items:center;justify-content:center}
+.ph-icon svg{width:20px;height:20px;color:#1a1a1a;fill:none;stroke:currentColor;stroke-width:1.5}
+
+/* Select all bar */
+.ph-select-all{display:flex;align-items:center;gap:8px;padding:10px 16px;background:#f8f9fb;border-bottom:1px solid #e5e7eb}
+.ph-select-all label{font-size:12px;color:#6b7280;font-weight:500}
+
+/* Checkbox */
+.chk{position:relative;width:20px;height:20px;flex-shrink:0}
+.chk input{position:absolute;opacity:0;width:20px;height:20px;cursor:pointer;z-index:1;margin:0}
+.chk-box{width:20px;height:20px;border:1.5px solid #d1d5db;border-radius:4px;display:flex;align-items:center;justify-content:center;transition:all .15s;background:#fff}
+.chk input:checked + .chk-box{background:#6432FC;border-color:#6432FC}
+.chk-box svg{width:12px;height:12px;color:#fff;opacity:0;transition:opacity .15s}
+.chk input:checked + .chk-box svg{opacity:1}
+
+/* Cart item */
+.ph-cart-item{display:flex;align-items:flex-start;gap:10px;padding:14px 16px;background:#fff;border-bottom:1px solid #f3f4f6}
+.ph-cart-img{width:90px;height:90px;background:#f8f9fb;border-radius:8px;overflow:hidden;flex-shrink:0}
+.ph-cart-img img{width:100%;height:100%;object-fit:cover}
+.ph-cart-info{flex:1;min-width:0}
+.ph-cart-brand{font-size:10px;font-weight:700;color:#6b7280;letter-spacing:.8px;text-transform:uppercase;margin-bottom:2px}
+.ph-cart-name{font-size:13px;font-weight:500;color:#1a1a1a;line-height:1.3;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ph-cart-condition{display:inline-flex;align-items:center;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:600;margin-bottom:6px}
+.cond-likenew{background:#ecfdf5;color:#059669}
+.cond-verygood{background:#eff6ff;color:#2563eb}
+.cond-good{background:#fff7ed;color:#ea580c}
+.ph-cart-prices{display:flex;align-items:baseline;gap:6px}
+.ph-cart-orig{font-size:12px;color:#9ca3af;text-decoration:line-through}
+.ph-cart-price{font-size:16px;font-weight:700;color:#1a1a1a}
+.ph-cart-save{font-size:10px;font-weight:600;color:#dc2626}
+/* Swipe-to-reveal actions */
+.ph-cart-wrapper{position:relative;overflow:hidden;background:#fff}
+.ph-cart-item{transition:transform .25s ease}
+.ph-cart-slide-actions{position:absolute;right:0;top:0;bottom:1px;display:flex;transform:translateX(100%)}
+.ph-slide-btn{display:flex;align-items:center;justify-content:center;width:72px;color:#fff;font-size:11px;font-weight:600;flex-direction:column;gap:3px}
+.ph-slide-btn svg{width:18px;height:18px}
+.ph-slide-btn-save{background:#6432FC}
+.ph-slide-btn-delete{background:#dc2626}
+
+/* Bottom checkout bar */
+.ph-bottom-bar{position:sticky;bottom:0;background:#fff;border-top:1px solid #e5e7eb;padding:12px 16px;display:flex;align-items:center;gap:12px;z-index:50}
+.ph-bottom-info{flex:1}
+.ph-bottom-count{font-size:12px;color:#6b7280}
+.ph-bottom-total{font-size:18px;font-weight:700;color:#1a1a1a}
+.ph-bottom-btn{padding:14px 28px;background:#6432FC;color:#fff;border:none;border-radius:0;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer}
+.ph-bottom-btn:disabled{background:#d1d5db}
+
+/* Empty state */
+.ph-empty{text-align:center;padding:60px 32px;background:#fff}
+.ph-empty svg{width:60px;height:60px;color:#d1d5db;margin-bottom:12px}
+.ph-empty-title{font-size:16px;font-weight:600;color:#1a1a1a;margin-bottom:6px}
+.ph-empty-desc{font-size:13px;color:#6b7280;margin-bottom:20px}
+.ph-empty-btn{display:inline-block;padding:12px 24px;background:#6432FC;color:#fff;font-size:13px;font-weight:600;text-decoration:none}
+
+/* Recommendations */
+.ph-sep{height:8px;background:#f8f9fb}
+.ph-rec-section{padding:16px 16px 0;background:#fff}
+.ph-rec-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.ph-rec-header h3{font-size:15px;font-weight:700;color:#1a1a1a}
+.ph-rec-header a{font-size:12px;font-weight:600;color:#6432FC;text-decoration:none}
+.ph-rec-cards{display:flex;gap:10px;overflow-x:auto;padding-bottom:16px;-webkit-overflow-scrolling:touch}
+.ph-rec-cards::-webkit-scrollbar{display:none}
+.ph-rec-card{flex-shrink:0;width:140px}
+.ph-rec-img{width:140px;height:140px;border-radius:10px;background:#f3f4f6;overflow:hidden}
+.ph-rec-img img{width:100%;height:100%;object-fit:cover}
+.ph-rec-brand{font-size:9px;font-weight:700;color:#6b7280;letter-spacing:.6px;margin-top:6px;text-transform:uppercase}
+.ph-rec-name{font-size:12px;font-weight:500;color:#1a1a1a;margin-top:2px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ph-rec-price{font-size:13px;font-weight:700;color:#1a1a1a;margin-top:4px}
+
+/* Home indicator */
+.ph-home-indicator{height:34px;background:#fff;display:flex;align-items:center;justify-content:center}
+.ph-home-indicator div{width:134px;height:5px;background:#1a1a1a;border-radius:3px;opacity:.2}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+<h1>Shopping Cart — APP</h1>
+<div class="meta">looply mobile shopping cart &middot; v1.0</div>
+</div>
+
+<div class="layout">
+<!-- Phone -->
+<div class="phone-col">
+<div class="phone">
+<div class="phone-screen" id="phoneScreen">
+
+<!-- Status Bar -->
+<div class="ph-statusbar">9:41</div>
+
+<!-- Header -->
+<div class="ph-header">
+<div class="back"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></div>
+<div class="title">Cart (3)</div>
+<div class="icons">
+<div class="ph-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
+</div>
+</div>
+
+<!-- Select All -->
+<div class="ph-select-all">
+<label class="chk">
+<input type="checkbox" id="mSelectAll" checked onchange="mToggleAll(this)">
+<span class="chk-box"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6l3 3 5-5"/></svg></span>
+</label>
+<label for="mSelectAll" style="cursor:pointer;font-size:12px;color:#6b7280;font-weight:500">Select All</label>
+</div>
+
+<!-- Item 1 -->
+<div class="ph-cart-wrapper">
+<div class="ph-cart-item" data-price="652" data-original="785">
+<label class="chk" style="margin-top:28px">
+<input type="checkbox" class="m-item-check" checked onchange="mUpdateSummary()">
+<span class="chk-box"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6l3 3 5-5"/></svg></span>
+</label>
+<div class="ph-cart-img">
+<img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/001_cd443847-229b-45ca-bf86-122d7b8af10e.png?v=1778472154&width=300" alt="">
+</div>
+<div class="ph-cart-info">
+<div class="ph-cart-brand">LOUIS VUITTON</div>
+<div class="ph-cart-name">Silver Tone Metal Silver Necklace</div>
+<div class="ph-cart-condition cond-verygood">Very Good</div>
+<div class="ph-cart-prices">
+<span class="ph-cart-orig">$785</span>
+<span class="ph-cart-price">$652</span>
+<span class="ph-cart-save">-17%</span>
+</div>
+</div>
+</div>
+<div class="ph-cart-slide-actions">
+<button class="ph-slide-btn ph-slide-btn-save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Save</button>
+<button class="ph-slide-btn ph-slide-btn-delete" onclick="mRemoveItem(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Delete</button>
+</div>
+</div>
+
+<!-- Item 2 -->
+<div class="ph-cart-wrapper">
+<div class="ph-cart-item" data-price="976" data-original="1280">
+<label class="chk" style="margin-top:28px">
+<input type="checkbox" class="m-item-check" checked onchange="mUpdateSummary()">
+<span class="chk-box"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6l3 3 5-5"/></svg></span>
+</label>
+<div class="ph-cart-img">
+<img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/002_695d5fdf-4436-4f02-9788-f23ac7a8f904.png?v=1778472157&width=300" alt="">
+</div>
+<div class="ph-cart-info">
+<div class="ph-cart-brand">CHANEL</div>
+<div class="ph-cart-name">Classic Flap Medium Lambskin Black Crossbody Bag</div>
+<div class="ph-cart-condition cond-likenew">Like New</div>
+<div class="ph-cart-prices">
+<span class="ph-cart-orig">$1,280</span>
+<span class="ph-cart-price">$976</span>
+<span class="ph-cart-save">-24%</span>
+</div>
+</div>
+</div>
+<div class="ph-cart-slide-actions">
+<button class="ph-slide-btn ph-slide-btn-save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Save</button>
+<button class="ph-slide-btn ph-slide-btn-delete" onclick="mRemoveItem(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Delete</button>
+</div>
+</div>
+
+<!-- Item 3 -->
+<div class="ph-cart-wrapper">
+<div class="ph-cart-item" data-price="403" data-original="520">
+<label class="chk" style="margin-top:28px">
+<input type="checkbox" class="m-item-check" onchange="mUpdateSummary()">
+<span class="chk-box"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6l3 3 5-5"/></svg></span>
+</label>
+<div class="ph-cart-img">
+<img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/003_e1e89a6f-d30f-4d72-a261-ef7e61ae556d.png?v=1778472161&width=300" alt="">
+</div>
+<div class="ph-cart-info">
+<div class="ph-cart-brand">DIOR</div>
+<div class="ph-cart-name">J'Adior Bracelet Aged Gold-Tone Metal</div>
+<div class="ph-cart-condition cond-good">Good</div>
+<div class="ph-cart-prices">
+<span class="ph-cart-orig">$520</span>
+<span class="ph-cart-price">$403</span>
+<span class="ph-cart-save">-23%</span>
+</div>
+</div>
+</div>
+<div class="ph-cart-slide-actions">
+<button class="ph-slide-btn ph-slide-btn-save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Save</button>
+<button class="ph-slide-btn ph-slide-btn-delete" onclick="mRemoveItem(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Delete</button>
+</div>
+</div>
+
+<!-- Separator -->
+<div class="ph-sep"></div>
+
+<!-- Recommendations -->
+<div class="ph-rec-section">
+<div class="ph-rec-header">
+<h3>You may also like</h3>
+<a href="#">See All</a>
+</div>
+<div class="ph-rec-cards">
+<div class="ph-rec-card">
+<div class="ph-rec-img"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/001_cd443847-229b-45ca-bf86-122d7b8af10e.png?v=1778472154&width=300" alt=""></div>
+<div class="ph-rec-brand">GUCCI</div>
+<div class="ph-rec-name">Interlocking G Pendant Necklace</div>
+<div class="ph-rec-price">$560</div>
+</div>
+<div class="ph-rec-card">
+<div class="ph-rec-img"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/002_695d5fdf-4436-4f02-9788-f23ac7a8f904.png?v=1778472157&width=300" alt=""></div>
+<div class="ph-rec-brand">PRADA</div>
+<div class="ph-rec-name">Galleria Saffiano Leather Mini Bag</div>
+<div class="ph-rec-price">$817</div>
+</div>
+<div class="ph-rec-card">
+<div class="ph-rec-img"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/003_e1e89a6f-d30f-4d72-a261-ef7e61ae556d.png?v=1778472161&width=300" alt=""></div>
+<div class="ph-rec-brand">HERMES</div>
+<div class="ph-rec-name">Garden Party 36 Canvas Pink</div>
+<div class="ph-rec-price">$1,860</div>
+</div>
+<div class="ph-rec-card">
+<div class="ph-rec-img"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/001_cd443847-229b-45ca-bf86-122d7b8af10e.png?v=1778472154&width=300" alt=""></div>
+<div class="ph-rec-brand">BVLGARI</div>
+<div class="ph-rec-name">B.zero1 Pendant Necklace</div>
+<div class="ph-rec-price">$980</div>
+</div>
+</div>
+</div>
+
+<!-- Bottom Bar -->
+<div class="ph-bottom-bar">
+<div class="ph-bottom-info">
+<div class="ph-bottom-count" id="mCount">2 items selected</div>
+<div class="ph-bottom-total" id="mTotal">$1,628.00</div>
+</div>
+<button class="ph-bottom-btn" id="mCheckoutBtn" onclick="window.location.href='looply-checkout-APP-v1.html'">Checkout</button>
+</div>
+
+<!-- Home indicator -->
+<div class="ph-home-indicator"><div></div></div>
+
+</div>
+</div>
+</div>
+
+<!-- Annotations -->
+<div class="anno-col">
+
+<div class="legend">
+<div class="legend-item"><div class="dot dot-tap"></div> Tap</div>
+<div class="legend-item"><div class="dot dot-gesture"></div> Gesture</div>
+<div class="legend-item"><div class="dot dot-state"></div> State</div>
+<div class="legend-item"><div class="dot dot-edge"></div> Edge Case</div>
+</div>
+
+<!-- Module 1: Header -->
+<div class="module open">
+<div class="module-header" onclick="toggleModule(this)">
+<div class="module-num">1</div>
+<div class="module-title">Header Navigation</div>
+<span class="module-badge badge-nav">Nav</span>
+<span class="module-chevron">&#9660;</span>
+</div>
+<div class="module-body">
+<div class="ix">
+<div class="ix-label"><div class="dot dot-tap"></div> Back Button</div>
+<div class="ix-content">Tap <strong>&lt; back arrow</strong> returns to previous page (PDP or Home). If cart was opened from tab bar, back goes to Home.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-state"></div> Title Count</div>
+<div class="ix-content">Header shows <strong>"Cart (N)"</strong> where N = total items in cart (not just selected). Updates dynamically on remove.</div>
+</div>
+</div>
+</div>
+
+<!-- Module 2: Select All -->
+<div class="module open">
+<div class="module-header" onclick="toggleModule(this)">
+<div class="module-num">2</div>
+<div class="module-title">Select All</div>
+<span class="module-badge badge-action">Action</span>
+<span class="module-chevron">&#9660;</span>
+</div>
+<div class="module-body">
+<div class="ix">
+<div class="ix-label"><div class="dot dot-tap"></div> Toggle</div>
+<div class="ix-content">Tap checkbox toggles all items selected/deselected. Bottom bar total updates immediately.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-state"></div> Auto Sync</div>
+<div class="ix-content">If user manually deselects one item, "Select All" unchecks automatically. If user selects all individually, it re-checks.</div>
+</div>
+</div>
+</div>
+
+<!-- Module 3: Cart Items -->
+<div class="module open">
+<div class="module-header" onclick="toggleModule(this)">
+<div class="module-num">3</div>
+<div class="module-title">Cart Items</div>
+<span class="module-badge badge-core">Core</span>
+<span class="module-chevron">&#9660;</span>
+</div>
+<div class="module-body">
+<div class="ix">
+<div class="ix-label"><div class="dot dot-tap"></div> Item Tap</div>
+<div class="ix-content">Tap item image or name navigates to PDP. Checkbox area is separate tap target.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-state"></div> Condition Badge</div>
+<div class="ix-content">Each item shows condition: <strong>Like New</strong> (green), <strong>Very Good</strong> (blue), <strong>Good</strong> (orange). Badge is read-only, not tappable.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-state"></div> Price Display</div>
+<div class="ix-content">Shows <strong>original price</strong> (strikethrough) + <strong>current price</strong> (bold) + <strong>discount percentage</strong> (red). No quantity selector — secondhand items are unique (qty=1).</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-gesture"></div> Swipe Left to Reveal</div>
+<div class="ix-content">Swipe item left reveals two action buttons: <strong>Save</strong> (purple, move to wishlist) and <strong>Delete</strong> (red, remove from cart). Standard iOS swipe-to-reveal pattern. Swipe threshold: 60px. Try it on the phone mockup.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-tap"></div> Save Button</div>
+<div class="ix-content">Tap purple <strong>"Save"</strong> button moves item to wishlist. Item remains in cart. Shows toast: "Saved to Wishlist". Panel auto-closes.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-tap"></div> Delete Button</div>
+<div class="ix-content">Tap red <strong>"Delete"</strong> button removes item with slide-out animation. Summary recalculates immediately.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-gesture"></div> Auto Close</div>
+<div class="ix-content">Tapping anywhere else or swiping another item auto-closes the previously revealed action panel. Only one item's actions visible at a time.</div>
+</div>
+</div>
+</div>
+
+<!-- Module 4: Bottom Bar -->
+<div class="module open">
+<div class="module-header" onclick="toggleModule(this)">
+<div class="module-num">4</div>
+<div class="module-title">Bottom Checkout Bar</div>
+<span class="module-badge badge-core">Core</span>
+<span class="module-chevron">&#9660;</span>
+</div>
+<div class="module-body">
+<div class="ix">
+<div class="ix-label"><div class="dot dot-state"></div> Summary</div>
+<div class="ix-content">Shows <strong>"N items selected"</strong> + <strong>total price</strong> of checked items. Updates in real-time as user toggles checkboxes.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-tap"></div> Checkout Button</div>
+<div class="ix-content">Tap <strong>"Checkout"</strong> navigates to Checkout page with selected items. Button is <strong>disabled</strong> (gray) when 0 items selected.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-edge"></div> Login Gate</div>
+<div class="ix-content">If user is not logged in, tapping Checkout redirects to Login page first, then returns to Checkout after auth.</div>
+</div>
+</div>
+</div>
+
+<!-- Module 5: Recommendations -->
+<div class="module">
+<div class="module-header" onclick="toggleModule(this)">
+<div class="module-num">5</div>
+<div class="module-title">Recommendations</div>
+<span class="module-badge badge-info">Info</span>
+<span class="module-chevron">&#9660;</span>
+</div>
+<div class="module-body">
+<div class="ix">
+<div class="ix-label"><div class="dot dot-gesture"></div> Horizontal Scroll</div>
+<div class="ix-content">Cards scroll horizontally. "See All" navigates to full recommendation list page.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-tap"></div> Card Tap</div>
+<div class="ix-content">Tap product card navigates to PDP. User can add to cart from PDP and return.</div>
+</div>
+</div>
+</div>
+
+<!-- Module 6: Empty State -->
+<div class="module">
+<div class="module-header" onclick="toggleModule(this)">
+<div class="module-num">6</div>
+<div class="module-title">Empty Cart State</div>
+<span class="module-badge badge-nav">Edge</span>
+<span class="module-chevron">&#9660;</span>
+</div>
+<div class="module-body">
+<div class="ix">
+<div class="ix-label"><div class="dot dot-edge"></div> Empty Display</div>
+<div class="ix-content">When all items removed, cart shows: empty bag icon + <strong>"Your cart is empty"</strong> + "Continue Shopping" button. Bottom bar hides. Recommendations section still visible below.</div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<script>
+function toggleModule(el) {
+  el.closest('.module').classList.toggle('open');
+}
+
+const TAX_RATE = 0.04;
+
+function mUpdateSummary() {
+  const items = document.querySelectorAll('.ph-cart-item');
+  let count = 0, subtotal = 0;
+  items.forEach(item => {
+    if (item.querySelector('.m-item-check').checked) {
+      count++;
+      subtotal += parseFloat(item.dataset.price);
+    }
+  });
+  const total = subtotal + subtotal * TAX_RATE;
+  document.getElementById('mCount').textContent = count + ' item' + (count !== 1 ? 's' : '') + ' selected';
+  document.getElementById('mTotal').textContent = '$' + total.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  document.getElementById('mCheckoutBtn').disabled = count === 0;
+
+  // Sync select all
+  const allChecks = document.querySelectorAll('.m-item-check');
+  document.getElementById('mSelectAll').checked = Array.from(allChecks).every(c => c.checked);
+
+  // Update header count
+  document.querySelector('.ph-header .title').textContent = 'Cart (' + items.length + ')';
+}
+
+function mToggleAll(el) {
+  document.querySelectorAll('.m-item-check').forEach(c => { c.checked = el.checked; });
+  mUpdateSummary();
+}
+
+function mRemoveItem(el) {
+  const wrapper = el.closest('.ph-cart-wrapper');
+  wrapper.style.transition = 'all .3s ease';
+  wrapper.style.opacity = '0';
+  wrapper.style.maxHeight = wrapper.offsetHeight + 'px';
+  setTimeout(() => {
+    wrapper.style.maxHeight = '0';
+    wrapper.style.overflow = 'hidden';
+  }, 100);
+  setTimeout(() => {
+    wrapper.remove();
+    mUpdateSummary();
+    if (document.querySelectorAll('.ph-cart-item').length === 0) {
+      mShowEmpty();
+    }
+  }, 400);
+}
+
+// Swipe-to-reveal
+(function initSwipe() {
+  const THRESHOLD = 60;
+  const REVEAL_W = 144; // 2 buttons * 72px
+  let activeWrapper = null;
+
+  document.querySelectorAll('.ph-cart-wrapper').forEach(wrapper => {
+    const item = wrapper.querySelector('.ph-cart-item');
+    let startX = 0, currentX = 0, swiping = false;
+
+    item.addEventListener('touchstart', e => {
+      startX = e.touches[0].clientX;
+      currentX = 0;
+      swiping = true;
+      item.style.transition = 'none';
+      // Close any other open wrapper
+      if (activeWrapper && activeWrapper !== wrapper) {
+        const otherItem = activeWrapper.querySelector('.ph-cart-item');
+        otherItem.style.transition = 'transform .25s ease';
+        otherItem.style.transform = 'translateX(0)';
+        activeWrapper = null;
+      }
+    }, {passive: true});
+
+    item.addEventListener('touchmove', e => {
+      if (!swiping) return;
+      currentX = e.touches[0].clientX - startX;
+      // Only allow left swipe
+      if (currentX < 0) {
+        const x = Math.max(currentX, -REVEAL_W);
+        item.style.transform = 'translateX(' + x + 'px)';
+      }
+    }, {passive: true});
+
+    item.addEventListener('touchend', () => {
+      swiping = false;
+      item.style.transition = 'transform .25s ease';
+      if (currentX < -THRESHOLD) {
+        item.style.transform = 'translateX(-' + REVEAL_W + 'px)';
+        activeWrapper = wrapper;
+      } else {
+        item.style.transform = 'translateX(0)';
+        if (activeWrapper === wrapper) activeWrapper = null;
+      }
+    });
+  });
+
+  // Tap anywhere else to close
+  document.querySelector('.phone-screen').addEventListener('touchstart', e => {
+    if (activeWrapper && !activeWrapper.contains(e.target)) {
+      const item = activeWrapper.querySelector('.ph-cart-item');
+      item.style.transition = 'transform .25s ease';
+      item.style.transform = 'translateX(0)';
+      activeWrapper = null;
+    }
+  }, {passive: true});
+})();
+
+function mShowEmpty() {
+  const selectAll = document.querySelector('.ph-select-all');
+  if (selectAll) selectAll.remove();
+  const bottomBar = document.querySelector('.ph-bottom-bar');
+  if (bottomBar) bottomBar.style.display = 'none';
+  const sep = document.querySelector('.ph-sep');
+  if (sep) {
+    sep.insertAdjacentHTML('beforebegin', `
+      <div class="ph-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        <div class="ph-empty-title">Your cart is empty</div>
+        <div class="ph-empty-desc">Looks like you haven't added any items yet.</div>
+        <a href="#" class="ph-empty-btn">Continue Shopping</a>
+      </div>
+    `);
+  }
+}
+
+// Init
+mUpdateSummary();
+</script>
+
+</body>
+</html>

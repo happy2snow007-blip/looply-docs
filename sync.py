@@ -370,6 +370,27 @@ MODULES = {
             },
         },
     },
+    'cart': {
+        'name': '购物车',
+        'default_source': '$HOME/Desktop/海外业务/购物车',
+        'target': 'docs-购物车',
+        'keywords': ['购物车', 'cart', '购物'],
+        'config_key': None,
+        'artifacts': {
+            'prd': {
+                'subdir': 'PRD',
+                'pattern': r'购物车PRD-V(.+?)\.md',
+            },
+            'er': {
+                'subdir': '实体关系图',
+                'pattern': r'looply-购物车实体关系图-v(.+?)\.svg',
+            },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'购物车-交付开发 V(.+?)\.zip',
+            },
+        },
+    },
     'order': {
         'name': '订单支付',
         'default_source': '$HOME/Desktop/海外业务/订单支付',
