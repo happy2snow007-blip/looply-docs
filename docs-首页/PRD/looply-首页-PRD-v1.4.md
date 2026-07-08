@@ -161,20 +161,24 @@ App 端和 Web 端可用信号不同：
 ### §2.3 Market & Language 切换面板
 
 **入口**：
-- 移动端：入口位于"我的"页面的 Settings 中，具体位置和交互以"我的"页面设计稿为准（设计稿暂未上传，待补充）
+- 移动端：入口位于"我的"页面的 Settings 中，具体位置和交互以"我的"页面设计稿为准（设计稿暂未上传，待补充）。移动端的国家、语言、货币统一在"我的"中配置，不存在多入口同步问题。
 - PC 端：Navbar 右侧 Globe 图标，点击展开下拉浮层
+
+**PC 端与"我的"配置同步**：PC 端 Globe 面板与"我的"页面中的国家/语言配置共享同一份用户设置，两者永远保持一致——在首页 Globe 面板做的修改会同步至"我的"，在"我的"做的修改也会同步至首页 Globe 面板。
 
 **PC 端面板**
 
 视觉设计：[PC 端 Header & Footer](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=1378-22993&p=f&t=RlXBrpSFytzKCkEh-0)
 
-**面板结构（先语言，后国家）**：上部为 Language 单选列表，下部为 Country 单选列表（国旗 + 国家名 + 该国所属 market 货币代码），底部 Apply 按钮。
+**面板结构（先语言，后国家）**：上部为 Language 单选列表，下部为 Country 单选列表（国旗 + 国家名），底部 Apply 按钮。
+
+> 货币不在此面板展示，用户的货币设置在"我的"中统一管理。
 
 **交互规则**：
 1. 语言变更后，Country 候选列表立即根据新语言重新渲染（国家名展示当前语言版本）
 2. 两者均为单选
-3. Country 候选项：国旗 emoji（由 `country_code` 映射）+ 国家名称 + 货币代码；仅展示 `market.status = 'running'` 的 market 下属的所有 country
-4. 选择完成后点击 Apply 确认：系统通过 `market_country` 表将所选 `country_code` 映射至 `market_id`，浮层关闭，页面以新 `market_id` 刷新首页资源位内容
+3. Country 候选项：国旗 emoji（由 `country_code` 映射）+ 国家名称；仅展示 `market.status = 'running'` 的 market 下属的所有 country
+4. 选择完成后点击 Apply 确认：系统通过 `market_country` 表将所选 `country_code` 映射至 `market_id`，浮层关闭，页面以新 `market_id` 刷新首页资源位内容；同时将新配置同步至"我的"用户设置
 5. 关闭浮层未点击 Apply → 不保存，恢复原值
 
 **字段映射**（来自 Market PRD v1.2）：
@@ -184,7 +188,6 @@ App 端和 Web 端可用信号不同：
 | Language 选项文本 | `language.local_name` |
 | Country 国旗 | `country_code` → Unicode 国旗 emoji |
 | Country 名称 | `country.country_name`（当前语言版本）|
-| Country 货币 | `country` 所属 market 的 `default_currency_code` |
 
 ### §2.4 持久化策略
 
@@ -770,6 +773,7 @@ Feed 相关埋点的详细定义见《Looply 首页 Feed PRD v2.3》§10 行为�
 | C37 | §2.2 语言识别机制 | 删除"Market 默认语言"兜底档（App 第 3 档 / Web 第 3 档）；语言判断只依赖自身信号，不引入市场字段 | 语言和市场互相兜底是循环依赖，逻辑错误；语言信号（系统语言/浏览器语言）足以兜底，无需绕回市场 |
 | C38 | §2 整体结构重排 | §2.1/§2.2 互换位置：语言识别调至 §2.1（先执行），国家与市场识别调至 §2.2（后执行）；§2.2 标题改为"国家与市场自动识别机制"，明确两步流程：先取 country_code，再查表得 market_id；删除语言推断兜底；删除"未上线地区兜底 US market"补充说明 | 语言信号客户端立即可得，国家需服务端参与，执行顺序应反映真实依赖；"不知道国家直接知道市场"不存在，原语言推断 market 逻辑不合理一并删除 |
 | C39 | §2.3 切换面板 | 移动端入口改为"我的"页面 Settings，删除 Header Globe 图标描述及移动端 Figma 链接（设计稿未上传）；PC 端保留原有描述；交互规则/字段映射不变 | 移动端设计稿未上传，原 Figma 链接和入口描述均为错误信息 |
+| C40 | §2.3 切换面板 | 删除面板中货币展示（Country 货币列），货币统一在"我的"中管理；新增 PC 端与"我的"双向同步说明；移动端补充说明国家/语言/货币统一在"我的"配置 | 货币不属于首页 Globe 面板展示范畴；PC 端两个入口需保持配置一致性 |
 
 ### v1.3 · 2026-07-02
 
