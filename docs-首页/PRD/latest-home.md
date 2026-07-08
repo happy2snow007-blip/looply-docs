@@ -146,8 +146,7 @@ App 端和 Web 端可获取的信号不同，优先级分别如下：
 |--------|------|------|
 | 1 | 用户已保存的选择 | 持久化存储（见 §2.4）中的 `saved_language_code` |
 | 2 | 系统首选语言 | iOS: `preferredLanguages[0]`；Android: `Locale.getDefault()` |
-| 3 | Market 默认语言 | 当前 market 的 `default_language_code` |
-| 4 | 默认兜底 | `en` |
+| 3 | 默认兜底 | `en` |
 
 **Web 端**
 
@@ -155,8 +154,7 @@ App 端和 Web 端可获取的信号不同，优先级分别如下：
 |--------|------|------|
 | 1 | 用户已保存的选择 | localStorage 中的 `saved_language_code` |
 | 2 | 浏览器语言 | `navigator.language` 或 `Accept-Language` 首项 |
-| 3 | Market 默认语言 | 当前 market 的 `default_language_code` |
-| 4 | 默认兜底 | `en` |
+| 3 | 默认兜底 | `en` |
 
 ### §2.3 Market & Language 切换面板
 
@@ -773,6 +771,7 @@ Feed 相关埋点的详细定义见《Looply 首页 Feed PRD v2.3》§10 行为�
 | C34 | §2.2 语言识别机制 | 重写：App/Web 优先级分列两表，明确 App 读系统首选语言、Web 读 navigator.language；去掉混写的单表结构 | App 和 Web 语言信号来源不同，混表描述导致开发理解歧义 |
 | C35 | §2.3 切换面板 | 面板下部从"Market 单选列表"改为"Country 单选列表"；候选项改为展示 running market 下属所有 country；Apply 动作说明改为 country_code → market_id 映射；字段映射表相应更新 | 用户实际选择的是国家，不是 market；market 由 country 唯一推导 |
 | C36 | §2.4 持久化 / §16.1 埋点 | 持久化字段改为 `saved_country_code`；`market_language_save` 埋点增加 `new_country_code` 参数 | 对齐 C33/C35 变更 |
+| C37 | §2.2 语言识别机制 | 删除"Market 默认语言"兜底档（App 第 3 档 / Web 第 3 档）；语言判断只依赖自身信号，不引入市场字段 | 语言和市场互相兜底是循环依赖，逻辑错误；语言信号（系统语言/浏览器语言）足以兜底，无需绕回市场 |
 
 ### v1.3 · 2026-07-02
 
