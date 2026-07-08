@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Looply CMS · 首页配置 v1.2</title>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/dayjs@1.11.21/dayjs.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/antd@6.4.3/dist/antd.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/@ant-design/icons@6.2.1/dist/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.28.4/babel.min.js"></script>
+<style>
+html,body,#root{height:100%;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937}
+#root::before{content:'正在加载…';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#9CA3AF;font-size:14px}
+#root:not(:empty)::before{display:none}
+
+.lp-kpi{background:linear-gradient(180deg,#FEFCFF 0%,#F3EEFF 100%);border:1px solid #DDD6FE;border-radius:14px;padding:14px 16px}
+.lp-kpi .num{font-size:24px;font-weight:700;color:#7C3AED;line-height:1;margin-bottom:6px;font-variant-numeric:tabular-nums}
+.lp-kpi .label{font-size:12px;color:#6B7280}
+
+.lp-form-row{display:flex;gap:16px;margin-bottom:12px;align-items:flex-start}
+.lp-form-row .lp-form-label{width:96px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0;padding-top:6px}
+.lp-form-row .lp-form-label .req{color:#DC2626;margin-right:4px}
+.lp-form-row .lp-form-control{flex:1}
+.lp-helper{font-size:12px;color:#9CA3AF;margin:-4px 0 12px 112px}
+
+.lp-section{font-size:14px;font-weight:600;color:#1F2937;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #E5E7EB}
+.lp-note-sm{padding:10px 14px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:8px;font-size:12px;color:#6D28D9}
+.lp-code{font-family:Menlo,Monaco,Consolas,monospace;font-size:12px;color:#374151;background:#F3F4F6;padding:1px 6px;border-radius:4px}
+.lp-upload-zone{border:2px dashed #D1D5DB;border-radius:10px;padding:20px;text-align:center;background:#FAFAFA;cursor:pointer;transition:all .15s}
+.lp-upload-zone:hover{border-color:#7C3AED;background:#FAF5FF}
+.lp-upload-zone .hint{font-size:13px;color:#6B7280;margin-bottom:4px}
+.lp-upload-zone .sub{font-size:12px;color:#9CA3AF}
+.placeholder-section{background:#F9FAFB;border:1px dashed #D1D5DB;border-radius:10px;padding:40px;text-align:center;color:#9CA3AF;font-size:13px}
+.st-tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:500}
+
+/* ── Editor split layout ── */
+.editor-wrap{display:flex;height:100%;min-height:0}
+.editor-left{width:52%;min-width:340px;max-width:660px;display:flex;flex-direction:column;overflow:hidden;background:#fff;border-right:1px solid #E5E7EB}
+.editor-right{flex:1;display:flex;flex-direction:column;align-items:center;background:#F3F4F6;padding:24px 16px;overflow-y:auto;min-width:400px}
+
+/* ── Zone filter bar (坑位行) ── */
+.filter-bar{padding:10px 16px;background:#FAFAFA;border-bottom:1px solid #E5E7EB;flex-shrink:0}
+.filter-bar-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.filter-label{font-size:12px;color:#9CA3AF;white-space:nowrap}
+.filter-chips{display:flex;gap:6px;flex-wrap:wrap}
+.fchip{padding:4px 12px;border-radius:20px;border:1px solid #D1D5DB;font-size:12px;cursor:pointer;font-weight:500;color:#6B7280;background:#fff;transition:all .15s;white-space:nowrap}
+.fchip.active{background:#7C3AED;color:#fff;border-color:#7C3AED}
+
+/* ── DimBadge ── */
+.dim-badge{display:inline-flex;align-items:center;font-size:12px;font-weight:600;padding:3px 12px;border-radius:999px;letter-spacing:0.2px;white-space:nowrap}
+.dim-badge-blue{background:#2563EB;color:#fff}
+
+/* ── Config list ── */
+.config-list-panel{flex:1;overflow-y:auto;padding:14px 16px}
+.config-zone-group{margin-bottom:20px}
+.config-zone-label{font-size:12px;font-weight:600;color:#7C3AED;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.config-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #E5E7EB;border-radius:10px;margin-bottom:6px;background:#fff;cursor:pointer;transition:all .15s}
+.config-row:hover{background:#FAF5FF;border-color:#DDD6FE}
+.config-row.active{background:#F3EEFF;border-color:#7C3AED}
+.config-thumb{width:44px;height:44px;border-radius:6px;object-fit:cover;background:#E5E7EB;flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.config-thumb img{width:100%;height:100%;object-fit:cover}
+.config-name{font-size:13px;font-weight:500;color:#1F2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+.config-tmpl{font-size:11px;color:#9CA3AF;margin-top:2px}
+.config-ops{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.order-btn{width:24px;height:24px;border-radius:4px;border:1px solid #E5E7EB;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6B7280;font-size:10px;transition:all .15s}
+.order-btn:hover{border-color:#7C3AED;color:#7C3AED}
+
+/* ── Config editor ── */
+.config-editor{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.editor-header{padding:12px 16px;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;gap:8px;flex-shrink:0;background:#FAFAFA}
+.editor-body{flex:1;overflow-y:auto;padding:16px}
+.readonly-badge{background:#F3F4F6;color:#9CA3AF;font-size:11px;padding:2px 8px;border-radius:4px;display:inline-flex;align-items:center;gap:3px}
+
+/* ── Template cards ── */
+.tmpl-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.tmpl-card{border:2px solid #E5E7EB;border-radius:10px;padding:10px 12px;cursor:pointer;transition:all .15s;background:#fff}
+.tmpl-card:hover{border-color:#DDD6FE;background:#FAF5FF}
+.tmpl-card.active{border-color:#7C3AED;background:#FAF5FF}
+.tmpl-card .tmpl-name{font-size:12px;font-weight:600;color:#1F2937;margin-bottom:2px}
+.tmpl-card .tmpl-desc{font-size:11px;color:#6B7280;line-height:1.4}
+.tmpl-badge{display:inline-block;font-size:10px;font-weight:600;padding:1px 6px;border-radius:4px;margin-bottom:4px}
+.tmpl-badge-p0{background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0}
+.tmpl-badge-p1{background:#FFFBEB;color:#D97706;border:1px solid #FDE68A}
+
+/* ── Mobile Phone Preview ── */
+.phone-frame{width:375px;background:#fff;border-radius:40px;border:8px solid #1F2937;box-shadow:0 20px 60px rgba(0,0,0,.25),inset 0 0 0 2px #374151;overflow:hidden}
+.phone-notch{height:28px;background:#1F2937;display:flex;align-items:flex-end;justify-content:center;padding-bottom:2px}
+.phone-notch-pill{width:80px;height:18px;background:#000;border-radius:9px}
+.phone-screen{height:620px;overflow-y:auto;background:#fff}
+.phone-screen::-webkit-scrollbar{display:none}
+
+/* ── PC Browser Preview ── */
+.browser-frame{width:680px;background:#fff;border-radius:10px;border:1px solid #D1D5DB;box-shadow:0 12px 40px rgba(0,0,0,.18);overflow:hidden}
+.browser-chrome{height:36px;background:#F3F4F6;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0}
+.browser-dots{display:flex;gap:5px}
+.browser-dot{width:10px;height:10px;border-radius:50%}
+.browser-dot.red{background:#FF5F57}
+.browser-dot.yellow{background:#FFBD2E}
+.browser-dot.green{background:#28CA41}
+.browser-addressbar{flex:1;background:#fff;border:1px solid #E5E7EB;border-radius:4px;height:22px;display:flex;align-items:center;padding:0 8px;gap:4px;font-size:10px;color:#6B7280;margin:0 8px}
+.browser-lock{font-size:9px;color:#16A34A}
+.browser-screen{height:560px;overflow-y:auto;background:#fff;transform-origin:top left}
+.browser-screen::-webkit-scrollbar{display:none}
+
+/* PC preview inner elements — scaled down via CSS on .browser-screen children */
+.pc-anno-bar{background:#6432FC;height:20px;display:flex;align-items:center;justify-content:center}
+.pc-anno-bar span{font-size:8px;color:#fff;letter-spacing:0.2px}
+.pc-navbar{display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:44px;background:#fff;border-bottom:1px solid #E5E7EB;flex-shrink:0}
+.pc-navbar-logo{font-size:13px;font-weight:700;color:#6432FC;font-style:italic;letter-spacing:0.5px}
+.pc-navbar-links{display:flex;gap:14px}
+.pc-navbar-link{font-size:9px;color:#6B6B6B}
+.pc-navbar-link.active{color:#1A1A1A;font-weight:600}
+.pc-navbar-right{display:flex;align-items:center;gap:10px}
+.pc-hero{position:relative;width:100%;height:220px;overflow:hidden}
+.pc-hero img,.pc-hero-placeholder{width:100%;height:220px;object-fit:cover;display:block}
+.pc-hero-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 20%,rgba(0,0,0,.6) 100%)}
+.pc-hero-content{position:absolute;bottom:0;left:32px;padding-bottom:20px}
+.pc-hero-eyebrow{font-size:6px;color:#fff;letter-spacing:2px;font-weight:600;margin-bottom:6px}
+.pc-hero-title{font-size:18px;font-weight:700;color:#fff;line-height:1.15;margin-bottom:8px}
+.pc-hero-cta{display:inline-flex;align-items:center;background:#fff;color:#1F2937;font-size:8px;font-weight:600;padding:5px 12px;border-radius:2px;gap:3px}
+.pc-hero-dots{position:absolute;bottom:10px;left:32px;display:flex;gap:5px}
+.pc-hero-dot{width:14px;height:5px;border-radius:3px;background:rgba(255,255,255,.5)}
+.pc-hero-dot.on{background:#fff}
+.pc-trust{display:flex;background:#FAFAFA;padding:18px 32px;gap:0;border-bottom:1px solid #EBEBEB}
+.pc-trust-cell{flex:1;display:flex;align-items:center;gap:8px;border-right:1px solid #EBEBEB;padding-right:12px;margin-right:12px}
+.pc-trust-cell:last-child{border-right:none}
+.pc-trust-icon{font-size:16px;color:#7C3AED}
+.pc-trust-text .main{font-size:9px;font-weight:600;color:#1A1A1A}
+.pc-trust-text .sub{font-size:7px;color:#6B7280}
+.pc-coll{padding:24px 32px;background:#fff}
+.pc-coll-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.pc-coll-title{font-size:13px;font-weight:700;color:#1A1A1A}
+.pc-coll-see-all{font-size:8px;color:#7C3AED}
+.pc-coll-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.pc-coll-card{border-radius:4px;overflow:hidden;position:relative;height:140px;background:#E5E7EB}
+.pc-coll-card img{width:100%;height:100%;object-fit:cover;display:block}
+.pc-coll-card-overlay{position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.55))}
+.pc-coll-card-text{position:absolute;bottom:0;left:0;right:0;padding:6px 8px}
+.pc-coll-card-name{font-size:8px;font-weight:700;color:#fff;margin-bottom:2px}
+.pc-coll-card-cta{font-size:7px;color:rgba(255,255,255,.85)}
+.pc-feed{padding:24px 32px;background:#fff}
+.pc-feed-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.pc-feed-title{font-size:13px;font-weight:700;color:#1A1A1A}
+.pc-feed-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.pc-feed-item{border-radius:6px;overflow:hidden;aspect-ratio:3/4;position:relative}
+
+.preview-navbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px 8px;background:#fff}
+.preview-nav-logo{font-size:14px;font-weight:700;color:#1F2937;letter-spacing:2px}
+
+.preview-banner-section{position:relative;width:100%;overflow:hidden}
+.preview-banner-img{width:100%;height:200px;object-fit:cover;display:block}
+.preview-banner-placeholder{width:100%;height:200px;display:flex;align-items:center;justify-content:center}
+.preview-banner-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.55) 100%)}
+.preview-banner-text{position:absolute;bottom:0;left:0;right:0;padding:16px}
+.preview-banner-title{font-size:20px;font-weight:700;color:#fff;margin-bottom:4px;line-height:1.2}
+.preview-banner-sub{font-size:12px;color:rgba(255,255,255,.85);margin-bottom:10px}
+.preview-banner-cta{display:inline-flex;align-items:center;background:#fff;color:#1F2937;font-size:12px;font-weight:600;padding:7px 16px;border-radius:20px;gap:4px}
+.preview-banner-dots{position:absolute;bottom:8px;right:12px;display:flex;gap:4px}
+.preview-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.5)}
+.preview-dot.on{background:#fff;width:14px;border-radius:3px}
+.preview-zone-ring{box-shadow:0 0 0 2px #7C3AED,0 0 0 4px rgba(124,58,237,.15);border-radius:4px;position:relative}
+.preview-zone-label{position:absolute;top:0;left:0;background:#7C3AED;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:0 0 6px 0;z-index:5;pointer-events:none}
+
+.preview-trust{display:flex;padding:10px 6px;border-bottom:1px solid #F0F0F0}
+.preview-trust-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+.preview-trust-icon{font-size:15px;color:#7C3AED}
+.preview-trust-main{font-size:9px;font-weight:600;color:#1F2937;text-align:center}
+.preview-trust-sub{font-size:8px;color:#6B7280;text-align:center}
+
+.preview-coll-section{padding:12px 0}
+.preview-coll-title{font-size:13px;font-weight:700;color:#1F2937;padding:0 14px;margin-bottom:10px}
+.preview-coll-slide{display:flex;gap:8px;overflow-x:auto;padding:0 14px 4px;scrollbar-width:none}
+.preview-coll-slide::-webkit-scrollbar{display:none}
+.preview-coll-card{flex-shrink:0;width:130px;border-radius:12px;overflow:hidden;position:relative;background:#E5E7EB}
+.preview-coll-card-img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block}
+.preview-coll-card-placeholder{width:100%;aspect-ratio:3/4;display:flex;align-items:center;justify-content:center}
+.preview-coll-overlay{position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.55))}
+.preview-coll-text{position:absolute;bottom:0;left:0;right:0;padding:8px}
+.preview-coll-name{font-size:11px;font-weight:700;color:#fff;margin-bottom:3px;line-height:1.2}
+.preview-coll-cta{font-size:9px;color:rgba(255,255,255,.85)}
+
+.preview-chip-row{display:flex;gap:6px;overflow-x:auto;padding:0 14px 6px;scrollbar-width:none}
+.preview-chip-row::-webkit-scrollbar{display:none}
+.preview-chip{background:#F3EEFF;color:#7C3AED;font-size:11px;font-weight:500;padding:5px 12px;border-radius:20px;white-space:nowrap;flex-shrink:0;border:1px solid #DDD6FE}
+
+.preview-feed{padding:12px 14px}
+.preview-feed-title{font-size:13px;font-weight:700;color:#1F2937;margin-bottom:10px}
+.preview-feed-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.preview-feed-item{border-radius:8px;overflow:hidden;aspect-ratio:3/4;position:relative}
+
+.preview-device-label{font-size:11px;color:#9CA3AF;text-align:center;margin-bottom:10px;font-weight:500}
+.preview-zone-pill{background:#7C3AED;color:#fff;font-size:10px;font-weight:600;padding:3px 10px;border-radius:0 0 8px 8px;display:inline-block;margin-bottom:12px}
+
+.thumb-clickable{cursor:zoom-in}
+:focus-visible{outline:none;box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+
+const LOGO_SRC = "data:image/png;base64,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";
+const { useState, useEffect, useRef } = React;
+const { Layout, Menu, Card, Table, Button, Space, Tag, Modal, Input, Select,
+  Switch, InputNumber, DatePicker, Alert, Tooltip, Dropdown,
+  ConfigProvider, Radio, Image, Avatar, App: AntdApp, Breadcrumb } = antd;
+const { PlusOutlined, EditOutlined, CopyOutlined, DeleteOutlined,
+  UpOutlined, DownOutlined, AppstoreOutlined, FileImageOutlined,
+  VideoCameraOutlined, LinkOutlined, HomeOutlined,
+  SettingOutlined, SearchOutlined, ShoppingCartOutlined, HeartOutlined,
+  RightOutlined, SafetyOutlined, TruckOutlined, GiftOutlined, StarOutlined,
+  LockOutlined, GlobalOutlined, MobileOutlined, DesktopOutlined,
+  EyeOutlined, CheckOutlined, ClockCircleOutlined, TagsOutlined } = icons;
+
+// ── Constants ──────────────────────────────────────────────────
+const MARKETS   = [{ value:'US', label:'🇺🇸 US' }];
+const CHANNELS  = [{ value:'official', label:'官方站' }];
+const TERMINALS = [
+  { value:'app', label:'📱 App' },
+  { value:'pc',  label:'🖥 PC'  },
+];
+const TERM_DISPLAY = { app:'App（Mobile）', pc:'PC' };
+const ZONES = [
+  { key:'home_banner',     page:'home', name:'首页 Banner',     maxConfigs:4 },
+  { key:'home_collection', page:'home', name:'首页 Collection', maxConfigs:8 },
+];
+const TEMPLATES = [
+  { key:'banner_image',         name:'Banner 大图',   zone:['home_banner'], mvp:'P0', desc:'单素材图片，全幅展示，支持文案叠层' },
+  { key:'collection_card_slide',name:'合集滑动卡片',  zone:['home_collection'], mvp:'P0', desc:'图片卡片 + 合集信息，横向滑动' },
+  { key:'collection_chip',      name:'文字芯片',      zone:['home_collection'], mvp:'P1', desc:'纯文字 Chip，无图片素材' },
+  { key:'collection_card_small',name:'小尺寸卡片',    zone:['home_collection'], mvp:'P1', desc:'小卡片横滑，图片+合集信息' },
+];
+const CFG_STATUS = {
+  active: { l:'生效中', color:'#16A34A', bg:'#F0FDF4' },
+  paused: { l:'已暂停', color:'#6B7280', bg:'#F3F4F6' },
+};
+const computeStatus = (cfg) => cfg.online ? 'active' : 'paused';
+const MOCK_COLLECTIONS = [
+  { id:'c1', title:'Summer Edit',    subtitle:'Fresh picks for the season',      page:'Summer Edit Collection',    pageUrl:'/collections/summer-edit',    market:'US', thumb:'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=300&q=80' },
+  { id:'c2', title:'Designer Bags',  subtitle:'Authentic luxury, better prices', page:'Designer Bags Collection',  pageUrl:'/collections/designer-bags',  market:'US', thumb:'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=300&q=80' },
+  { id:'c3', title:'Vintage Jewelry',subtitle:'One-of-a-kind pieces, curated',   page:'Vintage Jewelry Collection',pageUrl:'/collections/vintage-jewelry',market:'US', thumb:'https://images.unsplash.com/photo-1611085583191-a3b181a88401?w=300&q=80' },
+  { id:'c4', title:'Street Style',   subtitle:'Bold looks, real deals',          page:'Street Style Collection',   pageUrl:'/collections/street-style',   market:'US', thumb:'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=300&q=80' },
+];
+const mkCfg = (id, zone, tmpl, name, img, collId, online, order) => ({
+  id, zone, template:tmpl, name, img, collId, online, order,
+  title:'', subtitle:'', textColor:'light',
+});
+const INIT_CONFIGS = {
+  'US:official:app': {
+    home_banner: [
+      mkCfg('c1','home_banner','banner_image','Summer Hero','https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=600&q=80','c1',true,1),
+    ],
+    home_collection: [
+      mkCfg('c2','home_collection','collection_card_slide','Designer Bags Card','https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=300&q=80','c2',true,1),
+      mkCfg('c3','home_collection','collection_card_slide','Vintage Jewelry Card','https://images.unsplash.com/photo-1611085583191-a3b181a88401?w=300&q=80','c3',true,2),
+      mkCfg('c4','home_collection','collection_card_slide','Street Style Card','https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=300&q=80','c4',false,3),
+    ],
+  },
+  'US:official:pc': {
+    home_banner: [
+      mkCfg('c7','home_banner','banner_image','Summer Hero PC','https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=600&q=80','c1',true,1),
+    ],
+    home_collection: [],
+  },
+};
+
+// ── Small shared components ────────────────────────────────────
+function StatusTag({ status }) {
+  const s = CFG_STATUS[status] || CFG_STATUS.paused;
+  return <span className="st-tag" style={{background:s.bg,color:s.color}}>{s.l}</span>;
+}
+function DimBadge({ market, channel, terminal }) {
+  const termLabel = terminal === 'pc' ? '🖥 PC' : '📱 App';
+  return <span className="dim-badge dim-badge-blue">{market} · {channel} · {termLabel}</span>;
+}
+function Kpi({ num, label }) {
+  return <div className="lp-kpi"><div className="num">{num}</div><div className="label">{label}</div></div>;
+}
+function FormRow({ label, required, children, help }) {
+  return (
+    <>
+      <div className="lp-form-row">
+        <div className="lp-form-label">{required && <span className="req">*</span>}{label}</div>
+        <div className="lp-form-control">{children}</div>
+      </div>
+      {help && <div className="lp-helper">{help}</div>}
+    </>
+  );
+}
+function SectionTitle({ children }) {
+  return <div className="lp-section">{children}</div>;
+}
+function UploadZone({ label, sub }) {
+  return (
+    <div className="lp-upload-zone">
+      <div style={{fontSize:24,color:'#9CA3AF',marginBottom:6}}><FileImageOutlined /></div>
+      <div className="hint">{label||'点击或拖拽上传'}</div>
+      <div className="sub">{sub||'支持 JPG / PNG / WebP'}</div>
+    </div>
+  );
+}
+function ReadonlyField({ value, href }) {
+  return (
+    <div style={{display:'flex',alignItems:'center',gap:6,padding:'5px 12px',background:'#F9FAFB',border:'1px solid #E5E7EB',borderRadius:8,fontSize:13}}>
+      <LockOutlined style={{color:'#9CA3AF',fontSize:11}} />
+      {href
+        ? <a href={href} target="_blank" rel="noreferrer" style={{color:'#7C3AED',textDecoration:'underline dotted'}}>{value}</a>
+        : <span style={{color:'#6B7280'}}>{value||'—'}</span>
+      }
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// MOBILE PREVIEW COMPONENTS
+// ══════════════════════════════════════════════════════════════
+function PreviewNavBar() {
+  return (
+    <div className="preview-navbar">
+      <div className="preview-nav-logo">LOOPLY</div>
+      <div style={{display:'flex',gap:8,color:'#6B7280'}}>
+        <SearchOutlined style={{fontSize:16}} />
+        <HeartOutlined style={{fontSize:16}} />
+        <ShoppingCartOutlined style={{fontSize:16}} />
+      </div>
+    </div>
+  );
+}
+function PreviewTrustBar() {
+  const items=[
+    {icon:<SafetyOutlined />,main:'Authenticated',sub:'Every item'},
+    {icon:<TruckOutlined />,main:'Free Shipping',sub:'$50+'},
+    {icon:<GiftOutlined />,main:'Easy Returns',sub:'14 days'},
+    {icon:<StarOutlined />,main:'Top Brands',sub:'Guaranteed'},
+  ];
+  return (
+    <div className="preview-trust">
+      {items.map((it,i)=>(
+        <div key={i} className="preview-trust-item">
+          <div className="preview-trust-icon">{it.icon}</div>
+          <div className="preview-trust-main">{it.main}</div>
+          <div className="preview-trust-sub">{it.sub}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PreviewBannerSection({ configs, activeZone, editingCfg }) {
+  const isActive = activeZone === 'home_banner';
+  const onlineConfigs = configs.filter(c=>computeStatus(c)==='active');
+  const displayCfgs = editingCfg ? [editingCfg] : (onlineConfigs.length > 0 ? onlineConfigs : configs.slice(0,1));
+  const [slide, setSlide] = useState(0);
+  const cfg = displayCfgs[Math.min(slide, displayCfgs.length-1)] || {};
+  const coll = cfg.collId ? MOCK_COLLECTIONS.find(c=>c.id===cfg.collId) : null;
+  const title = cfg.title || (coll ? coll.title : '');
+  const sub = cfg.subtitle || '';
+  const textDark = cfg.textColor === 'dark';
+
+  return (
+    <div className={isActive ? 'preview-zone-ring' : ''} style={{position:'relative',opacity:activeZone&&!isActive?0.4:1,transition:'opacity .2s'}}>
+      {isActive && <div className="preview-zone-label">首页 Banner</div>}
+      <div className="preview-banner-section">
+        {cfg.img
+          ? <img className="preview-banner-img" src={cfg.img} alt="" />
+          : <div className="preview-banner-placeholder" style={{background:'linear-gradient(135deg,#C4B5A0,#A89080)',height:200}}>
+              <FileImageOutlined style={{fontSize:36,color:'rgba(255,255,255,.5)'}} />
+            </div>
+        }
+        <div className="preview-banner-overlay" />
+        <div className="preview-banner-text">
+          {title && <div className="preview-banner-title" style={{color:textDark?'#1F2937':'#fff'}}>{title}</div>}
+          {sub && <div className="preview-banner-sub" style={{color:textDark?'#374151':'rgba(255,255,255,.85)'}}>{sub}</div>}
+        </div>
+        {displayCfgs.length > 1 && (
+          <div className="preview-banner-dots">
+            {displayCfgs.map((_,i)=>(
+              <div key={i} className={`preview-dot${i===slide?' on':''}`} onClick={()=>setSlide(i)} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PreviewCollSection({ configs, activeZone, editingCfg }) {
+  const isColl = activeZone === 'home_collection';
+  const onlineConfigs = configs.filter(c=>computeStatus(c)==='active');
+  const displayCfgs = editingCfg ? [...onlineConfigs.filter(c=>c.id!==editingCfg.id), editingCfg] : onlineConfigs;
+  const showChips = displayCfgs.every(c=>c.template==='collection_chip');
+
+  return (
+    <div className={isColl?'preview-zone-ring':''} style={{position:'relative',opacity:activeZone&&!isColl?0.4:1,transition:'opacity .2s'}}>
+      {isColl && <div className="preview-zone-label">首页 Collection</div>}
+      <div className="preview-coll-section">
+        <div className="preview-coll-title">Collections</div>
+        {showChips
+          ? <div className="preview-chip-row">
+              {displayCfgs.length > 0
+                ? displayCfgs.map((c,i)=>{
+                    const coll = MOCK_COLLECTIONS.find(x=>x.id===c.collId);
+                    return <div key={i} className="preview-chip">{c.title||(coll?coll.title:'Collection')}</div>;
+                  })
+                : ['Summer','Bags','Jewelry','Shoes'].map(t=><div key={t} className="preview-chip">{t}</div>)
+              }
+            </div>
+          : <div className="preview-coll-slide">
+              {displayCfgs.length > 0
+                ? displayCfgs.map((c,i)=>{
+                    const coll = MOCK_COLLECTIONS.find(x=>x.id===c.collId);
+                    const imgSrc = c.img || (coll ? coll.thumb : '');
+                    const name = c.title || (coll ? coll.title : `Collection ${i+1}`);
+                    const ctaText = c.cta || 'Explore';
+                    return (
+                      <div key={i} className="preview-coll-card" style={{outline:editingCfg&&c.id===editingCfg.id?'2px solid #7C3AED':'none'}}>
+                        {imgSrc
+                          ? <img className="preview-coll-card-img" src={imgSrc} alt="" />
+                          : <div className="preview-coll-card-placeholder" style={{background:`hsl(${i*60+200},25%,82%)`,aspectRatio:'3/4'}} />
+                        }
+                        <div className="preview-coll-overlay" />
+                        <div className="preview-coll-text">
+                          <div className="preview-coll-name">{name}</div>
+                          <div className="preview-coll-cta">{ctaText} <RightOutlined style={{fontSize:7}} /></div>
+                        </div>
+                      </div>
+                    );
+                  })
+                : [0,1,2].map(i=>(
+                    <div key={i} className="preview-coll-card">
+                      <div style={{width:'100%',aspectRatio:'3/4',background:`hsl(${i*60+200},25%,88%)`}} />
+                    </div>
+                  ))
+              }
+            </div>
+        }
+      </div>
+    </div>
+  );
+}
+
+function MobilePreview({ activeZone, configs, editingCfg }) {
+  const bannerCfgs = configs['home_banner'] || [];
+  const collCfgs   = configs['home_collection'] || [];
+  const editingBanner = editingCfg && editingCfg.zone==='home_banner' ? editingCfg : null;
+  const editingColl   = editingCfg && editingCfg.zone==='home_collection' ? editingCfg : null;
+
+  return (
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center'}}>
+      <div className="preview-device-label">C 端预览 · App</div>
+      {activeZone && (
+        <div className="preview-zone-pill">
+          {ZONES.find(z=>z.key===activeZone)?.name || activeZone}
+        </div>
+      )}
+      <div className="phone-frame">
+        <div className="phone-notch"><div className="phone-notch-pill" /></div>
+        <div className="phone-screen">
+          <PreviewNavBar />
+          <PreviewBannerSection configs={bannerCfgs} activeZone={activeZone} editingCfg={editingBanner} />
+          <PreviewTrustBar />
+          <PreviewCollSection configs={collCfgs} activeZone={activeZone} editingCfg={editingColl} />
+          <div style={{opacity:activeZone?0.3:1,transition:'opacity .2s'}}>
+            <div className="preview-feed">
+              <div className="preview-feed-title">Explore Finds</div>
+              <div className="preview-feed-grid">
+                {['#E8D5C4','#D5C4E8','#C4D5E8','#E8C4D5'].map((c,i)=>(
+                  <div key={i} className="preview-feed-item" style={{background:c}}>
+                    <div style={{position:'absolute',bottom:0,left:0,right:0,padding:5,background:'linear-gradient(transparent,rgba(0,0,0,.35))'}}>
+                      <div style={{fontSize:9,color:'#fff',fontWeight:600}}>${49+i*10}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style={{marginTop:10,fontSize:11,color:'#9CA3AF',textAlign:'center'}}>实时预览 · 上线后前台同步</div>
+    </div>
+  );
+}
+
+// ── PC Browser Preview ─────────────────────────────────────────
+function PcPreview({ activeZone, configs, editingCfg }) {
+  const bannerCfgs = configs['home_banner'] || [];
+  const collCfgs   = configs['home_collection'] || [];
+  const editingBanner = editingCfg && editingCfg.zone==='home_banner' ? editingCfg : null;
+  const editingColl   = editingCfg && editingCfg.zone==='home_collection' ? editingCfg : null;
+
+  // resolve banner to show
+  const onlineBanners = bannerCfgs.filter(c=>computeStatus(c)==='active');
+  const bannerShow = editingBanner ? [editingBanner] : (onlineBanners.length > 0 ? onlineBanners : bannerCfgs.slice(0,1));
+  const [slide, setSlide] = useState(0);
+  const bCfg = bannerShow[Math.min(slide, bannerShow.length-1)] || {};
+  const bColl = bCfg.collId ? MOCK_COLLECTIONS.find(c=>c.id===bCfg.collId) : null;
+  const bTitle = bCfg.title || (bColl ? bColl.title : '');
+  const bSub = bCfg.subtitle || '';
+  const bCta = bCfg.cta || 'Shop Now';
+  const isBannerActive = activeZone === 'home_banner';
+
+  // resolve collections to show
+  const onlineColls = collCfgs.filter(c=>computeStatus(c)==='active');
+  const collShow = editingColl
+    ? [...onlineColls.filter(c=>c.id!==editingColl.id), editingColl]
+    : onlineColls;
+  const isCollActive = activeZone === 'home_collection';
+
+  const fallbackColls = [
+    {name:'Everyday Carry', color:'#C4B5A0'},
+    {name:'Travel Ready',   color:'#A89080'},
+    {name:'Quiet Luxury',   color:'#B0A0C0'},
+    {name:'Statement Jewelry', color:'#C0B0A0'},
+  ];
+
+  return (
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center'}}>
+      <div className="preview-device-label">C 端预览 · PC</div>
+      {activeZone && (
+        <div className="preview-zone-pill">
+          {ZONES.find(z=>z.key===activeZone)?.name || activeZone}
+        </div>
+      )}
+      <div className="browser-frame">
+        {/* Chrome bar */}
+        <div className="browser-chrome">
+          <div className="browser-dots">
+            <div className="browser-dot red" />
+            <div className="browser-dot yellow" />
+            <div className="browser-dot green" />
+          </div>
+          <div className="browser-addressbar">
+            <span className="browser-lock">🔒</span>
+            <span>looply.com</span>
+          </div>
+        </div>
+        {/* Page content */}
+        <div className="browser-screen">
+          {/* Announcement bar */}
+          <div className="pc-anno-bar">
+            <span>Free Shipping on Orders Over $500 · Authenticity Guaranteed</span>
+          </div>
+          {/* Navbar */}
+          <div className="pc-navbar">
+            <div style={{display:'flex',alignItems:'center',gap:20}}>
+              <div className="pc-navbar-logo">Looply</div>
+              <div className="pc-navbar-links">
+                {['New Arrivals','Bags','Jewelry','Watches','Brands','More'].map((l,i)=>(
+                  <span key={l} className={`pc-navbar-link${i===1?' active':''}`}>{l}</span>
+                ))}
+              </div>
+            </div>
+            <div className="pc-navbar-right">
+              <SearchOutlined style={{fontSize:13,color:'#1A1A1A'}} />
+              <HeartOutlined style={{fontSize:13,color:'#1A1A1A'}} />
+              <div style={{background:'#6432FC',color:'#fff',fontSize:8,fontWeight:600,padding:'4px 10px',borderRadius:2}}>Cart (0)</div>
+            </div>
+          </div>
+          {/* Hero Banner */}
+          <div className={isBannerActive?'preview-zone-ring':''} style={{position:'relative',opacity:activeZone&&!isBannerActive?0.45:1,transition:'opacity .2s'}}>
+            {isBannerActive && <div className="preview-zone-label">首页 Banner</div>}
+            <div className="pc-hero">
+              {bCfg.img
+                ? <img src={bCfg.img} alt="" />
+                : <div className="pc-hero-placeholder" style={{background:'linear-gradient(135deg,#C4B5A0,#8A7060)',height:220}} />
+              }
+              <div className="pc-hero-overlay" />
+              <div className="pc-hero-content">
+                <div className="pc-hero-eyebrow">AUTHENTICATED LUXURY</div>
+                {bTitle && <div className="pc-hero-title">{bTitle}</div>}
+                {!bTitle && <div className="pc-hero-title">From designer bags<br/>to premium tech.</div>}
+                {bSub && <div style={{fontSize:8,color:'rgba(255,255,255,.85)',marginBottom:8,lineHeight:1.5}}>{bSub}</div>}
+                <div className="pc-hero-cta">{bCta} <RightOutlined style={{fontSize:7}} /></div>
+              </div>
+              {bannerShow.length > 1 && (
+                <div className="pc-hero-dots">
+                  {bannerShow.map((_,i)=>(
+                    <div key={i} className={`pc-hero-dot${i===slide?' on':''}`} onClick={()=>setSlide(i)} style={{cursor:'pointer'}} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          {/* Trust Bar */}
+          <div style={{opacity:activeZone?0.35:1,transition:'opacity .2s'}}>
+            <div className="pc-trust">
+              {[
+                {icon:<SafetyOutlined />,main:'Authenticated Luxury',sub:'Every item verified'},
+                {icon:<TruckOutlined />,main:'Free Shipping $500+',sub:'Fast & reliable'},
+                {icon:<GiftOutlined />,main:'Easy Returns',sub:'14-day window'},
+                {icon:<StarOutlined />,main:'Top Brands',sub:'100% guaranteed'},
+              ].map((it,i)=>(
+                <div key={i} className="pc-trust-cell">
+                  <div className="pc-trust-icon">{it.icon}</div>
+                  <div className="pc-trust-text">
+                    <div className="main">{it.main}</div>
+                    <div className="sub">{it.sub}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Collections */}
+          <div className={isCollActive?'preview-zone-ring':''} style={{position:'relative',opacity:activeZone&&!isCollActive?0.45:1,transition:'opacity .2s'}}>
+            {isCollActive && <div className="preview-zone-label">首页 Collection</div>}
+            <div className="pc-coll">
+              <div className="pc-coll-header">
+                <div className="pc-coll-title">Curated Collections</div>
+                <div className="pc-coll-see-all">See All →</div>
+              </div>
+              <div className="pc-coll-grid">
+                {(collShow.length > 0 ? collShow.slice(0,4) : fallbackColls).map((c,i)=>{
+                  const isFallback = !c.id;
+                  const coll = !isFallback && c.collId ? MOCK_COLLECTIONS.find(x=>x.id===c.collId) : null;
+                  const imgSrc = !isFallback ? (c.img || (coll?coll.thumb:'')) : '';
+                  const name = !isFallback ? (c.title||(coll?coll.title:`Collection ${i+1}`)) : c.name;
+                  const ctaText = !isFallback ? (c.cta||'Explore') : 'Explore';
+                  return (
+                    <div key={i} className="pc-coll-card" style={{outline:editingColl&&!isFallback&&c.id===editingColl.id?'2px solid #7C3AED':'none'}}>
+                      {imgSrc
+                        ? <img src={imgSrc} alt="" />
+                        : <div style={{width:'100%',height:'100%',background:isFallback?c.color:`hsl(${i*60+200},25%,82%)`}} />
+                      }
+                      <div className="pc-coll-card-overlay" />
+                      <div className="pc-coll-card-text">
+                        <div className="pc-coll-card-name">{name}</div>
+                        <div className="pc-coll-card-cta">{ctaText} →</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          {/* Feed placeholder */}
+          <div style={{opacity:activeZone?0.3:1,transition:'opacity .2s'}}>
+            <div className="pc-feed">
+              <div className="pc-feed-header">
+                <div className="pc-feed-title">Explore Finds</div>
+              </div>
+              <div className="pc-feed-grid">
+                {['#E8D5C4','#D5C4E8','#C4D5E8','#E8C4D5'].map((c,i)=>(
+                  <div key={i} className="pc-feed-item" style={{background:c}}>
+                    <div style={{position:'absolute',bottom:0,left:0,right:0,padding:5,background:'linear-gradient(transparent,rgba(0,0,0,.35))'}}>
+                      <div style={{fontSize:8,color:'#fff',fontWeight:600}}>${49+i*10}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style={{marginTop:10,fontSize:11,color:'#9CA3AF',textAlign:'center'}}>实时预览 · 上线后前台同步</div>
+    </div>
+  );
+}
+
+// ── Unified preview switcher ───────────────────────────────────
+function PreviewPanel({ terminal, activeZone, configs, editingCfg }) {
+  if (terminal === 'pc') {
+    return <PcPreview activeZone={activeZone} configs={configs} editingCfg={editingCfg} />;
+  }
+  return <MobilePreview activeZone={activeZone} configs={configs} editingCfg={editingCfg} />;
+}
+
+// ══════════════════════════════════════════════════════════════
+// CONFIG EDITOR
+// ══════════════════════════════════════════════════════════════
+function ConfigEditor({ cfg, market, channel, terminal, onSave, onCancel, onLiveUpdate }) {
+  const [form, setForm] = useState({ ...cfg });
+  const zoneObj = ZONES.find(z=>z.key===cfg.zone)||{};
+  const allowedTmpls = TEMPLATES.filter(t=>t.zone.includes(cfg.zone));
+  const isBanner = cfg.zone === 'home_banner';
+  const isChip   = form.template === 'collection_chip';
+  const up = (k,v) => { const next={...form,[k]:v}; setForm(next); onLiveUpdate && onLiveUpdate(next); };
+  const coll = form.collId ? MOCK_COLLECTIONS.find(c=>c.id===form.collId) : null;
+
+  // banner 坑位：自动应用唯一模板
+  useEffect(() => {
+    if (isBanner && !form.template) up('template','banner_image');
+  }, []);
+
+  // 关联合集后自动填充标题/副标题（仅空时填入，已有内容不覆盖）
+  function handleCollChange(v) {
+    const selected = MOCK_COLLECTIONS.find(c=>c.id===v);
+    const next = { ...form, collId:v||'' };
+    if (selected) {
+      if (!form.title)    next.title    = selected.title;
+      if (!form.subtitle) next.subtitle = selected.subtitle||'';
+    }
+    setForm(next); onLiveUpdate && onLiveUpdate(next);
+  }
+
+  useEffect(() => { onLiveUpdate && onLiveUpdate(form); }, []);
+
+  const [tmplConfirm, setTmplConfirm] = useState({open:false,pending:null});
+  function selectTemplate(tkey) {
+    if (form.template && form.template!==tkey && (form.img||form.title||form.collId)) {
+      setTmplConfirm({open:true,pending:tkey});
+    } else { up('template',tkey); }
+  }
+
+  return (
+    <div className="config-editor">
+      <div className="editor-header">
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{marginBottom:4}}>
+            <DimBadge market={market} channel={channel} terminal={terminal} />
+          </div>
+          <Input
+            value={form.name||''}
+            onChange={e=>up('name',e.target.value)}
+            placeholder="配置名称（内部备注）"
+            bordered={false}
+            style={{padding:0,fontSize:14,fontWeight:600,color:'#1F2937'}}
+          />
+        </div>
+        <StatusTag status={computeStatus(form)} />
+        <Button size="small" onClick={onCancel}>取消</Button>
+        <Button type="primary" size="small" icon={<CheckOutlined />} onClick={()=>onSave(form)}>保存</Button>
+      </div>
+
+      <div className="editor-body">
+        <SectionTitle>基本信息（已锁定）</SectionTitle>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:8,marginBottom:16}}>
+          <div>
+            <div style={{fontSize:11,color:'#9CA3AF',marginBottom:4}}>市场 (Market)</div>
+            <Select value={market} options={MARKETS} disabled style={{width:'100%'}} size="small" />
+          </div>
+          <div>
+            <div style={{fontSize:11,color:'#9CA3AF',marginBottom:4}}>渠道 (Channel)</div>
+            <Select value={channel} options={CHANNELS} disabled style={{width:'100%'}} size="small" />
+          </div>
+          <div>
+            <div style={{fontSize:11,color:'#9CA3AF',marginBottom:4}}>终端 (Terminal)</div>
+            <span style={{display:'inline-flex',alignItems:'center',padding:'1px 10px',background:'#f5f5f5',border:'1px solid #d9d9d9',borderRadius:6,color:'#595959',fontSize:13,height:24}}>{terminal==='pc'?'🖥 PC':'📱 App'}</span>
+          </div>
+          <div>
+            <div style={{fontSize:11,color:'#9CA3AF',marginBottom:4}}>坑位</div>
+            <ReadonlyField value={zoneObj.name} />
+          </div>
+        </div>
+
+        {/* 模板选择：banner 只有一个，不展示选卡；collection 才展示 */}
+        {!isBanner && (<>
+          <SectionTitle>模板样式</SectionTitle>
+          <div className="tmpl-grid">
+            {allowedTmpls.map(t=>(
+              <div key={t.key} className={`tmpl-card${form.template===t.key?' active':''}`} onClick={()=>selectTemplate(t.key)}>
+                <span className={`tmpl-badge ${t.mvp==='P0'?'tmpl-badge-p0':'tmpl-badge-p1'}`}>{t.mvp}</span>
+                <div className="tmpl-name">{t.name}</div>
+                <div className="tmpl-desc">{t.desc}</div>
+              </div>
+            ))}
+          </div>
+        </>)}
+
+        {(isBanner || form.template) && (<>
+          <SectionTitle>素材与内容</SectionTitle>
+
+          {/* 图片上传（banner 固定大图，collection 非 chip） */}
+          {!isChip && (
+            <FormRow label="素材图片" required help={isBanner ? 'JPG/PNG/WebP · 750×400px（Mobile）· 1440×600px（PC）· 建议 ≤ 500KB' : 'JPG/PNG/WebP · 300×300px · 建议 ≤ 200KB'}>
+              {form.img
+                ? <div style={{position:'relative',display:'inline-block'}}>
+                    <img src={form.img} alt="" style={{width:80,height:isBanner?50:80,borderRadius:6,objectFit:'cover',border:'1px solid #E5E7EB'}} />
+                    <Button size="small" type="text" danger style={{position:'absolute',top:1,right:1,padding:2,height:'auto',minWidth:'auto'}} onClick={()=>up('img','')}>✕</Button>
+                  </div>
+                : <UploadZone label="上传图片" sub={isBanner ? '750×400px（Mobile）· 1440×600px（PC）' : '300×300px'} />
+              }
+            </FormRow>
+          )}
+
+          <FormRow label="关联合集" required>
+            <Select
+              style={{width:'100%'}}
+              placeholder="选择合集（按市场过滤）…"
+              value={form.collId||undefined}
+              onChange={handleCollChange}
+              options={MOCK_COLLECTIONS.filter(c=>c.market===market).map(c=>({value:c.id,label:c.title}))}
+            />
+          </FormRow>
+          {coll && (
+            <FormRow label="落地页">
+              <ReadonlyField value={coll.page} href={coll.pageUrl} />
+              <div className="lp-helper" style={{margin:'4px 0 0'}}>自动从合集读取，点击名称可预览跳转</div>
+            </FormRow>
+          )}
+
+          <FormRow label="标题" help={`≤ 30 字符，留空自动展示合集标题`}>
+            <Input
+              value={form.title||''}
+              maxLength={30}
+              showCount
+              placeholder={coll ? coll.title : '复用合集标题，可覆盖修改'}
+              onChange={e=>up('title',e.target.value)}
+            />
+          </FormRow>
+          {!isChip && (
+            <FormRow label="副标题" help={terminal==='pc' ? '≤ 100 字符' : '≤ 30 字符，留空不展示'}>
+              <Input
+                value={form.subtitle||''}
+                maxLength={terminal==='pc' ? 100 : 30}
+                showCount
+                placeholder={coll?.subtitle || '复用合集副标题，可覆盖修改'}
+                onChange={e=>up('subtitle',e.target.value)}
+              />
+            </FormRow>
+          )}
+          {!isChip && (
+            <FormRow label="文字颜色">
+              <Radio.Group value={form.textColor||'light'} onChange={e=>up('textColor',e.target.value)} size="small" buttonStyle="solid">
+                <Radio.Button value="light">浅色（白）</Radio.Button>
+                <Radio.Button value="dark">深色（黑）</Radio.Button>
+              </Radio.Group>
+            </FormRow>
+          )}
+
+          <SectionTitle>上线状态</SectionTitle>
+          <FormRow label="是否上线">
+            <Switch
+              checked={!!form.online}
+              onChange={v=>up('online',v)}
+              checkedChildren="上线"
+              unCheckedChildren="下线"
+            />
+            <span style={{marginLeft:10,fontSize:12,color:'#6B7280'}}>
+              {form.online ? '当前配置将在 C 端展示' : '当前配置不在 C 端展示'}
+            </span>
+          </FormRow>
+        </>)}
+      </div>
+
+      <Modal open={tmplConfirm.open} title="切换模板" closable={false} maskClosable={false} centered={true}
+        footer={[
+          <Button key="c" onClick={()=>setTmplConfirm({open:false,pending:null})}>取消</Button>,
+          <Button key="ok" type="primary" danger onClick={()=>{
+            const next={...form,template:tmplConfirm.pending,img:'',title:'',subtitle:'',collId:''};
+            setForm(next); onLiveUpdate&&onLiveUpdate(next);
+            setTmplConfirm({open:false,pending:null});
+          }}>确认切换</Button>,
+        ]}>
+        <p>切换模板将<strong>清空</strong>已填参数，确认继续？</p>
+      </Modal>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// ZONE EDITOR PAGE — filter bar + config list + editor + preview
+// ══════════════════════════════════════════════════════════════
+function ZoneEditorPage({ globalMarket, globalChannel, globalTerminal }) {
+  const market   = globalMarket;
+  const channel  = globalChannel;
+  const terminal = globalTerminal;
+  const [selZone,  setSelZone]  = useState('home_banner');
+  const [configs, setConfigs]   = useState(()=>{
+    const src = INIT_CONFIGS['US:official:app'] || {};
+    return {
+      home_banner:     (src.home_banner||[]).map(c=>({...c})),
+      home_collection: (src.home_collection||[]).map(c=>({...c})),
+    };
+  });
+  const [editingId,   setEditingId]   = useState(null);
+  const [editingZone, setEditingZone] = useState(null);
+  const [livePreview, setLivePreview] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({open:false,id:null,zone:null});
+  const [imgPreview,  setImgPreview]  = useState(null);
+
+  useEffect(()=>{
+    const src = INIT_CONFIGS[`${market}:${channel}:${terminal}`]||{};
+    setConfigs({
+      home_banner:     (src.home_banner||[]).map(c=>({...c})),
+      home_collection: (src.home_collection||[]).map(c=>({...c})),
+    });
+    setEditingId(null); setEditingZone(null); setLivePreview(null);
+  }, [market, channel, terminal]);
+
+  const allConfigs = Object.values(configs).flat();
+  const onlineCount = allConfigs.filter(c=>computeStatus(c)==='active').length;
+
+  function startEdit(id, zone) {
+    const cfg = (configs[zone]||[]).find(c=>c.id===id);
+    if (!cfg) return;
+    setEditingId(id); setEditingZone(zone); setLivePreview({...cfg});
+  }
+  function startNew(zone) {
+    const newId = 'new_'+Date.now();
+    const newCfg = { id:newId, zone, template:'', name:'', img:'', collId:'', online:false,
+      title:'', subtitle:'', textColor:'light',
+      order:(configs[zone]||[]).length+1 };
+    setConfigs(p=>({...p,[zone]:[...(p[zone]||[]),newCfg]}));
+    setEditingId(newId); setEditingZone(zone); setLivePreview({...newCfg});
+  }
+  function handleSave(updated) {
+    setConfigs(p=>({...p,[updated.zone]:(p[updated.zone]||[]).map(c=>c.id===updated.id?{...updated}:c)}));
+    setEditingId(null); setEditingZone(null); setLivePreview(null);
+    message.success('保存成功');
+  }
+  function handleCancel() {
+    if (editingId&&editingId.startsWith('new_')) {
+      setConfigs(p=>({...p,[editingZone]:(p[editingZone]||[]).filter(c=>c.id!==editingId)}));
+    }
+    setEditingId(null); setEditingZone(null); setLivePreview(null);
+  }
+  function toggleOnline(id, zone) {
+    setConfigs(p=>({...p,[zone]:(p[zone]||[]).map(c=>c.id===id?{...c,online:!c.online}:c)}));
+  }
+  function moveOrder(id, zone, dir) {
+    setConfigs(p=>{
+      const arr=[...(p[zone]||[])];
+      const idx=arr.findIndex(c=>c.id===id);
+      if(idx<0) return p;
+      if(dir==='up'&&idx===0) return p;
+      if(dir==='down'&&idx===arr.length-1) return p;
+      const swap=dir==='up'?idx-1:idx+1;
+      [arr[idx],arr[swap]]=[arr[swap],arr[idx]];
+      return {...p,[zone]:arr};
+    });
+  }
+  function handleDelete(id, zone) {
+    setConfigs(p=>({...p,[zone]:(p[zone]||[]).filter(c=>c.id!==id)}));
+    setDeleteModal({open:false,id:null,zone:null});
+    message.success('已删除');
+  }
+
+  const editingCfgForPreview = editingId&&livePreview ? livePreview : null;
+  const previewActiveZone = editingZone || selZone || null;
+  const zone = ZONES.find(z=>z.key===selZone);
+  const zoneCfgs = configs[selZone]||[];
+  const maxReached = zoneCfgs.length >= (zone?.maxConfigs||999);
+
+  return (
+    <div className="editor-wrap" style={{height:'100%'}}>
+      {/* ── Left ── */}
+      <div className="editor-left">
+        {/* 坑位选择 */}
+        <div className="filter-bar">
+          <div className="filter-bar-row">
+            <span className="filter-label">坑位</span>
+            <div className="filter-chips">
+              {ZONES.map(z=>(
+                <div key={z.key}
+                  className={`fchip${selZone===z.key?' active':''}`}
+                  onClick={()=>{ setSelZone(z.key); setEditingId(null); setEditingZone(null); setLivePreview(null); }}>
+                  {z.name}
+                  <span style={{marginLeft:3,opacity:.7,fontSize:10}}>
+                    ({(configs[z.key]||[]).filter(c=>computeStatus(c)==='active').length})
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Config list or editor */}
+        {editingId && editingZone
+          ? <ConfigEditor
+              cfg={(configs[editingZone]||[]).find(c=>c.id===editingId)||{id:editingId,zone:editingZone}}
+              market={market} channel={channel} terminal={terminal}
+              onSave={handleSave} onCancel={handleCancel}
+              onLiveUpdate={(upd)=>setLivePreview(upd)}
+            />
+          : <div className="config-list-panel">
+              {/* KPI row */}
+              <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:14}}>
+                <Kpi num={onlineCount} label="生效中" />
+                <Kpi num={allConfigs.filter(c=>computeStatus(c)==='paused').length} label="已暂停" />
+                <Kpi num={allConfigs.length} label="配置总数" />
+              </div>
+
+              {zone && (
+                <div className="config-zone-group">
+                  <div className="config-zone-label">
+                    <AppstoreOutlined />
+                    {zone.name}
+                    <span style={{color:'#9CA3AF',fontWeight:400,fontSize:11}}>
+                      · {zoneCfgs.filter(c=>computeStatus(c)==='active').length} 生效 / 上限 {zone.maxConfigs}
+                    </span>
+                    <Button
+                      type="primary" size="small" icon={<PlusOutlined />}
+                      disabled={maxReached}
+                      title={maxReached?'已达配置上限，需先下线一个现有配置':''}
+                      onClick={()=>startNew(zone.key)}
+                      style={{marginLeft:'auto'}}>
+                      新建配置
+                    </Button>
+                  </div>
+                  {zoneCfgs.length===0
+                    ? <div style={{padding:'20px 0',textAlign:'center',color:'#9CA3AF',fontSize:12,border:'1px dashed #E5E7EB',borderRadius:8}}>
+                        暂无配置 · 点击「新建配置」开始
+                      </div>
+                    : zoneCfgs.map((cfg)=>{
+                        const status=computeStatus(cfg);
+                        const coll=MOCK_COLLECTIONS.find(c=>c.id===cfg.collId);
+                        const tmplObj=TEMPLATES.find(t=>t.key===cfg.template);
+                        return (
+                          <div key={cfg.id} className={`config-row${editingId===cfg.id?' active':''}`}
+                            onClick={()=>startEdit(cfg.id,zone.key)}>
+                            <div className="config-thumb" onClick={e=>{
+                              if(cfg.img){e.stopPropagation();setImgPreview(cfg.img);}
+                            }}>
+                              {cfg.img
+                                ? <img src={cfg.img} alt="" className={cfg.img?'thumb-clickable':''} />
+                                : <FileImageOutlined style={{color:'#D1D5DB',fontSize:16}} />
+                              }
+                            </div>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div className="config-name">{cfg.name||'(未命名)'}</div>
+                              <div className="config-tmpl">{tmplObj?tmplObj.name:'未选模板'}{coll?' · '+coll.title:''}</div>
+                            </div>
+                            <StatusTag status={status} />
+                            <div className="config-ops" onClick={e=>e.stopPropagation()}>
+                              <Tooltip title={cfg.online?'点击下线':'点击上线'}>
+                                <Switch size="small" checked={cfg.online} onChange={()=>toggleOnline(cfg.id,zone.key)} />
+                              </Tooltip>
+                              <Tooltip title="上移"><div className="order-btn" onClick={()=>moveOrder(cfg.id,zone.key,'up')}><UpOutlined /></div></Tooltip>
+                              <Tooltip title="下移"><div className="order-btn" onClick={()=>moveOrder(cfg.id,zone.key,'down')}><DownOutlined /></div></Tooltip>
+                              {status !== 'active' && (
+                                <Tooltip title="删除">
+                                  <Button size="small" danger icon={<DeleteOutlined />}
+                                    onClick={()=>setDeleteModal({open:true,id:cfg.id,zone:zone.key})} />
+                                </Tooltip>
+                              )}
+                              <Tooltip title="编辑">
+                                <Button size="small" icon={<EditOutlined />} onClick={()=>startEdit(cfg.id,zone.key)} />
+                              </Tooltip>
+                            </div>
+                          </div>
+                        );
+                      })
+                  }
+                </div>
+              )}
+            </div>
+        }
+      </div>
+
+      {/* ── Right: preview ── */}
+      <div className="editor-right">
+        <PreviewPanel
+          terminal={terminal}
+          activeZone={previewActiveZone}
+          configs={configs}
+          editingCfg={editingCfgForPreview}
+        />
+      </div>
+
+      {/* Modals */}
+      <Modal open={deleteModal.open} title="删除配置" closable={false} maskClosable={false} centered={true}
+        footer={[
+          <Button key="c" onClick={()=>setDeleteModal({open:false,id:null,zone:null})}>取消</Button>,
+          <Button key="ok" danger type="primary" onClick={()=>handleDelete(deleteModal.id,deleteModal.zone)}>确认删除</Button>,
+        ]}>
+        <p>删除后<strong>不可恢复</strong>，确认删除该配置？</p>
+      </Modal>
+      <Modal open={!!imgPreview} title="素材预览" closable={false} maskClosable={false} centered={true}
+        onCancel={()=>setImgPreview(null)}
+        footer={[<Button key="c" onClick={()=>setImgPreview(null)}>关闭</Button>]}
+        width={600}>
+        {imgPreview && <img src={imgPreview} alt="" style={{width:'100%',borderRadius:8}} />}
+      </Modal>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// THEME TOKEN
+// ══════════════════════════════════════════════════════════════
+const looplyTheme = {
+  token: {
+    colorPrimary: '#7C3AED',
+    colorPrimaryHover: '#6D28D9',
+    colorPrimaryActive: '#5B21B6',
+    colorLink: '#7C3AED',
+    colorLinkHover: '#6D28D9',
+    borderRadius: 8,
+    borderRadiusLG: 12,
+    fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+    fontSize: 14,
+    colorBgContainer: '#FFFFFF',
+    colorBorder: '#E5E7EB',
+    colorText: '#111827',
+    colorTextSecondary: '#6B7280',
+    colorFillAlter: '#F9FAFB',
+    controlHeight: 36,
+    controlHeightLG: 44,
+    controlHeightSM: 28,
+    wireframe: false,
+  },
+  components: {
+    Menu: {
+      itemBorderRadius: 8,
+      itemHeight: 40,
+      subMenuItemBg: 'transparent',
+      itemSelectedBg: '#EDE9FE',
+      itemSelectedColor: '#7C3AED',
+      itemHoverBg: '#F5F3FF',
+      itemHoverColor: '#7C3AED',
+      groupTitleColor: '#9CA3AF',
+    },
+    Button: { borderRadius: 8 },
+    Card: { borderRadius: 16 },
+    Input: { borderRadius: 8 },
+    Select: { borderRadius: 8 },
+    Modal: { borderRadius: 16 },
+    Tag: { borderRadius: 6 },
+    Switch: { colorPrimary: '#7C3AED' },
+  },
+};
+
+// ══════════════════════════════════════════════════════════════
+// APP ROOT
+// ══════════════════════════════════════════════════════════════
+function MessageBridge({ onReady }) {
+  const app = AntdApp.useApp();
+  React.useEffect(()=>{ onReady(app.message); }, []);
+  return null;
+}
+
+let message = {
+  success: (s) => console.log('[msg]', s),
+  error:   (s) => console.error('[msg]', s),
+  warning: (s) => console.warn('[msg]', s),
+};
+
+function App() {
+  const [globalMarket,   setGlobalMarket]   = React.useState('US');
+  const [globalChannel,  setGlobalChannel]  = React.useState('official');
+  const [globalTerminal, setGlobalTerminal] = React.useState('app');
+
+  return (
+    <ConfigProvider theme={looplyTheme}>
+      <AntdApp>
+        <MessageBridge onReady={(api)=>{ message=api; }} />
+        <Layout style={{minHeight:'100vh'}}>
+          <Layout.Header style={{
+            background:'#fff',borderBottom:'1px solid #E5E7EB',
+            padding:'0 24px',height:60,lineHeight:'60px',
+            display:'flex',alignItems:'center',gap:12,
+            position:'sticky',top:0,zIndex:100,boxShadow:'0 1px 0 #E5E7EB',
+          }}>
+            <img src={LOGO_SRC} alt="Looply" style={{height:28}}
+              onError={e=>{ e.target.style.display='none'; }} />
+            <div style={{width:1,height:20,background:'#E5E7EB',margin:'0 4px'}} />
+            <span style={{fontWeight:700,color:'#374151',fontSize:15,letterSpacing:.3}}>CMS 后台</span>
+            <div style={{flex:1}} />
+            <span style={{fontSize:12,color:'#9CA3AF',marginRight:12}}>首页配置 · v1.1</span>
+            <Tooltip title="运营 Admin">
+              <Avatar size={32}
+                style={{background:'linear-gradient(135deg,#7C3AED,#A78BFA)',cursor:'pointer',fontSize:13}}>
+                OP
+              </Avatar>
+            </Tooltip>
+          </Layout.Header>
+
+          {/* 全局筛选栏 */}
+          <div style={{
+            background:'#F3EEFF',borderBottom:'1px solid #DDD6FE',
+            padding:'8px 24px',display:'flex',alignItems:'center',gap:16,
+            position:'sticky',top:60,zIndex:99,flexShrink:0,
+          }}>
+            <span style={{fontSize:12,fontWeight:600,color:'#7C3AED',letterSpacing:'0.3px',whiteSpace:'nowrap'}}>全局筛选 (Global Context)</span>
+            <div style={{width:1,height:16,background:'#C4B5FD'}} />
+            <div style={{display:'flex',alignItems:'center',gap:6}}>
+              <span style={{fontSize:12,color:'#6B7280'}}>市场</span>
+              <Select value={globalMarket} options={MARKETS} onChange={setGlobalMarket} style={{width:110}} size="small" />
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:6}}>
+              <span style={{fontSize:12,color:'#6B7280'}}>渠道</span>
+              <Select value={globalChannel} options={CHANNELS} onChange={setGlobalChannel} style={{width:110}} size="small" />
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:6}}>
+              <span style={{fontSize:12,color:'#6B7280'}}>终端</span>
+              <Select value={globalTerminal} options={TERMINALS} onChange={setGlobalTerminal} style={{width:110}} size="small" />
+            </div>
+          </div>
+
+          <Layout>
+            <Layout.Sider width={220}
+              style={{background:'#fff',borderRight:'1px solid #E5E7EB',overflow:'auto',minHeight:'calc(100vh - 60px)'}}>
+              <Menu
+                mode="inline"
+                selectedKeys={['zone-home']}
+                style={{border:'none',paddingTop:8}}
+                items={[
+                  { key:'zone-home', icon:React.createElement(HomeOutlined), label:'首页' },
+                  {
+                    key: 'collections',
+                    icon: React.createElement(TagsOutlined),
+                    label: React.createElement('span', null,
+                      '合集管理',
+                      React.createElement(Tag,{color:'warning',style:{marginLeft:6,fontSize:10,padding:'0 4px',lineHeight:'16px',verticalAlign:'middle'}},'待上线')
+                    ),
+                    disabled: true,
+                  },
+                ]}
+              />
+            </Layout.Sider>
+            <Layout.Content style={{background:'#F9FAFB',display:'flex',flexDirection:'column',overflow:'auto'}}>
+              <div style={{padding:'10px 24px',background:'#fff',borderBottom:'1px solid #E5E7EB',
+                display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
+                <Breadcrumb items={[
+                  {title:React.createElement(HomeOutlined)},
+                  {title:'资源位管理'},
+                  {title:'首页'},
+                ]} style={{fontSize:13}} />
+              </div>
+              <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+                <ZoneEditorPage
+                  globalMarket={globalMarket}
+                  globalChannel={globalChannel}
+                  globalTerminal={globalTerminal}
+                />
+              </div>
+            </Layout.Content>
+          </Layout>
+        </Layout>
+      </AntdApp>
+    </ConfigProvider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script></body></html>
