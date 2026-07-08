@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang='zh-CN'>
+<head>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width,initial-scale=1.0'>
+<title>Looply 前台类目管理后台原型 v0.4</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937;font-size:14px}
+.header{height:60px;background:#FFFFFF;color:#1F2937;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid #E5E7EB}
+.logo{font-size:18px;font-weight:700;letter-spacing:1px;display:flex;align-items:center}
+.header-divider{width:1px;height:20px;background:#E5E7EB;margin:0 16px}
+.system-label{font-size:14px;font-weight:500;color:#6B7280;letter-spacing:0.3px}
+.breadcrumb{margin-left:auto;color:#9CA3AF;font-size:13px;font-weight:400}
+.breadcrumb:empty{display:none}
+.container{display:flex;height:calc(100vh - 60px)}
+.sidebar{width:220px;background:#FFFFFF;overflow:auto;flex-shrink:0;border-right:none;box-shadow:3px 0 12px rgba(0,0,0,0.06);padding:8px 0}
+.main{flex:1;overflow:auto;padding:28px}
+.menu-solo{display:flex;align-items:center;padding:12px 16px;color:#374151;cursor:pointer;font-size:14px;font-weight:500;transition:background .15s;border-left:3px solid transparent;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-solo:hover{background:rgba(0,0,0,.04)}
+.menu-solo:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-solo.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.12),transparent);font-weight:600;border-left-color:#7C3AED}
+.menu-solo .mi{width:18px;height:18px;margin-right:10px;flex-shrink:0;opacity:.55}
+.menu-solo.active .mi{opacity:1}
+.menu-divider{height:1px;background:#F3F4F6;margin:8px 16px}
+.menu-group{margin-bottom:0}
+.menu-parent{display:flex;align-items:center;padding:12px 16px;color:#374151;cursor:pointer;font-size:14px;font-weight:500;transition:background .15s;user-select:none;border-left:3px solid transparent;outline:none;overflow:hidden}
+.menu-parent:hover{background:rgba(0,0,0,.04)}
+.menu-parent:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-parent .mi{width:18px;height:18px;margin-right:10px;flex-shrink:0;opacity:.55}
+.menu-parent .arrow{margin-left:auto;width:16px;height:16px;transition:transform .2s;opacity:.4;flex-shrink:0}
+.menu-group.open>.menu-parent .arrow{transform:rotate(90deg)}
+.menu-parent.active-parent{color:#7C3AED;font-weight:600;border-left-color:#7C3AED}
+.menu-parent.active-parent .mi{opacity:1}
+.menu-children{max-height:0;overflow:hidden;transition:max-height .3s cubic-bezier(.4,0,.2,1)}
+.menu-group.open>.menu-children{max-height:none}
+.menu-child{display:flex;align-items:center;padding:10px 16px 10px 44px;color:#4B5563;cursor:pointer;font-size:13px;transition:all .15s;border-left:3px solid transparent;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-child:hover{color:#374151;background:rgba(0,0,0,.03)}
+.menu-child:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-child.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.1),transparent);border-left-color:#7C3AED;font-weight:600}
+.menu-child .ci{width:15px;height:15px;margin-right:8px;flex-shrink:0;opacity:.45}
+.menu-child.active .ci{opacity:.8}
+@media(prefers-reduced-motion:reduce){.menu-children,.menu-parent .arrow,.menu-solo,.menu-child{transition:none !important}}
+.page{display:none}.page.active{display:block}
+.card{background:#fff;border-radius:16px;box-shadow:0 10px 24px rgba(16,24,40,.06);padding:28px}
+.page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}
+.page-title{font-size:20px;font-weight:700;margin-bottom:6px}
+.page-desc{color:#6B7280;font-size:13px;max-width:760px}
+.head-actions{display:flex;gap:10px;flex-wrap:wrap}
+.toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.toolbar .input,.toolbar select{height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff}
+.btn{height:34px;padding:0 14px;border:1px solid #D1D5DB;background:#fff;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:13px;white-space:nowrap}
+.btn.primary{background:#7C3AED;border-color:#7C3AED;color:#fff}
+.btn.danger{background:#fff;border-color:#DC2626;color:#DC2626}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi .item{background:#FAF5FF;border:1px solid #DDD6FE;border-radius:14px;padding:14px}
+.kpi .num{font-size:24px;font-weight:700;margin-bottom:4px;color:#7C3AED}
+.muted{color:#6B7280;font-size:12px}
+.table-wrap{border:1px solid #E5E7EB;border-radius:14px;overflow:hidden;background:#fff}
+table{width:100%;border-collapse:collapse}
+th{background:#FFFFFF;padding:10px 12px;text-align:left;font-size:12px;color:#6B7280;border-bottom:1px solid #E5E7EB;text-transform:uppercase;letter-spacing:.02em}
+td{padding:11px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;vertical-align:top}
+tr:hover{background:#FAF5FF}
+.split{display:flex;gap:18px}.left{width:280px;flex-shrink:0}.right{flex:1}
+.panel{border:1px solid #E5E7EB;border-radius:14px;background:#FFFFFF;padding:16px;min-height:420px}
+.panel h3{font-size:13px;color:#6B7280;margin-bottom:12px}
+.master-detail{display:flex;gap:0;min-height:560px}
+.tree-panel{width:320px;flex-shrink:0;border:1px solid #E5E7EB;border-radius:14px 0 0 14px;background:#FFFFFF;display:flex;flex-direction:column;overflow:hidden}
+.tree-panel-header{padding:14px 16px;border-bottom:1px solid #E5E7EB}
+.tree-toolbar{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.tree-search{flex:1;height:30px;border:1px solid #D1D5DB;border-radius:6px;padding:0 10px;font-size:12px;background:#F9FAFB}
+.tree-actions{display:flex;gap:6px;align-items:center;margin-top:8px}
+.tree-actions button{height:26px;padding:0 8px;border:1px solid #E5E7EB;background:#fff;border-radius:6px;font-size:11px;cursor:pointer;color:#6B7280}
+.tree-actions button:hover{background:#F3F4F6}
+.tree-panel-body{flex:1;overflow-y:auto;padding:8px 12px}
+.detail-panel{flex:1;border:1px solid #E5E7EB;border-left:none;border-radius:0 14px 14px 0;background:#FFFFFF;display:flex;flex-direction:column;overflow:hidden}
+.detail-panel-header{padding:16px 24px;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between}
+.detail-panel-header h3{font-size:16px;font-weight:600}
+.detail-panel-body{flex:1;overflow-y:auto;padding:24px}
+.tree-node{padding:8px 10px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px;font-size:13px}
+.tree-node:hover{background:#F3EEFF}
+.tree-selected{background:#F3EEFF;color:#7C3AED;font-weight:600}
+.tree-child{margin-left:18px}
+.tree-node .node-actions{margin-left:auto;display:none;gap:4px}
+.tree-node:hover .node-actions{display:flex}
+.node-actions button{width:22px;height:22px;border:none;background:none;cursor:pointer;border-radius:4px;font-size:11px;color:#6B7280;display:flex;align-items:center;justify-content:center}
+.node-actions button:hover{background:#E5E7EB}
+.form-grid{display:grid;grid-template-columns:120px 1fr;gap:12px 16px;align-items:center}
+.label{color:#6B7280;font-size:13px}
+.field{min-height:36px;border:1px solid #D1D5DB;border-radius:8px;background:#fff;padding:8px 12px;display:flex;align-items:center}
+.form-section{margin-bottom:24px}
+.form-section .section-title{font-size:15px;font-weight:600;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #E5E7EB}
+.form-actions{display:flex;gap:12px;justify-content:flex-end;padding-top:16px;border-top:1px solid #E5E7EB;margin-top:24px}
+.section{margin-top:18px}
+.section-title{font-size:14px;font-weight:700;margin-bottom:10px;color:#7C3AED}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;margin-right:4px}
+.tag.sale{background:#EFF6FF;color:#2563EB;border:none}
+.tag.desc{background:#F0FDF4;color:#16A34A;border:none}
+.tag.enum{background:#FFFBEB;color:#D97706;border:none}
+.tag.req{background:#FEF2F2;color:#DC2626;border:none}
+.tag.opt{background:#F3F4F6;color:#6B7280;border:none}
+.tag.on{background:#F0FDF4;color:#16A34A;border:none}
+.tag.pending{background:#FFFBEB;color:#D97706;border:none}
+.tag.off{background:#F3F4F6;color:#6B7280;border:none}
+.tag.warn{background:#FFF1F2;color:#E11D48;border:none}
+.pos-input{width:48px;height:28px;border:1px solid #E5E7EB;border-radius:6px;text-align:center;font-size:12px;padding:0 4px;background:#fff;transition:border-color .15s,box-shadow .15s}
+.pos-input:focus{border-color:#7C3AED;box-shadow:0 0 0 2px rgba(124,58,237,.15);outline:none}
+.pos-input.pinned{border-color:#7C3AED;background:#FAF5FF;font-weight:600;color:#7C3AED}
+.pos-input::placeholder{color:#D1D5DB}
+.pos-table tr:hover{background:#FAFAFA}
+.tabs{display:flex;border-bottom:1px solid #E5E7EB;margin-bottom:14px;gap:4px}
+.tab{padding:10px 18px;cursor:pointer;border-bottom:2px solid transparent;color:#6B7280;font-size:13px}
+.tab.active{color:#7C3AED;border-bottom-color:#7C3AED;font-weight:600}
+.tab-pane{display:none}.tab-pane.active{display:block}
+.pill{padding:4px 10px;border-radius:999px;background:#F3F4F6;color:#6B7280;font-size:12px}
+.rail-note{padding:12px 14px;border-radius:10px;background:#F3EEFF;border:1px solid #DDD6FE;color:#6D28D9;font-size:12px;line-height:1.6}
+.slug{color:#9CA3AF;font-size:11px;margin-left:6px}
+.depth-badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;background:#F3EEFF;color:#7C3AED}
+.source-card{border:1px solid #E5E7EB;border-radius:10px;padding:14px;cursor:pointer;transition:all .15s}
+.source-card:hover{border-color:#DDD6FE;background:#FAF5FF}
+.source-card.selected{border-color:#7C3AED;background:#FAF5FF;box-shadow:0 0 0 1px #7C3AED}
+.source-card h4{font-size:13px;font-weight:600;margin-bottom:4px}
+.source-card p{font-size:12px;color:#6B7280}
+.rule-row{display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #F3F4F6}
+.rule-row:last-child{border-bottom:none}
+.rule-row select,.rule-row input{height:30px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px;background:#fff}
+.tooltip-trigger{border-bottom:1px dotted #9CA3AF;cursor:help;display:inline-block}
+.tooltip-popup{position:fixed;z-index:9999;padding:10px 14px;background:#FFFFFF;color:#1F2937;font-size:12px;line-height:1.5;border-radius:8px;max-width:280px;box-shadow:0 4px 16px rgba(0,0,0,0.12),0 0 0 1px rgba(0,0,0,0.05);pointer-events:none;opacity:0;transition:opacity .15s;white-space:normal}
+.tooltip-popup.show{opacity:1}
+.slide-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:1000}
+.slide-overlay.show{display:block}
+.slide-panel{position:fixed;top:0;right:-500px;width:500px;height:100vh;background:#fff;box-shadow:-8px 0 30px rgba(0,0,0,0.12);z-index:1001;transition:right .25s ease;display:flex;flex-direction:column}
+.slide-panel.open{right:0}
+.slide-panel-header{padding:20px 24px;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between}
+.slide-panel-header h3{font-size:16px;font-weight:600}
+.slide-close{width:28px;height:28px;border-radius:6px;border:none;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6B7280;font-size:18px}
+.slide-close:hover{background:#F3F4F6}
+.slide-panel-body{flex:1;overflow-y:auto;padding:24px}
+.slide-panel-footer{padding:16px 24px;border-top:1px solid #E5E7EB;display:flex;gap:12px;justify-content:flex-end}
+.form-row{display:flex;gap:16px;margin-bottom:14px;align-items:center}
+.form-row .label{width:100px;text-align:right;color:#6B7280;flex-shrink:0;font-size:13px}
+.form-row .field{flex:1}
+.form-row input,.form-row select,.form-row textarea{height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff;width:100%;font-size:13px}
+.form-row textarea{height:80px;padding:8px 12px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo"><img src="logo-new.png" height="28" alt="Looply"></div>
+  <div class="header-divider"></div>
+  <span class="system-label">前台类目管理</span>
+  <div class="breadcrumb"></div>
+</div>
+<div class="container">
+  <div class="sidebar" role="navigation" aria-label="主导航">
+    <!-- 类目管理 -->
+    <div class="menu-group open">
+      <div class="menu-parent active-parent" onclick="toggleGroup(this)" aria-expanded="true">
+        <svg class="mi" aria-hidden="true" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="5.5" height="5.5" rx="1.2"/><rect x="10.5" y="2" width="5.5" height="5.5" rx="1.2"/><rect x="2" y="10.5" width="5.5" height="5.5" rx="1.2"/><rect x="10.5" y="10.5" width="5.5" height="5.5" rx="1.2"/></svg>
+        <span>类目管理</span>
+        <svg class="arrow" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4L10 8L6 12"/></svg>
+      </div>
+      <div class="menu-children">
+        <div class="menu-child active" data-page="category-tree"><svg class="ci" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h11M2 7.5h7M4 12h5"/></svg><span>类目树管理</span></div>
+      </div>
+    </div>
+    <div class="menu-divider"></div>
+    <!-- 筛选配置 -->
+    <div class="menu-group">
+      <div class="menu-parent" onclick="toggleGroup(this)" aria-expanded="false">
+        <svg class="mi" aria-hidden="true" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="5" r="1.5"/><line x1="6.5" y1="5" x2="16" y2="5"/><circle cx="13" cy="9" r="1.5"/><line x1="2" y1="9" x2="11.5" y2="9"/><circle cx="7" cy="13" r="1.5"/><line x1="8.5" y1="13" x2="16" y2="13"/></svg>
+        <span>筛选配置</span>
+        <svg class="arrow" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4L10 8L6 12"/></svg>
+      </div>
+      <div class="menu-children">
+        <div class="menu-child" data-page="filter-dim"><svg class="ci" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="11" height="11" rx="2"/><path d="M5 5h5M5 7.5h3M5 10h4"/></svg><span>筛选维度管理</span></div>
+        <div class="menu-child" data-page="category-filter"><svg class="ci" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h11L9 7.5v4l-3 1.5V7.5Z"/></svg><span>类目筛选配置</span></div>
+        <div class="menu-child" data-page="quick-filter"><svg class="ci" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="5" width="5" height="5" rx="2.5"/><rect x="8" y="5" width="5" height="5" rx="2.5"/></svg><span>快捷筛选</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="main">
+
+    <!-- ═══ Page: 类目树管理（Master-Detail） ═══ -->
+    <div class="page active" id="page-category-tree">
+      <div class="card">
+        <div class="page-head">
+          <div><div class="page-title">前台类目树</div><div class="page-desc">自由树结构，不预设层级语义，运营可自由组织类目层级（最大深度 4 层）。点击节点查看详情，右键或悬停操作。</div></div>
+        </div>
+        <div class="rail-note">前台类目与后台类目完全解耦。前台类目决定用户浏览路径，后台类目决定属性管理。每个前台类目通过「商品来源规则」关联商品。</div>
+        <div class="kpi" style="margin-top:16px">
+          <div class="item"><div class="num">12</div><div class="muted">类目总数</div></div>
+          <div class="item"><div class="num">3</div><div class="muted">最大深度</div></div>
+          <div class="item"><div class="num">4,218</div><div class="muted">关联商品</div></div>
+          <div class="item"><div class="num">2</div><div class="muted">空类目警告</div></div>
+        </div>
+
+        <!-- Master-Detail 双栏布局 -->
+        <div class="master-detail">
+          <!-- 左侧：类目树面板 -->
+          <div class="tree-panel">
+            <div class="tree-panel-header">
+              <div class="tree-toolbar">
+                <input class="tree-search" placeholder="搜索类目名称...">
+              </div>
+              <div class="tree-actions">
+                <button onclick="expandAll()">展开全部</button>
+                <button onclick="collapseAll()">折叠全部</button>
+                <button style="background:#7C3AED;color:#fff;border-color:#7C3AED;font-weight:500" onclick="openSlide()">+ 新增类目</button>
+                <span style="margin-left:auto;font-size:11px;color:#9CA3AF">拖拽排序</span>
+              </div>
+            </div>
+            <div class="tree-panel-body">
+              <!-- L1: Handbags -->
+              <div class="tree-node tree-selected" data-id="handbags" onclick="selectNode(this,'handbags')">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>
+                <span class="depth-badge">D1</span> Handbags
+                <div class="node-actions"><button title="添加子类目" onclick="event.stopPropagation();openSlide('handbags')">+</button><button title="编辑">✎</button><button title="删除">×</button></div>
+              </div>
+              <div class="tree-child" id="children-handbags">
+                <div class="tree-node" data-id="shoulder-bags" onclick="selectNode(this,'shoulder-bags')">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>
+                  <span class="depth-badge">D2</span> Shoulder Bags
+                  <div class="node-actions"><button title="添加子类目" onclick="event.stopPropagation();openSlide('shoulder-bags')">+</button><button title="编辑">✎</button><button title="删除">×</button></div>
+                </div>
+                <div class="tree-child" id="children-shoulder-bags">
+                  <div class="tree-node" data-id="chain-bags" onclick="selectNode(this,'chain-bags')">
+                    <span class="depth-badge">D3</span> Chain Bags
+                    <div class="node-actions"><button title="编辑">✎</button><button title="删除">×</button></div>
+                  </div>
+                  <div class="tree-node" data-id="flap-bags" onclick="selectNode(this,'flap-bags')">
+                    <span class="depth-badge">D3</span> Flap Bags
+                    <div class="node-actions"><button title="编辑">✎</button><button title="删除">×</button></div>
+                  </div>
+                </div>
+                <div class="tree-node" data-id="totes" onclick="selectNode(this,'totes')">
+                  <span class="depth-badge">D2</span> Tote Bags
+                  <div class="node-actions"><button title="添加子类目" onclick="event.stopPropagation();openSlide('totes')">+</button><button title="编辑">✎</button><button title="删除">×</button></div>
+                </div>
+                <div class="tree-node" data-id="crossbody" onclick="selectNode(this,'crossbody')">
+                  <span class="depth-badge">D2</span> Crossbody
+                  <div class="node-actions"><button title="添加子类目" onclick="event.stopPropagation();openSlide('crossbody')">+</button><button title="编辑">✎</button><button title="删除">×</button></div>
+                </div>
+              </div>
+              <!-- L1: Jewelry -->
+              <div class="tree-node" data-id="jewelry" onclick="selectNode(this,'jewelry')">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>
+                <span class="depth-badge">D1</span> Jewelry
+                <div class="node-actions"><button title="添加子类目" onclick="event.stopPropagation();openSlide('jewelry')">+</button><button title="编辑">✎</button><button title="删除">×</button></div>
+              </div>
+              <div class="tree-child" id="children-jewelry">
+                <div class="tree-node" data-id="necklaces" onclick="selectNode(this,'necklaces')">
+                  <span class="depth-badge">D2</span> Necklaces
+                  <div class="node-actions"><button title="编辑">✎</button><button title="删除">×</button></div>
+                </div>
+                <div class="tree-node" data-id="rings" onclick="selectNode(this,'rings')">
+                  <span class="depth-badge">D2</span> Rings
+                  <div class="node-actions"><button title="编辑">✎</button><button title="删除">×</button></div>
+                </div>
+              </div>
+              <!-- L1: Watches -->
+              <div class="tree-node" data-id="watches" onclick="selectNode(this,'watches')">
+                <span class="depth-badge">D1</span> Watches
+                <div class="node-actions"><button title="添加子类目" onclick="event.stopPropagation();openSlide('watches')">+</button><button title="编辑">✎</button><button title="删除">×</button></div>
+              </div>
+              <!-- L1: Accessories (空类目) -->
+              <div class="tree-node" data-id="accessories" onclick="selectNode(this,'accessories')" style="color:#D97706">
+                <span class="depth-badge" style="background:#FFFBEB;color:#D97706">D1</span> Accessories <span class="tag pending">0 商品</span>
+                <div class="node-actions"><button title="编辑">✎</button><button title="删除">×</button></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 右侧：详情面板 -->
+          <div class="detail-panel">
+            <div class="detail-panel-header">
+              <h3>Handbags <span class="slug">/handbags</span></h3>
+              <div style="display:flex;gap:8px;align-items:center">
+                <span class="tag on">启用</span>
+                <span class="depth-badge">D1 · 根节点</span>
+                <button class="btn primary" style="margin-left:12px" onclick="alert('保存成功')">保存</button>
+              </div>
+            </div>
+            <div class="detail-panel-body">
+              <!-- Tabs -->
+              <div class="tabs" id="detail-tabs">
+                <div class="tab active" data-pane="pane-basic">基础信息</div>
+                <div class="tab" data-pane="pane-source">商品来源与展示</div>
+                <div class="tab" data-pane="pane-seo">URL 与 SEO</div>
+              </div>
+
+              <!-- Tab: 基础信息（直接可编辑表单） -->
+              <div class="tab-pane active" id="pane-basic">
+                <div class="form-row"><div class="label">类目名称(EN)</div><div class="field"><input type="text" value="Handbags"></div></div>
+                <div class="form-row"><div class="label">类目名称(ZH)</div><div class="field"><input type="text" value="手提包"></div></div>
+                <div class="form-row"><div class="label">URL Slug</div><div class="field"><input type="text" value="/handbags"></div></div>
+                <div class="form-row"><div class="label">深度层级</div><div class="field"><span class="depth-badge">D1</span> 根节点 <span class="muted" style="margin-left:8px">（自动计算）</span></div></div>
+                <div class="form-row"><div class="label">状态</div><div class="field"><select><option selected>启用</option><option>停用</option></select></div></div>
+                <div class="form-row"><div class="label">关联商品数</div><div class="field"><span style="font-weight:600">2,156</span> <span class="muted" style="margin-left:8px">（系统自动统计）</span></div></div>
+                <div class="form-row"><div class="label">Banner 图</div><div class="field"><input type="text" value="handbags-banner.jpg" placeholder="可选，类目页顶部氛围图 URL"> <span class="muted" style="margin-left:8px;font-size:11px">可选</span></div></div>
+              </div>
+
+              <!-- Tab: 商品来源 -->
+              <div class="tab-pane" id="pane-source">
+                <div class="rail-note">选择一种商品来源模式（互斥）。「自动选品」通过条件匹配商品，适合绝大多数场景；「手动选品」适合精选专题和编辑推荐。</div>
+                <div style="margin-top:16px;display:grid;grid-template-columns:repeat(2,1fr);gap:14px">
+                  <div class="source-card selected" onclick="switchSource('auto')">
+                    <h4>● 自动选品</h4>
+                    <p>通过后台类目、品牌、价格等条件组合自动匹配商品</p>
+                  </div>
+                  <div class="source-card" onclick="switchSource('manual')">
+                    <h4>○ 手动选品</h4>
+                    <p>搜索并手动添加商品，支持拖拽排序</p>
+                  </div>
+                </div>
+
+                <!-- 自动规则配置 -->
+                <div class="source-config" id="source-auto" style="margin-top:24px">
+                  <div class="section-title">自动选品 <span class="muted" style="font-weight:400;margin-left:8px">条件之间为 AND 关系</span></div>
+                  <div id="rule-container" style="border:1px solid #E5E7EB;border-radius:10px;padding:14px">
+                    <div class="rule-row">
+                      <select onchange="updateOperators(this)"><option value="backend_category">后台类目</option><option value="brand">品牌</option><option value="series">系列</option><option value="price">价格</option><option value="condition">成色</option><option value="listing_date">上架时间</option><option value="tag">标签</option><option value="title">商品标题</option><option value="custom_attribute">自定义属性</option></select>
+                      <select><option selected>属于任一</option><option>不包含</option></select>
+                      <input value="手提类, 单肩类, 斜挎类" style="flex:1" onclick="openBackendCategoryPicker()">
+                      <button class="btn danger" style="height:28px;padding:0 8px;font-size:12px" onclick="this.closest('.rule-row').remove()">×</button>
+                    </div>
+                    <div class="rule-row">
+                      <select onchange="updateOperators(this)"><option value="brand" selected>品牌</option><option value="backend_category">后台类目</option><option value="series">系列</option><option value="price">价格</option><option value="condition">成色</option><option value="listing_date">上架时间</option><option value="tag">标签</option><option value="title">商品标题</option><option value="custom_attribute">自定义属性</option></select>
+                      <select><option>属于任一</option><option>等于</option><option>不等于</option></select>
+                      <input value="Chanel, Hermès, Louis Vuitton" style="flex:1">
+                      <button class="btn danger" style="height:28px;padding:0 8px;font-size:12px" onclick="this.closest('.rule-row').remove()">×</button>
+                    </div>
+                    <div class="rule-row">
+                      <select onchange="updateOperators(this)"><option value="price" selected>价格</option><option value="backend_category">后台类目</option><option value="brand">品牌</option><option value="series">系列</option><option value="condition">成色</option><option value="listing_date">上架时间</option><option value="tag">标签</option><option value="title">商品标题</option><option value="custom_attribute">自定义属性</option></select>
+                      <select><option>介于</option><option>大于</option><option>小于</option><option>等于</option></select>
+                      <input value="500 - 5000" style="flex:1">
+                      <button class="btn danger" style="height:28px;padding:0 8px;font-size:12px" onclick="this.closest('.rule-row').remove()">×</button>
+                    </div>
+                    <button class="btn" style="margin-top:8px" onclick="addRule()">+ 添加条件</button>
+                  </div>
+                  <p style="margin-top:8px;font-size:12px;color:#6B7280">同一规则内多个值为 OR（任一匹配），不同规则之间为 AND（同时满足） · 预览：符合条件商品 <strong>2,156</strong> 件</p>
+                </div>
+
+                <!-- 手动选品配置 -->
+                <div class="source-config" id="source-manual" style="margin-top:24px;display:none">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                    <div class="section-title" style="margin-bottom:0">手动选品 <span class="muted" style="font-weight:400;margin-left:8px">已选 8 件</span></div>
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <span class="muted">默认排序</span><select style="height:30px;border:1px solid #D1D5DB;border-radius:6px;padding:0 10px;font-size:12px;background:#fff"><option selected>手动排序</option><option>推荐排序</option><option>最新上架</option><option>价格从低到高</option><option>价格从高到低</option></select>
+                      <button class="btn primary" style="height:30px;padding:0 12px;font-size:12px" onclick="openManualPicker()">+ 添加商品</button>
+                    </div>
+                  </div>
+                  <div class="rail-note" style="margin-bottom:12px">在「位置」列直接输入数字可固定商品到指定位置，清空则取消固定。勾选多个商品后可批量连续固定。点击「添加商品」打开选品器筛选并添加候选商品。</div>
+                  <!-- 批量操作栏 -->
+                  <div id="manual-batch-bar" style="display:none;margin-bottom:10px;padding:8px 14px;background:#EDE9FE;border-radius:8px;align-items:center;gap:12px">
+                    <span style="font-size:13px;color:#7C3AED;font-weight:500">已选 <strong id="manual-batch-count">0</strong> 件</span>
+                    <span style="color:#D1D5DB">|</span>
+                    <span style="font-size:12px;color:#374151">从位置</span>
+                    <input id="manual-batch-start" type="number" min="1" style="width:56px;height:26px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px;text-align:center" placeholder="1">
+                    <span style="font-size:12px;color:#374151">开始连续固定</span>
+                    <button class="btn primary" style="height:26px;padding:0 12px;font-size:12px" onclick="batchPin('manual')">确认</button>
+                    <button class="btn" style="height:26px;padding:0 10px;font-size:12px" onclick="clearSelection('manual')">取消</button>
+                    <span style="color:#D1D5DB">|</span>
+                    <button class="btn" style="height:26px;padding:0 10px;font-size:12px">隐藏</button>
+                    <button class="btn danger" style="height:26px;padding:0 10px;font-size:12px">移除</button>
+                  </div>
+                  <div class="table-wrap">
+                    <table class="pos-table" id="manual-pos-table">
+                      <tr><th style="width:32px"><input type="checkbox" onchange="toggleAll(this,'manual')"></th><th style="width:60px">位置</th><th style="width:44px">图片</th><th>商品名称</th><th>品牌</th><th>价格</th><th>状态</th><th>操作</th></tr>
+                      <tr><td><input type="checkbox" onchange="updateBatch('manual')"></td><td><input type="number" class="pos-input pinned" value="1" onchange="onPosChange(this)"></td><td><div style="width:36px;height:36px;background:#F3F4F6;border-radius:6px"></div></td><td>Classic Flap Medium Black Caviar</td><td>Chanel</td><td>$4,850</td><td><span class="tag on" style="font-size:10px">📌 固定</span></td><td><button class="btn" style="height:24px;padding:0 6px;font-size:11px">隐藏</button></td></tr>
+                      <tr><td><input type="checkbox" onchange="updateBatch('manual')"></td><td><input type="number" class="pos-input pinned" value="2" onchange="onPosChange(this)"></td><td><div style="width:36px;height:36px;background:#F3F4F6;border-radius:6px"></div></td><td>Birkin 30 Gold Togo</td><td>Hermès</td><td>$12,500</td><td><span class="tag on" style="font-size:10px">📌 固定</span></td><td><button class="btn" style="height:24px;padding:0 6px;font-size:11px">隐藏</button></td></tr>
+                      <tr><td><input type="checkbox" onchange="updateBatch('manual')"></td><td><input type="number" class="pos-input" placeholder="—" onchange="onPosChange(this)"></td><td><div style="width:36px;height:36px;background:#F3F4F6;border-radius:6px"></div></td><td>Neverfull MM Monogram</td><td>Louis Vuitton</td><td>$1,280</td><td><span class="muted" style="font-size:10px">自动</span></td><td><button class="btn" style="height:24px;padding:0 6px;font-size:11px">隐藏</button> <button class="btn danger" style="height:24px;padding:0 6px;font-size:11px">移除</button></td></tr>
+                      <tr><td><input type="checkbox" onchange="updateBatch('manual')"></td><td><input type="number" class="pos-input" placeholder="—" onchange="onPosChange(this)"></td><td><div style="width:36px;height:36px;background:#F3F4F6;border-radius:6px"></div></td><td>Lady Dior Medium Cannage</td><td>Dior</td><td>$3,200</td><td><span class="muted" style="font-size:10px">自动</span></td><td><button class="btn" style="height:24px;padding:0 6px;font-size:11px">隐藏</button> <button class="btn danger" style="height:24px;padding:0 6px;font-size:11px">移除</button></td></tr>
+                      <tr style="opacity:.5"><td><input type="checkbox" onchange="updateBatch('manual')"></td><td><input type="number" class="pos-input" placeholder="—" disabled></td><td><div style="width:36px;height:36px;background:#F3F4F6;border-radius:6px"></div></td><td>Puzzle Bag Small Tan</td><td>Loewe</td><td>$1,950</td><td><span class="tag off" style="font-size:10px">已隐藏</span></td><td><button class="btn" style="height:24px;padding:0 6px;font-size:11px">显示</button> <button class="btn danger" style="height:24px;padding:0 6px;font-size:11px">移除</button></td></tr>
+                      <tr><td><input type="checkbox" onchange="updateBatch('manual')"></td><td><input type="number" class="pos-input" placeholder="—" onchange="onPosChange(this)"></td><td><div style="width:36px;height:36px;background:#F3F4F6;border-radius:6px"></div></td><td>Dionysus GG Supreme Mini</td><td>Gucci</td><td>$1,680</td><td><span class="muted" style="font-size:10px">自动</span></td><td><button class="btn" style="height:24px;padding:0 6px;font-size:11px">隐藏</button> <button class="btn danger" style="height:24px;padding:0 6px;font-size:11px">移除</button></td></tr>
+                      <tr><td><input type="checkbox" onchange="updateBatch('manual')"></td><td><input type="number" class="pos-input" placeholder="—" onchange="onPosChange(this)"></td><td><div style="width:36px;height:36px;background:#F3F4F6;border-radius:6px"></div></td><td>Saddle Bag Oblique Canvas</td><td>Dior</td><td>$2,450</td><td><span class="muted" style="font-size:10px">自动</span></td><td><button class="btn" style="height:24px;padding:0 6px;font-size:11px">隐藏</button> <button class="btn danger" style="height:24px;padding:0 6px;font-size:11px">移除</button></td></tr>
+                      <tr><td><input type="checkbox" onchange="updateBatch('manual')"></td><td><input type="number" class="pos-input" placeholder="—" onchange="onPosChange(this)"></td><td><div style="width:36px;height:36px;background:#F3F4F6;border-radius:6px"></div></td><td>Capucines MM Taurillon</td><td>Louis Vuitton</td><td>$3,800</td><td><span class="muted" style="font-size:10px">自动</span></td><td><button class="btn" style="height:24px;padding:0 6px;font-size:11px">隐藏</button> <button class="btn danger" style="height:24px;padding:0 6px;font-size:11px">移除</button></td></tr>
+                    </table>
+                  </div>
+                  <p style="margin-top:8px;font-size:12px;color:#6B7280">📌 = 固定位置（不受排序规则影响） · 自动 = 按默认排序规则排列 · 隐藏商品不在前台展示但不下架</p>
+                </div>
+
+                <!-- 商品列表（行内 Position 编辑） -->
+                <div class="source-config" id="source-display" style="margin-top:24px">
+                  <div class="form-section">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                      <div class="section-title" style="margin-bottom:0">商品列表 <span class="muted" style="font-weight:400;margin-left:8px">共 2,156 件商品</span></div>
+                      <div style="display:flex;align-items:center;gap:8px"><span class="muted">默认排序</span><select style="height:30px;border:1px solid #D1D5DB;border-radius:6px;padding:0 10px;font-size:12px;background:#fff"><option selected>推荐排序</option><option>最新上架</option><option>价格从低到高</option><option>价格从高到低</option></select></div>
+                    </div>
+                    <div class="rail-note" style="margin-bottom:12px">在「位置」列直接输入数字可固定商品到指定位置，清空则取消固定。勾选多个商品后可批量连续固定。未固定商品按默认排序自动填充剩余位置。</div>
+                    <!-- 批量操作栏 -->
+                    <div id="auto-batch-bar" style="display:none;margin-bottom:10px;padding:8px 14px;background:#EDE9FE;border-radius:8px;align-items:center;gap:12px">
+                      <span style="font-size:13px;color:#7C3AED;font-weight:500">已选 <strong id="auto-batch-count">0</strong> 件</span>
+                      <span style="color:#D1D5DB">|</span>
+                      <span style="font-size:12px;color:#374151">从位置</span>
+                      <input id="auto-batch-start" type="number" min="1" style="width:56px;height:26px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px;text-align:center" placeholder="1">
+                      <span style="font-size:12px;color:#374151">开始连续固定</span>
+                      <button class="btn primary" style="height:26px;padding:0 12px;font-size:12px" onclick="batchPin('auto')">确认</button>
+                      <button class="btn" style="height:26px;padding:0 10px;font-size:12px" onclick="clearSelection('auto')">取消</button>
+                    </div>
+                    <div class="toolbar" style="margin-bottom:10px">
+                      <input class="input" placeholder="搜索商品名称/SKU..." style="width:180px">
+                      <select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option>全部品牌</option><option>Chanel</option><option>Hermès</option><option>Louis Vuitton</option><option>Dior</option></select>
+                      <select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option>全部成色</option><option>Like New</option><option>Excellent</option><option>Good</option></select>
+                    </div>
+                    <div class="table-wrap">
+                      <table class="pos-table" id="auto-pos-table">
+                        <tr><th style="width:32px"><input type="checkbox" onchange="toggleAll(this,'auto')"></th><th style="width:60px">位置</th><th style="width:44px">图片</th><th>商品名称</th><th>品牌</th><th>价格</th><th>成色</th><th>状态</th></tr>
+                        <tr><td><input type="checkbox" onchange="updateBatch('auto')"></td><td><input type="number" class="pos-input pinned" value="1" onchange="onPosChange(this)"></td><td><div style="width:36px;height:36px;background:#F3F4F6;border-radius:6px"></div></td><td>Classic Flap Medium Black Caviar</td><td>Chanel</td><td>$4,850</td><td><span class="tag on">Like New</span></td><td><span class="tag on" style="font-size:10px">📌 固定</span></td></tr>
+                        <tr><td><input type="checkbox" onchange="updateBatch('auto')"></td><td><input type="number" class="pos-input pinned" value="2" onchange="onPosChange(this)"></td><td><div style="width:36px;height:36px;background:#F3F4F6;border-radius:6px"></div></td><td>Birkin 30 Gold Togo GHW</td><td>Hermès</td><td>$12,500</td><td><span class="tag on">Excellent</span></td><td><span class="tag on" style="font-size:10px">📌 固定</span></td></tr>
+                        <tr><td><input type="checkbox" onchange="updateBatch('auto')"></td><td><input type="number" class="pos-input" placeholder="—" onchange="onPosChange(this)"></td><td><div style="width:36px;height:36px;background:#F3F4F6;border-radius:6px"></div></td><td>Neverfull MM Monogram</td><td>Louis Vuitton</td><td>$1,280</td><td><span class="tag enum">Good</span></td><td><span class="muted" style="font-size:10px">自动</span></td></tr>
+                        <tr><td><input type="checkbox" onchange="updateBatch('auto')"></td><td><input type="number" class="pos-input" placeholder="—" onchange="onPosChange(this)"></td><td><div style="width:36px;height:36px;background:#F3F4F6;border-radius:6px"></div></td><td>Lady Dior Medium Cannage</td><td>Dior</td><td>$3,200</td><td><span class="tag on">Like New</span></td><td><span class="muted" style="font-size:10px">自动</span></td></tr>
+                        <tr><td><input type="checkbox" onchange="updateBatch('auto')"></td><td><input type="number" class="pos-input" placeholder="—" onchange="onPosChange(this)"></td><td><div style="width:36px;height:36px;background:#F3F4F6;border-radius:6px"></div></td><td>Puzzle Bag Small Tan</td><td>Loewe</td><td>$1,950</td><td><span class="tag on">Excellent</span></td><td><span class="muted" style="font-size:10px">自动</span></td></tr>
+                        <tr><td><input type="checkbox" onchange="updateBatch('auto')"></td><td><input type="number" class="pos-input" placeholder="—" onchange="onPosChange(this)"></td><td><div style="width:36px;height:36px;background:#F3F4F6;border-radius:6px"></div></td><td>Dionysus GG Supreme Mini</td><td>Gucci</td><td>$1,680</td><td><span class="tag enum">Good</span></td><td><span class="muted" style="font-size:10px">自动</span></td></tr>
+                        <tr><td><input type="checkbox" onchange="updateBatch('auto')"></td><td><input type="number" class="pos-input" placeholder="—" onchange="onPosChange(this)"></td><td><div style="width:36px;height:36px;background:#F3F4F6;border-radius:6px"></div></td><td>Saddle Bag Oblique Canvas</td><td>Dior</td><td>$2,450</td><td><span class="tag on">Excellent</span></td><td><span class="muted" style="font-size:10px">自动</span></td></tr>
+                        <tr><td><input type="checkbox" onchange="updateBatch('auto')"></td><td><input type="number" class="pos-input" placeholder="—" onchange="onPosChange(this)"></td><td><div style="width:36px;height:36px;background:#F3F4F6;border-radius:6px"></div></td><td>Capucines MM Taurillon</td><td>Louis Vuitton</td><td>$3,800</td><td><span class="tag on">Like New</span></td><td><span class="muted" style="font-size:10px">自动</span></td></tr>
+                      </table>
+                    </div>
+                    <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">
+                      <span class="muted">显示 1-8 / 共 2,156 件</span>
+                      <div style="display:flex;gap:4px;align-items:center">
+                        <button class="btn" style="height:28px;padding:0 10px;font-size:12px;opacity:.5" disabled>上一页</button>
+                        <button class="btn" style="height:28px;padding:0 10px;font-size:12px;background:#7C3AED;color:#fff;border-color:#7C3AED">1</button>
+                        <button class="btn" style="height:28px;padding:0 10px;font-size:12px">2</button>
+                        <button class="btn" style="height:28px;padding:0 10px;font-size:12px">3</button>
+                        <button class="btn" style="height:28px;padding:0 10px;font-size:12px">...</button>
+                        <button class="btn" style="height:28px;padding:0 10px;font-size:12px">270</button>
+                        <button class="btn" style="height:28px;padding:0 10px;font-size:12px">下一页</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="tab-pane" id="pane-seo">
+                <div class="form-section">
+                  <div class="section-title">URL 配置</div>
+                  <div class="rail-note" style="margin-bottom:16px">URL Slug 独立于树结构，调整类目层级不影响已有链接。Slug 全局唯一。</div>
+                  <div class="form-row"><div class="label">URL Slug</div><div class="field"><input type="text" value="handbags"></div></div>
+                  <div class="form-row"><div class="label">完整 URL</div><div class="field" style="color:#6B7280">https://looply.com/<strong style="color:#7C3AED">handbags</strong> <span class="muted" style="margin-left:8px">（自动拼接）</span></div></div>
+                </div>
+                <div class="form-section">
+                  <div class="section-title">SEO 配置</div>
+                  <div class="form-row"><div class="label">Meta Title</div><div class="field"><input type="text" value="Luxury Handbags | Looply"></div></div>
+                  <div class="form-row"><div class="label">Meta Description</div><div class="field"><textarea style="height:60px">Shop authenticated pre-owned luxury handbags from Chanel, Louis Vuitton, Hermès and more.</textarea></div></div>
+                  <div class="form-row"><div class="label">H1 标题</div><div class="field"><input type="text" value="Luxury Handbags"></div></div>
+                  <div class="form-row"><div class="label">类目描述</div><div class="field"><textarea style="height:60px" placeholder="显示在类目页商品列表上方，同时用于 SEO">Discover authenticated luxury handbags at up to 70% off retail.</textarea></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div><!-- end master-detail -->
+      </div>
+    </div>
+
+
+    <!-- ═══ Page: 筛选维度管理 ═══ -->
+    <div class="page" id="page-filter-dim">
+      <div class="card">
+        <div class="page-head">
+          <div><div class="page-title">筛选维度管理</div><div class="page-desc">封装 attribute_def 为前端可用的筛选维度，配置值映射、展示类型和最低填充率要求</div></div>
+          <div class="head-actions"><button class="btn primary" onclick="openDimSlide()">+ 新增维度</button></div>
+        </div>
+        <div class="rail-note">筛选维度是 attribute_def 的封装层。不直接暴露原始属性给前端，而是通过维度配置控制展示名称、值映射和质量门槛。</div>
+        <div style="margin-top:16px">
+          <div class="toolbar">
+            <input class="input" placeholder="搜索维度名称..." style="width:200px">
+            <select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option>全部状态</option><option>启用</option><option>停用</option></select>
+            <select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option>全部展示类型</option><option>复选列表</option><option>搜索列表</option><option>区间滑块</option><option>色块网格</option></select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <tr>
+                <th>维度名称</th>
+                <th><span class="tooltip-trigger" data-tooltip="该维度封装的底层 attribute_def">数据源</span></th>
+                <th><span class="tooltip-trigger" data-tooltip="维度在前端筛选器中的展示形式">展示类型</span></th>
+                <th><span class="tooltip-trigger" data-tooltip="该维度下可选值的数量（映射后）">选项数</span></th>
+                <th><span class="tooltip-trigger" data-tooltip="商品填充该属性的比例，低于阈值时维度自动隐藏">填充率</span></th>
+                <th><span class="tooltip-trigger" data-tooltip="填充率低于此值时，该维度在对应类目不展示">最低阈值</span></th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+              <tr><td><strong>Brand</strong></td><td><span class="pill">brand.name</span></td><td><span class="tag sale">搜索列表</span></td><td>86</td><td><span style="color:#16A34A">100%</span></td><td>—</td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="openDimSlide('Brand')">编辑</button></td></tr>
+              <tr><td><strong>Price</strong></td><td><span class="pill">listing.price</span></td><td><span class="tag enum">区间滑块</span></td><td>6 区间</td><td><span style="color:#16A34A">100%</span></td><td>—</td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="openDimSlide('Price')">编辑</button></td></tr>
+              <tr><td><strong>Condition</strong></td><td><span class="pill">used_item.condition_level</span></td><td><span class="tag desc">复选列表</span></td><td>5</td><td><span style="color:#16A34A">98%</span></td><td>80%</td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="openDimSlide('Condition')">编辑</button></td></tr>
+              <tr><td><strong>Size</strong></td><td><span class="pill">attr:bag_size</span> <span class="pill">attr:size</span></td><td><span class="tag desc">复选列表</span></td><td>5</td><td><span style="color:#D97706">72%</span></td><td>60%</td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="openDimSlide('Size')">编辑</button></td></tr>
+              <tr><td><strong>Color</strong></td><td><span class="pill">attr:color</span> <span class="pill">attr:Color</span> <span class="pill">attr:bag_color</span></td><td><span class="tag enum">色块网格</span></td><td>12</td><td><span style="color:#16A34A">89%</span></td><td>70%</td><td><span class="tag on">启用</span></td><td><button class="btn" onclick="openDimSlide('Color')">编辑</button></td></tr>
+              <tr><td><strong>Material</strong></td><td><span class="pill">attr:material</span></td><td><span class="tag desc">复选列表</span></td><td>8</td><td><span style="color:#DC2626">45%</span></td><td>60%</td><td><span class="tag pending">低于阈值</span></td><td><button class="btn" onclick="openDimSlide('Material')">编辑</button></td></tr>
+              <tr><td><strong>Style</strong></td><td><span class="pill">attr:style_tag</span></td><td><span class="tag desc">复选列表</span></td><td>4</td><td><span style="color:#DC2626">32%</span></td><td>60%</td><td><span class="tag off">停用</span></td><td><button class="btn" onclick="openDimSlide('Style')">编辑</button></td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Page: 类目筛选配置 ═══ -->
+    <div class="page" id="page-category-filter">
+      <div class="card">
+        <div class="page-head">
+          <div><div class="page-title">类目筛选配置</div><div class="page-desc">为每个前台类目选择启用哪些筛选维度，并配置展示顺序</div></div>
+        </div>
+        <div class="split">
+          <div class="left">
+            <div class="panel">
+              <h3>选择类目</h3>
+              <div class="tree-node tree-selected"><span class="depth-badge">D1</span> Handbags</div>
+              <div class="tree-child">
+                <div class="tree-node"><span class="depth-badge">D2</span> Shoulder Bags</div>
+                <div class="tree-node"><span class="depth-badge">D2</span> Tote Bags</div>
+                <div class="tree-node"><span class="depth-badge">D2</span> Crossbody</div>
+              </div>
+              <div class="tree-node"><span class="depth-badge">D1</span> Jewelry</div>
+              <div class="tree-node"><span class="depth-badge">D1</span> Watches</div>
+              <div class="tree-node"><span class="depth-badge">D1</span> Accessories</div>
+            </div>
+          </div>
+          <div class="right">
+            <div class="panel" style="min-height:auto">
+              <h3>Handbags — 已启用筛选维度 <span style="float:right;font-size:11px;color:#9CA3AF">拖拽调整顺序</span></h3>
+              <div class="rail-note" style="margin-bottom:14px">从维度池中选择该类目需要的筛选维度。填充率低于阈值的维度会自动隐藏，无需手动停用。</div>
+              <div class="table-wrap">
+                <table>
+                  <tr><th>排序</th><th>维度名称</th><th>展示类型</th><th><span class="tooltip-trigger" data-tooltip="该维度在当前类目下的商品填充率">填充率</span></th><th>状态</th><th>操作</th></tr>
+                  <tr><td>1</td><td><strong>Brand</strong></td><td><span class="tag sale">搜索列表</span></td><td><span style="color:#16A34A">100%</span></td><td><span class="tag on">展示</span></td><td><button class="btn">移除</button></td></tr>
+                  <tr><td>2</td><td><strong>Price</strong></td><td><span class="tag enum">区间滑块</span></td><td><span style="color:#16A34A">100%</span></td><td><span class="tag on">展示</span></td><td><button class="btn">移除</button></td></tr>
+                  <tr><td>3</td><td><strong>Condition</strong></td><td><span class="tag desc">复选列表</span></td><td><span style="color:#16A34A">98%</span></td><td><span class="tag on">展示</span></td><td><button class="btn">移除</button></td></tr>
+                  <tr><td>4</td><td><strong>Size</strong></td><td><span class="tag desc">复选列表</span></td><td><span style="color:#D97706">72%</span></td><td><span class="tag on">展示</span></td><td><button class="btn">移除</button></td></tr>
+                  <tr><td>5</td><td><strong>Color</strong></td><td><span class="tag enum">色块网格</span></td><td><span style="color:#16A34A">89%</span></td><td><span class="tag on">展示</span></td><td><button class="btn">移除</button></td></tr>
+                  <tr><td>6</td><td><strong>Material</strong></td><td><span class="tag desc">复选列表</span></td><td><span style="color:#DC2626">45%</span></td><td><span class="tag pending">隐藏(低填充)</span></td><td><button class="btn">移除</button></td></tr>
+                </table>
+              </div>
+              <button class="btn primary" style="margin-top:12px">+ 添加维度</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Page: 快捷筛选 ═══ -->
+    <div class="page" id="page-quick-filter">
+      <div class="card">
+        <div class="page-head">
+          <div><div class="page-title">快捷筛选配置</div><div class="page-desc">配置类目页顶部的 Quick Filter Chips，用户可一键快速筛选常用条件</div></div>
+          <div class="head-actions"><button class="btn primary">+ 新增快捷筛选</button></div>
+        </div>
+        <div class="rail-note">快捷筛选以 Chip 形式横向排列在商品列表上方，建议每个类目配置 5-8 个高频筛选项。MVP 阶段为手动配置，零结果的 Chip 自动隐藏。</div>
+        <div style="margin-top:16px">
+          <div class="toolbar">
+            <select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option>适用类目：Handbags</option><option>Jewelry</option><option>Watches</option><option>Accessories</option></select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <tr><th>排序</th><th>筛选标签</th><th><span class="tooltip-trigger" data-tooltip="点击该Chip后实际触发的筛选条件">映射条件</span></th><th>类型</th><th>状态</th><th>操作</th></tr>
+              <tr><td>1</td><td><strong>Under $500</strong></td><td>Price &lt; 500</td><td><span class="tag enum">价格</span></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>2</td><td><strong>Like New</strong></td><td>Condition = Like New</td><td><span class="tag desc">成色</span></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>3</td><td><strong>Chanel</strong></td><td>Brand = Chanel</td><td><span class="tag sale">品牌</span></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>4</td><td><strong>Louis Vuitton</strong></td><td>Brand = Louis Vuitton</td><td><span class="tag sale">品牌</span></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>5</td><td><strong>Authenticated</strong></td><td>Auth = true</td><td><span class="tag req">鉴定</span></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>6</td><td><strong>Mini Bags</strong></td><td>Size = Mini</td><td><span class="tag opt">尺寸</span></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>7</td><td><strong>New Arrivals</strong></td><td>Sort = newest, Days &lt; 7</td><td><span class="tag pending">时间</span></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end .main -->
+</div><!-- end .container -->
+
+<!-- ═══ Slide Panel: 新增类目 ═══ -->
+<div class="slide-overlay" id="slide-overlay" onclick="closeSlide()"></div>
+<div class="slide-panel" id="slide-add-category">
+  <div class="slide-panel-header">
+    <h3>新增前台类目</h3>
+    <button class="slide-close" onclick="closeSlide()">&times;</button>
+  </div>
+  <div class="slide-panel-body">
+    <div class="form-row"><div class="label">父级类目</div><div class="field"><select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff;width:100%"><option>— 根节点（无父级）—</option><option>Handbags</option><option>  └ Shoulder Bags</option><option>  └ Tote Bags</option><option>  └ Crossbody</option><option>Jewelry</option><option>Watches</option><option>Accessories</option></select></div></div>
+    <div class="form-row"><div class="label">类目名称(EN)</div><div class="field"><input type="text" placeholder="输入类目英文名称"></div></div>
+    <div class="form-row"><div class="label">类目名称(ZH)</div><div class="field"><input type="text" placeholder="输入类目中文名称（可选）"></div></div>
+    <div class="form-row"><div class="label">URL Slug</div><div class="field"><input type="text" placeholder="自动生成或手动输入，如 shoulder-bags"></div></div>
+    <div class="form-row"><div class="label">排序权重</div><div class="field"><input type="text" value="50" style="width:80px"></div></div>
+    <div class="form-row"><div class="label">状态</div><div class="field"><span class="tag on">启用</span></div></div>
+    <div class="form-row"><div class="label">Icon URL</div><div class="field"><input type="text" placeholder="类目图标地址（可选）"></div></div>
+    <div style="padding:12px;background:#FAF5FF;border-radius:8px;margin-top:16px;font-size:12px;color:#6B7280">
+      创建后可在右侧详情面板中配置商品来源规则、SEO 信息和展示设置。
+    </div>
+  </div>
+  <div class="slide-panel-footer">
+    <button class="btn" onclick="closeSlide()">取消</button>
+    <button class="btn primary" onclick="closeSlide()">确认新增</button>
+  </div>
+</div>
+
+<!-- ═══ Slide Panel: 后台类目选择器 ═══ -->
+<div class="slide-overlay" id="backend-category-overlay" onclick="closeBackendCategoryPicker()"></div>
+<div class="slide-panel" id="slide-backend-category" style="width:500px;right:-500px">
+  <div class="slide-panel-header">
+    <h3>选择后台类目</h3>
+    <button class="slide-close" onclick="closeBackendCategoryPicker()">&times;</button>
+  </div>
+  <div class="slide-panel-body">
+    <div style="margin-bottom:12px"><input class="tree-search" placeholder="搜索后台类目..." style="width:100%;height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;font-size:13px"></div>
+    <div style="border:1px solid #E5E7EB;border-radius:10px;padding:12px;max-height:400px;overflow-y:auto">
+      <div class="tree-node"><input type="checkbox" style="margin-right:8px"> 皮革制品</div>
+      <div class="tree-child">
+        <div class="tree-node"><input type="checkbox" checked style="margin-right:8px"> 手提类</div>
+        <div class="tree-node"><input type="checkbox" checked style="margin-right:8px"> 单肩类</div>
+        <div class="tree-node"><input type="checkbox" style="margin-right:8px"> 斜挎类</div>
+        <div class="tree-node"><input type="checkbox" style="margin-right:8px"> 钱包/卡包</div>
+      </div>
+      <div class="tree-node"><input type="checkbox" style="margin-right:8px"> 珠宝首饰</div>
+      <div class="tree-child">
+        <div class="tree-node"><input type="checkbox" style="margin-right:8px"> 项链</div>
+        <div class="tree-node"><input type="checkbox" style="margin-right:8px"> 戒指</div>
+        <div class="tree-node"><input type="checkbox" style="margin-right:8px"> 手链</div>
+        <div class="tree-node"><input type="checkbox" style="margin-right:8px"> 耳饰</div>
+      </div>
+      <div class="tree-node"><input type="checkbox" style="margin-right:8px"> 腕表</div>
+      <div class="tree-child">
+        <div class="tree-node"><input type="checkbox" style="margin-right:8px"> 机械表</div>
+        <div class="tree-node"><input type="checkbox" style="margin-right:8px"> 石英表</div>
+      </div>
+      <div class="tree-node"><input type="checkbox" style="margin-right:8px"> 配饰</div>
+      <div class="tree-child">
+        <div class="tree-node"><input type="checkbox" style="margin-right:8px"> 丝巾/围巾</div>
+        <div class="tree-node"><input type="checkbox" style="margin-right:8px"> 腰带</div>
+        <div class="tree-node"><input type="checkbox" style="margin-right:8px"> 太阳镜</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;padding:10px;background:#FAF5FF;border-radius:8px;font-size:12px;color:#6B7280">已选择 <strong>2</strong> 个后台类目：皮革制品 > 手提类、皮革制品 > 单肩类</div>
+  </div>
+  <div class="slide-panel-footer">
+    <button class="btn" onclick="closeBackendCategoryPicker()">取消</button>
+    <button class="btn primary" onclick="closeBackendCategoryPicker()">确认选择</button>
+  </div>
+</div>
+
+<!-- ═══ Slide Panel: 手动选品器 ═══ -->
+<div class="slide-overlay" id="manual-picker-overlay" onclick="closeManualPicker()"></div>
+<div class="slide-panel" id="slide-manual-picker" style="width:680px;right:-680px">
+  <div class="slide-panel-header">
+    <h3>添加商品到 Handbags <span class="muted" style="font-weight:400;margin-left:8px">手动选品</span></h3>
+    <button class="slide-close" onclick="closeManualPicker()">&times;</button>
+  </div>
+  <div class="slide-panel-body">
+    <div style="border:1px solid #E5E7EB;border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:#6B7280">筛选条件</div>
+      <div class="rule-row">
+        <select onchange="updateOperators(this)"><option value="backend_category">后台类目</option><option value="brand">品牌</option><option value="series">系列</option><option value="price">价格</option><option value="condition">成色</option><option value="listing_date">上架时间</option><option value="tag">标签</option><option value="title">商品标题</option><option value="custom_attribute">自定义属性</option></select>
+        <select><option>属于任一</option><option>不包含</option></select>
+        <input value="手提类, 单肩类" style="flex:1">
+        <button class="btn danger" style="height:28px;padding:0 8px;font-size:12px" onclick="this.closest('.rule-row').remove()">×</button>
+      </div>
+      <div class="rule-row">
+        <select onchange="updateOperators(this)"><option value="brand" selected>品牌</option><option value="backend_category">后台类目</option><option value="series">系列</option><option value="price">价格</option><option value="condition">成色</option><option value="listing_date">上架时间</option><option value="tag">标签</option><option value="title">商品标题</option><option value="custom_attribute">自定义属性</option></select>
+        <select><option>属于任一</option><option>等于</option><option>不等于</option></select>
+        <input value="Chanel, Hermès" style="flex:1">
+        <button class="btn danger" style="height:28px;padding:0 8px;font-size:12px" onclick="this.closest('.rule-row').remove()">×</button>
+      </div>
+      <button class="btn" style="margin-top:8px" onclick="addRule()">+ 添加条件</button>
+      <p style="margin-top:8px;font-size:12px;color:#6B7280">符合条件的候选商品 <strong>328</strong> 件</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <tr><th style="width:36px"><input type="checkbox"></th><th>商品名称</th><th>品牌</th><th>价格</th><th>成色</th><th>上架时间</th></tr>
+        <tr><td><input type="checkbox" checked></td><td>Boy Chanel Medium Black</td><td>Chanel</td><td>$3,200</td><td><span class="tag on">Like New</span></td><td class="muted">2026-05-20</td></tr>
+        <tr><td><input type="checkbox" checked></td><td>Kelly 28 Etoupe Togo</td><td>Hermès</td><td>$15,800</td><td><span class="tag on">Excellent</span></td><td class="muted">2026-05-19</td></tr>
+        <tr><td><input type="checkbox"></td><td>2.55 Reissue 226 Black</td><td>Chanel</td><td>$4,100</td><td><span class="tag enum">Good</span></td><td class="muted">2026-05-18</td></tr>
+        <tr><td><input type="checkbox"></td><td>Constance 24 Gold Epsom</td><td>Hermès</td><td>$11,200</td><td><span class="tag on">Like New</span></td><td class="muted">2026-05-17</td></tr>
+        <tr><td><input type="checkbox"></td><td>Picotin Lock 18 Etoupe</td><td>Hermès</td><td>$5,600</td><td><span class="tag on">Excellent</span></td><td class="muted">2026-05-16</td></tr>
+        <tr><td><input type="checkbox"></td><td>Gabrielle Hobo Medium</td><td>Chanel</td><td>$3,800</td><td><span class="tag enum">Good</span></td><td class="muted">2026-05-15</td></tr>
+      </table>
+    </div>
+    <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">
+      <span class="muted">显示 1-6 / 共 328 件</span>
+      <div style="display:flex;gap:4px">
+        <button class="btn" style="height:28px;padding:0 10px;font-size:12px;background:#7C3AED;color:#fff;border-color:#7C3AED">1</button>
+        <button class="btn" style="height:28px;padding:0 10px;font-size:12px">2</button>
+        <button class="btn" style="height:28px;padding:0 10px;font-size:12px">3</button>
+        <button class="btn" style="height:28px;padding:0 10px;font-size:12px">...</button>
+        <button class="btn" style="height:28px;padding:0 10px;font-size:12px">下一页</button>
+      </div>
+    </div>
+  </div>
+  <div class="slide-panel-footer">
+    <span style="font-size:12px;color:#6B7280">已勾选 <strong>2</strong> 件商品</span>
+    <button class="btn" onclick="closeManualPicker()">取消</button>
+    <button class="btn primary" onclick="closeManualPicker()">添加选中商品 (2)</button>
+  </div>
+</div>
+
+<!-- ═══ Slide Panel: 筛选维度新增/编辑 ═══ -->
+<div class="slide-overlay" id="dim-slide-overlay" onclick="closeDimSlide()"></div>
+<div class="slide-panel" id="slide-dim" style="width:540px;right:-540px">
+  <div class="slide-panel-header">
+    <h3 id="dim-slide-title">新增筛选维度</h3>
+    <button class="slide-close" onclick="closeDimSlide()">&times;</button>
+  </div>
+  <div class="slide-panel-body">
+    <div class="form-row"><div class="label">维度名称(EN)</div><div class="field"><input type="text" id="dim-name-en" placeholder="如 Brand, Size, Color"></div></div>
+    <div class="form-row"><div class="label">维度名称(ZH)</div><div class="field"><input type="text" id="dim-name-zh" placeholder="如 品牌、尺寸、颜色（可选）"></div></div>
+    <div class="form-row"><div class="label">数据源类型</div><div class="field"><select id="dim-source-type" onchange="onDimSourceChange(this)"><option value="attribute">属性 (attribute_def)</option><option value="brand">品牌 (brand)</option><option value="price">价格 (listing.price)</option><option value="condition">成色 (condition_level)</option><option value="computed">计算字段</option></select></div></div>
+    <div class="form-row" id="dim-attr-row"><div class="label">关联属性</div><div class="field" style="flex-direction:column;align-items:flex-start;gap:8px">
+      <div id="dim-attr-tags" style="display:flex;flex-wrap:wrap;gap:6px">
+        <!-- 已选属性标签（编辑时动态填充） -->
+      </div>
+      <div style="display:flex;gap:6px;width:100%">
+        <select id="dim-attr-select" style="flex:1;height:30px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px;background:#fff"><option value="">— 添加属性 —</option><option value="bag_size">bag_size（包袋尺寸）</option><option value="color">color（颜色）</option><option value="Color">Color（颜色-大写）</option><option value="bag_color">bag_color（包袋颜色）</option><option value="material">material（材质）</option><option value="style_tag">style_tag（风格标签）</option><option value="hardware">hardware（五金材质）</option><option value="closure_type">closure_type（开合方式）</option><option value="size">size（尺寸）</option></select>
+        <button class="btn" style="height:30px;padding:0 10px;font-size:11px" onclick="addDimAttr()">添加</button>
+      </div>
+      <div class="muted" style="font-size:11px">支持绑定多个语义相同的属性（如 Color + color + bag_color），系统自动聚合去重</div>
+    </div></div>
+    <div class="form-row"><div class="label">展示类型</div><div class="field"><select id="dim-display-type"><option value="checkbox">复选列表</option><option value="search_list">搜索列表</option><option value="range">区间滑块</option><option value="color_swatch">色块网格</option><option value="size_grid">尺码网格</option><option value="radio">单选列表</option></select></div></div>
+    <div class="form-row"><div class="label">最低填充率</div><div class="field"><input type="text" id="dim-fill-rate" value="60" style="width:60px"> <span class="muted" style="margin-left:8px">% · 低于此值时该维度在类目下自动隐藏</span></div></div>
+    <div class="form-row"><div class="label">状态</div><div class="field"><select id="dim-status"><option value="active">启用</option><option value="inactive">停用</option></select></div></div>
+
+    <div style="margin-top:20px;border-top:1px solid #E5E7EB;padding-top:16px">
+      <div style="font-size:14px;font-weight:600;margin-bottom:12px">值归一化 <span class="muted" style="font-weight:400;margin-left:8px">将重复/同义的原始值合并为同一展示值</span></div>
+      <div class="rail-note" style="margin-bottom:12px">系统自动扫描所有关联属性的已有值。将语义相同的原始值归入同一分组，前端只展示一个选项。未分组的值各自独立展示。</div>
+      <div id="dim-normalize-container" style="border:1px solid #E5E7EB;border-radius:8px;padding:12px">
+        <div style="padding:8px 0;border-bottom:1px solid #F3F4F6">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span style="font-size:12px;font-weight:600;color:#7C3AED">展示为：</span>
+            <input style="width:100px;height:26px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px;font-weight:600" value="Red">
+            <button class="btn danger" style="height:22px;padding:0 6px;font-size:10px">删除分组</button>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;padding-left:12px">
+            <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#F3EEFF;border-radius:4px;font-size:11px;color:#7C3AED">Red <button style="border:none;background:none;cursor:pointer;color:#7C3AED;font-size:10px">×</button></span>
+            <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#F3EEFF;border-radius:4px;font-size:11px;color:#7C3AED">red <button style="border:none;background:none;cursor:pointer;color:#7C3AED;font-size:10px">×</button></span>
+            <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#F3EEFF;border-radius:4px;font-size:11px;color:#7C3AED">RED <button style="border:none;background:none;cursor:pointer;color:#7C3AED;font-size:10px">×</button></span>
+            <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#F3F4F6;border-radius:4px;font-size:11px;color:#6B7280;cursor:pointer">+ 添加原始值</span>
+          </div>
+        </div>
+        <div style="padding:8px 0;border-bottom:1px solid #F3F4F6">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span style="font-size:12px;font-weight:600;color:#7C3AED">展示为：</span>
+            <input style="width:100px;height:26px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px;font-weight:600" value="Black">
+            <button class="btn danger" style="height:22px;padding:0 6px;font-size:10px">删除分组</button>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;padding-left:12px">
+            <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#F3EEFF;border-radius:4px;font-size:11px;color:#7C3AED">Black <button style="border:none;background:none;cursor:pointer;color:#7C3AED;font-size:10px">×</button></span>
+            <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#F3EEFF;border-radius:4px;font-size:11px;color:#7C3AED">black <button style="border:none;background:none;cursor:pointer;color:#7C3AED;font-size:10px">×</button></span>
+            <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#F3EEFF;border-radius:4px;font-size:11px;color:#7C3AED">BLK <button style="border:none;background:none;cursor:pointer;color:#7C3AED;font-size:10px">×</button></span>
+            <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#F3F4F6;border-radius:4px;font-size:11px;color:#6B7280;cursor:pointer">+ 添加原始值</span>
+          </div>
+        </div>
+        <button class="btn" style="margin-top:8px;height:26px;font-size:11px">+ 新增归一化分组</button>
+      </div>
+      <p style="margin-top:8px;font-size:11px;color:#6B7280">未归入任何分组的原始值将各自独立展示为筛选选项</p>
+    </div>
+
+    <div style="margin-top:20px;border-top:1px solid #E5E7EB;padding-top:16px">
+      <div style="font-size:14px;font-weight:600;margin-bottom:12px">色块配置 <span class="muted" style="font-weight:400;margin-left:8px">仅展示类型为"色块网格"时需要</span></div>
+      <div id="dim-color-container" style="border:1px solid #E5E7EB;border-radius:8px;padding:12px">
+        <div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #F3F4F6">
+          <input style="width:80px;height:28px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px" value="Black">
+          <input type="color" value="#000000" style="width:28px;height:28px;border:1px solid #D1D5DB;border-radius:6px;padding:0;cursor:pointer">
+          <span class="muted" style="font-size:11px">#000000</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #F3F4F6">
+          <input style="width:80px;height:28px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px" value="Beige">
+          <input type="color" value="#F5F5DC" style="width:28px;height:28px;border:1px solid #D1D5DB;border-radius:6px;padding:0;cursor:pointer">
+          <span class="muted" style="font-size:11px">#F5F5DC</span>
+        </div>
+        <button class="btn" style="margin-top:8px;height:26px;font-size:11px">+ 添加色块</button>
+      </div>
+    </div>
+  </div>
+  <div class="slide-panel-footer">
+    <button class="btn" onclick="closeDimSlide()">取消</button>
+    <button class="btn primary" onclick="closeDimSlide()">保存</button>
+  </div>
+</div>
+
+<script>
+/* ── 菜单折叠 ── */
+window.toggleGroup = function(parent) {
+  const group = parent.closest('.menu-group');
+  group.classList.toggle('open');
+  parent.setAttribute('aria-expanded', group.classList.contains('open'));
+};
+
+/* ── 清除所有激活态 ── */
+function clearAllActive() {
+  document.querySelectorAll('.menu-solo,.menu-child').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.menu-parent').forEach(el => el.classList.remove('active-parent'));
+}
+
+/* ── 页面导航 ── */
+function navigateTo(pageId, label) {
+  clearAllActive();
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const target = document.getElementById('page-' + pageId);
+  if (target) target.classList.add('active');
+  document.querySelector('.breadcrumb').textContent = label || '';
+}
+
+/* ── 绑定菜单点击 ── */
+document.querySelectorAll('[data-page]').forEach(item => {
+  item.addEventListener('click', function() {
+    const pageId = this.dataset.page;
+    const label = this.querySelector('span:last-child')?.textContent || this.querySelector('span')?.textContent || '';
+    navigateTo(pageId, label);
+    clearAllActive();
+    this.classList.add('active');
+    const group = this.closest('.menu-group');
+    if (group) {
+      group.classList.add('open');
+      group.querySelector('.menu-parent')?.classList.add('active-parent');
+    }
+  });
+});
+
+/* ── Tab 切换 ── */
+document.querySelectorAll('.tabs').forEach(tabBar => {
+  tabBar.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      const paneId = this.dataset.pane;
+      tabBar.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+      const container = tabBar.closest('.detail-panel-body') || tabBar.parentElement;
+      container.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      const pane = container.querySelector('#' + paneId);
+      if (pane) pane.classList.add('active');
+    });
+  });
+});
+
+/* ── 商品来源切换 ── */
+function switchSource(type) {
+  document.querySelectorAll('.source-card').forEach(c => {
+    c.classList.remove('selected');
+    c.querySelector('h4').textContent = '○ ' + c.querySelector('h4').textContent.replace(/^[●○]\s*/, '');
+  });
+  event.currentTarget.classList.add('selected');
+  event.currentTarget.querySelector('h4').textContent = '● ' + event.currentTarget.querySelector('h4').textContent.replace(/^[●○]\s*/, '');
+  document.querySelectorAll('.source-config').forEach(c => c.style.display = 'none');
+  const target = document.getElementById('source-' + type);
+  if (target) target.style.display = 'block';
+  const display = document.getElementById('source-display');
+  if (display) display.style.display = (type === 'manual') ? 'none' : 'block';
+}
+
+/* ── 添加规则条件 ── */
+function addRule() {
+  var container = document.getElementById('rule-container');
+  if (!container) {
+    container = event.target.closest('[style*="border"]');
+  }
+  var addBtn = container.querySelector(':scope > button');
+  var row = document.createElement('div');
+  row.className = 'rule-row';
+  row.innerHTML = '<select onchange="updateOperators(this)"><option value="backend_category">后台类目</option><option value="brand">品牌</option><option value="series">系列</option><option value="price">价格</option><option value="condition">成色</option><option value="listing_date">上架时间</option><option value="tag">标签</option><option value="title">商品标题</option><option value="custom_attribute">自定义属性</option></select><select><option>属于任一</option><option>不包含</option></select><input placeholder="输入或选择值..." style="flex:1"><button class="btn danger" style="height:28px;padding:0 8px;font-size:12px" onclick="this.closest(\'.rule-row\').remove()">×</button>';
+  container.insertBefore(row, addBtn);
+}
+
+/* ── 字段类型→操作符动态匹配 ── */
+var fieldOperatorMap = {
+  backend_category: ['属于任一','不包含'],
+  brand: ['属于任一','等于','不等于'],
+  series: ['属于任一','等于','不等于'],
+  price: ['介于','大于','小于','等于'],
+  condition: ['属于任一','不包含'],
+  listing_date: ['最近N天','介于'],
+  tag: ['包含','不包含'],
+  title: ['包含','不包含'],
+  custom_attribute: ['属于任一','不包含','介于','大于','小于']
+};
+function updateOperators(fieldSelect) {
+  var field = fieldSelect.value;
+  var ops = fieldOperatorMap[field] || ['属于任一','不包含'];
+  var opSelect = fieldSelect.nextElementSibling;
+  if (!opSelect || opSelect.tagName !== 'SELECT') return;
+  opSelect.innerHTML = '';
+  ops.forEach(function(op) {
+    var opt = document.createElement('option');
+    opt.textContent = op;
+    opSelect.appendChild(opt);
+  });
+  var valueInput = opSelect.nextElementSibling;
+  if (valueInput && valueInput.tagName === 'INPUT') {
+    if (field === 'price') valueInput.placeholder = '如：500 - 5000';
+    else if (field === 'listing_date') valueInput.placeholder = '如：7（最近7天）';
+    else if (field === 'title') valueInput.placeholder = '输入关键词...';
+    else valueInput.placeholder = '输入或选择值...';
+    valueInput.value = '';
+  }
+}
+
+/* ── 后台类目选择器 ── */
+function openBackendCategoryPicker() {
+  document.getElementById('backend-category-overlay').classList.add('show');
+  document.getElementById('slide-backend-category').style.right = '0';
+}
+function closeBackendCategoryPicker() {
+  document.getElementById('backend-category-overlay').classList.remove('show');
+  document.getElementById('slide-backend-category').style.right = '-500px';
+}
+
+/* ── 侧滑面板 ── */
+function openSlide(parentId) {
+  document.getElementById('slide-overlay').classList.add('show');
+  document.getElementById('slide-add-category').classList.add('open');
+  if (parentId) {
+    const sel = document.querySelector('#slide-add-category select');
+    for (let i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].text.toLowerCase().includes(parentId.replace('-',' '))) {
+        sel.selectedIndex = i; break;
+      }
+    }
+  }
+}
+function closeSlide() {
+  document.getElementById('slide-overlay').classList.remove('show');
+  document.getElementById('slide-add-category').classList.remove('open');
+}
+
+/* ── 手动选品器 ── */
+function openManualPicker() {
+  document.getElementById('manual-picker-overlay').classList.add('show');
+  document.getElementById('slide-manual-picker').style.right = '0';
+}
+function closeManualPicker() {
+  document.getElementById('manual-picker-overlay').classList.remove('show');
+  document.getElementById('slide-manual-picker').style.right = '-680px';
+}
+
+/* ── 行内 Position 编辑 ── */
+function onPosChange(input) {
+  var row = input.closest('tr');
+  var statusCell = row.querySelector('td:last-child') || row.cells[row.cells.length - 2];
+  if (input.value) {
+    input.classList.add('pinned');
+    var badge = row.querySelector('[data-pos-status]');
+    if (badge) badge.innerHTML = '<span class="tag on" style="font-size:10px">📌 固定</span>';
+  } else {
+    input.classList.remove('pinned');
+    var badge2 = row.querySelector('[data-pos-status]');
+    if (badge2) badge2.innerHTML = '<span class="muted" style="font-size:10px">自动</span>';
+  }
+}
+
+/* ── 批量选择与操作 ── */
+function updateBatch(scope) {
+  var table = document.getElementById(scope + '-pos-table');
+  var bar = document.getElementById(scope + '-batch-bar');
+  var countEl = document.getElementById(scope + '-batch-count');
+  var checked = table.querySelectorAll('tbody input[type=checkbox]:checked, tr:not(:first-child) input[type=checkbox]:checked');
+  var count = 0;
+  table.querySelectorAll('tr').forEach(function(tr, i) {
+    if (i === 0) return;
+    var cb = tr.querySelector('input[type=checkbox]');
+    if (cb && cb.checked) count++;
+  });
+  if (count > 0) {
+    bar.style.display = 'flex';
+    countEl.textContent = count;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+function toggleAll(masterCb, scope) {
+  var table = document.getElementById(scope + '-pos-table');
+  table.querySelectorAll('tr').forEach(function(tr, i) {
+    if (i === 0) return;
+    var cb = tr.querySelector('input[type=checkbox]');
+    if (cb) cb.checked = masterCb.checked;
+  });
+  updateBatch(scope);
+}
+function batchPin(scope) {
+  var table = document.getElementById(scope + '-pos-table');
+  var startInput = document.getElementById(scope + '-batch-start');
+  var start = parseInt(startInput.value) || 1;
+  var idx = 0;
+  table.querySelectorAll('tr').forEach(function(tr, i) {
+    if (i === 0) return;
+    var cb = tr.querySelector('input[type=checkbox]');
+    if (cb && cb.checked) {
+      var posInput = tr.querySelector('.pos-input');
+      if (posInput) {
+        posInput.value = start + idx;
+        posInput.classList.add('pinned');
+      }
+      cb.checked = false;
+      idx++;
+    }
+  });
+  clearSelection(scope);
+  alert('已将 ' + idx + ' 件商品固定到位置 #' + start + ' - #' + (start + idx - 1));
+}
+function clearSelection(scope) {
+  var table = document.getElementById(scope + '-pos-table');
+  table.querySelectorAll('input[type=checkbox]').forEach(function(cb) { cb.checked = false; });
+  document.getElementById(scope + '-batch-bar').style.display = 'none';
+}
+
+/* ── 树节点选择 ── */
+function selectNode(el, nodeId) {
+  document.querySelectorAll('.tree-panel-body .tree-node').forEach(n => n.classList.remove('tree-selected'));
+  el.classList.add('tree-selected');
+}
+
+/* ── 展开/折叠全部 ── */
+function expandAll() {
+  document.querySelectorAll('.tree-panel-body .tree-child').forEach(c => c.style.display = 'block');
+}
+function collapseAll() {
+  document.querySelectorAll('.tree-panel-body .tree-child').forEach(c => c.style.display = 'none');
+}
+
+/* ── 浮层 Tooltip ── */
+(function(){
+  var tip = document.createElement('div');
+  tip.className = 'tooltip-popup';
+  var body = document.createElement('span');
+  tip.appendChild(body);
+  document.body.appendChild(tip);
+  function show(e){
+    var text = this.getAttribute('data-tooltip');
+    if(!text) return;
+    body.textContent = text;
+    tip.classList.add('show');
+    var rect = this.getBoundingClientRect();
+    tip.style.left = '0'; tip.style.top = '0';
+    var tw = tip.offsetWidth, th2 = tip.offsetHeight;
+    var left = rect.left + rect.width/2 - tw/2;
+    var top = rect.bottom + 8;
+    if(left < 8) left = 8;
+    if(left + tw > window.innerWidth - 8) left = window.innerWidth - 8 - tw;
+    if(top + th2 > window.innerHeight - 8) top = rect.top - th2 - 8;
+    tip.style.left = left + 'px'; tip.style.top = top + 'px';
+  }
+  function hide(){ tip.classList.remove('show'); }
+  document.querySelectorAll('.tooltip-trigger').forEach(function(el){
+    el.addEventListener('mouseenter', show);
+    el.addEventListener('mouseleave', hide);
+    el.addEventListener('focus', show);
+    el.addEventListener('blur', hide);
+  });
+})();
+
+/* ── 默认激活第一个菜单 ── */
+const firstMenu = document.querySelector('[data-page]');
+if (firstMenu) firstMenu.click();
+
+/* ── 筛选维度新增/编辑侧滑 ── */
+var dimEditData = {
+  Brand: {nameEn:'Brand',nameZh:'品牌',sourceType:'brand',attrs:[],displayType:'search_list',fillRate:'',status:'active'},
+  Price: {nameEn:'Price',nameZh:'价格',sourceType:'price',attrs:[],displayType:'range',fillRate:'',status:'active'},
+  Condition: {nameEn:'Condition',nameZh:'成色',sourceType:'condition',attrs:[],displayType:'checkbox',fillRate:'80',status:'active'},
+  Size: {nameEn:'Size',nameZh:'尺寸',sourceType:'attribute',attrs:['bag_size','size'],displayType:'checkbox',fillRate:'60',status:'active'},
+  Color: {nameEn:'Color',nameZh:'颜色',sourceType:'attribute',attrs:['color','Color','bag_color'],displayType:'color_swatch',fillRate:'70',status:'active'},
+  Material: {nameEn:'Material',nameZh:'材质',sourceType:'attribute',attrs:['material'],displayType:'checkbox',fillRate:'60',status:'active'},
+  Style: {nameEn:'Style',nameZh:'风格',sourceType:'attribute',attrs:['style_tag'],displayType:'checkbox',fillRate:'60',status:'inactive'}
+};
+function renderAttrTags(attrs) {
+  var container = document.getElementById('dim-attr-tags');
+  container.innerHTML = '';
+  attrs.forEach(function(attr) {
+    var tag = document.createElement('span');
+    tag.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:#F3EEFF;border-radius:6px;font-size:12px;color:#7C3AED';
+    tag.innerHTML = attr + ' <button onclick="removeDimAttr(this,\'' + attr + '\')" style="border:none;background:none;cursor:pointer;color:#7C3AED;font-size:12px;line-height:1">×</button>';
+    container.appendChild(tag);
+  });
+}
+function addDimAttr() {
+  var sel = document.getElementById('dim-attr-select');
+  if (!sel.value) return;
+  var container = document.getElementById('dim-attr-tags');
+  var existing = container.querySelectorAll('span');
+  for (var i = 0; i < existing.length; i++) {
+    if (existing[i].textContent.trim().replace('×','').trim() === sel.value) { sel.value = ''; return; }
+  }
+  var tag = document.createElement('span');
+  tag.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:#F3EEFF;border-radius:6px;font-size:12px;color:#7C3AED';
+  tag.innerHTML = sel.value + ' <button onclick="removeDimAttr(this,\'' + sel.value + '\')" style="border:none;background:none;cursor:pointer;color:#7C3AED;font-size:12px;line-height:1">×</button>';
+  container.appendChild(tag);
+  sel.value = '';
+}
+function removeDimAttr(btn, attr) {
+  btn.parentElement.remove();
+}
+function openDimSlide(dimName) {
+  document.getElementById('dim-slide-overlay').classList.add('show');
+  document.getElementById('slide-dim').style.right = '0';
+  if (dimName && dimEditData[dimName]) {
+    var d = dimEditData[dimName];
+    document.getElementById('dim-slide-title').textContent = '编辑筛选维度 — ' + dimName;
+    document.getElementById('dim-name-en').value = d.nameEn;
+    document.getElementById('dim-name-zh').value = d.nameZh;
+    document.getElementById('dim-source-type').value = d.sourceType;
+    renderAttrTags(d.attrs);
+    document.getElementById('dim-display-type').value = d.displayType;
+    document.getElementById('dim-fill-rate').value = d.fillRate;
+    document.getElementById('dim-status').value = d.status;
+    document.getElementById('dim-attr-row').style.display = (d.sourceType === 'attribute') ? 'flex' : 'none';
+  } else {
+    document.getElementById('dim-slide-title').textContent = '新增筛选维度';
+    document.getElementById('dim-name-en').value = '';
+    document.getElementById('dim-name-zh').value = '';
+    document.getElementById('dim-source-type').value = 'attribute';
+    renderAttrTags([]);
+    document.getElementById('dim-display-type').value = 'checkbox';
+    document.getElementById('dim-fill-rate').value = '60';
+    document.getElementById('dim-status').value = 'active';
+    document.getElementById('dim-attr-row').style.display = 'flex';
+  }
+}
+function closeDimSlide() {
+  document.getElementById('dim-slide-overlay').classList.remove('show');
+  document.getElementById('slide-dim').style.right = '-540px';
+}
+function onDimSourceChange(sel) {
+  document.getElementById('dim-attr-row').style.display = (sel.value === 'attribute') ? 'flex' : 'none';
+}
+</script>
+</body>
+</html>

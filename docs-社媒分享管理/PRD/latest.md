@@ -67,7 +67,7 @@ Looply 是转转国际业务面向美国市场的大牌二手电商平台，从�
 | 归因转化（点击 → 注册 / 下单链路打通） | 依赖订单侧回传 UTM + 用户身份识别，当前 user_id 常为空 | 后续规划（TBD-3） |
 | 短链启用 / 停用 / 封禁 / 过期管理 | 运营止损场景已记录，但本期不做；DB `status` 字段保留 | 后续迭代 |
 | WebView 中间页引导（Instagram/TikTok 内置浏览器） | Universal Links 在 WebView 不生效，需中间页 | Phase 2 |
-| 动态合成 OG 分享卡片图（商品图 + 价格 + 水印） | MVP 的 OG 图直接用商品主图，不动态合成（注：Instagram Stories 所需的 9:16 合成图本期做，见 2.2.3） | Phase 2 |
+| 动态合成 OG 分享卡片图（商品图 + 价格 + 水印） | MVP 的 OG 图直接用商品主图，不动态合成；Instagram Stories 所需的 9:16 合成图同属此项，随 Phase 2 一起上线（见 2.2.3） | Phase 2 |
 | 卖家工具包（批量导出、店铺短链、竖屏素材） | Depop 路线，赋能卖家自运营 | Phase 2 |
 | 分享激励（分享得优惠券） | 属于营销活动模块 | 后续评估 |
 | 目标商品下架后的短链落地兜底页 | 需规划"商品已下架"提示页 / 推荐相似商品 | 后续规划（TBD-1） |
@@ -208,7 +208,7 @@ Looply 是转转国际业务面向美国市场的大牌二手电商平台，从�
 | Pinterest | 1000×1500 (2:3) | < 20MB |
 
 **规则说明**：
-- MVP 直接用商品主图作 `og:image`，不动态合成（OG 卡片图的动态合成为 Phase 2；此处不含 Instagram Stories 的 9:16 竖图——后者本期做，见 2.2.3）。
+- MVP 直接用商品主图作 `og:image`，不动态合成（OG 卡片图的动态合成为 Phase 2；Instagram Stories 的 9:16 竖图同属 Phase 2，MVP 不做服务端合成，Stories 直接传商品原图，见 2.2.3）。
 - Facebook 对 OG 图片缓存约 30 天，商品图更新后需用 Facebook Sharing Debugger 手动刷新。
 
 **异常处理**：商品不存在 / 已下架 → 返回 Looply 通用品牌 OG 卡片（Looply logo + 文案 "Authentic pre-owned, verified by Looply"），不报错；真人点击落地到 Looply 首页（`looply.com`）。（更丰富的"商品已下架"兜底页 / 推荐相似商品为 TBD-1）
@@ -253,54 +253,30 @@ Looply 是转转国际业务面向美国市场的大牌二手电商平台，从�
 
 **各端渠道方案**
 
-各端首屏渠道由"固定渠道 + 动态检测渠道"组成。**动态检测**仅 App 端做（通过 `canOpenURL` / `<queries>` 检测目标 App 是否安装），未安装则不显示该渠道；Web 端全部固定显示。
+渠道由"固定渠道 + 检测渠道"组成，**不设权重、按固定顺序排列**：
 
-**① Mobile Web**（全固定显示）
+- **固定渠道**（恒定展示）：Message、Facebook、Copy Link、More。其中 Facebook 有可靠网页分享降级，未装 App 也走网页版分享，故恒显示。
+- **检测渠道**（装了才显示）：Instagram、Pinterest、Messenger、WhatsApp、X。仅 App 端做安装检测（iOS `canOpenURL` / Android `<queries>` 检测目标 App 是否安装），**未安装则不在弹窗展示、也不收进 More**；未安装的渠道直接从列表移除，其后渠道顺次前移。
 
-| 渠道 | 未安装降级 |
-|------|----------|
-| WhatsApp | 跳 `wa.me` / App Store |
-| Message | 系统 SMS（`sms:&body=`），必有 |
-| Facebook | 跳 Facebook 网页版分享 |
-| Pinterest | 跳 Pinterest 网页版 |
-| X (Twitter) | 跳 `twitter.com/intent/tweet` 分享页（预填链接 + 文案，必有 Web 降级） |
-| Messenger | `facebook.com/dialog/send`（需登录 FB） |
-| Copy Link | 复制短链 |
-| More | `navigator.share()` 调系统面板 |
+**三端统一展示顺序**（不含未安装的检测渠道）：
 
-> Mobile Web 不做安装检测：用户已在浏览器内，每个渠道都有 Web 降级方案，跳转不突兀。
+`Message → Instagram → Pinterest → Facebook → Messenger → WhatsApp → X → Copy Link → More`
 
-**② iOS App**（固定 + 动态混合）
+| 渠道 | 类型 | 说明 | 未安装处理 |
+|------|------|------|-----------|
+| Message | 固定 | iOS = iMessage，Android = SMS，系统内置必有 | — |
+| Instagram | 检测 | Stories 传商品原图，调起见 2.2.3 | 不展示 |
+| Pinterest | 检测 | 调起见 2.2.3 | 不展示 |
+| Facebook | 固定 | 恒展示，未装 App 跳 Facebook 网页版分享 | 走网页版 |
+| Messenger | 检测 | 调起见 2.2.3 | 不展示 |
+| WhatsApp | 检测 | 调起见 2.2.3 | 不展示 |
+| X (Twitter) | 检测 | 调起见 2.2.3 | 不展示 |
+| Copy Link | 固定 | 复制短链；**独立中性色**，与彩色社媒图标区分 | — |
+| More | 固定 | 调起系统分享面板（`navigator.share()` / 系统 sheet），兜底 PRD 外的 App；**独立中性色** | — |
 
-- 固定渠道（必显示）：Message (iMessage) / Facebook / Copy Link
-- 动态渠道（`canOpenURL` 检测，按权重排序后取首屏前 2 个补位）：
+> **Mobile Web 差异**：Web 端不做安装检测，检测渠道全部走网页降级固定展示（Pinterest→网页版、Facebook→网页分享、Messenger→`dialog/send` 需登录 FB、WhatsApp→`wa.me`、X→`twitter.com/intent/tweet`）；**Instagram 无网页分享入口，Web 端不含 Instagram**，故 Web 顺序为 `Message → Pinterest → Facebook → Messenger → WhatsApp → X → Copy Link → More`。
 
-| 渠道 | URL Scheme | 权重 |
-|------|-----------|------|
-| WhatsApp | `whatsapp://` | 100 |
-| Pinterest | `pinterest://` | 90 |
-| X | `twitter://` | 80 |
-| Instagram | `instagram://` | 30（Stories 合成图方案，调起见 2.2.3） |
-| Messenger | `fb-messenger://` | 20（首屏直接露出，不收进 More） |
-
-示例：已装 WhatsApp → `Message → FB → WhatsApp → Pinterest → Messenger → Copy Link → More`；未装 WhatsApp → `Message → FB → Pinterest → Messenger → Copy Link → More`。
-
-**③ Android App**（固定 + 动态混合）
-
-- 固定渠道（必显示）：Facebook / SMS（系统内置，100% 可用） / Copy Link
-- 动态渠道（`<queries>` 声明包名后检测，按权重排序）：
-
-| 渠道 | URL Scheme | 权重 |
-|------|-----------|------|
-| WhatsApp | `whatsapp://` | 100（检测到后插首屏，SMS 挤进 More） |
-| X | `twitter://` | 90 |
-| Pinterest | `pinterest://` | 80 |
-| Instagram | `instagram://` | 30（Stories 合成图方案，调起见 2.2.3） |
-| Messenger | `fb-messenger://` | 20（首屏直接露出，不收进 More） |
-
-示例：已装 WhatsApp → `FB → WhatsApp → X → Messenger → Copy Link → More`（SMS 收进 More）；未装 → `FB → SMS → X → Messenger → Copy Link → More`。
-
-> **PRD 口径**：以上"固定 + 动态检测"规则为准；前端原型（`rMtyB` / `9wWk7`）展示的是"已安装全部 App"的最大视图，作渠道形态示例，不代表固定渲染列表。
+> **PRD 口径**：以上顺序与"固定 + 检测"规则为准；前端原型（`rMtyB` / `9wWk7`）展示的是"已安装全部 App"的最大视图，作渠道形态示例，不代表固定渲染列表。各渠道 URL Scheme 与调起方式见 2.2.3。
 
 **操作流程（主流程）**：
 1. 用户在分享面板点击某渠道。
@@ -344,7 +320,7 @@ Looply 是转转国际业务面向美国市场的大牌二手电商平台，从�
 | iMessage / SMS | iOS：`sms:&body={编码文案}`；Android：`sms:?body=X` | iOS 8+ 用 `&body=`；用户是否真发送无法感知 |
 | Messenger | App：`fb-messenger://share?link={短链}`；Web：`facebook.com/dialog/send?app_id=X&link={短链}` | Web 需登录 FB；只能发单个好友 |
 | Copy Link | 见 2.1.1 | — |
-| Instagram Stories | 服务端合成 9:16 图 → `instagram-stories://share?backgroundImage={本地URI}`（贴纸层可附带短链跳转） | 须先下载合成图到本地取文件 URI；分享无点击回调（归因靠落地页 Referer）；Android 需配 FileProvider 授予 IG 读取权限；iOS 需 Info.plist 注册 `instagram-stories` |
+| Instagram Stories | MVP：直接传商品原图 → `instagram-stories://share?backgroundImage={商品图本地URI}`（IG 自动模糊填充竖屏背景，不做服务端 9:16 合成）；9:16 合成图随 Phase 2 动态 OG 合成一起上 | 须先下载商品图到本地取文件 URI；分享无点击回调（归因靠落地页 Referer）；Android 需配 FileProvider 授予 IG 读取权限；iOS 需 Info.plist 注册 `instagram-stories` |
 
 **Facebook 品牌 Hashtag**：所有端 Facebook 分享统一通过 `hashtag=%23shoplooply` 预填品牌标签，便于社媒搜索聚合与品牌曝光追踪。
 
@@ -460,7 +436,7 @@ GET /s/{short_code}
 | `messenger` | Messenger 分享 | 用户选 Messenger |
 | `pinterest` | Pinterest 分享 | 用户选 Pinterest |
 | `twitter` | X (Twitter) 分享 | 用户选 X |
-| `instagram` | Instagram Stories 分享 | App 端选 Instagram（合成 9:16 图调起 Stories） |
+| `instagram` | Instagram Stories 分享 | App 端选 Instagram（传商品原图调起 Stories） |
 | `copy_link` | 复制链接 | 用户选 Copy Link |
 | `native_share` | 系统分享面板 | 用户选 More，渠道由 OS 决定 |
 
@@ -810,7 +786,7 @@ KPI 卡片（2 个）：总点击数、独立访客。
 | 阶段 | 功能 | 说明 |
 |------|------|------|
 | Phase 2 | WebView 中间页引导 | Instagram/TikTok 内置浏览器降级 |
-| Phase 2 | 动态合成 OG 分享卡片图 | 商品图 + 价格 + 品牌 + Looply 水印（OG 1200×630；Instagram Stories 的 9:16 合成图已在 MVP 实现） |
+| Phase 2 | 动态合成 OG 分享卡片图 | 商品图 + 价格 + 品牌 + Looply 水印（OG 1200×630）；含 Instagram Stories 的 9:16 竖图合成 |
 | Phase 2 | 分享入口扩展 | 订单完成页 / 收货确认页 / 心愿单 / 合集页 / 卖家店铺页 |
 | Phase 2 | 卖家工具包 | 批量导出 CSV、店铺短链、竖屏素材 |
 | Phase 2 | 短链状态管理 | 启用 / 停用 / 封禁 / 过期（DB status 已预留） |

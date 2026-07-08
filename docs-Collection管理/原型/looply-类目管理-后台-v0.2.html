@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang='zh-CN'>
+<head>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width,initial-scale=1.0'>
+<title>Looply 前台类目管理后台原型 v0.2</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937;font-size:14px}
+.header{height:60px;background:#FFFFFF;color:#1F2937;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid #E5E7EB}
+.logo{font-size:18px;font-weight:700;letter-spacing:1px;display:flex;align-items:center}
+.header-divider{width:1px;height:20px;background:#E5E7EB;margin:0 16px}
+.system-label{font-size:14px;font-weight:500;color:#6B7280;letter-spacing:0.3px}
+.breadcrumb{margin-left:auto;color:#9CA3AF;font-size:13px;font-weight:400}
+.breadcrumb:empty{display:none}
+.container{display:flex;height:calc(100vh - 60px)}
+.sidebar{width:220px;background:#FFFFFF;overflow:auto;flex-shrink:0;border-right:none;box-shadow:3px 0 12px rgba(0,0,0,0.06);padding:8px 0}
+.main{flex:1;overflow:auto;padding:28px}
+.menu-solo{display:flex;align-items:center;padding:12px 16px;color:#374151;cursor:pointer;font-size:14px;font-weight:500;transition:background .15s;border-left:3px solid transparent;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-solo:hover{background:rgba(0,0,0,.04)}
+.menu-solo:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-solo.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.12),transparent);font-weight:600;border-left-color:#7C3AED}
+.menu-solo .mi{width:18px;height:18px;margin-right:10px;flex-shrink:0;opacity:.55}
+.menu-solo.active .mi{opacity:1}
+.menu-divider{height:1px;background:#F3F4F6;margin:8px 16px}
+.menu-group{margin-bottom:0}
+.menu-parent{display:flex;align-items:center;padding:12px 16px;color:#374151;cursor:pointer;font-size:14px;font-weight:500;transition:background .15s;user-select:none;border-left:3px solid transparent;outline:none;overflow:hidden}
+.menu-parent:hover{background:rgba(0,0,0,.04)}
+.menu-parent:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-parent .mi{width:18px;height:18px;margin-right:10px;flex-shrink:0;opacity:.55}
+.menu-parent .arrow{margin-left:auto;width:16px;height:16px;transition:transform .2s;opacity:.4;flex-shrink:0}
+.menu-group.open>.menu-parent .arrow{transform:rotate(90deg)}
+.menu-parent.active-parent{color:#7C3AED;font-weight:600;border-left-color:#7C3AED}
+.menu-parent.active-parent .mi{opacity:1}
+.menu-children{max-height:0;overflow:hidden;transition:max-height .3s cubic-bezier(.4,0,.2,1)}
+.menu-group.open>.menu-children{max-height:none}
+.menu-child{display:flex;align-items:center;padding:10px 16px 10px 44px;color:#4B5563;cursor:pointer;font-size:13px;transition:all .15s;border-left:3px solid transparent;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-child:hover{color:#374151;background:rgba(0,0,0,.03)}
+.menu-child:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-child.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.1),transparent);border-left-color:#7C3AED;font-weight:600}
+@media(prefers-reduced-motion:reduce){.menu-children,.menu-parent .arrow,.menu-solo,.menu-child{transition:none !important}}
+.page{display:none}.page.active{display:block}
+.card{background:#fff;border-radius:16px;box-shadow:0 10px 24px rgba(16,24,40,.06);padding:28px}
+.page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}
+.page-title{font-size:20px;font-weight:700;margin-bottom:6px}
+.page-desc{color:#6B7280;font-size:13px;max-width:760px}
+.head-actions{display:flex;gap:10px;flex-wrap:wrap}
+.toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.toolbar .input,.toolbar select{height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff}
+.btn{height:34px;padding:0 14px;border:1px solid #D1D5DB;background:#fff;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:13px;white-space:nowrap}
+.btn.primary{background:#7C3AED;border-color:#7C3AED;color:#fff}
+.btn.danger{background:#fff;border-color:#DC2626;color:#DC2626}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi .item{background:#FAF5FF;border:1px solid #DDD6FE;border-radius:14px;padding:14px}
+.kpi .num{font-size:24px;font-weight:700;margin-bottom:4px;color:#7C3AED}
+.muted{color:#6B7280;font-size:12px}
+.table-wrap{border:1px solid #E5E7EB;border-radius:14px;overflow:hidden;background:#fff}
+table{width:100%;border-collapse:collapse}
+th{background:#FFFFFF;padding:10px 12px;text-align:left;font-size:12px;color:#6B7280;border-bottom:1px solid #E5E7EB;text-transform:uppercase;letter-spacing:.02em}
+td{padding:11px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;vertical-align:top}
+tr:hover{background:#FAF5FF}
+.split{display:flex;gap:18px}.left{width:280px;flex-shrink:0}.right{flex:1}
+.panel{border:1px solid #E5E7EB;border-radius:14px;background:#FFFFFF;padding:16px;min-height:420px}
+.panel h3{font-size:13px;color:#6B7280;margin-bottom:12px}
+.tree-node{padding:8px 10px;border-radius:8px;cursor:pointer}
+.tree-node:hover{background:#F3EEFF}
+.tree-selected{background:#F3EEFF;color:#7C3AED;font-weight:600}
+.tree-child{margin-left:18px}
+.form-grid{display:grid;grid-template-columns:150px 1fr;gap:12px 16px;align-items:center}
+.label{color:#6B7280;font-size:13px}
+.field{min-height:36px;border:1px solid #D1D5DB;border-radius:8px;background:#fff;padding:8px 12px;display:flex;align-items:center}
+.form-row{display:flex;gap:16px;margin-bottom:12px}
+.form-row .label{width:120px;text-align:right;line-height:34px;color:#6B7280;flex-shrink:0}
+.form-row .field{flex:1}
+.form-row .input-display{height:34px;line-height:34px;padding:0 12px;border:1px solid #D1D5DB;border-radius:8px;background:#f9fafb}
+.form-section{margin-bottom:24px}
+.form-section .section-title{font-size:15px;font-weight:600;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #E5E7EB}
+.form-actions{display:flex;gap:12px;justify-content:flex-end;padding-top:16px;border-top:1px solid #E5E7EB;margin-top:24px}
+.section{margin-top:18px}
+.section-title{font-size:14px;font-weight:700;margin-bottom:10px;color:#7C3AED}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;margin-right:4px}
+.tag.sale{background:#EFF6FF;color:#2563EB;border:none}
+.tag.desc{background:#F0FDF4;color:#16A34A;border:none}
+.tag.enum{background:#FFFBEB;color:#D97706;border:none}
+.tag.req{background:#FEF2F2;color:#DC2626;border:none}
+.tag.opt{background:#F3F4F6;color:#6B7280;border:none}
+.tag.on{background:#F0FDF4;color:#16A34A;border:none}
+.tag.pending{background:#FFFBEB;color:#D97706;border:none}
+.tag.off{background:#F3F4F6;color:#6B7280;border:none}
+.tag.warn{background:#FFF1F2;color:#E11D48;border:none}
+.tabs{display:flex;border-bottom:1px solid #E5E7EB;margin-bottom:14px;gap:4px}
+.tab{padding:10px 18px;cursor:pointer;border-bottom:2px solid transparent;color:#6B7280}
+.tab.active{color:#7C3AED;border-bottom-color:#7C3AED;font-weight:600}
+.tab-pane{display:none}.tab-pane.active{display:block}
+.inline-meta{display:flex;gap:8px;flex-wrap:wrap}
+.pill{padding:4px 10px;border-radius:999px;background:#F3F4F6;color:#6B7280;font-size:12px}
+.rail-note{padding:12px 14px;border-radius:10px;background:#F3EEFF;border:1px solid #DDD6FE;color:#6D28D9;font-size:12px;line-height:1.6}
+.slug{color:#9CA3AF;font-size:11px;margin-left:6px}
+.depth-badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;background:#F3EEFF;color:#7C3AED}
+.source-card{border:1px solid #E5E7EB;border-radius:10px;padding:14px;margin-bottom:12px;cursor:pointer;transition:all .15s}
+.source-card:hover{border-color:#DDD6FE;background:#FAF5FF}
+.source-card.selected{border-color:#7C3AED;background:#FAF5FF;box-shadow:0 0 0 1px #7C3AED}
+.source-card h4{font-size:13px;font-weight:600;margin-bottom:4px}
+.source-card p{font-size:12px;color:#6B7280}
+.rule-row{display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #F3F4F6}
+.rule-row:last-child{border-bottom:none}
+.rule-row select,.rule-row input{height:30px;border:1px solid #D1D5DB;border-radius:6px;padding:0 8px;font-size:12px;background:#fff}
+.rule-row select{min-width:120px}
+.rule-row input{flex:1}
+.tooltip-trigger{border-bottom:1px dotted #9CA3AF;cursor:help;display:inline-block}
+th .tooltip-trigger{color:#6B7280}
+.tooltip-popup{position:fixed;z-index:9999;padding:10px 14px;background:#FFFFFF;color:#1F2937;font-size:12px;line-height:1.5;border-radius:8px;max-width:280px;box-shadow:0 4px 16px rgba(0,0,0,0.12),0 0 0 1px rgba(0,0,0,0.05);pointer-events:none;opacity:0;transition:opacity .15s;white-space:normal}
+.tooltip-popup.show{opacity:1}
+.tooltip-arrow{position:absolute;width:0;height:0;border:5px solid transparent;border-bottom-color:#FFFFFF;top:-10px;left:50%;transform:translateX(-50%);filter:drop-shadow(0 -1px 1px rgba(0,0,0,0.05))}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:16px;padding:28px;width:560px;max-width:90vw;max-height:85vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.modal h2{font-size:18px;font-weight:700;margin-bottom:16px}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo"><img src="logo-new.png" height="28" alt="Looply"></div>
+  <div class="header-divider"></div>
+  <span class="system-label">前台类目管理</span>
+  <div class="breadcrumb"></div>
+</div>
+<div class="container">
+  <div class="sidebar" role="navigation" aria-label="主导航">
+    <!-- 类目管理 -->
+    <div class="menu-group open">
+      <div class="menu-parent active-parent" onclick="toggleGroup(this)" aria-expanded="true">
+        <svg class="mi" aria-hidden="true" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="5.5" height="5.5" rx="1.2"/><rect x="10.5" y="2" width="5.5" height="5.5" rx="1.2"/><rect x="2" y="10.5" width="5.5" height="5.5" rx="1.2"/><rect x="10.5" y="10.5" width="5.5" height="5.5" rx="1.2"/></svg>
+        <span>类目管理</span>
+        <svg class="arrow" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4L10 8L6 12"/></svg>
+      </div>
+      <div class="menu-children">
+        <div class="menu-child active" data-page="category-tree"><span>类目树管理</span></div>
+        <div class="menu-child" data-page="category-detail"><span>类目详情配置</span></div>
+      </div>
+    </div>
+    <div class="menu-divider"></div>
+    <!-- 筛选配置 -->
+    <div class="menu-group">
+      <div class="menu-parent" onclick="toggleGroup(this)" aria-expanded="false">
+        <svg class="mi" aria-hidden="true" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="5" r="1.5"/><line x1="6.5" y1="5" x2="16" y2="5"/><circle cx="13" cy="9" r="1.5"/><line x1="2" y1="9" x2="11.5" y2="9"/><circle cx="7" cy="13" r="1.5"/><line x1="8.5" y1="13" x2="16" y2="13"/></svg>
+        <span>筛选配置</span>
+        <svg class="arrow" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4L10 8L6 12"/></svg>
+      </div>
+      <div class="menu-children">
+        <div class="menu-child" data-page="filter-dim"><span>筛选维度管理</span></div>
+        <div class="menu-child" data-page="category-filter"><span>类目筛选配置</span></div>
+        <div class="menu-child" data-page="quick-filter"><span>快捷筛选</span></div>
+      </div>
+    </div>
+    <div class="menu-divider"></div>
+    <!-- 排序配置 -->
+    <div class="menu-solo" data-page="sort-config">
+      <svg class="mi" aria-hidden="true" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5L9 15.5L14 12.5"/><path d="M4 9L9 12L14 9"/><path d="M4 5.5L9 8.5L14 5.5L9 2.5Z"/></svg>
+      <span>排序配置</span>
+    </div>
+  </div>
+  <div class="main">
+
+    <!-- ═══ Page: 类目树管理（自由树） ═══ -->
+    <div class="page active" id="page-category-tree">
+      <div class="card">
+        <div class="page-head">
+          <div><div class="page-title">前台类目树</div><div class="page-desc">自由树结构，不预设层级语义，运营可自由组织类目层级（最大深度 4 层）。拖拽可调整排序和层级关系。</div></div>
+          <div class="head-actions"><button class="btn primary" onclick="document.getElementById('modal-add-category').classList.add('show')">+ 新增类目</button></div>
+        </div>
+        <div class="rail-note">前台类目与后台类目完全解耦。前台类目决定用户浏览路径，后台类目决定属性管理。每个前台类目通过「商品来源规则」关联商品。</div>
+        <div class="kpi" style="margin-top:16px">
+          <div class="item"><div class="num">12</div><div class="muted">类目总数</div></div>
+          <div class="item"><div class="num">3</div><div class="muted">最大深度</div></div>
+          <div class="item"><div class="num">4,218</div><div class="muted">关联商品</div></div>
+          <div class="item"><div class="num">2</div><div class="muted">空类目警告</div></div>
+        </div>
+        <div class="split">
+          <div class="left">
+            <div class="panel">
+              <h3>类目层级 <span style="float:right;font-size:11px;color:#9CA3AF">拖拽排序</span></h3>
+              <div class="tree-node tree-selected"><span class="depth-badge">D1</span> Handbags <span class="slug">/handbags</span></div>
+              <div class="tree-child">
+                <div class="tree-node"><span class="depth-badge">D2</span> Shoulder Bags <span class="slug">/shoulder-bags</span></div>
+                <div class="tree-child">
+                  <div class="tree-node"><span class="depth-badge">D3</span> Chain Bags <span class="slug">/chain-bags</span></div>
+                  <div class="tree-node"><span class="depth-badge">D3</span> Flap Bags <span class="slug">/flap-bags</span></div>
+                </div>
+                <div class="tree-node"><span class="depth-badge">D2</span> Tote Bags <span class="slug">/totes</span></div>
+                <div class="tree-node"><span class="depth-badge">D2</span> Crossbody <span class="slug">/crossbody</span></div>
+              </div>
+              <div class="tree-node"><span class="depth-badge">D1</span> Jewelry <span class="slug">/jewelry</span></div>
+              <div class="tree-child">
+                <div class="tree-node"><span class="depth-badge">D2</span> Necklaces <span class="slug">/necklaces</span></div>
+                <div class="tree-node"><span class="depth-badge">D2</span> Rings <span class="slug">/rings</span></div>
+              </div>
+              <div class="tree-node"><span class="depth-badge">D1</span> Watches <span class="slug">/watches</span></div>
+              <div class="tree-node" style="color:#D97706"><span class="depth-badge" style="background:#FFFBEB;color:#D97706">D1</span> Accessories <span class="slug">/accessories</span> <span class="tag pending">0 商品</span></div>
+            </div>
+          </div>
+          <div class="right">
+            <div class="panel">
+              <h3>类目详情 — Handbags</h3>
+              <div class="form-grid">
+                <div class="label">类目名称</div><div class="field">Handbags</div>
+                <div class="label">URL Slug</div><div class="field">/handbags</div>
+                <div class="label">深度</div><div class="field"><span class="depth-badge">D1</span> 根节点</div>
+                <div class="label">状态</div><div class="field"><span class="tag on">启用</span></div>
+                <div class="label">排序权重</div><div class="field">100</div>
+                <div class="label">关联商品数</div><div class="field">2,156</div>
+                <div class="label"><span class="tooltip-trigger" data-tooltip="商品来源决定该类目下展示哪些商品，支持三种模式">商品来源</span></div><div class="field"><span class="tag sale">关联后台类目</span> 皮革制品 > 手提类</div>
+                <div class="label">SEO Title</div><div class="field">Luxury Handbags | Looply</div>
+                <div class="label">SEO Description</div><div class="field">Shop authenticated pre-owned luxury handbags from top brands.</div>
+              </div>
+              <div class="form-actions">
+                <button class="btn" onclick="navigateTo('category-detail','类目详情配置')">编辑详情</button>
+                <button class="btn danger">停用</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Page: 类目详情配置（商品来源 + URL/SEO） ═══ -->
+    <div class="page" id="page-category-detail">
+      <div class="card">
+        <div class="page-head">
+          <div><div class="page-title">类目详情配置 — Handbags</div><div class="page-desc">配置类目的商品来源规则、URL 路由和 SEO 信息</div></div>
+          <div class="head-actions"><button class="btn" onclick="navigateTo('category-tree','类目树管理')">← 返回类目树</button></div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab active" data-pane="pane-source">商品来源</div>
+          <div class="tab" data-pane="pane-url-seo">URL 与 SEO</div>
+          <div class="tab" data-pane="pane-display">展示设置</div>
+        </div>
+
+        <!-- Tab: 商品来源 -->
+        <div class="tab-pane active" id="pane-source">
+          <div class="rail-note">选择一种商品来源模式。「关联后台类目」最常用，适合标准品类；「条件组合」适合跨类目策展；「手动选品」适合精选专题。</div>
+          <div style="margin-top:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+            <div class="source-card selected">
+              <h4>📂 关联后台类目</h4>
+              <p>选择一个或多个后台类目，自动聚合其下所有商品</p>
+            </div>
+            <div class="source-card">
+              <h4>🔧 条件组合</h4>
+              <p>通过字段+运算符+值的规则组合筛选商品</p>
+            </div>
+            <div class="source-card">
+              <h4>✋ 手动选品</h4>
+              <p>搜索并手动添加商品，支持拖拽排序</p>
+            </div>
+          </div>
+
+          <div class="section" style="margin-top:24px">
+            <div class="section-title">当前配置：关联后台类目</div>
+            <div class="table-wrap">
+              <table>
+                <tr><th>后台类目路径</th><th>商品数</th><th>操作</th></tr>
+                <tr><td>皮革制品 > 手提类</td><td>1,842</td><td><button class="btn danger" style="height:28px;padding:0 10px;font-size:12px">移除</button></td></tr>
+                <tr><td>皮革制品 > 单肩类</td><td>314</td><td><button class="btn danger" style="height:28px;padding:0 10px;font-size:12px">移除</button></td></tr>
+              </table>
+            </div>
+            <button class="btn" style="margin-top:12px">+ 添加后台类目</button>
+          </div>
+
+          <div class="section" style="margin-top:24px;display:none" id="section-condition">
+            <div class="section-title">条件组合规则</div>
+            <div style="border:1px solid #E5E7EB;border-radius:10px;padding:14px">
+              <div class="rule-row">
+                <select><option>Brand</option><option>Price</option><option>Condition</option><option>Category</option></select>
+                <select><option>等于</option><option>包含</option><option>大于</option><option>小于</option></select>
+                <input placeholder="输入值...">
+                <button class="btn danger" style="height:28px;padding:0 8px;font-size:12px">×</button>
+              </div>
+              <div class="rule-row">
+                <select><option>Price</option><option>Brand</option><option>Condition</option></select>
+                <select><option>小于</option><option>等于</option><option>大于</option></select>
+                <input value="5000">
+                <button class="btn danger" style="height:28px;padding:0 8px;font-size:12px">×</button>
+              </div>
+              <button class="btn" style="margin-top:8px">+ 添加条件</button>
+            </div>
+            <p style="margin-top:8px;font-size:12px;color:#6B7280">条件之间为 AND 关系，满足所有条件的商品会出现在该类目下</p>
+          </div>
+        </div>
+
+        <!-- Tab: URL 与 SEO -->
+        <div class="tab-pane" id="pane-url-seo">
+          <div class="form-section">
+            <div class="section-title">URL 配置</div>
+            <div class="rail-note" style="margin-bottom:16px">URL Slug 独立于树结构，调整类目层级不影响已有链接。Slug 全局唯一，建议使用 1-2 段简短英文。</div>
+            <div class="form-grid">
+              <div class="label">URL Slug</div><div class="field">/handbags</div>
+              <div class="label">完整 URL</div><div class="field" style="color:#6B7280">https://looply.com/c/<strong style="color:#7C3AED">handbags</strong></div>
+              <div class="label">Canonical URL</div><div class="field">https://looply.com/c/handbags</div>
+              <div class="label">Slug 历史</div><div class="field"><span class="pill">handbags</span><span class="pill" style="text-decoration:line-through;opacity:.6">bags</span></div>
+            </div>
+          </div>
+          <div class="form-section">
+            <div class="section-title">SEO 配置</div>
+            <div class="form-grid">
+              <div class="label">Meta Title</div><div class="field">Luxury Handbags | Looply</div>
+              <div class="label">Meta Description</div><div class="field">Shop authenticated pre-owned luxury handbags from Chanel, Louis Vuitton, Hermès and more.</div>
+              <div class="label">H1 标题</div><div class="field">Luxury Handbags</div>
+              <div class="label">noindex</div><div class="field"><span class="tag off">否</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab: 展示设置 -->
+        <div class="tab-pane" id="pane-display">
+          <div class="form-section">
+            <div class="section-title">页面展示</div>
+            <div class="form-grid">
+              <div class="label">Banner 图</div><div class="field" style="color:#6B7280">handbags-banner.jpg (1200×300)</div>
+              <div class="label">类目描述</div><div class="field">Discover authenticated luxury handbags at up to 70% off retail.</div>
+              <div class="label">每页商品数</div><div class="field">24</div>
+              <div class="label">默认排序</div><div class="field">Recommended</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn" onclick="navigateTo('category-tree','类目树管理')">取消</button>
+          <button class="btn primary">保存配置</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Page: 筛选维度管理 ═══ -->
+    <div class="page" id="page-filter-dim">
+      <div class="card">
+        <div class="page-head">
+          <div><div class="page-title">筛选维度管理</div><div class="page-desc">封装 attribute_def 为前端可用的筛选维度，配置值映射、展示类型和最低填充率要求</div></div>
+          <div class="head-actions"><button class="btn primary" onclick="document.getElementById('modal-add-dimension').classList.add('show')">+ 新增维度</button></div>
+        </div>
+        <div class="rail-note">筛选维度是 attribute_def 的封装层。不直接暴露原始属性给前端，而是通过维度配置控制展示名称、值映射和质量门槛。</div>
+        <div style="margin-top:16px">
+          <div class="toolbar">
+            <input class="input" placeholder="搜索维度名称..." style="width:200px">
+            <select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option>全部状态</option><option>启用</option><option>停用</option></select>
+            <select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option>全部展示类型</option><option>复选列表</option><option>搜索列表</option><option>区间滑块</option><option>色块网格</option></select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <tr>
+                <th>维度名称</th>
+                <th><span class="tooltip-trigger" data-tooltip="该维度封装的底层 attribute_def">数据源</span></th>
+                <th><span class="tooltip-trigger" data-tooltip="维度在前端筛选器中的展示形式">展示类型</span></th>
+                <th><span class="tooltip-trigger" data-tooltip="该维度下可选值的数量（映射后）">选项数</span></th>
+                <th><span class="tooltip-trigger" data-tooltip="商品填充该属性的比例，低于阈值时维度自动隐藏">填充率</span></th>
+                <th><span class="tooltip-trigger" data-tooltip="填充率低于此值时，该维度在对应类目不展示">最低阈值</span></th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+              <tr>
+                <td><strong>Brand</strong></td>
+                <td><span class="pill">brand.name</span></td>
+                <td><span class="tag sale">搜索列表</span></td>
+                <td>86</td>
+                <td><span style="color:#16A34A">100%</span></td>
+                <td>—</td>
+                <td><span class="tag on">启用</span></td>
+                <td><button class="btn">编辑</button></td>
+              </tr>
+              <tr>
+                <td><strong>Price</strong></td>
+                <td><span class="pill">listing.price</span></td>
+                <td><span class="tag enum">区间滑块</span></td>
+                <td>6 区间</td>
+                <td><span style="color:#16A34A">100%</span></td>
+                <td>—</td>
+                <td><span class="tag on">启用</span></td>
+                <td><button class="btn">编辑</button></td>
+              </tr>
+              <tr>
+                <td><strong>Condition</strong></td>
+                <td><span class="pill">used_item.condition_level</span></td>
+                <td><span class="tag desc">复选列表</span></td>
+                <td>5</td>
+                <td><span style="color:#16A34A">98%</span></td>
+                <td>80%</td>
+                <td><span class="tag on">启用</span></td>
+                <td><button class="btn">编辑</button></td>
+              </tr>
+              <tr>
+                <td><strong>Size</strong></td>
+                <td><span class="pill">attr:bag_size</span></td>
+                <td><span class="tag desc">复选列表</span></td>
+                <td>5</td>
+                <td><span style="color:#D97706">72%</span></td>
+                <td>60%</td>
+                <td><span class="tag on">启用</span></td>
+                <td><button class="btn">编辑</button></td>
+              </tr>
+              <tr>
+                <td><strong>Color</strong></td>
+                <td><span class="pill">attr:color</span></td>
+                <td><span class="tag enum">色块网格</span></td>
+                <td>12</td>
+                <td><span style="color:#16A34A">89%</span></td>
+                <td>70%</td>
+                <td><span class="tag on">启用</span></td>
+                <td><button class="btn">编辑</button></td>
+              </tr>
+              <tr>
+                <td><strong>Material</strong></td>
+                <td><span class="pill">attr:material</span></td>
+                <td><span class="tag desc">复选列表</span></td>
+                <td>8</td>
+                <td><span style="color:#DC2626">45%</span></td>
+                <td>60%</td>
+                <td><span class="tag pending">低于阈值</span></td>
+                <td><button class="btn">编辑</button></td>
+              </tr>
+              <tr>
+                <td><strong>Style</strong></td>
+                <td><span class="pill">attr:style_tag</span></td>
+                <td><span class="tag desc">复选列表</span></td>
+                <td>4</td>
+                <td><span style="color:#DC2626">32%</span></td>
+                <td>60%</td>
+                <td><span class="tag off">停用</span></td>
+                <td><button class="btn">编辑</button></td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Page: 类目筛选配置 ═══ -->
+    <div class="page" id="page-category-filter">
+      <div class="card">
+        <div class="page-head">
+          <div><div class="page-title">类目筛选配置</div><div class="page-desc">为每个前台类目选择启用哪些筛选维度，并配置展示顺序</div></div>
+        </div>
+        <div class="split">
+          <div class="left">
+            <div class="panel">
+              <h3>选择类目</h3>
+              <div class="tree-node tree-selected"><span class="depth-badge">D1</span> Handbags</div>
+              <div class="tree-node"><span class="depth-badge">D1</span> Jewelry</div>
+              <div class="tree-node"><span class="depth-badge">D1</span> Watches</div>
+              <div class="tree-node"><span class="depth-badge">D1</span> Accessories</div>
+              <div class="tree-child">
+                <div class="tree-node"><span class="depth-badge">D2</span> Shoulder Bags</div>
+                <div class="tree-node"><span class="depth-badge">D2</span> Tote Bags</div>
+              </div>
+            </div>
+          </div>
+          <div class="right">
+            <div class="panel" style="min-height:auto">
+              <h3>Handbags — 已启用筛选维度 <span style="float:right;font-size:11px;color:#9CA3AF">拖拽调整顺序</span></h3>
+              <div class="rail-note" style="margin-bottom:14px">从维度池中选择该类目需要的筛选维度。填充率低于阈值的维度会自动隐藏，无需手动停用。</div>
+              <div class="table-wrap">
+                <table>
+                  <tr><th>排序</th><th>维度名称</th><th>展示类型</th><th><span class="tooltip-trigger" data-tooltip="该维度在当前类目下的商品填充率">填充率</span></th><th>状态</th><th>操作</th></tr>
+                  <tr><td>1</td><td><strong>Brand</strong></td><td><span class="tag sale">搜索列表</span></td><td><span style="color:#16A34A">100%</span></td><td><span class="tag on">展示</span></td><td><button class="btn">移除</button></td></tr>
+                  <tr><td>2</td><td><strong>Price</strong></td><td><span class="tag enum">区间滑块</span></td><td><span style="color:#16A34A">100%</span></td><td><span class="tag on">展示</span></td><td><button class="btn">移除</button></td></tr>
+                  <tr><td>3</td><td><strong>Condition</strong></td><td><span class="tag desc">复选列表</span></td><td><span style="color:#16A34A">98%</span></td><td><span class="tag on">展示</span></td><td><button class="btn">移除</button></td></tr>
+                  <tr><td>4</td><td><strong>Size</strong></td><td><span class="tag desc">复选列表</span></td><td><span style="color:#D97706">72%</span></td><td><span class="tag on">展示</span></td><td><button class="btn">移除</button></td></tr>
+                  <tr><td>5</td><td><strong>Color</strong></td><td><span class="tag enum">色块网格</span></td><td><span style="color:#16A34A">89%</span></td><td><span class="tag on">展示</span></td><td><button class="btn">移除</button></td></tr>
+                  <tr><td>6</td><td><strong>Material</strong></td><td><span class="tag desc">复选列表</span></td><td><span style="color:#DC2626">45%</span></td><td><span class="tag pending">隐藏(低填充)</span></td><td><button class="btn">移除</button></td></tr>
+                </table>
+              </div>
+              <button class="btn primary" style="margin-top:12px">+ 添加维度</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Page: 快捷筛选 ═══ -->
+    <div class="page" id="page-quick-filter">
+      <div class="card">
+        <div class="page-head">
+          <div><div class="page-title">快捷筛选配置</div><div class="page-desc">配置类目页顶部的 Quick Filter Chips，用户可一键快速筛选常用条件</div></div>
+          <div class="head-actions"><button class="btn primary">+ 新增快捷筛选</button></div>
+        </div>
+        <div class="rail-note">快捷筛选以 Chip 形式横向排列在商品列表上方，建议每个类目配置 5-8 个高频筛选项。MVP 阶段为手动配置，零结果的 Chip 自动隐藏。</div>
+        <div style="margin-top:16px">
+          <div class="toolbar">
+            <select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option>适用类目：Handbags</option><option>Jewelry</option><option>Watches</option><option>Accessories</option></select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <tr><th>排序</th><th>筛选标签</th><th><span class="tooltip-trigger" data-tooltip="点击该Chip后实际触发的筛选条件">映射条件</span></th><th>类型</th><th>状态</th><th>操作</th></tr>
+              <tr><td>1</td><td><strong>Under $500</strong></td><td>Price &lt; 500</td><td><span class="tag enum">价格</span></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>2</td><td><strong>Like New</strong></td><td>Condition = Like New</td><td><span class="tag desc">成色</span></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>3</td><td><strong>Chanel</strong></td><td>Brand = Chanel</td><td><span class="tag sale">品牌</span></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>4</td><td><strong>Louis Vuitton</strong></td><td>Brand = Louis Vuitton</td><td><span class="tag sale">品牌</span></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>5</td><td><strong>Authenticated</strong></td><td>Auth = true</td><td><span class="tag req">鉴定</span></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>6</td><td><strong>Mini Bags</strong></td><td>Size = Mini</td><td><span class="tag opt">尺寸</span></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>7</td><td><strong>New Arrivals</strong></td><td>Sort = newest, Days &lt; 7</td><td><span class="tag pending">时间</span></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Page: 排序配置 ═══ -->
+    <div class="page" id="page-sort-config">
+      <div class="card">
+        <div class="page-head">
+          <div><div class="page-title">排序配置</div><div class="page-desc">配置前端类目页的排序选项，设置默认排序规则</div></div>
+          <div class="head-actions"><button class="btn primary">+ 新增排序项</button></div>
+        </div>
+        <div class="rail-note">默认排序为"Recommended"，综合考虑商品新鲜度、品牌权重、价格竞争力和用户行为数据。</div>
+        <div style="margin-top:16px">
+          <div class="table-wrap">
+            <table>
+              <tr>
+                <th>排序</th>
+                <th>排序名称</th>
+                <th>英文标签</th>
+                <th><span class="tooltip-trigger" data-tooltip="排序的底层实现逻辑">排序逻辑</span></th>
+                <th>默认</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+              <tr><td>1</td><td><strong>推荐排序</strong></td><td>Recommended</td><td>综合评分算法</td><td><span class="tag on">默认</span></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>2</td><td><strong>最新上架</strong></td><td>Newest</td><td>created_at DESC</td><td></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>3</td><td><strong>价格从低到高</strong></td><td>Price: Low to High</td><td>price ASC</td><td></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>4</td><td><strong>价格从高到低</strong></td><td>Price: High to Low</td><td>price DESC</td><td></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>5</td><td><strong>折扣力度</strong></td><td>Best Deal</td><td>discount_pct DESC</td><td></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>6</td><td><strong>最受欢迎</strong></td><td>Most Popular</td><td>likes + views 加权</td><td></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end .main -->
+</div><!-- end .container -->
+
+<!-- ═══ Modal: 新增类目 ═══ -->
+<div class="modal-overlay" id="modal-add-category">
+  <div class="modal">
+    <h2>新增前台类目</h2>
+    <div class="form-row"><div class="label">父级类目</div><div class="field"><select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff;width:100%"><option>— 根节点（无父级）—</option><option>Handbags</option><option>Jewelry</option><option>Watches</option></select></div></div>
+    <div class="form-row"><div class="label">类目名称</div><div class="field"><input class="input-display" placeholder="输入类目英文名称" style="border:1px solid #D1D5DB;border-radius:8px;background:#fff;width:100%"></div></div>
+    <div class="form-row"><div class="label">URL Slug</div><div class="field"><input class="input-display" placeholder="自动生成或手动输入，如 shoulder-bags" style="border:1px solid #D1D5DB;border-radius:8px;background:#fff;width:100%"></div></div>
+    <div class="form-row"><div class="label">排序权重</div><div class="field"><input class="input-display" value="50" style="border:1px solid #D1D5DB;border-radius:8px;background:#fff;width:80px"></div></div>
+    <div class="form-row"><div class="label">状态</div><div class="field"><span class="tag on">启用</span></div></div>
+    <div style="padding:12px;background:#FAF5FF;border-radius:8px;margin-top:8px;font-size:12px;color:#6B7280">创建后可在「类目详情配置」中设置商品来源规则和 SEO 信息。</div>
+    <div class="form-actions">
+      <button class="btn" onclick="this.closest('.modal-overlay').classList.remove('show')">取消</button>
+      <button class="btn primary" onclick="this.closest('.modal-overlay').classList.remove('show')">确认新增</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Modal: 新增筛选维度 ═══ -->
+<div class="modal-overlay" id="modal-add-dimension">
+  <div class="modal">
+    <h2>新增筛选维度</h2>
+    <div class="form-row"><div class="label">维度名称</div><div class="field"><input class="input-display" placeholder="前端展示名称，如 Size" style="border:1px solid #D1D5DB;border-radius:8px;background:#fff;width:100%"></div></div>
+    <div class="form-row"><div class="label">数据源</div><div class="field"><select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff;width:100%"><option>选择 attribute_def...</option><option>attr:bag_size</option><option>attr:color</option><option>attr:material</option><option>attr:style_tag</option><option>brand.name</option><option>listing.price</option><option>used_item.condition_level</option></select></div></div>
+    <div class="form-row"><div class="label">展示类型</div><div class="field"><select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff;width:100%"><option>复选列表</option><option>搜索列表</option><option>区间滑块</option><option>色块网格</option></select></div></div>
+    <div class="form-row"><div class="label">最低填充率</div><div class="field"><input class="input-display" value="60" style="border:1px solid #D1D5DB;border-radius:8px;background:#fff;width:80px"> <span style="margin-left:8px;color:#6B7280;font-size:12px">%（低于此值自动隐藏）</span></div></div>
+    <div class="form-row"><div class="label">值映射</div><div class="field" style="flex-direction:column;align-items:flex-start;gap:4px"><span style="font-size:12px;color:#6B7280">可选：将原始属性值映射为前端友好的展示值</span><button class="btn" style="margin-top:4px;height:28px;padding:0 10px;font-size:12px">配置映射规则</button></div></div>
+    <div class="form-actions">
+      <button class="btn" onclick="this.closest('.modal-overlay').classList.remove('show')">取消</button>
+      <button class="btn primary" onclick="this.closest('.modal-overlay').classList.remove('show')">确认新增</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── 菜单折叠 ── */
+window.toggleGroup = function(parent) {
+  const group = parent.closest('.menu-group');
+  group.classList.toggle('open');
+  parent.setAttribute('aria-expanded', group.classList.contains('open'));
+};
+
+/* ── 清除所有激活态 ── */
+function clearAllActive() {
+  document.querySelectorAll('.menu-solo,.menu-child,.menu-grandchild').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.menu-parent').forEach(el => el.classList.remove('active-parent'));
+}
+
+/* ── 页面导航 ── */
+function navigateTo(pageId, label) {
+  clearAllActive();
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const target = document.getElementById('page-' + pageId);
+  if (target) target.classList.add('active');
+  document.querySelector('.breadcrumb').textContent = label || '';
+}
+
+/* ── 绑定菜单点击 ── */
+document.querySelectorAll('[data-page]').forEach(item => {
+  item.addEventListener('click', function() {
+    const pageId = this.dataset.page;
+    const label = this.querySelector('span')?.textContent || '';
+    navigateTo(pageId, label);
+    this.classList.add('active');
+    const group = this.closest('.menu-group');
+    if (group) {
+      group.classList.add('open');
+      group.querySelector('.menu-parent')?.classList.add('active-parent');
+    }
+  });
+});
+
+/* ── Tab 切换 ── */
+document.querySelectorAll('.tabs').forEach(tabBar => {
+  tabBar.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      const paneId = this.dataset.pane;
+      tabBar.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+      const container = tabBar.parentElement;
+      container.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      const pane = container.querySelector('#' + paneId);
+      if (pane) pane.classList.add('active');
+    });
+  });
+});
+
+/* ── 浮层 Tooltip ── */
+(function(){
+  var tip = document.createElement('div');
+  tip.className = 'tooltip-popup';
+  var arrow = document.createElement('div');
+  arrow.className = 'tooltip-arrow';
+  tip.appendChild(arrow);
+  var body = document.createElement('span');
+  tip.appendChild(body);
+  document.body.appendChild(tip);
+  function show(e){
+    var text = this.getAttribute('data-tooltip');
+    if(!text) return;
+    body.textContent = text;
+    tip.classList.add('show');
+    var rect = this.getBoundingClientRect();
+    tip.style.left = '0'; tip.style.top = '0';
+    var tw = tip.offsetWidth, th2 = tip.offsetHeight;
+    var left = rect.left + rect.width/2 - tw/2;
+    var top = rect.bottom + 8;
+    if(left < 8) left = 8;
+    if(left + tw > window.innerWidth - 8) left = window.innerWidth - 8 - tw;
+    if(top + th2 > window.innerHeight - 8){ top = rect.top - th2 - 8; arrow.style.top = ''; arrow.style.bottom = '-10px'; arrow.style.borderBottomColor = 'transparent'; arrow.style.borderTopColor = '#FFFFFF'; }
+    else { arrow.style.top = '-10px'; arrow.style.bottom = ''; arrow.style.borderTopColor = 'transparent'; arrow.style.borderBottomColor = '#FFFFFF'; }
+    var arrowLeft = rect.left + rect.width/2 - left;
+    arrowLeft = Math.max(10, Math.min(arrowLeft, tw - 10));
+    arrow.style.left = arrowLeft + 'px'; arrow.style.transform = 'translateX(-50%)';
+    tip.style.left = left + 'px'; tip.style.top = top + 'px';
+  }
+  function hide(){ tip.classList.remove('show'); }
+  document.querySelectorAll('.tooltip-trigger').forEach(function(el){
+    el.addEventListener('mouseenter', show);
+    el.addEventListener('mouseleave', hide);
+    el.addEventListener('focus', show);
+    el.addEventListener('blur', hide);
+  });
+})();
+
+/* ── Modal 关闭（点击遮罩层）── */
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('show');
+  });
+});
+
+/* ── 商品来源卡片切换 ── */
+document.querySelectorAll('.source-card').forEach(card => {
+  card.addEventListener('click', function() {
+    this.parentElement.querySelectorAll('.source-card').forEach(c => c.classList.remove('selected'));
+    this.classList.add('selected');
+  });
+});
+
+/* ── 默认激活第一个菜单 ── */
+const firstMenu = document.querySelector('[data-page]');
+if (firstMenu) firstMenu.click();
+</script>
+</body>
+</html>

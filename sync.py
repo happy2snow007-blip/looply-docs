@@ -450,6 +450,46 @@ MODULES = {
             },
         },
     },
+    'collection': {
+        'name': 'Collection管理',
+        'default_source': '$HOME/Desktop/Collection管理',
+        'target': 'docs-Collection管理',
+        'keywords': ['collection', 'Collection', '类目', '类目管理'],
+        'config_key': 'collection',
+        'artifacts': {
+            # 后台主原型锁定 antd 版：源目录同时存在 v0.x.html 与 v0.x-antd.html，
+            # 版本号都解析为 0.x，必须用 -antd 后缀消歧，确保 antd 版作主原型。
+            'prototype': {
+                'subdir': '原型',
+                'pattern': r'looply-类目管理-后台-v(.+?)-antd\.html',
+                'exclude': r'(backup|对比|report)',
+            },
+            # 前台类目页原型（PC / Mobile），各自独立卡片
+            'prototype_cat_pc': {
+                'subdir': '原型',
+                'pattern': r'looply-类目页-PC-v(.+?)\.html',
+                'exclude': r'(无结果)',
+            },
+            'prototype_cat_mobile': {
+                'subdir': '原型',
+                'pattern': r'looply-类目页-Mobile-v(.+?)\.html',
+            },
+            # 后台 PRD（类目管理）为本模块主 PRD
+            'prd': {
+                'subdir': 'PRD',
+                'pattern': r'looply-类目管理-PRD-v(.+?)\.md',
+            },
+            # 前台落地页 PRD（collection-landing），独立卡片
+            'prd_landing': {
+                'subdir': 'PRD',
+                'pattern': r'looply-collection-landing-PRD-v(.+?)\.md',
+            },
+            'er': {
+                'subdir': '实体关系图',
+                'pattern': r'looply-类目管理-ER-v(.+?)\.svg',
+            },
+        },
+    },
 }
 
 # ─── 自动发现新模块 ────────────────────────────────────────────────────────────────

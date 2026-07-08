@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang='zh-CN'>
+<head>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width,initial-scale=1.0'>
+<title>Looply 类目管理后台原型</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937;font-size:14px}
+.header{height:60px;background:#FFFFFF;color:#1F2937;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid #E5E7EB}
+.logo{font-size:18px;font-weight:700;letter-spacing:1px;display:flex;align-items:center}
+.header-divider{width:1px;height:20px;background:#E5E7EB;margin:0 16px}
+.system-label{font-size:14px;font-weight:500;color:#6B7280;letter-spacing:0.3px}
+.breadcrumb{margin-left:auto;color:#9CA3AF;font-size:13px;font-weight:400}
+.breadcrumb:empty{display:none}
+.container{display:flex;height:calc(100vh - 60px)}
+.sidebar{width:220px;background:#FFFFFF;overflow:auto;flex-shrink:0;border-right:none;box-shadow:3px 0 12px rgba(0,0,0,0.06);padding:8px 0}
+.main{flex:1;overflow:auto;padding:28px}
+.menu-solo{display:flex;align-items:center;padding:12px 16px;color:#374151;cursor:pointer;font-size:14px;font-weight:500;transition:background .15s;border-left:3px solid transparent;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-solo:hover{background:rgba(0,0,0,.04)}
+.menu-solo:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-solo.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.12),transparent);font-weight:600;border-left-color:#7C3AED}
+.menu-solo .mi{width:18px;height:18px;margin-right:10px;flex-shrink:0;opacity:.55}
+.menu-solo.active .mi{opacity:1}
+.menu-divider{height:1px;background:#F3F4F6;margin:8px 16px}
+.menu-group{margin-bottom:0}
+.menu-parent{display:flex;align-items:center;padding:12px 16px;color:#374151;cursor:pointer;font-size:14px;font-weight:500;transition:background .15s;user-select:none;border-left:3px solid transparent;outline:none;overflow:hidden}
+.menu-parent:hover{background:rgba(0,0,0,.04)}
+.menu-parent:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-parent .mi{width:18px;height:18px;margin-right:10px;flex-shrink:0;opacity:.55}
+.menu-parent .arrow{margin-left:auto;width:16px;height:16px;transition:transform .2s;opacity:.4;flex-shrink:0}
+.menu-group.open>.menu-parent .arrow{transform:rotate(90deg)}
+.menu-parent.active-parent{color:#7C3AED;font-weight:600;border-left-color:#7C3AED}
+.menu-parent.active-parent .mi{opacity:1}
+.menu-children{max-height:0;overflow:hidden;transition:max-height .3s cubic-bezier(.4,0,.2,1)}
+.menu-group.open>.menu-children{max-height:none}
+.menu-child{display:flex;align-items:center;padding:10px 16px 10px 44px;color:#4B5563;cursor:pointer;font-size:13px;transition:all .15s;border-left:3px solid transparent;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-child:hover{color:#374151;background:rgba(0,0,0,.03)}
+.menu-child:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-child.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.1),transparent);border-left-color:#7C3AED;font-weight:600}
+.menu-child .ci{width:15px;height:15px;margin-right:8px;flex-shrink:0;opacity:.45}
+.menu-child.active .ci{opacity:.8}
+.menu-subgroup{margin:0}
+.menu-subparent{display:flex;align-items:center;padding:10px 16px 10px 44px;color:#4B5563;cursor:pointer;font-size:13px;font-weight:500;transition:background .15s;user-select:none;outline:none;overflow:hidden}
+.menu-subparent:hover{color:#374151;background:rgba(0,0,0,.03)}
+.menu-subparent:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-subparent .ci{width:15px;height:15px;margin-right:8px;flex-shrink:0;opacity:.45}
+.menu-subparent .arrow-sm{margin-left:auto;width:14px;height:14px;transition:transform .2s;opacity:.35;flex-shrink:0}
+.menu-subgroup.open>.menu-subparent .arrow-sm{transform:rotate(90deg)}
+.menu-subparent.active-parent{color:#7C3AED;font-weight:600}
+.menu-subparent.active-parent .ci{opacity:.8}
+.menu-subchildren{max-height:0;overflow:hidden;transition:max-height .25s cubic-bezier(.4,0,.2,1)}
+.menu-subgroup.open>.menu-subchildren{max-height:none}
+.menu-sublabel{padding:8px 16px 4px 64px;color:#6B7280;font-size:11px;font-weight:600;letter-spacing:.3px;user-select:none}
+.menu-grandchild{display:flex;align-items:center;padding:8px 16px 8px 64px;color:#6B7280;cursor:pointer;font-size:12px;transition:all .15s;border-left:3px solid transparent;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-grandchild:hover{color:#374151;background:rgba(0,0,0,.02)}
+.menu-grandchild:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+.menu-grandchild.active{color:#7C3AED;background:linear-gradient(90deg,rgba(124,58,237,.08),transparent);border-left-color:#7C3AED;font-weight:600}
+.menu-grandchild .gi{width:13px;height:13px;margin-right:8px;flex-shrink:0;opacity:.45}
+.menu-grandchild.active .gi{opacity:.75}
+@media(prefers-reduced-motion:reduce){.menu-children,.menu-subchildren,.menu-parent .arrow,.menu-subparent .arrow-sm,.menu-solo,.menu-child,.menu-grandchild,.menu-subparent,.menu-parent{transition:none !important}}
+.page{display:none}.page.active{display:block}
+.card{background:#fff;border-radius:16px;box-shadow:0 10px 24px rgba(16,24,40,.06);padding:28px}
+.page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}
+.page-title{font-size:20px;font-weight:700;margin-bottom:6px}
+.page-desc{color:#6B7280;font-size:13px;max-width:760px}
+.head-actions{display:flex;gap:10px;flex-wrap:wrap}
+.toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.toolbar .input,.toolbar select{height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff}
+.btn{height:34px;padding:0 14px;border:1px solid #D1D5DB;background:#fff;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap}
+.btn.primary{background:#7C3AED;border-color:#7C3AED;color:#fff}
+.btn.danger{background:#fff;border-color:#DC2626;color:#DC2626}
+.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.summary .item{background:linear-gradient(180deg,#FEFCFF 0%,#F3EEFF 100%);border:1px solid #DDD6FE;border-radius:14px;padding:14px 16px}
+.summary .num{font-size:24px;font-weight:700;color:#7C3AED;margin-bottom:4px}
+.summary .label-sm{font-size:12px;color:#6B7280}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi .item{background:#FAF5FF;border:1px solid #DDD6FE;border-radius:14px;padding:14px}
+.kpi .num{font-size:24px;font-weight:700;margin-bottom:4px}
+.muted{color:#6B7280;font-size:12px}
+.table-wrap{border:1px solid #E5E7EB;border-radius:14px;overflow:hidden;background:#fff}
+table{width:100%;border-collapse:collapse}
+th{background:#FFFFFF;padding:10px 12px;text-align:left;font-size:12px;color:#6B7280;border-bottom:1px solid #E5E7EB;text-transform:uppercase;letter-spacing:.02em}
+td{padding:11px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;vertical-align:top}
+tr:hover{background:#FAF5FF}
+.split{display:flex;gap:18px}.left{width:280px;flex-shrink:0}.mid{width:300px;flex-shrink:0}.right{flex:1}
+.panel{border:1px solid #E5E7EB;border-radius:14px;background:#FFFFFF;padding:16px;min-height:420px}
+.panel h3{font-size:13px;color:#6B7280;margin-bottom:12px}
+.stack{display:flex;flex-direction:column;gap:16px}
+.tree-node{padding:8px 10px;border-radius:8px;cursor:pointer}
+.tree-node:hover{background:#F3EEFF}
+.tree-selected{background:#F3EEFF;color:#7C3AED;font-weight:600}
+.tree-child{margin-left:18px}
+.form-grid{display:grid;grid-template-columns:150px 1fr;gap:12px 16px;align-items:center}
+.label{color:#6B7280;font-size:13px}
+.field{min-height:36px;border:1px solid #D1D5DB;border-radius:8px;background:#fff;padding:8px 12px;display:flex;align-items:center}
+.form-row{display:flex;gap:16px;margin-bottom:12px}
+.form-row .label{width:120px;text-align:right;line-height:34px;color:#6B7280;flex-shrink:0}
+.form-row .field{flex:1}
+.form-row .input-display{height:34px;line-height:34px;padding:0 12px;border:1px solid #D1D5DB;border-radius:8px;background:#f9fafb}
+.form-row textarea.input-display{height:80px;line-height:1.5;padding:8px 12px}
+.form-section{margin-bottom:24px}
+.form-section .section-title{font-size:15px;font-weight:600;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #E5E7EB}
+.form-actions{display:flex;gap:12px;justify-content:flex-end;padding-top:16px;border-top:1px solid #E5E7EB;margin-top:24px}
+.section{margin-top:18px}
+.section-title{font-size:14px;font-weight:700;margin-bottom:10px;color:#7C3AED}
+.section-note{font-size:12px;color:#6B7280;margin:-4px 0 10px}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;margin-right:4px}
+.tag.sale{background:#EFF6FF;color:#2563EB;border:none}
+.tag.desc{background:#F0FDF4;color:#16A34A;border:none}
+.tag.enum{background:#FFFBEB;color:#D97706;border:none}
+.tag.req{background:#FEF2F2;color:#DC2626;border:none}
+.tag.opt{background:#F3F4F6;color:#6B7280;border:none}
+.tag.on{background:#F0FDF4;color:#16A34A;border:none}
+.tag.pending{background:#FFFBEB;color:#D97706;border:none}
+.tag.off{background:#F3F4F6;color:#6B7280;border:none}
+.tag.warn{background:#FFF1F2;color:#E11D48;border:none}
+.tabs{display:flex;border-bottom:1px solid #E5E7EB;margin-bottom:14px;gap:4px}
+.tab{padding:10px 18px;cursor:pointer;border-bottom:2px solid transparent;color:#6B7280}
+.tab.active{color:#7C3AED;border-bottom-color:#7C3AED;font-weight:600}
+.tab-pane{display:none}.tab-pane.active{display:block}
+.steps{display:flex;gap:8px;margin-bottom:16px}
+.step{flex:1;padding:10px;background:#fafafa;border:1px solid #E5E7EB;border-radius:10px;text-align:center;cursor:pointer;transition:all .2s}
+.step b{display:block;margin-bottom:4px}
+.step.current{background:#F3EEFF;border-color:#DDD6FE;color:#7C3AED;font-weight:600}
+.step.done{background:#ecfdf3;border-color:#abefc6;color:#027a48}
+.step.done b{color:#027a48}
+.wizard-body .wizard-step{display:none}
+.wizard-body .wizard-step.active{display:block}
+.wizard-nav{display:flex;gap:12px;justify-content:flex-end;padding-top:16px;border-top:1px solid #E5E7EB;margin-top:24px}
+.inline-meta{display:flex;gap:8px;flex-wrap:wrap}
+.pill{padding:4px 10px;border-radius:999px;background:#F3F4F6;color:#6B7280;font-size:12px}
+.rail-note{padding:12px 14px;border-radius:10px;background:#F3EEFF;border:1px solid #DDD6FE;color:#6D28D9;font-size:12px;line-height:1.6}
+.placeholder{padding:28px;border:1px dashed #D1D5DB;border-radius:14px;background:#FFFFFF;color:#6B7280}
+.preview{margin-top:18px;padding:16px;border:1px solid #E5E7EB;background:#FFFFFF;border-radius:14px}
+.preview-line{display:flex;justify-content:space-between;gap:20px;padding:10px 0;border-bottom:1px solid #E5E7EB}
+.preview-line:last-child{border-bottom:none}
+.empty-state{display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center}
+.empty-state .empty-icon{width:48px;height:48px;color:#9CA3AF;margin-bottom:16px}
+.empty-state .empty-icon.error{color:#DC2626}
+.empty-state .empty-title{font-size:16px;font-weight:600;color:#1F2937;margin-bottom:8px}
+.empty-state .empty-desc{font-size:13px;color:#6B7280;margin-bottom:24px;max-width:360px}
+.empty-state .btn{margin-top:0}
+.tooltip-trigger{border-bottom:1px dotted #9CA3AF;cursor:help;display:inline-block}
+th .tooltip-trigger{color:#6B7280}
+.tooltip-popup{position:fixed;z-index:9999;padding:10px 14px;background:#FFFFFF;color:#1F2937;font-size:12px;line-height:1.5;border-radius:8px;max-width:280px;box-shadow:0 4px 16px rgba(0,0,0,0.12),0 0 0 1px rgba(0,0,0,0.05);pointer-events:none;opacity:0;transition:opacity .15s;white-space:normal}
+.tooltip-popup.show{opacity:1}
+.tooltip-arrow{position:absolute;width:0;height:0;border:5px solid transparent;border-bottom-color:#FFFFFF;top:-10px;left:50%;transform:translateX(-50%);filter:drop-shadow(0 -1px 1px rgba(0,0,0,0.05))}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:16px;padding:28px;width:520px;max-width:90vw;max-height:85vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.modal h2{font-size:18px;font-weight:700;margin-bottom:16px}
+.level-badge{display:inline-block;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;margin-right:6px}
+.level-badge.l1{background:#EDE9FE;color:#7C3AED}
+.level-badge.l2{background:#DBEAFE;color:#2563EB}
+.level-badge.l3{background:#D1FAE5;color:#059669}
+.level-badge.l4{background:#FEF3C7;color:#D97706}
+.slug{color:#9CA3AF;font-size:12px;margin-left:8px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo"><img src="logo-new.png" height="28" alt="Looply"></div>
+  <div class="header-divider"></div>
+  <span class="system-label">类目管理系统</span>
+  <div class="breadcrumb"></div>
+</div>
+<div class="container">
+  <div class="sidebar" role="navigation" aria-label="主导航">
+    <!-- 类目管理 -->
+    <div class="menu-group open">
+      <div class="menu-parent active-parent" onclick="toggleGroup(this)" aria-expanded="true">
+        <svg class="mi" aria-hidden="true" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="5.5" height="5.5" rx="1.2"/><rect x="10.5" y="2" width="5.5" height="5.5" rx="1.2"/><rect x="2" y="10.5" width="5.5" height="5.5" rx="1.2"/><rect x="10.5" y="10.5" width="5.5" height="5.5" rx="1.2"/></svg>
+        <span>类目管理</span>
+        <svg class="arrow" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4L10 8L6 12"/></svg>
+      </div>
+      <div class="menu-children">
+        <div class="menu-child active" data-page="category-tree"><span>类目树管理</span></div>
+        <div class="menu-child" data-page="category-attr"><span>类目属性配置</span></div>
+      </div>
+    </div>
+    <div class="menu-divider"></div>
+    <!-- 筛选配置 -->
+    <div class="menu-group">
+      <div class="menu-parent" onclick="toggleGroup(this)" aria-expanded="false">
+        <svg class="mi" aria-hidden="true" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="5" r="1.5"/><line x1="6.5" y1="5" x2="16" y2="5"/><circle cx="13" cy="9" r="1.5"/><line x1="2" y1="9" x2="11.5" y2="9"/><circle cx="7" cy="13" r="1.5"/><line x1="8.5" y1="13" x2="16" y2="13"/></svg>
+        <span>筛选配置</span>
+        <svg class="arrow" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4L10 8L6 12"/></svg>
+      </div>
+      <div class="menu-children">
+        <div class="menu-child" data-page="filter-dim"><span>筛选维度</span></div>
+        <div class="menu-child" data-page="quick-filter"><span>快捷筛选</span></div>
+        <div class="menu-child" data-page="sort-config"><span>排序配置</span></div>
+      </div>
+    </div>
+    <div class="menu-divider"></div>
+    <!-- 品牌管理 -->
+    <div class="menu-group">
+      <div class="menu-parent" onclick="toggleGroup(this)" aria-expanded="false">
+        <svg class="mi" aria-hidden="true" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2L11.5 7.5H16L12.5 10.5L14 16L9 13L4 16L5.5 10.5L2 7.5H6.5Z"/></svg>
+        <span>品牌管理</span>
+        <svg class="arrow" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4L10 8L6 12"/></svg>
+      </div>
+      <div class="menu-children">
+        <div class="menu-child" data-page="brand-list"><span>品牌列表</span></div>
+        <div class="menu-child" data-page="classic-models"><span>经典款管理</span></div>
+      </div>
+    </div>
+    <div class="menu-divider"></div>
+    <!-- 成色与鉴定 -->
+    <div class="menu-group">
+      <div class="menu-parent" onclick="toggleGroup(this)" aria-expanded="false">
+        <svg class="mi" aria-hidden="true" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="6.5"/><circle cx="9" cy="9" r="3.5"/><circle cx="9" cy="9" r="1" fill="currentColor"/></svg>
+        <span>成色与鉴定</span>
+        <svg class="arrow" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4L10 8L6 12"/></svg>
+      </div>
+      <div class="menu-children">
+        <div class="menu-child" data-page="condition"><span>成色标准</span></div>
+        <div class="menu-child" data-page="auth-config"><span>鉴定配置</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="main">
+
+    <!-- ═══ Page: 类目树管理 ═══ -->
+    <div class="page active" id="page-category-tree">
+      <div class="card">
+        <div class="page-head">
+          <div><div class="page-title">类目树管理</div><div class="page-desc">管理商品类目层级结构，支持4级类目体系（性别 > 品类 > 子品类 > 细分品类）</div></div>
+          <div class="head-actions"><button class="btn primary" onclick="document.getElementById('modal-add-category').classList.add('show')">+ 新增类目</button></div>
+        </div>
+        <div class="kpi">
+          <div class="item"><div class="num" style="color:#7C3AED">4</div><div class="muted">一级类目</div></div>
+          <div class="item"><div class="num" style="color:#7C3AED">18</div><div class="muted">二级类目</div></div>
+          <div class="item"><div class="num" style="color:#7C3AED">56</div><div class="muted">三级类目</div></div>
+          <div class="item"><div class="num" style="color:#7C3AED">124</div><div class="muted">四级类目</div></div>
+        </div>
+        <div class="split">
+          <div class="left">
+            <div class="panel">
+              <h3>类目层级</h3>
+              <div class="tree-node tree-selected"><span class="level-badge l1">L1</span> Women</div>
+              <div class="tree-child">
+                <div class="tree-node"><span class="level-badge l2">L2</span> Handbags <span class="slug">handbags</span></div>
+                <div class="tree-child">
+                  <div class="tree-node"><span class="level-badge l3">L3</span> Shoulder Bags <span class="slug">shoulder-bags</span></div>
+                  <div class="tree-child">
+                    <div class="tree-node"><span class="level-badge l4">L4</span> Chain Bags <span class="slug">chain-bags</span></div>
+                    <div class="tree-node"><span class="level-badge l4">L4</span> Flap Bags <span class="slug">flap-bags</span></div>
+                  </div>
+                  <div class="tree-node"><span class="level-badge l3">L3</span> Tote Bags <span class="slug">tote-bags</span></div>
+                  <div class="tree-node"><span class="level-badge l3">L3</span> Crossbody Bags <span class="slug">crossbody-bags</span></div>
+                </div>
+                <div class="tree-node"><span class="level-badge l2">L2</span> Jewelry <span class="slug">jewelry</span></div>
+                <div class="tree-node"><span class="level-badge l2">L2</span> Accessories <span class="slug">accessories</span></div>
+              </div>
+              <div class="tree-node"><span class="level-badge l1">L1</span> Men</div>
+              <div class="tree-node"><span class="level-badge l1">L1</span> Kids</div>
+              <div class="tree-node"><span class="level-badge l1">L1</span> Home</div>
+            </div>
+          </div>
+          <div class="right">
+            <div class="panel">
+              <h3>类目详情 — Women</h3>
+              <div class="form-grid">
+                <div class="label">类目名称</div><div class="field">Women</div>
+                <div class="label">Slug</div><div class="field">women</div>
+                <div class="label">层级</div><div class="field"><span class="level-badge l1">L1</span> 一级类目</div>
+                <div class="label">状态</div><div class="field"><span class="tag on">启用</span></div>
+                <div class="label">排序权重</div><div class="field">100</div>
+                <div class="label">商品数量</div><div class="field">3,842</div>
+                <div class="label">SEO Title</div><div class="field">Women's Luxury Secondhand | Looply</div>
+                <div class="label">SEO Description</div><div class="field">Shop authenticated pre-owned luxury handbags, jewelry and accessories for women.</div>
+              </div>
+              <div class="form-actions">
+                <button class="btn">编辑</button>
+                <button class="btn danger">停用</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Page: 类目属性配置 ═══ -->
+    <div class="page" id="page-category-attr">
+      <div class="card">
+        <div class="page-head">
+          <div><div class="page-title">类目属性配置</div><div class="page-desc">为选中类目配置筛选维度、尺寸规格、材质选项等属性</div></div>
+        </div>
+        <div class="split">
+          <div class="left">
+            <div class="panel">
+              <h3>选择类目</h3>
+              <div class="tree-node"><span class="level-badge l1">L1</span> Women</div>
+              <div class="tree-child">
+                <div class="tree-node tree-selected"><span class="level-badge l2">L2</span> Handbags</div>
+                <div class="tree-node"><span class="level-badge l2">L2</span> Jewelry</div>
+                <div class="tree-node"><span class="level-badge l2">L2</span> Accessories</div>
+              </div>
+              <div class="tree-node"><span class="level-badge l1">L1</span> Men</div>
+            </div>
+          </div>
+          <div class="right">
+            <div class="panel" style="min-height:auto">
+              <h3>Handbags — 属性配置</h3>
+              <div class="tabs">
+                <div class="tab active" data-pane="pane-size">尺寸规格</div>
+                <div class="tab" data-pane="pane-material">材质</div>
+                <div class="tab" data-pane="pane-color">颜色</div>
+                <div class="tab" data-pane="pane-style">风格</div>
+              </div>
+              <div class="tab-pane active" id="pane-size">
+                <div class="toolbar">
+                  <button class="btn primary">+ 添加尺寸</button>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <tr><th>尺寸名称</th><th>尺寸范围</th><th>排序</th><th>状态</th><th>操作</th></tr>
+                    <tr><td>Mini</td><td>&lt; 18cm</td><td>1</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+                    <tr><td>Small</td><td>18-23cm</td><td>2</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+                    <tr><td>Medium</td><td>23-30cm</td><td>3</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+                    <tr><td>Large</td><td>30-38cm</td><td>4</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+                    <tr><td>Oversized</td><td>&gt; 38cm</td><td>5</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+                  </table>
+                </div>
+              </div>
+              <div class="tab-pane" id="pane-material">
+                <div class="toolbar">
+                  <button class="btn primary">+ 添加材质</button>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <tr><th>材质名称</th><th>英文名</th><th>排序</th><th>状态</th></tr>
+                    <tr><td>小牛皮</td><td>Calfskin</td><td>1</td><td><span class="tag on">启用</span></td></tr>
+                    <tr><td>羊皮</td><td>Lambskin</td><td>2</td><td><span class="tag on">启用</span></td></tr>
+                    <tr><td>鳄鱼皮</td><td>Crocodile</td><td>3</td><td><span class="tag on">启用</span></td></tr>
+                    <tr><td>帆布</td><td>Canvas</td><td>4</td><td><span class="tag on">启用</span></td></tr>
+                    <tr><td>尼龙</td><td>Nylon</td><td>5</td><td><span class="tag on">启用</span></td></tr>
+                  </table>
+                </div>
+              </div>
+              <div class="tab-pane" id="pane-color">
+                <div class="toolbar">
+                  <button class="btn primary">+ 添加颜色</button>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <tr><th>颜色名称</th><th>色值</th><th>排序</th><th>状态</th></tr>
+                    <tr><td>Black</td><td><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#000;vertical-align:middle;margin-right:6px;border:1px solid #E5E7EB"></span>#000000</td><td>1</td><td><span class="tag on">启用</span></td></tr>
+                    <tr><td>Brown</td><td><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#8B4513;vertical-align:middle;margin-right:6px"></span>#8B4513</td><td>2</td><td><span class="tag on">启用</span></td></tr>
+                    <tr><td>Beige</td><td><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#F5DEB3;vertical-align:middle;margin-right:6px;border:1px solid #E5E7EB"></span>#F5DEB3</td><td>3</td><td><span class="tag on">启用</span></td></tr>
+                    <tr><td>Red</td><td><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#DC2626;vertical-align:middle;margin-right:6px"></span>#DC2626</td><td>4</td><td><span class="tag on">启用</span></td></tr>
+                  </table>
+                </div>
+              </div>
+              <div class="tab-pane" id="pane-style">
+                <div class="toolbar">
+                  <button class="btn primary">+ 添加风格</button>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <tr><th>风格名称</th><th>适用类目</th><th>排序</th><th>状态</th></tr>
+                    <tr><td>Classic</td><td>All Handbags</td><td>1</td><td><span class="tag on">启用</span></td></tr>
+                    <tr><td>Casual</td><td>All Handbags</td><td>2</td><td><span class="tag on">启用</span></td></tr>
+                    <tr><td>Evening</td><td>All Handbags</td><td>3</td><td><span class="tag on">启用</span></td></tr>
+                    <tr><td>Sport</td><td>All Handbags</td><td>4</td><td><span class="tag off">停用</span></td></tr>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Page: 筛选维度 ═══ -->
+    <div class="page" id="page-filter-dim">
+      <div class="card">
+        <div class="page-head">
+          <div><div class="page-title">筛选维度配置</div><div class="page-desc">配置前端类目页左侧筛选器的维度列表及其选项，控制展示顺序和启用状态</div></div>
+          <div class="head-actions"><button class="btn primary">+ 新增维度</button></div>
+        </div>
+        <div class="toolbar">
+          <input class="input" placeholder="搜索维度名称..." style="width:200px">
+          <select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option>全部状态</option><option>启用</option><option>停用</option></select>
+          <select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option>全部类目</option><option>Handbags</option><option>Jewelry</option><option>Accessories</option></select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <tr>
+              <th>排序</th>
+              <th>维度名称</th>
+              <th><span class="tooltip-trigger" data-tooltip="该维度下可选值的数量">选项数</span></th>
+              <th><span class="tooltip-trigger" data-tooltip="维度在前端筛选器中的展示形式">展示类型</span></th>
+              <th>适用类目</th>
+              <th>状态</th>
+              <th>操作</th>
+            </tr>
+            <tr><td>1</td><td><strong>Brand</strong></td><td>86</td><td><span class="tag sale">搜索列表</span></td><td>全部类目</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            <tr><td>2</td><td><strong>Price</strong></td><td>6</td><td><span class="tag enum">区间滑块</span></td><td>全部类目</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            <tr><td>3</td><td><strong>Condition</strong></td><td>5</td><td><span class="tag desc">复选列表</span></td><td>全部类目</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            <tr><td>4</td><td><strong>Size</strong></td><td>5</td><td><span class="tag desc">复选列表</span></td><td>Handbags</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            <tr><td>5</td><td><strong>Color</strong></td><td>12</td><td><span class="tag enum">色块网格</span></td><td>全部类目</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            <tr><td>6</td><td><strong>Material</strong></td><td>8</td><td><span class="tag desc">复选列表</span></td><td>Handbags</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            <tr><td>7</td><td><strong>Style</strong></td><td>4</td><td><span class="tag desc">复选列表</span></td><td>Handbags</td><td><span class="tag off">停用</span></td><td><button class="btn">编辑</button></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Page: 快捷筛选 ═══ -->
+    <div class="page" id="page-quick-filter">
+      <div class="card">
+        <div class="page-head">
+          <div><div class="page-title">快捷筛选配置</div><div class="page-desc">配置类目页顶部的 Quick Filter Chips，用户可一键快速筛选常用条件</div></div>
+          <div class="head-actions"><button class="btn primary">+ 新增快捷筛选</button></div>
+        </div>
+        <div class="rail-note">快捷筛选以 Chip 形式横向排列在商品列表上方，建议每个类目配置 5-8 个高频筛选项，过多会导致换行影响体验。</div>
+        <div style="margin-top:16px">
+          <div class="toolbar">
+            <select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option>适用类目：Handbags</option><option>Jewelry</option><option>Accessories</option></select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <tr><th>排序</th><th>筛选标签</th><th><span class="tooltip-trigger" data-tooltip="点击该Chip后实际触发的筛选条件">映射条件</span></th><th>类型</th><th>状态</th><th>操作</th></tr>
+              <tr><td>1</td><td><strong>Under $500</strong></td><td>Price &lt; 500</td><td><span class="tag enum">价格</span></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>2</td><td><strong>Like New</strong></td><td>Condition = Like New</td><td><span class="tag desc">成色</span></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>3</td><td><strong>Chanel</strong></td><td>Brand = Chanel</td><td><span class="tag sale">品牌</span></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>4</td><td><strong>Louis Vuitton</strong></td><td>Brand = Louis Vuitton</td><td><span class="tag sale">品牌</span></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>5</td><td><strong>Authenticated</strong></td><td>Auth = true</td><td><span class="tag req">鉴定</span></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>6</td><td><strong>Mini Bags</strong></td><td>Size = Mini</td><td><span class="tag opt">尺寸</span></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>7</td><td><strong>New Arrivals</strong></td><td>Sort = newest, Days &lt; 7</td><td><span class="tag pending">时间</span></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Page: 排序配置 ═══ -->
+    <div class="page" id="page-sort-config">
+      <div class="card">
+        <div class="page-head">
+          <div><div class="page-title">排序配置</div><div class="page-desc">配置前端类目页的排序选项，设置默认排序规则和各排序维度的权重</div></div>
+          <div class="head-actions"><button class="btn primary">+ 新增排序项</button></div>
+        </div>
+        <div class="rail-note">默认排序为"Recommended"，综合考虑商品新鲜度、品牌权重、价格竞争力和用户行为数据。排序权重越高越靠前。</div>
+        <div style="margin-top:16px">
+          <div class="table-wrap">
+            <table>
+              <tr>
+                <th>排序</th>
+                <th>排序名称</th>
+                <th>英文标签</th>
+                <th><span class="tooltip-trigger" data-tooltip="排序的底层实现逻辑">排序逻辑</span></th>
+                <th>默认</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+              <tr><td>1</td><td><strong>推荐排序</strong></td><td>Recommended</td><td>综合评分算法</td><td><span class="tag on">默认</span></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>2</td><td><strong>最新上架</strong></td><td>Newest</td><td>created_at DESC</td><td></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>3</td><td><strong>价格从低到高</strong></td><td>Price: Low to High</td><td>price ASC</td><td></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>4</td><td><strong>价格从高到低</strong></td><td>Price: High to Low</td><td>price DESC</td><td></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>5</td><td><strong>折扣力度</strong></td><td>Best Deal</td><td>discount_pct DESC</td><td></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+              <tr><td>6</td><td><strong>最受欢迎</strong></td><td>Most Popular</td><td>likes + views 加权</td><td></td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Page: 品牌列表 ═══ -->
+    <div class="page" id="page-brand-list">
+      <div class="card">
+        <div class="page-head">
+          <div><div class="page-title">品牌管理</div><div class="page-desc">管理平台收录品牌，配置品牌分级（Tier）、优先级和展示信息</div></div>
+          <div class="head-actions"><button class="btn primary" onclick="document.getElementById('modal-add-brand').classList.add('show')">+ 新增品牌</button></div>
+        </div>
+        <div class="kpi">
+          <div class="item"><div class="num" style="color:#7C3AED">86</div><div class="muted">品牌总数</div></div>
+          <div class="item"><div class="num" style="color:#7C3AED">12</div><div class="muted">Tier 1 品牌</div></div>
+          <div class="item"><div class="num" style="color:#7C3AED">28</div><div class="muted">Tier 2 品牌</div></div>
+          <div class="item"><div class="num" style="color:#7C3AED">46</div><div class="muted">Tier 3 品牌</div></div>
+        </div>
+        <div class="toolbar">
+          <input class="input" placeholder="搜索品牌名称..." style="width:200px">
+          <select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option>全部 Tier</option><option>Tier 1</option><option>Tier 2</option><option>Tier 3</option></select>
+          <select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option>全部状态</option><option>启用</option><option>停用</option></select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <tr>
+              <th>品牌名称</th>
+              <th><span class="tooltip-trigger" data-tooltip="品牌分级：Tier 1为顶奢，Tier 2为轻奢，Tier 3为设计师品牌">Tier</span></th>
+              <th><span class="tooltip-trigger" data-tooltip="数值越大，在筛选器和搜索建议中排名越靠前">优先级</span></th>
+              <th>商品数</th>
+              <th>适用类目</th>
+              <th>状态</th>
+              <th>操作</th>
+            </tr>
+            <tr><td><strong>Chanel</strong></td><td><span class="tag req">Tier 1</span></td><td>100</td><td>428</td><td>Handbags, Jewelry, Accessories</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            <tr><td><strong>Louis Vuitton</strong></td><td><span class="tag req">Tier 1</span></td><td>98</td><td>512</td><td>Handbags, Accessories</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            <tr><td><strong>Hermès</strong></td><td><span class="tag req">Tier 1</span></td><td>97</td><td>186</td><td>Handbags, Accessories</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            <tr><td><strong>Gucci</strong></td><td><span class="tag req">Tier 1</span></td><td>95</td><td>367</td><td>Handbags, Jewelry, Accessories</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            <tr><td><strong>Prada</strong></td><td><span class="tag enum">Tier 2</span></td><td>85</td><td>245</td><td>Handbags, Accessories</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            <tr><td><strong>Celine</strong></td><td><span class="tag enum">Tier 2</span></td><td>82</td><td>178</td><td>Handbags</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            <tr><td><strong>Bottega Veneta</strong></td><td><span class="tag enum">Tier 2</span></td><td>80</td><td>134</td><td>Handbags, Accessories</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            <tr><td><strong>Coach</strong></td><td><span class="tag opt">Tier 3</span></td><td>60</td><td>89</td><td>Handbags</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            <tr><td><strong>Kate Spade</strong></td><td><span class="tag opt">Tier 3</span></td><td>55</td><td>67</td><td>Handbags, Accessories</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Page: 经典款管理 ═══ -->
+    <div class="page" id="page-classic-models">
+      <div class="card">
+        <div class="page-head">
+          <div><div class="page-title">经典款管理</div><div class="page-desc">管理各品牌经典款型，用于商品发布时的快速关联和前端经典款筛选</div></div>
+          <div class="head-actions"><button class="btn primary">+ 新增经典款</button></div>
+        </div>
+        <div class="toolbar">
+          <input class="input" placeholder="搜索款型名称..." style="width:200px">
+          <select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option>全部品牌</option><option>Chanel</option><option>Louis Vuitton</option><option>Hermès</option><option>Gucci</option></select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <tr>
+              <th>款型名称</th>
+              <th>品牌</th>
+              <th><span class="tooltip-trigger" data-tooltip="该经典款关联的在售商品数量">商品数</span></th>
+              <th>发布年份</th>
+              <th><span class="tooltip-trigger" data-tooltip="该款型在平台的平均成交价">均价</span></th>
+              <th>状态</th>
+              <th>操作</th>
+            </tr>
+            <tr><td><strong>Classic Flap</strong></td><td>Chanel</td><td>89</td><td>1983</td><td>$4,200</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            <tr><td><strong>Boy Bag</strong></td><td>Chanel</td><td>45</td><td>2011</td><td>$3,800</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            <tr><td><strong>Neverfull</strong></td><td>Louis Vuitton</td><td>67</td><td>2007</td><td>$1,200</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            <tr><td><strong>Speedy</strong></td><td>Louis Vuitton</td><td>52</td><td>1930</td><td>$980</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            <tr><td><strong>Birkin</strong></td><td>Hermès</td><td>23</td><td>1984</td><td>$12,500</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            <tr><td><strong>Kelly</strong></td><td>Hermès</td><td>18</td><td>1956</td><td>$9,800</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            <tr><td><strong>Dionysus</strong></td><td>Gucci</td><td>34</td><td>2015</td><td>$1,800</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+            <tr><td><strong>Jackie</strong></td><td>Gucci</td><td>28</td><td>1961</td><td>$2,100</td><td><span class="tag on">启用</span></td><td><button class="btn">编辑</button></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Page: 成色标准 ═══ -->
+    <div class="page" id="page-condition">
+      <div class="card">
+        <div class="page-head">
+          <div><div class="page-title">成色标准</div><div class="page-desc">定义平台5级成色评定标准，用于商品质检和前端展示</div></div>
+        </div>
+        <div class="rail-note">成色标准直接影响商品定价和用户购买决策，修改前请与质检团队确认。所有成色等级的英文名称将直接展示在前端。</div>
+        <div style="margin-top:16px">
+          <div class="table-wrap">
+            <table>
+              <tr>
+                <th>等级</th>
+                <th>英文名称</th>
+                <th>中文名称</th>
+                <th><span class="tooltip-trigger" data-tooltip="该成色等级的详细判定标准描述">判定标准</span></th>
+                <th><span class="tooltip-trigger" data-tooltip="相对原价的折价比例参考">折价参考</span></th>
+                <th>商品数</th>
+              </tr>
+              <tr><td><span class="tag on">5</span></td><td><strong>New with Tags</strong></td><td>全新带标</td><td>未使用，原始标签和包装完整</td><td>85-95%</td><td>156</td></tr>
+              <tr><td><span class="tag desc">4</span></td><td><strong>Like New</strong></td><td>几乎全新</td><td>使用痕迹极轻微，无明显磨损</td><td>70-85%</td><td>423</td></tr>
+              <tr><td><span class="tag enum">3</span></td><td><strong>Very Good</strong></td><td>非常好</td><td>轻微使用痕迹，整体状态良好</td><td>55-70%</td><td>687</td></tr>
+              <tr><td><span class="tag pending">2</span></td><td><strong>Good</strong></td><td>良好</td><td>有明显使用痕迹，功能完好</td><td>40-55%</td><td>312</td></tr>
+              <tr><td><span class="tag opt">1</span></td><td><strong>Fair</strong></td><td>一般</td><td>明显磨损或瑕疵，但仍可正常使用</td><td>25-40%</td><td>98</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Page: 鉴定配置 ═══ -->
+    <div class="page" id="page-auth-config">
+      <div class="card">
+        <div class="page-head">
+          <div><div class="page-title">鉴定配置</div><div class="page-desc">配置商品鉴定规则，包括鉴定阈值、鉴定流程和鉴定标识展示</div></div>
+        </div>
+        <div class="form-section">
+          <div class="section-title">鉴定阈值设置</div>
+          <div class="form-grid">
+            <div class="label">强制鉴定阈值</div><div class="field">$500</div>
+            <div class="label">阈值说明</div><div class="field">售价 ≥ $500 的商品必须通过平台鉴定后才能上架</div>
+            <div class="label">自愿鉴定</div><div class="field"><span class="tag on">启用</span> 低于阈值的商品卖家可自愿申请鉴定</div>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="section-title">鉴定标识配置</div>
+          <div class="form-grid">
+            <div class="label">标识文案</div><div class="field">Authenticated</div>
+            <div class="label">标识颜色</div><div class="field"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#059669;vertical-align:middle;margin-right:6px"></span>#059669 (Green)</div>
+            <div class="label">展示位置</div><div class="field">商品卡片左上角 + 商品详情页标题下方</div>
+            <div class="label">标识样式</div><div class="field"><span class="tag on">Authenticated ✓</span></div>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="section-title">鉴定品牌范围</div>
+          <div class="rail-note">以下品牌的商品无论价格高低，均强制要求鉴定</div>
+          <div style="margin-top:12px">
+            <div class="table-wrap">
+              <table>
+                <tr><th>品牌</th><th>Tier</th><th>强制鉴定</th><th>操作</th></tr>
+                <tr><td><strong>Hermès</strong></td><td><span class="tag req">Tier 1</span></td><td><span class="tag on">是</span></td><td><button class="btn">移除</button></td></tr>
+                <tr><td><strong>Chanel</strong></td><td><span class="tag req">Tier 1</span></td><td><span class="tag on">是</span></td><td><button class="btn">移除</button></td></tr>
+                <tr><td><strong>Louis Vuitton</strong></td><td><span class="tag req">Tier 1</span></td><td><span class="tag on">是</span></td><td><button class="btn">移除</button></td></tr>
+                <tr><td><strong>Gucci</strong></td><td><span class="tag req">Tier 1</span></td><td><span class="tag on">是</span></td><td><button class="btn">移除</button></td></tr>
+                <tr><td><strong>Dior</strong></td><td><span class="tag req">Tier 1</span></td><td><span class="tag on">是</span></td><td><button class="btn">移除</button></td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn">重置</button>
+          <button class="btn primary">保存配置</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end .main -->
+</div><!-- end .container -->
+
+<!-- ═══ Modal: 新增类目 ═══ -->
+<div class="modal-overlay" id="modal-add-category">
+  <div class="modal">
+    <h2>新增类目</h2>
+    <div class="form-row"><div class="label">父级类目</div><div class="field"><div class="input-display">Women > Handbags</div></div></div>
+    <div class="form-row"><div class="label">类目名称</div><div class="field"><input class="input-display" placeholder="输入类目英文名称" style="border:1px solid #D1D5DB;border-radius:8px;background:#fff"></div></div>
+    <div class="form-row"><div class="label">Slug</div><div class="field"><input class="input-display" placeholder="自动生成或手动输入" style="border:1px solid #D1D5DB;border-radius:8px;background:#fff"></div></div>
+    <div class="form-row"><div class="label">排序权重</div><div class="field"><input class="input-display" value="50" style="border:1px solid #D1D5DB;border-radius:8px;background:#fff;width:80px"></div></div>
+    <div class="form-row"><div class="label">状态</div><div class="field"><span class="tag on">启用</span></div></div>
+    <div class="form-actions">
+      <button class="btn" onclick="this.closest('.modal-overlay').classList.remove('show')">取消</button>
+      <button class="btn primary" onclick="this.closest('.modal-overlay').classList.remove('show')">确认新增</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Modal: 新增品牌 ═══ -->
+<div class="modal-overlay" id="modal-add-brand">
+  <div class="modal">
+    <h2>新增品牌</h2>
+    <div class="form-row"><div class="label">品牌名称</div><div class="field"><input class="input-display" placeholder="输入品牌英文名称" style="border:1px solid #D1D5DB;border-radius:8px;background:#fff"></div></div>
+    <div class="form-row"><div class="label">品牌 Tier</div><div class="field"><select style="height:34px;border:1px solid #D1D5DB;border-radius:8px;padding:0 12px;background:#fff"><option>Tier 1 - 顶奢</option><option>Tier 2 - 轻奢</option><option>Tier 3 - 设计师</option></select></div></div>
+    <div class="form-row"><div class="label">优先级</div><div class="field"><input class="input-display" value="50" style="border:1px solid #D1D5DB;border-radius:8px;background:#fff;width:80px"></div></div>
+    <div class="form-row"><div class="label">适用类目</div><div class="field"><div class="inline-meta"><span class="pill">Handbags</span><span class="pill">Jewelry</span><span class="pill">Accessories</span></div></div></div>
+    <div class="form-row"><div class="label">强制鉴定</div><div class="field"><span class="tag on">是</span></div></div>
+    <div class="form-actions">
+      <button class="btn" onclick="this.closest('.modal-overlay').classList.remove('show')">取消</button>
+      <button class="btn primary" onclick="this.closest('.modal-overlay').classList.remove('show')">确认新增</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── 菜单折叠 ── */
+window.toggleGroup = function(parent) {
+  const group = parent.closest('.menu-group');
+  group.classList.toggle('open');
+  parent.setAttribute('aria-expanded', group.classList.contains('open'));
+};
+
+window.toggleSubgroup = function(subparent) {
+  const group = subparent.closest('.menu-subgroup');
+  group.classList.toggle('open');
+  subparent.setAttribute('aria-expanded', group.classList.contains('open'));
+};
+
+/* ── 清除所有激活态 ── */
+function clearAllActive() {
+  document.querySelectorAll('.menu-solo,.menu-child,.menu-grandchild').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.menu-parent').forEach(el => el.classList.remove('active-parent'));
+  document.querySelectorAll('.menu-subparent').forEach(el => el.classList.remove('active-parent'));
+}
+
+/* ── 页面导航 ── */
+function navigateTo(pageId, label) {
+  clearAllActive();
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const target = document.getElementById('page-' + pageId);
+  if (target) target.classList.add('active');
+  document.querySelector('.breadcrumb').textContent = label || '';
+}
+
+/* ── 绑定菜单点击 ── */
+document.querySelectorAll('[data-page]').forEach(item => {
+  item.addEventListener('click', function() {
+    const pageId = this.dataset.page;
+    const label = this.querySelector('span')?.textContent || '';
+    navigateTo(pageId, label);
+    this.classList.add('active');
+    const group = this.closest('.menu-group');
+    if (group) {
+      group.classList.add('open');
+      group.querySelector('.menu-parent')?.classList.add('active-parent');
+    }
+    const subgroup = this.closest('.menu-subgroup');
+    if (subgroup) {
+      subgroup.classList.add('open');
+      subgroup.querySelector('.menu-subparent')?.classList.add('active-parent');
+    }
+  });
+});
+
+/* ── Tab 切换 ── */
+document.querySelectorAll('.tabs').forEach(tabBar => {
+  tabBar.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      const paneId = this.dataset.pane;
+      tabBar.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+      const container = tabBar.parentElement;
+      container.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      const pane = container.querySelector('#' + paneId);
+      if (pane) pane.classList.add('active');
+    });
+  });
+});
+
+/* ── 浮层 Tooltip ── */
+(function(){
+  var tip = document.createElement('div');
+  tip.className = 'tooltip-popup';
+  var arrow = document.createElement('div');
+  arrow.className = 'tooltip-arrow';
+  tip.appendChild(arrow);
+  var body = document.createElement('span');
+  tip.appendChild(body);
+  document.body.appendChild(tip);
+  function show(e){
+    var text = this.getAttribute('data-tooltip');
+    if(!text) return;
+    body.textContent = text;
+    tip.classList.add('show');
+    var rect = this.getBoundingClientRect();
+    tip.style.left = '0'; tip.style.top = '0';
+    var tw = tip.offsetWidth, th2 = tip.offsetHeight;
+    var left = rect.left + rect.width/2 - tw/2;
+    var top = rect.bottom + 8;
+    if(left < 8) left = 8;
+    if(left + tw > window.innerWidth - 8) left = window.innerWidth - 8 - tw;
+    if(top + th2 > window.innerHeight - 8){ top = rect.top - th2 - 8; arrow.style.top = ''; arrow.style.bottom = '-10px'; arrow.style.borderBottomColor = 'transparent'; arrow.style.borderTopColor = '#FFFFFF'; }
+    else { arrow.style.top = '-10px'; arrow.style.bottom = ''; arrow.style.borderTopColor = 'transparent'; arrow.style.borderBottomColor = '#FFFFFF'; }
+    var arrowLeft = rect.left + rect.width/2 - left;
+    arrowLeft = Math.max(10, Math.min(arrowLeft, tw - 10));
+    arrow.style.left = arrowLeft + 'px'; arrow.style.transform = 'translateX(-50%)';
+    tip.style.left = left + 'px'; tip.style.top = top + 'px';
+  }
+  function hide(){ tip.classList.remove('show'); }
+  document.querySelectorAll('.tooltip-trigger').forEach(function(el){
+    el.addEventListener('mouseenter', show);
+    el.addEventListener('mouseleave', hide);
+    el.addEventListener('focus', show);
+    el.addEventListener('blur', hide);
+  });
+})();
+
+/* ── Modal 关闭（点击遮罩层）── */
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('show');
+  });
+});
+
+/* ── 默认激活第一个菜单 ── */
+const firstMenu = document.querySelector('[data-page]');
+if (firstMenu) firstMenu.click();
+</script>
+</body>
+</html>

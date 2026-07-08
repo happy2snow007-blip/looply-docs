@@ -1,0 +1,2142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Looply 类目管理 后台原型 v0.18 (antd)</title>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/dayjs@1.11.21/dayjs.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/antd@6.4.3/dist/antd.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/@ant-design/icons@6.2.1/dist/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.28.4/babel.min.js"></script>
+<style>
+html,body,#root{height:100%;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937}
+#root::before{content:'正在加载 antd 原型 v0.18……';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#9CA3AF;font-size:14px}
+#root:not(:empty)::before{display:none}
+.lp-kpi{background:linear-gradient(180deg,#FEFCFF 0%,#F3EEFF 100%);border:1px solid #DDD6FE;border-radius:14px;padding:14px 16px}
+.lp-kpi .num{font-size:24px;font-weight:700;color:#7C3AED;line-height:1;margin-bottom:6px;font-variant-numeric:tabular-nums}
+.lp-kpi .label{font-size:12px;color:#6B7280}
+.lp-pagination{display:flex;align-items:center;justify-content:center;gap:24px;padding:12px 16px;font-size:13px;color:#6B7280}
+.lp-pagination .divider{width:1px;height:20px;background:#E5E7EB}
+.lp-tip-trigger{cursor:help;border-bottom:1px dashed #9CA3AF;padding-bottom:1px}
+.lp-note-sm{padding:10px 14px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:8px;font-size:12px;color:#6D28D9}
+.lp-section{font-size:15px;font-weight:600;color:#1F2937;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #E5E7EB}
+.lp-empty{display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center}
+.lp-empty .icon{font-size:48px;margin-bottom:16px;color:#9CA3AF}
+.lp-empty .icon.err{color:#DC2626}
+.lp-empty .title{font-size:16px;font-weight:600;color:#1F2937;margin-bottom:8px}
+.lp-empty .desc{font-size:13px;color:#6B7280;margin-bottom:24px;max-width:360px}
+.lp-form-row{display:flex;gap:16px;margin-bottom:12px;align-items:flex-start}
+.lp-form-row:first-of-type{margin-top:8px}
+.lp-form-row .lp-form-label{width:130px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0;padding-top:6px}
+.lp-form-row .lp-form-label .req{color:#DC2626;margin-right:4px}
+.lp-form-row .lp-form-control{flex:1;min-width:0}
+.lp-code{font-family:Menlo,Monaco,Consolas,monospace;font-size:11px;color:#374151;background:#F3F4F6;padding:1px 6px;border-radius:4px}
+.lp-dashed{border:2px dashed #E5E7EB;border-radius:10px;padding:40px;text-align:center;color:#9CA3AF}
+.lp-dim-row{opacity:.5}
+.lp-warn-row>td{background:#FFFBEB!important}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useMemo } = React;
+const {
+  ConfigProvider, Layout, Menu, Card, Table, Button, Input, Select, Space, Tag,
+  Tooltip, Modal, Alert, Switch, Checkbox, InputNumber, Steps, Drawer, Avatar, Empty, TreeSelect, Segmented, ColorPicker, message, Popover, Popconfirm
+} = antd;
+const {
+  AppstoreOutlined, UnorderedListOutlined, FilterOutlined,
+  SearchOutlined, ReloadOutlined, PlusOutlined, DeleteOutlined, HolderOutlined,
+  InboxOutlined, ExclamationCircleOutlined, PictureOutlined, CloseOutlined,
+  FileImageOutlined, ThunderboltOutlined, EyeOutlined, DownOutlined, RightOutlined,
+  DesktopOutlined, MobileOutlined, LockOutlined
+} = icons;
+
+const LOGO_SRC = "data:image/png;base64,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";
+
+const looplyTheme = {
+  token: {
+    colorPrimary: '#7C3AED', colorInfo: '#7C3AED', colorBgLayout: '#F9FAFB',
+    colorBgContainer: '#FFFFFF', colorText: '#1F2937', colorTextSecondary: '#374151',
+    colorTextTertiary: '#4B5563', colorTextDescription: '#6B7280',
+    colorTextPlaceholder: '#9CA3AF', colorBorder: '#E5E7EB', colorBorderSecondary: '#F3F4F6',
+    colorSuccess: '#16A34A', colorWarning: '#D97706', colorError: '#DC2626',
+    borderRadius: 8, borderRadiusLG: 14, borderRadiusSM: 6,
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: 14, controlHeight: 34, controlHeightSM: 28,
+  },
+  components: {
+    Layout: { headerBg: '#FFFFFF', headerHeight: 60, headerPadding: '0 24px', siderBg: '#FFFFFF', bodyBg: '#F9FAFB' },
+    Menu: { itemBg: 'transparent', subMenuItemBg: 'transparent', itemHoverBg: 'rgba(0,0,0,.03)',
+      itemSelectedBg: '#F3EEFF', itemSelectedColor: '#7C3AED', itemBorderRadius: 0,
+      itemMarginInline: 0, itemMarginBlock: 0, itemHeight: 40, subMenuItemBorderRadius: 0 },
+    Card: { borderRadiusLG: 16, paddingLG: 28 },
+    Table: { headerBg: '#FFFFFF', headerColor: '#6B7280', rowHoverBg: '#FAF5FF', borderColor: '#E5E7EB',
+      headerSplitColor: 'transparent', cellFontSize: 13, cellFontSizeMD: 13, cellFontSizeSM: 13,
+      cellPaddingBlock: 11, cellPaddingInline: 12, cellPaddingBlockSM: 9, cellPaddingInlineSM: 12, headerBorderRadius: 0 },
+    Tag: { defaultBg: '#F3F4F6', defaultColor: '#6B7280' },
+    Tabs: { itemSelectedColor: '#7C3AED', itemHoverColor: '#374151', inkBarColor: '#7C3AED' },
+    Steps: { colorPrimary: '#7C3AED' },
+    Button: { controlHeight: 34, paddingInline: 14, fontSize: 13 },
+    Input: { controlHeight: 34, paddingInline: 12 }, Select: { controlHeight: 34 },
+    DatePicker: { controlHeight: 34 }, Modal: { borderRadiusLG: 16, paddingContentHorizontalLG: 28 },
+  },
+};
+
+const CARD_STYLE = { boxShadow: '0 10px 24px rgba(16,24,40,.06)', marginBottom: 20 };
+const TABLE_STYLES = { root: { borderRadius: 14, border: '1px solid #E5E7EB', overflow: 'hidden' } };
+const SIDER_STYLE = { boxShadow: '3px 0 12px rgba(0,0,0,0.06)', padding: '8px 0', overflowY: 'auto', height: '100%' };
+
+const TAG_COLORS = {
+  on: {bg:'#F0FDF4',color:'#16A34A'}, sale: {bg:'#EFF6FF',color:'#2563EB'},
+  pending: {bg:'#FFFBEB',color:'#D97706'}, off: {bg:'#F3F4F6',color:'#6B7280'},
+  req: {bg:'#FEF2F2',color:'#DC2626'}, desc: {bg:'#F0FDF4',color:'#16A34A'}, enum: {bg:'#FFFBEB',color:'#D97706'},
+  panel: {bg:'#F5F3FF',color:'#7C3AED'},
+};
+
+/* ───────────── 业务组件 ───────────── */
+function Kpi({ num, label }) {
+  return <div className="lp-kpi"><div className="label" style={{ marginBottom:6 }}>{label}</div><div className="num">{num}</div></div>;
+}
+function StatusTag({ variant, children }) {
+  const c = TAG_COLORS[variant] || TAG_COLORS.off;
+  return <Tag bordered={false} style={{ background:c.bg, color:c.color, borderRadius:999, padding:'2px 8px', fontSize:12, lineHeight:'18px', marginInlineEnd:4 }}>{children}</Tag>;
+}
+function Pill({ children }) {
+  return <Tag bordered={false} style={{ background:'#F3F0FF', color:'#7C3AED', borderRadius:999, padding:'2px 10px', fontSize:12 }}>{children}</Tag>;
+}
+function TipText({ label, tip }) {
+  return (
+    <Tooltip title={<div style={{ whiteSpace:'pre-line', lineHeight:1.6 }}>{tip}</div>} color="#fff"
+      styles={{ body: { color:'#374151', fontSize:12, padding:'10px 14px', maxWidth:300 } }}>
+      <span className="lp-tip-trigger">{label}</span>
+    </Tooltip>
+  );
+}
+function CompactPagination({ total, current=1, pageSize=10, totalPages }) {
+  const pages = useMemo(() => {
+    const tp = totalPages || Math.ceil(total / pageSize) || 1;
+    const out = [{ k:'prev', label:'<', disabled:current===1, arrow:true }];
+    if (tp <= 6) for (let i=1; i<=tp; i++) out.push({ k:i, label:i });
+    else { out.push({k:1,label:1}); out.push({k:2,label:2}); out.push({k:3,label:3}); out.push({k:'gap',label:'…',disabled:true}); out.push({k:tp,label:tp}); }
+    out.push({ k:'next', label:'>', disabled:current===tp, arrow:true });
+    return out;
+  }, [current, totalPages, total, pageSize]);
+  const tp = totalPages || Math.ceil(total / pageSize) || 1;
+  return (
+    <div className="lp-pagination">
+      <span>共 {total.toLocaleString()} 条,每页{' '}
+        <Select size="small" value={pageSize} style={{ width:72, marginInline:4 }}
+          options={[{value:10,label:10},{value:20,label:20},{value:50,label:50}]} />{' '}条</span>
+      <div className="divider" />
+      <Space size={2}>
+        {pages.map(p => (
+          <span key={p.k} style={{ minWidth:32, height:32, display:'inline-flex', alignItems:'center', justifyContent:'center',
+            borderRadius:8, fontSize:13, cursor:p.disabled?'default':'pointer',
+            background:p.k===current?'#7C3AED':(p.arrow?'#fff':'transparent'),
+            color:p.k===current?'#fff':'#374151', border:p.arrow?'1px solid #E5E7EB':'none',
+            fontWeight:p.k===current?600:400, opacity:p.disabled?0.35:1 }}>{p.label}</span>
+        ))}
+      </Space>
+      <div className="divider" />
+      <span>第 {current}/{tp} 页</span>
+    </div>
+  );
+}
+function EmptyZero({ entity, cta, onCta }) {
+  return <div className="lp-empty"><InboxOutlined className="icon" /><div className="title">暂无{entity}</div>
+    <div className="desc">点击下方按钮创建第一个{entity}</div>{cta && <Button type="primary" onClick={onCta}>{cta}</Button>}</div>;
+}
+function EmptyNoMatch({ onClear }) {
+  return <div className="lp-empty"><SearchOutlined className="icon" /><div className="title">未找到匹配结果</div>
+    <div className="desc">请尝试调整搜索关键词或筛选条件</div><Button onClick={onClear}>清除筛选条件</Button></div>;
+}
+function EmptyError({ onRetry }) {
+  return <div className="lp-empty"><ExclamationCircleOutlined className="icon err" /><div className="title">加载失败</div>
+    <div className="desc">网络异常,请检查网络连接后重试</div><Button type="primary" onClick={onRetry}>重试</Button></div>;
+}
+function EmptyStateSwitcher({ mode, setMode }) {
+  return (
+    <div style={{ marginTop:12, display:'flex', gap:8, justifyContent:'center' }}>
+      {[['data','正常数据'],['zero','零数据态'],['no-match','无匹配态'],['error','异常态']].map(([k, label]) =>
+        <Button key={k} type={mode===k?'primary':'default'} onClick={() => setMode(k)}>{label}</Button>)}
+    </div>
+  );
+}
+function FormRow({ label, required, optional, children, helper }) {
+  return (
+    <>
+      <div className="lp-form-row">
+        <div className="lp-form-label">{required && <span className="req">*</span>}{label}{optional && <span style={{ color:'#9CA3AF', fontSize:11, marginLeft:4 }}>选填</span>}</div>
+        <div className="lp-form-control">{children}</div>
+      </div>
+      {helper && <div style={{ fontSize:12, color:'#9CA3AF', margin:'-4px 0 12px 146px' }}>{helper}</div>}
+    </>
+  );
+}
+function RadioCardGroup({ value, onChange, options }) {
+  return (
+    <div style={{ display:'grid', gridTemplateColumns:`repeat(${options.length},1fr)`, gap:14, marginBottom:16 }}>
+      {options.map(o => (
+        <label key={o.value} onClick={() => onChange(o.value)}
+          style={{ padding:'14px 16px', border:'2px solid '+(value===o.value?'#7C3AED':'#D1D5DB'), borderRadius:12,
+            background:value===o.value?'#FAF5FF':'#fff', cursor:'pointer', display:'block' }}>
+          <div style={{ fontWeight:600, fontSize:14, marginBottom:4 }}>{value===o.value?'● ':'○ '}{o.title}</div>
+          <div style={{ fontSize:12, color:'#6B7280' }}>{o.desc}</div>
+        </label>
+      ))}
+    </div>
+  );
+}
+function ListPage({ title, desc, headActions, kpis, filters, columns, data, total, entity, createFn, scrollX, rowKey, note }) {
+  const [mode, setMode] = useState('data');
+  return (
+    <Card style={CARD_STYLE}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:16, marginBottom:18 }}>
+        <div>
+          <div style={{ fontSize:20, fontWeight:700, marginBottom:6 }}>{title}</div>
+          {desc && <div style={{ color:'#6B7280', fontSize:13 }}>{desc}</div>}
+        </div>
+        <div>{headActions}</div>
+      </div>
+      {note}
+      {kpis && (
+        <div style={{ display:'grid', gridTemplateColumns:`repeat(${kpis.length},1fr)`, gap:12, marginBottom:18 }}>
+          {kpis.map((k, i) => <Kpi key={i} num={k.num} label={k.label} />)}
+        </div>
+      )}
+      {filters && <Space size={12} wrap style={{ marginBottom:16 }}>{filters}</Space>}
+      {mode === 'data' && (
+        <>
+          <Table rowKey={rowKey || (r => r.id || r.code || r.key)} columns={columns} dataSource={data}
+            pagination={false} styles={TABLE_STYLES} scroll={scrollX ? { x: scrollX } : undefined} />
+          <CompactPagination total={total || data.length} pageSize={10} />
+        </>
+      )}
+      {mode==='zero'     && <EmptyZero entity={entity} cta={createFn?`新增${entity}`:null} onCta={createFn} />}
+      {mode==='no-match' && <EmptyNoMatch onClear={() => setMode('data')} />}
+      {mode==='error'    && <EmptyError onRetry={() => setMode('data')} />}
+      <EmptyStateSwitcher mode={mode} setMode={setMode} />
+    </Card>
+  );
+}
+function PageHead({ title, desc, onBack, extra }) {
+  return (
+    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:16, marginBottom:18 }}>
+      <div>
+        <div style={{ fontSize:20, fontWeight:700, marginBottom:6 }}>{title}</div>
+        {desc && <div style={{ color:'#6B7280', fontSize:13 }}>{desc}</div>}
+      </div>
+      <Space>{extra}{onBack && <Button onClick={onBack}>返回列表</Button>}</Space>
+    </div>
+  );
+}
+
+/* ═══════════ 页面组件(骨架占位,后续 Edit 填充) ═══════════ */
+const COLLECTIONS = [
+  { id:'c1', img:'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=80&h=80&fit=crop', name:'Handbags', slug:'/handbags', count:'2,156', src:'自动选品', status:'启用', market:'美国市场', channel:'美国官网商城', device:['pc','mobile'], at:'2024-12-01' },
+  { id:'c2', img:'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=80&h=80&fit=crop', name:'Shoulder Bags', slug:'/shoulder-bags', count:'856', src:'自动选品', status:'启用', market:'美国市场', channel:'美国官网商城', device:['pc','mobile'], at:'2024-12-01' },
+  { id:'c3', img:'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=80&h=80&fit=crop', name:'Tote Bags', slug:'/tote-bags', count:'423', src:'自动选品', status:'启用', market:'美国市场', channel:'德国旗舰店', device:['mobile'], at:'2024-12-05' },
+  { id:'c4', img:'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=80&h=80&fit=crop', name:'Crossbody', slug:'/crossbody', count:'312', src:'自动选品', status:'启用', market:'加拿大市场', channel:'美国官网商城', device:['pc','mobile'], at:'2024-12-05' },
+  { id:'c5', img:'https://images.unsplash.com/photo-1515562141589-67f0d4da6019?w=80&h=80&fit=crop', name:'Jewelry', slug:'/jewelry', count:'289', src:'自动选品', status:'启用', market:'美国市场', channel:'美国官网商城', device:['pc'], at:'2024-12-08' },
+  { id:'c6', img:'https://images.unsplash.com/photo-1611085583191-a3b181a88401?w=80&h=80&fit=crop', name:'Necklaces', slug:'/necklaces', count:'98', src:'自动选品', status:'启用', market:'美国市场', channel:'德国旗舰店', device:['pc','mobile'], at:'2024-12-10' },
+  { id:'c7', img:'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=80&h=80&fit=crop', name:'Watches', slug:'/watches', count:'67', src:'手动选品', status:'启用', market:'欧洲市场', channel:'美国官网商城', device:['mobile'], at:'2024-12-12' },
+  { id:'c8', img:'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=80&h=80&fit=crop', name:'New Arrivals', slug:'/new-arrivals', count:'45', src:'自动选品', status:'启用', market:'美国市场', channel:'美国官网商城', device:['pc','mobile'], at:'2025-01-03' },
+  { id:'c9', img:'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=80&h=80&fit=crop', name:"Editor's Picks", slug:'/editors-picks', count:'20', src:'手动选品', status:'启用', market:'美国市场', channel:'德国旗舰店', device:['pc'], at:'2025-01-10' },
+  { id:'c10', img:'https://images.unsplash.com/photo-1491637639811-60e2756cc1c7?w=80&h=80&fit=crop', name:'Accessories', slug:'/accessories', count:'0', src:'自动选品', status:'草稿', market:'美国市场', channel:'德国旗舰店', device:['pc','mobile'], at:'2024-12-15' },
+  { id:'c11', img:'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?w=80&h=80&fit=crop', name:'Rings', slug:'/rings', count:'0', src:'自动选品', status:'关闭', market:'美国市场', channel:'美国官网商城', device:['mobile'], at:'2024-12-15' },
+];
+// 终端枚举(多选,必填):PC / 移动端
+const DEVICE_OPTS = [{ value:'pc', label:'PC 端' }, { value:'mobile', label:'移动端' }];
+const DEVICE_LABEL = { pc:'PC 端', mobile:'移动端' };
+const deviceText = (arr) => (arr || []).map(d => DEVICE_LABEL[d]).join(' + ');
+// 保存校验:图文筛/快筛模块启用却无选项时,拦截保存(v0.17 起两模块均为移动端专属、不分端)
+function validateDeviceSave({ devices, filterStatus, onGoFilter }) {
+  // filterStatus 对各端上报相同的"模块完成度"(模块启用且有选项=true);任一为 false 即未配完
+  const incomplete = devices.some(d => filterStatus[d] === false);
+  if (!incomplete) return true;
+  Modal.warning({
+    title:'筛选配置未完成,无法保存',
+    width:460,
+    content:(
+      <div style={{ fontSize:13, lineHeight:1.8 }}>
+        已启用的移动端图文筛 / 移动端快筛模块尚无任何配置项。请在「筛选配置」步骤为已启用的模块至少添加一条选项;如某模块无需启用,可关闭该模块总开关。
+      </div>
+    ),
+    okText:'去配置',
+    onOk:onGoFilter,
+  });
+  return false;
+}
+function CollectionListPage({ go }) {
+  const [del, setDel] = useState(null);
+  const columns = [
+    { title:'Banner', dataIndex:'img', width:70, render:v => <Avatar shape="square" size={40} src={v} /> },
+    { title:'Collection 名称', dataIndex:'name', render:v => <b>{v}</b> },
+    { title:'URL Slug', dataIndex:'slug', render:v => <span style={{ color:'#9CA3AF' }}>{v}</span> },
+    { title:'商品数', dataIndex:'count', align:'right' },
+    { title:'来源模式', dataIndex:'src', render:v => <Pill>{v}</Pill> },
+    { title:'市场', dataIndex:'market', width:110, render:v => <span style={{ fontSize:13 }}>{v}</span> },
+    { title:'渠道', dataIndex:'channel', width:150, render:v => <span style={{ fontSize:13 }}>{v}</span> },
+    { title:'状态', dataIndex:'status', render:v => <StatusTag variant={v==='启用'?'on':(v==='草稿'?'pending':'off')}>{v}</StatusTag> },
+    { title:'创建时间', dataIndex:'at', render:v => <span style={{ color:'#9CA3AF' }}>{v}</span> },
+    { title:'操作', key:'op', width:130, fixed:'right', render:(_, r) => <Space size={6}>
+        <Button size="small" onClick={() => go('collection-detail')}>编辑</Button>
+        <Button size="small" danger onClick={() => setDel(r)}>删除</Button></Space> },
+  ];
+  return (
+    <>
+      <ListPage title="Collection 列表" desc="管理所有前端展示分组(Collection)。每个 Collection 是一组商品的展示容器,扁平结构无层级关系。"
+        headActions={<Button type="primary" icon={<PlusOutlined />} onClick={() => go('collection-new')}>新建 Collection</Button>}
+        kpis={[{num:12,label:'Collection 总数'},{num:9,label:'启用中'},{num:1,label:'草稿'},{num:'4,218',label:'关联商品总数'}]}
+        filters={[
+          <Input key="s" placeholder="搜索 Collection 名称..." prefix={<SearchOutlined style={{ color:'#9CA3AF' }} />} allowClear style={{ width:200 }} />,
+          <Select key="st" defaultValue="" style={{ width:110 }} options={[{value:'',label:'全部状态'},{value:'draft',label:'草稿'},{value:'on',label:'启用'},{value:'off',label:'关闭'}]} />,
+          <Select key="mk" defaultValue="" style={{ width:130 }} options={[{value:'',label:'全部市场'},{value:'us',label:'美国市场'},{value:'eu',label:'欧洲市场'},{value:'ca',label:'加拿大市场'}]} />,
+          <Select key="ch" defaultValue="" style={{ width:150 }} options={[{value:'',label:'全部渠道'},{value:'us_mall',label:'美国官网商城'},{value:'de_flagship',label:'德国旗舰店'},{value:'uk_mall',label:'英国官网商城'}]} />,
+        ]}
+        columns={columns} data={COLLECTIONS} total={12} entity="Collection" createFn={() => go('collection-new')} scrollX={1200} />
+      <Modal title="删除 Collection" open={!!del} centered closable={false} maskClosable={false} width={420}
+        onCancel={() => setDel(null)}
+        footer={[<Button key="c" onClick={() => setDel(null)}>取消</Button>, <Button key="d" danger type="primary" onClick={() => setDel(null)}>确认删除</Button>]}>
+        <div style={{ padding:'8px 0' }}>确定删除 Collection <b>{del && del.name}</b>?此操作不可恢复。</div>
+      </Modal>
+    </>
+  );
+}
+function UploadBox({ size=80, w, h, hint='建议尺寸 800×400' }) {
+  const bw = w || size, bh = h || size;
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+      <div style={{ width:bw, height:bh, background:'#F3F4F6', border:'2px dashed #D1D5DB', borderRadius:10,
+        display:'flex', alignItems:'center', justifyContent:'center', color:'#9CA3AF', cursor:'pointer' }}><PictureOutlined style={{ fontSize:20 }} /></div>
+      <div><Button size="small">上传图片</Button><div style={{ fontSize:12, color:'#9CA3AF', marginTop:4 }}>{hint}</div></div>
+    </div>
+  );
+}
+/* ── 分端配置:列标题(PC / 移动端)。仅多端时渲染列头 ── */
+function DeviceColHead({ device }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}>
+      {device==='pc' ? <DesktopOutlined style={{ color:'#7C3AED' }} /> : <MobileOutlined style={{ color:'#7C3AED' }} />}
+      <span style={{ fontSize:13, fontWeight:600, color:'#374151' }}>{DEVICE_LABEL[device]}</span>
+    </div>
+  );
+}
+/* ── 分端文本字段:单端渲染一套;多端 PC/移动端左右并排,各自校验 ── */
+function DeviceTextField({ devices, render }) {
+  if (devices.length <= 1) return render(devices[0] || 'pc');
+  return (
+    <div style={{ display:'flex', gap:20, flexWrap:'wrap' }}>
+      {devices.map(d => (
+        <div key={d} style={{ flex:'1 1 300px', minWidth:280 }}>
+          <DeviceColHead device={d} />
+          {render(d)}
+        </div>
+      ))}
+    </div>
+  );
+}
+/* ── 文字 + 色值字段:色值组件紧跟文字输入框右侧(独立控件),默认 #070707,点击取色或输入 ── */
+function TextColorField({ text, placeholder, maxLength, showCount, colorValue, style }) {
+  const [color, setColor] = useState(colorValue || '#070707');
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:8, ...style }}>
+      <Input
+        defaultValue={text}
+        placeholder={placeholder}
+        maxLength={maxLength}
+        showCount={showCount}
+        style={{ flex:1, minWidth:0 }} />
+      <ColorPicker
+        value={color}
+        onChange={(c) => setColor(c.toHexString())}
+        showText={(c) => <span style={{ fontSize:12, color:'#6B7280' }}>{c.toHexString().toUpperCase()}</span>}
+        format="hex"
+        presets={[{ label:'常用', colors:['#FFFFFF','#000000','#1F2937','#7C3AED','#F5F3FF','#D97706','#DC2626','#16A34A'] }]} />
+    </div>
+  );
+}
+function CollectionNewPage({ go, openPicker }) {
+  const [step, setStep] = useState(0);
+  const [src, setSrc] = useState('auto');
+  const [preview, setPreview] = useState(false);
+  // 每个 Collection 不区分终端,但基本信息(标题/副标题/Banner)恒按 PC + 移动端两端分别配置;图文筛/快筛均为移动端专属
+  const devices = ['pc','mobile'];
+  const [filterStatus, setFilterStatus] = useState({ pc:true, mobile:true });
+  const [channel, setChannel] = useState();   // 适用范围渠道(单选),选品规则的渠道条件联动此值
+  const [market, setMarket] = useState();      // 适用范围市场(单选),价格条件币种跟随此市场支持币种
+  const stepBasic = (
+    <>
+      <h4 className="lp-section">基本信息</h4>
+      <div className="lp-note-sm" style={{ marginBottom:16 }}>标题 / 副标题 / 文字色值 / Banner 需按 <b>PC + 移动端</b>分别配置(两端规格不同);色值适配各端 Banner 背景,必填。</div>
+      <FormRow label="状态"><Select defaultValue="草稿" style={{ width:160 }} options={[{value:'草稿',label:'草稿'},{value:'启用',label:'启用'},{value:'关闭',label:'关闭'}]} /></FormRow>
+      <FormRow label="Collection 标题" required helper="展示在前台页面;右侧色块为标题文字颜色,适配 Banner 背景">
+        <DeviceTextField devices={devices} render={d => <TextColorField placeholder={d==='mobile'?'移动端标题':'e.g. Shoulder Bags'} style={{ maxWidth:360 }} />} />
+      </FormRow>
+      <FormRow label="页面副标题" optional helper="展示在前台页面;右侧色块为副标题文字颜色">
+        <DeviceTextField devices={devices} render={d => <TextColorField showCount maxLength={d==='mobile' ? 30 : 60} placeholder={d==='mobile'?'移动端副标题(更简短)':'e.g. Timeless Pieces'} style={{ maxWidth:360 }} />} />
+      </FormRow>
+      <FormRow label="Banner 图" optional helper="PC 与移动端均为横图,比例不同需分别上传">
+        <DeviceTextField devices={devices} render={d => d==='mobile'
+          ? <UploadBox w={160} h={80} hint="移动端横图 2:1(建议 1080×540)" />
+          : <UploadBox w={160} h={90} hint="PC 横图 16:9(建议 1600×900)" />} />
+      </FormRow>
+      <h4 className="lp-section" style={{ marginTop:24 }}>适用范围</h4>
+      <div className="lp-note-sm" style={{ marginBottom:16, background:'#F9FAFB', border:'1px solid #E5E7EB', color:'#374151' }}>
+        市场、渠道共同决定本 Collection 的展示范围与商品池。
+      </div>
+      <FormRow label="市场" required helper="控制商品池范围;单选。选品规则中价格条件的币种将跟随此市场支持的币种"><Select placeholder="选择市场" value={market} onChange={setMarket} style={{ maxWidth:360, width:'100%' }} options={MARKET_OPTS} /></FormRow>
+      <FormRow label="渠道" required helper="读商品中心渠道管理;单选。选品规则中的「渠道」条件将锁定为此渠道"><Select placeholder="选择渠道" value={channel} onChange={setChannel} style={{ maxWidth:360, width:'100%' }} options={CHANNEL_OPTS} /></FormRow>
+      <h4 className="lp-section" style={{ marginTop:24 }}>URL 与 SEO</h4>
+      <FormRow label="URL Slug" required helper="自动根据名称生成,可手动修改"><Input placeholder="自动根据名称生成,可手动修改" style={{ maxWidth:360 }} /></FormRow>
+      <FormRow label="完整 URL"><span style={{ color:'#6B7280', fontSize:13 }}>https://looply.com/collections/<b style={{ color:'#7C3AED' }}>[slug]</b></span></FormRow>
+      <FormRow label="Meta Title" optional><Input placeholder="留空自动生成:Collection 名称 | Looply" style={{ maxWidth:420 }} /></FormRow>
+      <FormRow label="Meta Description" optional><Input.TextArea rows={3} placeholder="建议 120-160 字符。留空自动生成中性营销文案,如:Shop {Collection 名称} at Looply. Discover authenticated pre-owned luxury, expertly curated and quality-assured." style={{ maxWidth:520 }} /></FormRow>
+    </>
+  );
+  const stepSource = (
+    <>
+      <Alert type="info" showIcon style={{ marginBottom:16 }} message="选择一种商品来源模式(互斥)。「自动选品」通过条件匹配商品,适合绝大多数场景;「手动选品」适合精选专题和编辑推荐。" />
+      <RadioCardGroup value={src} onChange={setSrc} options={[
+        { value:'auto', title:'自动选品', desc:'通过后台类目、品牌、价格等条件组合自动匹配商品' },
+        { value:'manual', title:'手动选品', desc:'搜索并手动添加商品,支持拖拽排序' },
+      ]} />
+      {src==='auto' ? (
+        <>
+          <RuleBuilder initial={[]} channel={channel} market={market} />
+          <SortConfig />
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', margin:'24px 0 12px' }}>
+            <span style={{ fontSize:15, fontWeight:600 }}>商品列表</span>
+          </div>
+          <div className="lp-dashed">待保存 Collection 后根据选品条件自动选品</div>
+        </>
+      ) : (
+        <>
+          <SortConfig />
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', margin:'24px 0 12px' }}>
+            <span style={{ fontSize:15, fontWeight:600 }}>已选商品 <span style={{ color:'#9CA3AF', fontWeight:400, fontSize:13 }}>共 0 件商品</span></span>
+            <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openPicker}>添加商品</Button>
+          </div>
+          <div className="lp-note-sm" style={{ marginBottom:12 }}>手动选品模式下,只有明确添加的商品才会出现在前台。点击「添加商品」打开选品器。</div>
+          <div className="lp-dashed">暂无已选商品<div style={{ fontSize:12, marginTop:4 }}>点击上方按钮添加商品</div></div>
+        </>
+      )}
+    </>
+  );
+  const stepFilter = <FilterConfigTable isNew src={src} devices={devices} channel={channel} market={market} onStatus={setFilterStatus} />;
+  const panels = [stepBasic, stepSource, stepFilter];
+  const last = panels.length - 1;
+  const onSave = () => { if (validateDeviceSave({ devices, filterStatus, onGoFilter:() => setStep(last) })) go('collection-list'); };
+  return (
+    <Card style={CARD_STYLE}>
+      <PageHead title="新建 Collection" desc="创建一个新的前端展示分组" onBack={() => go('collection-list')}
+        extra={<Button icon={<EyeOutlined />} onClick={() => setPreview(true)}>预览</Button>} />
+      <Steps current={step} onChange={setStep} style={{ marginBottom:24 }} items={[
+        { title:'基本信息' }, { title:'商品来源' }, { title:'筛选配置' }]} />
+      <div style={{ minHeight:220, marginBottom:24 }}>{panels[step]}</div>
+      <div style={{ display:'flex', justifyContent:'space-between', paddingTop:16, borderTop:'1px solid #E5E7EB' }}>
+        <Button onClick={() => go('collection-list')}>取消</Button>
+        <Space>
+          {step > 0 && <Button onClick={() => setStep(step-1)}>上一步</Button>}
+          {step < last && <Button type="primary" onClick={() => setStep(step+1)}>下一步</Button>}
+          {step === last && <Button type="primary" onClick={onSave}>保存 Collection</Button>}
+        </Space>
+      </div>
+      <PreviewModal open={preview} onClose={() => setPreview(false)} />
+    </Card>
+  );
+}
+const RULE_FIELDS = [['backend_category','后台类目'],['brand','品牌'],['series','系列'],['price','价格'],['condition','成色'],['channel','渠道'],['listing_date','上架时间'],['stock_status','库存状态'],['tag','标签'],['title','商品标题'],['custom_attribute','属性']];
+const ATTR_OPTS = [['bag_size','bag_size(尺寸)'],['color','color(颜色)'],['material','material(材质)'],['hardware','hardware(五金)']];
+const OP_OPTS = [{value:'in',label:'等于其中之一'},{value:'nin',label:'不等于其中任一'}];
+const AUTO_RULES_DEMO = [
+  { id:1, field:'backend_category', op:'in', val:'手提类, 单肩类, 斜挎类' },
+  { id:2, field:'brand', op:'in', val:'Chanel, Hermès, Louis Vuitton' },
+  { id:3, field:'custom_attribute', attr:'color', op:'in', val:'Red, Black' },
+  { id:4, field:'custom_attribute', attr:'material', op:'in', val:'Leather, Canvas' },
+  { id:5, field:'price', op:'between', min:500, max:5000 },
+];
+// 市场/渠道枚举(渠道读商品中心渠道管理)
+// 每个市场在「市场模块」中定义了它支持的结算币种(数组首项为默认币种)
+const MARKET_OPTS = [
+  { value:'us', label:'美国市场', currencies:['USD'] },
+  { value:'eu', label:'欧洲市场', currencies:['EUR','GBP'] },
+  { value:'ca', label:'加拿大市场', currencies:['CAD','USD'] },
+];
+// 读取某市场支持的币种枚举(读市场模块配置)
+const marketCurrencies = (mk) => (MARKET_OPTS.find(m => m.value === mk) || MARKET_OPTS[0]).currencies;
+const CHANNEL_OPTS = [{value:'us_mall',label:'美国官网商城'},{value:'de_flagship',label:'德国旗舰店'},{value:'uk_mall',label:'英国官网商城'},{value:'partner',label:'合作渠道'}];
+let RID = 100;
+function RuleBuilder({ initial, caption, channel, market }) {
+  const channelLabel = (CHANNEL_OPTS.find(c => c.value === channel) || {}).label;
+  const currencies = marketCurrencies(market);   // 价格条件币种跟随市场支持币种;未选市场时回退默认市场币种
+  const [rules, setRules] = useState(initial);
+  const add = () => setRules([...rules, { id:++RID, field:'brand', op:'in', val:'' }]);
+  const remove = (id) => setRules(rules.filter(r => r.id !== id));
+  const patch = (id, p) => setRules(rules.map(r => r.id === id ? { ...r, ...p } : r));
+  return (
+    <div style={{ border:'1px solid #E5E7EB', borderRadius:10, padding:14 }}>
+      <Space size={6} style={{ marginBottom:12 }}>
+        <span style={{ fontSize:13 }}>满足以下</span>
+        <Select size="small" defaultValue="AND" style={{ width:130 }} options={[{value:'AND',label:'所有(AND)'},{value:'OR',label:'任一(OR)'}]} />
+        <span style={{ fontSize:13 }}>{caption || '条件的商品将被自动收录:'}</span>
+      </Space>
+      <Space direction="vertical" size={8} style={{ width:'100%' }}>
+        {rules.length === 0 && <div style={{ color:'#9CA3AF', fontSize:13, padding:'4px 0' }}>暂无条件,点击下方按钮添加</div>}
+        {rules.map(r => (
+          <div key={r.id} style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'nowrap', width:'100%' }}>
+            <Select size="small" value={r.field} style={{ width:120, flexShrink:0 }} onChange={v => patch(r.id, { field:v })}
+              options={RULE_FIELDS.map(([v, l]) => ({ value:v, label:l }))} />
+            {r.field==='custom_attribute' && <Select size="small" value={r.attr} placeholder="选择属性" style={{ width:150, flexShrink:0 }}
+              onChange={v => patch(r.id, { attr:v })} options={ATTR_OPTS.map(([v, l]) => ({ value:v, label:l }))} />}
+            {r.field==='price' ? (
+              <>
+                <Select size="small" value={currencies[0]} style={{ width:74, flexShrink:0 }} options={currencies.map(c => ({ value:c, label:c }))} disabled={currencies.length<=1} title={currencies.length<=1?'该市场为单币种,自动锁定':'从市场支持币种中选择'} />
+                <InputNumber size="small" defaultValue={r.min} placeholder="最小值" style={{ flex:1, minWidth:0 }} />
+                <span style={{ color:'#9CA3AF', flexShrink:0 }}>—</span>
+                <InputNumber size="small" defaultValue={r.max} placeholder="最大值" style={{ flex:1, minWidth:0 }} />
+              </>
+            ) : r.field==='backend_category' ? (
+              <>
+                <Select size="small" defaultValue="in" style={{ width:110, flexShrink:0 }} options={[{value:'in',label:'属于'},{value:'not_in',label:'不属于'}]} />
+                <TreeSelect size="small" multiple treeCheckable showCheckedStrategy={TreeSelect.SHOW_PARENT}
+                  treeDefaultExpandAll placeholder="选择后台类目(可多选)" style={{ flex:1, minWidth:0 }} maxTagCount="responsive"
+                  value={r.cats} onChange={v => patch(r.id, { cats:v })}
+                  treeData={catTreeData(CAT_TREE)} />
+              </>
+            ) : r.field==='channel' ? (
+              <>
+                <Select size="small" defaultValue="in" style={{ width:140, flexShrink:0 }} options={OP_OPTS} />
+                {channel
+                  ? <Select size="small" value={channel} disabled style={{ flex:1, minWidth:0 }} options={CHANNEL_OPTS}
+                      suffixIcon={<Tooltip title="渠道已锁定为「基本信息」步「适用范围」配置的渠道,如需更改请回到「基本信息」步"><LockOutlined style={{ color:'#9CA3AF' }} /></Tooltip>} />
+                  : <Select size="small" disabled placeholder="请先在「基本信息」步「适用范围」选择渠道" style={{ flex:1, minWidth:0 }} />}
+              </>
+            ) : (
+              <>
+                <Select size="small" defaultValue="in" style={{ width:140, flexShrink:0 }} options={OP_OPTS} />
+                <Input size="small" defaultValue={r.val} style={{ flex:1, minWidth:0 }} />
+              </>
+            )}
+            <Button size="small" danger icon={<CloseOutlined />} onClick={() => remove(r.id)} style={{ flexShrink:0 }} />
+          </div>
+        ))}
+      </Space>
+      <div style={{ marginTop:10 }}><Button size="small" icon={<PlusOutlined />} onClick={add}>添加条件</Button></div>
+      <div style={{ marginTop:8, fontSize:12, color:'#6B7280' }}>同一条件内多个值为 OR · 条件之间按逻辑选择器组合 · 不支持嵌套分组</div>
+    </div>
+  );
+}
+const PRODUCTS = [
+  { id:1, img:'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=72&h=72&fit=crop', name:'Classic Flap Medium Black Caviar', brand:'Chanel', price:'$4,850', cond:'Like New', sale:'在售', salev:'on', avail:3, vis:'可见', pin:1 },
+  { id:2, img:'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=72&h=72&fit=crop', name:'Birkin 30 Gold Togo GHW', brand:'Hermès', price:'$12,500', cond:'Excellent', sale:'在售', salev:'on', avail:1, vis:'可见', pin:2 },
+  { id:3, img:'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=72&h=72&fit=crop', name:'Neverfull MM Monogram', brand:'Louis Vuitton', price:'$1,280', cond:'Good', sale:'在售', salev:'on', avail:12, vis:'可见' },
+  { id:4, img:'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=72&h=72&fit=crop', name:'Lady Dior Medium Cannage', brand:'Dior', price:'$3,200', cond:'Like New', sale:'在售', salev:'on', avail:5, vis:'可见' },
+  { id:5, img:'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=72&h=72&fit=crop', name:'Puzzle Bag Small Tan', brand:'Loewe', price:'$1,950', cond:'Excellent', sale:'在售', salev:'on', avail:2, vis:'可见', pin:5 },
+  { id:6, img:'https://images.unsplash.com/photo-1515562141589-67f0d4da6019?w=72&h=72&fit=crop', name:'Dionysus GG Supreme Mini', brand:'Gucci', price:'$1,680', cond:'Good', sale:'已下架', salev:'off', avail:0, vis:'可见' },
+  { id:7, img:'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?w=72&h=72&fit=crop', name:'Peekaboo ISeeU Medium', brand:'Fendi', price:'$2,890', cond:'Excellent', sale:'已售出', salev:'off', avail:0, vis:'已隐藏', hidden:true },
+];
+/* ── Sort 排序配置(留在选品页,与固定位置配置共存) ── */
+const SORT_ITEMS = [
+  { id:'recommended', name:'推荐排序', key:'recommended', enabled:true, def:true },
+  { id:'newest', name:'最新上架', key:'newest', enabled:true, def:false },
+  { id:'price_low', name:'价格从低到高', key:'price_low_to_high', enabled:true, def:false },
+  { id:'price_high', name:'价格从高到低', key:'price_high_to_low', enabled:true, def:false },
+];
+function SortConfig() {
+  const columns = [
+    { title:'', key:'drag', width:32, render:() => <HolderOutlined style={{ color:'#D1D5DB', cursor:'grab' }} /> },
+    { title:'排序项', dataIndex:'name', render:v => <b>{v}</b> },
+    { title:'sort_key', dataIndex:'key', render:v => <span className="lp-code">{v}</span> },
+    { title:'启用', dataIndex:'enabled', width:80, render:v => <Switch size="small" defaultChecked={v} /> },
+    { title:<TipText label="默认排序" tip="前台默认选中的排序项,只能有一个。" />, dataIndex:'def', width:90, align:'center',
+      render:(v, r) => <input type="radio" name="defsort" defaultChecked={v} disabled={!r.enabled} style={{ accentColor:'#7C3AED' }} /> },
+  ];
+  return (
+    <div style={{ marginTop:24 }}>
+      <div style={{ fontSize:15, fontWeight:600, marginBottom:12 }}>排序配置 <span style={{ fontSize:11, color:'#9CA3AF', fontWeight:400 }}>勾选启用的排序类型,并指定一个默认排序</span></div>
+      <div className="lp-note-sm" style={{ marginBottom:12, background:'#F9FAFB', border:'1px solid #E5E7EB', color:'#374151' }}>此处决定本 Collection 前端展示哪些排序项、顺序及默认项。新建时默认开启全部排序项、默认排序为「推荐排序」。无论自动 / 手动选品,前台均按用户选定的排序规则展示;<b>固定的商品位置不变</b>,其余商品按当前排序规则填充剩余位置。</div>
+      <Table rowKey="id" size="small" columns={columns} dataSource={SORT_ITEMS} pagination={false} styles={TABLE_STYLES} />
+    </div>
+  );
+}
+function PosTable({ manual }) {
+  const condVar = c => c==='Good' ? 'enum' : 'on';
+  const [selected, setSelected] = useState([]);
+  // 商品列表状态:固定位置 / 隐藏 / 移除,均「单项操作即时生效」(原型本地模拟,真实环境每次操作调后端)
+  const [rows, setRows] = useState(() => PRODUCTS.map(p => ({ ...p })));
+  const [pinEdit, setPinEdit] = useState({ id:null, val:'' });   // 当前正在气泡里编辑的行
+  const [batch, setBatch] = useState({ open:false, start:'', conflicts:[] });
+  const live = rows.filter(r => !r.removed);
+  const pinnedCount = live.filter(r => r.pin != null).length;
+  // 设置单个商品固定位置:同位顶替原项(原项恢复自动排序)+ 即时生效 + Toast
+  const applyPin = (id, pos) => {
+    setRows(prev => {
+      const n = prev.map(r => ({ ...r }));
+      const target = n.find(r => r.id === id);
+      if (pos == null) { if (target) target.pin = null; return n; }
+      const occupant = n.find(r => r.pin === pos && r.id !== id);
+      if (occupant) { occupant.pin = null; message.warning(`位置 ${pos} 原为「${occupant.name}」,已被「${target.name}」顶替,「${occupant.name}」恢复自动排序`); }
+      else { message.success(`「${target.name}」已固定到第 ${pos} 位`); }
+      if (target) target.pin = pos;
+      return n;
+    });
+  };
+  const clearPin = (id) => { applyPin(id, null); message.success('已取消固定,恢复自动排序'); };
+  const toggleHide = (id) => setRows(prev => prev.map(r => r.id===id ? { ...r, hidden: !r.hidden } : r));
+  const removeRow = (id) => { setRows(prev => prev.map(r => r.id===id ? { ...r, removed:true } : r)); setSelected(s => s.filter(x => x!==id)); message.success('已从本 Collection 移除该商品'); };
+  // 固定位置:行内输入框直接填序号,值变化即实时检测冲突并弹出确认气泡(无冲突也需点「确定」即时生效,不依赖全局保存)
+  const PinCell = ({ r }) => {
+    const editing = pinEdit.id === r.id;
+    const posNum = editing && pinEdit.val !== '' ? parseInt(pinEdit.val, 10) : null;
+    // 待确认 = 正在编辑该行且输入了一个与当前固定位置不同的合法值
+    const pending = editing && posNum != null && posNum !== r.pin;
+    const occupant = pending ? live.find(x => x.pin === posNum && x.id !== r.id) : null;
+    const reset = () => setPinEdit({ id:null, val:'' });
+    const confirm = () => { applyPin(r.id, posNum); reset(); };
+    return (
+      <Popover trigger={[]} open={pending} placement="right"
+        content={
+          <div style={{ width:236 }}>
+            {occupant
+              ? <div style={{ fontSize:12, color:'#D97706', marginBottom:8, lineHeight:1.5 }}>⚠️ 第 {posNum} 位当前为「{occupant.name}」,确定后它将被顶替、恢复自动排序。</div>
+              : <div style={{ fontSize:13, color:'#374151', marginBottom:8 }}>固定「{r.name}」到第 {posNum} 位?</div>}
+            <div style={{ display:'flex', justifyContent:'flex-end', gap:8 }}>
+              <Button size="small" onClick={reset}>取消</Button>
+              <Button size="small" type="primary" onClick={confirm}>确定</Button>
+            </div>
+          </div>
+        }>
+        <InputNumber size="small" min={1} max={live.length} controls={false}
+          value={editing ? (pinEdit.val===''?null:posNum) : r.pin}
+          placeholder="—" style={{ width:64 }}
+          onChange={(v) => setPinEdit({ id:r.id, val: v==null?'':String(v) })}
+          onPressEnter={() => { if (pending) confirm(); }}
+          onBlur={() => { if (editing && pinEdit.val==='' && r.pin!=null) { clearPin(r.id); } if (!pending) reset(); }} />
+      </Popover>
+    );
+  };
+  const columns = [
+    { title:'#', key:'idx', width:40, align:'center', render:(_, r, i) => <span style={{ color:'#9CA3AF', fontSize:12 }}>{r.hidden ? '—' : i+1}</span> },
+    { title:<TipText label="固定位置" tip="点击输入数字把商品固定到指定位置,清空取消固定。固定商品不受排序规则影响;同位会顶替原固定项。" />, dataIndex:'pin', width:90, align:'center',
+      render:(_, r) => <PinCell r={r} /> },
+    { title:'图片', dataIndex:'img', width:54, render:v => <Avatar shape="square" size={36} src={v} /> },
+    { title:'商品名称', dataIndex:'name' },
+    { title:'品牌', dataIndex:'brand', width:110 },
+    { title:'价格', dataIndex:'price', width:90, align:'right' },
+    { title:'成色', dataIndex:'cond', width:90, render:v => <StatusTag variant={condVar(v)}>{v}</StatusTag> },
+    { title:'销售状态', dataIndex:'sale', width:90, render:(v, r) => <StatusTag variant={r.salev}>{v}</StatusTag> },
+    { title:<TipText label="可售库存" tip="可售库存 = max(0, 在库 - 预占 - 锁定),数据来自库存管理。点「详情」查看库存明细。" />, dataIndex:'avail', width:90, align:'right',
+      render:v => <span style={{ fontSize:13, color:v===0?'#DC2626':'#374151', fontWeight:v===0?600:400 }}>{v}</span> },
+    { title:'可见状态', dataIndex:'vis', width:90, render:(v, r) => <StatusTag variant={(r.hidden||v==='已隐藏')?'off':'on'}>{r.hidden?'已隐藏':v}</StatusTag> },
+    { title:'操作', key:'op', width:manual?170:120, render:(_, r) => <Space size={4}>
+        <Button size="small" onClick={() => toggleHide(r.id)}>{r.hidden ? '显示' : '隐藏'}</Button>
+        {manual && <Popconfirm title="确定从本 Collection 移除该商品?" description="将断开选品关系,需重新添加" okText="移除" cancelText="取消" okButtonProps={{ danger:true }} onConfirm={() => removeRow(r.id)}><Button size="small" danger>移除</Button></Popconfirm>}
+        <Button size="small" type="link" style={{ padding:0 }}>详情</Button></Space> },
+  ];
+  // 批量连续固定:从起始位置起逐个占位,收集会被顶替的原固定项,先弹窗确认
+  const openBatch = () => {
+    const start = parseInt(batch.start, 10);
+    if (!start) { message.warning('请输入起始位置'); return; }
+    const targetIds = selected;
+    const positions = targetIds.map((_, i) => start + i);
+    const conflicts = live.filter(r => r.pin != null && positions.includes(r.pin) && !targetIds.includes(r.id))
+      .map(r => ({ pos:r.pin, name:r.name }));
+    setBatch(b => ({ ...b, open:true, conflicts, positions, targetIds }));
+  };
+  const confirmBatch = () => {
+    setRows(prev => {
+      const n = prev.map(r => ({ ...r }));
+      const start = parseInt(batch.start, 10);
+      // 先清掉被顶替的原固定项
+      batch.conflicts.forEach(c => { const occ = n.find(r => r.pin === c.pos && !selected.includes(r.id)); if (occ) occ.pin = null; });
+      // 按勾选顺序连续填充
+      selected.forEach((id, i) => { const t = n.find(r => r.id === id); if (t) t.pin = start + i; });
+      return n;
+    });
+    message.success(`已批量固定 ${selected.length} 件商品${batch.conflicts.length?`,顶替 ${batch.conflicts.length} 个原固定项` : ''}`);
+    setBatch({ open:false, start:'', conflicts:[] });
+    setSelected([]);
+  };
+  const batchHide = () => { setRows(prev => prev.map(r => selected.includes(r.id) ? { ...r, hidden:true } : r)); message.success(`已隐藏 ${selected.length} 件商品`); setSelected([]); };
+  const batchRemove = () => { setRows(prev => prev.map(r => selected.includes(r.id) ? { ...r, removed:true } : r)); message.success(`已移除 ${selected.length} 件商品`); setSelected([]); };
+  return (
+    <>
+      {manual && (
+        <div style={{ display:'flex', gap:8, marginBottom:10, flexWrap:'wrap' }}>
+          <Input size="small" placeholder="搜索商品名称/ID..." prefix={<SearchOutlined style={{ color:'#9CA3AF' }} />} allowClear style={{ width:180 }} />
+          <Select size="small" defaultValue="" style={{ width:130 }} options={[{value:'',label:'全部品牌'},{value:'Chanel',label:'Chanel'},{value:'Hermès',label:'Hermès'},{value:'Louis Vuitton',label:'Louis Vuitton'},{value:'Dior',label:'Dior'}]} />
+          <Select size="small" defaultValue="" style={{ width:130 }} options={[{value:'',label:'全部销售状态'},{value:'on',label:'在售'},{value:'off',label:'已下架'},{value:'sold',label:'已售出'}]} />
+          <Select size="small" defaultValue="" style={{ width:130 }} options={[{value:'',label:'全部可见状态'},{value:'on',label:'可见'},{value:'off',label:'已隐藏'}]} />
+        </div>
+      )}
+      {selected.length > 0 && (
+        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:10, padding:'8px 14px', background:'#EDE9FE', borderRadius:8 }}>
+          <span style={{ fontSize:13, color:'#7C3AED', fontWeight:500 }}>已选 <b>{selected.length}</b> 件</span>
+          <span style={{ color:'#D1D5DB' }}>|</span>
+          <span style={{ fontSize:12, color:'#374151' }}>从位置</span>
+          <InputNumber size="small" min={1} placeholder="1" value={batch.start===''?null:parseInt(batch.start,10)} onChange={(v) => setBatch(b => ({ ...b, start: v==null?'':String(v) }))} style={{ width:64 }} />
+          <span style={{ fontSize:12, color:'#374151' }}>开始连续固定</span>
+          <Button size="small" type="primary" onClick={openBatch}>确认</Button>
+          <span style={{ color:'#D1D5DB' }}>|</span>
+          <Button size="small" onClick={batchHide}>隐藏</Button>
+          {manual && <Popconfirm title={`确定移除选中的 ${selected.length} 件商品?`} description="将断开选品关系,需重新添加" okText="移除" cancelText="取消" okButtonProps={{ danger:true }} onConfirm={batchRemove}><Button size="small" danger>移除</Button></Popconfirm>}
+          <Button size="small" onClick={() => { setSelected([]); setBatch({ open:false, start:'', conflicts:[] }); }} style={{ marginLeft:'auto' }}>取消选择</Button>
+        </div>
+      )}
+      <Table rowKey="id" size="small" rowSelection={{ type:'checkbox', selectedRowKeys:selected, onChange:setSelected }} columns={columns} dataSource={live}
+        pagination={false} styles={TABLE_STYLES} scroll={{ x:1100 }} rowClassName={r => r.hidden ? 'lp-dim-row' : ''} />
+      <Modal open={batch.open} title="确认批量固定" footer={null} onCancel={() => setBatch({ open:false, start:'', conflicts:[] })} closable maskClosable>
+        <div style={{ fontSize:13, color:'#374151', lineHeight:1.7 }}>
+          将把已选的 <b>{selected.length}</b> 件商品从第 <b>{batch.start}</b> 位起连续固定（占用位置 {batch.positions ? batch.positions.join('、') : ''}）。
+          {batch.conflicts && batch.conflicts.length > 0 ? (
+            <div style={{ marginTop:10, padding:'8px 12px', background:'#FFFBEB', border:'1px solid #FDE68A', borderRadius:8 }}>
+              <div style={{ color:'#D97706', fontWeight:600, marginBottom:6 }}>⚠️ 以下 {batch.conflicts.length} 个原固定项将被顶替、恢复自动排序：</div>
+              {batch.conflicts.map((c, i) => <div key={i} style={{ color:'#92400E', fontSize:12 }}>· 第 {c.pos} 位「{c.name}」</div>)}
+            </div>
+          ) : <div style={{ marginTop:8, color:'#16A34A', fontSize:12 }}>无位置冲突。</div>}
+        </div>
+        <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:16 }}>
+          <Button onClick={() => setBatch({ open:false, start:'', conflicts:[] })}>取消</Button>
+          <Button type="primary" onClick={confirmBatch}>确定固定</Button>
+        </div>
+      </Modal>
+      <div style={{ marginTop:10, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+        <span style={{ color:'#9CA3AF', fontSize:13 }}>显示 1-{live.length} / 共 2,156 件(已固定 {pinnedCount} 件)</span>
+        <CompactPagination total={2156} pageSize={8} totalPages={270} />
+      </div>
+      <div style={{ marginTop:8, fontSize:12, color:'#6B7280' }}>隐藏 = 不在本 Collection 前台展示,保留选品关系和位置,可一键恢复{manual && ' · 移除 = 从本 Collection 彻底删除选品关系,需重新添加'}</div>
+    </>
+  );
+}
+/* ── Step3 数据源:全局筛选器池(取启用维度) ── */
+const FILTER_POOL = [
+  { key:'Brand', name:'Brand', disp:'双列卡片', dv:'desc', values:['Chanel','Hermès','Louis Vuitton','Gucci','Dior'] },
+  { key:'Category', name:'Category', disp:'单列文本', dv:'panel', values:['Shoulder','Tote','Crossbody'] },
+  { key:'Price', name:'Price', disp:'滑块', dv:'enum', values:['Under $500','$500-$1,000','$1,000-$3,000','$3,000+'] },
+  { key:'Condition', name:'Condition', disp:'双列卡片', dv:'desc', values:['Like New','Excellent','Good'] },
+  { key:'Color', name:'Color', disp:'颜色卡片', dv:'sale', values:['Black','Brown','Beige','Red','White'] },
+  { key:'Series', name:'Series', disp:'双列卡片', dv:'desc', values:['Classic Flap','Boy','2.55','Birkin','Kelly'] },
+  { key:'Size', name:'Cloth Sizes (US)', disp:'双列卡片', dv:'desc', values:['XS','S','M','L','XL'] },
+];
+// 快筛:挑选的热门筛选器
+const QUICK_FILTERS = [
+  { id:'Brand', name:'Brand', disp:'双列卡片', dv:'desc' },
+  { id:'Category', name:'Category', disp:'单列文本', dv:'panel' },
+  { id:'Color', name:'Color', disp:'颜色卡片', dv:'sale' },
+  { id:'Price', name:'Price', disp:'滑块', dv:'enum' },
+];
+// 图文筛:每张卡 = 一个末级 value
+const VISUAL_FILTERS = [
+  { id:1, label:'Chanel', val:'品牌 = Chanel', img:true, status:'展示', rules:[{ id:201, field:'brand', op:'in', val:'Chanel' }] },
+  { id:2, label:'Hermès', val:'品牌 = Hermès', img:true, status:'展示', rules:[{ id:202, field:'brand', op:'in', val:'Hermès' }] },
+  { id:3, label:'轻奢入门', val:'价格 ≤ $1,000 且 成色 = Like New/Excellent', img:false, status:'展示', rules:[{ id:203, field:'price', op:'between', max:1000 },{ id:204, field:'condition', op:'in', val:'Like New, Excellent' }] },
+  { id:4, label:'经典黑色包', val:'品牌 = Chanel/Hermès 且 颜色 = Black', img:false, status:'展示', rules:[{ id:205, field:'brand', op:'in', val:'Chanel, Hermès' },{ id:206, field:'custom_attribute', attr:'color', op:'in', val:'Black' }] },
+];
+
+/* ── 添加筛选项弹窗(移动端快筛用;PC 无快筛,故不再选终端) ── */
+function AddFilterModal({ open, title, onClose, onAdded }) {
+  const [sel, setSel] = useState([]);
+  const reset = () => { setSel([]); };
+  const confirm = () => { if (onAdded && sel.length) onAdded(sel); reset(); onClose(); };
+  return (
+    <Modal title={title} open={open} centered closable={false} maskClosable={false} width={460}
+      onCancel={() => { reset(); onClose(); }}
+      footer={[<Button key="c" onClick={() => { reset(); onClose(); }}>取消</Button>,
+        <Button key="s" type="primary" disabled={!sel.length} onClick={confirm}>添加 ({sel.length})</Button>]}>
+      <div style={{ fontSize:12, color:'#9CA3AF', marginBottom:12 }}>从全局筛选器中勾选要补充的筛选项(已添加的不再展示)。快筛仅在移动端展示。</div>
+      <Checkbox.Group value={sel} onChange={setSel} style={{ display:'flex', flexDirection:'column', gap:10 }}>
+        {FILTER_POOL.map(f => (
+          <div key={f.key} style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 12px', border:'1px solid #E5E7EB', borderRadius:8 }}>
+            <Checkbox value={f.key}><b style={{ fontSize:13 }}>{f.name}</b></Checkbox>
+            <span style={{ marginLeft:'auto' }}><StatusTag variant={f.dv}>{f.disp}</StatusTag></span>
+          </div>
+        ))}
+      </Checkbox.Group>
+    </Modal>
+  );
+}
+
+/* ── 移动端图文筛编辑弹窗(v0.17: 仅移动端,不再分端;图片单图) ── */
+function VisualEditModal({ open, item, src, channel, market, onClose, onSave }) {
+  // 默认规则:编辑已有项用其自身规则;新增时——自动选品带入 step2 配置的选品规则,手动选品则留空由运营自配
+  const defaultRules = item && item.rules ? item.rules : (src==='auto' ? AUTO_RULES_DEMO : []);
+  const helper = src==='auto'
+    ? '默认带入 step2 配置的自动选品规则,可在此基础上增删条件 / 调整枚举值(常用于收窄,如只保留某品牌)。前台展示结果 = 当前 Collection 商品池 ∩ 本卡片规则,故规则中超出 Collection 范围的值不会生效(前台无对应商品)。'
+    : '手动选品无选品规则可继承,请自行配置筛选条件。前台展示结果 = 当前 Collection 已选商品 ∩ 本卡片规则。';
+  const [imageEnabled, setImageEnabled] = useState(item ? item.img !== false : true);
+  const handleSave = () => { (onSave ? onSave({ img:imageEnabled }) : onClose()); };
+  return (
+    <Modal title={item ? `编辑图文筛选项 — ${item.label || ''}` : '添加图文筛选项'} open={open} centered width={820}
+      closable={false} maskClosable={false}
+      onCancel={onClose} footer={[<Button key="c" onClick={onClose}>取消</Button>, <Button key="s" type="primary" onClick={handleSave}>保存</Button>]}>
+      <FormRow label="展示文案" required><Input defaultValue={item ? item.label : ''} placeholder="如 Chanel Classic" style={{ maxWidth:300 }} /></FormRow>
+      <FormRow label="筛选条件" required helper={helper}>
+        <RuleBuilder key={(item ? item.id : 'new') + '-' + src} initial={defaultRules} channel={channel} market={market} caption="条件的商品在前台点击时被筛出:" />
+      </FormRow>
+      <FormRow label="展示图片" helper="控制该选项是否展示图片">
+        <Space size={8} align="center">
+          <Switch size="small" checked={imageEnabled} onChange={setImageEnabled} />
+          <span style={{ fontSize:12, color:'#9CA3AF' }}>{imageEnabled ? '图文模式(需配图)' : '纯文本模式(无图)'}</span>
+        </Space>
+      </FormRow>
+      {imageEnabled && <FormRow label="图片" required><UploadBox hint="移动端图片(建议 160×160)" /></FormRow>}
+    </Modal>
+  );
+}
+
+/* ── 移动端图文筛配置(v0.17: PC 端已无图文筛功能,本模块固定仅作用于移动端,不再分端) ── */
+function VisualFilterBlock({ isNew, src, devices=['pc'], channel, market, onStatus }) {
+  const [enabled, setEnabled] = useState(!isNew);
+  const [edit, setEdit] = useState({ open:false, item:null });
+  // v0.17: 仅移动端,选项不再带适用终端 / 分开配图字段;统一一套选项列表
+  const [data, setData] = useState(isNew ? [] : VISUAL_FILTERS.map(v => ({ ...v })));
+  // 上报完成度:模块未启用=完成;启用则需 ≥1 项「展示」(active)
+  React.useEffect(() => {
+    if (onStatus) {
+      const done = !enabled || data.some(r => r.status === '展示');
+      const st = {}; devices.forEach(d => { st[d] = done; }); onStatus(st);
+    }
+  }, [enabled, data, devices]);
+  const toggleStatus = (id) => setData(prev => prev.map(r => r.id===id ? { ...r, status: r.status==='展示' ? '隐藏' : '展示' } : r));
+  const columns = [
+    { title:'', key:'drag', width:32, render:() => <HolderOutlined style={{ color:'#D1D5DB', cursor:'grab' }} /> },
+    { title:<TipText label="展示" tip="关闭则该图文筛选项临时不在前台展示,但保留配置;模块需 ≥1 条展示中的选项。" />, dataIndex:'status', width:64, align:'center',
+      render:(v, r) => <Switch size="small" checked={v==='展示'} onChange={() => toggleStatus(r.id)} /> },
+    { title:'展示文案', dataIndex:'label', render:(v, r) => <b style={{ color:r.status==='展示'?undefined:'#9CA3AF' }}>{v}</b> },
+    { title:'图片', dataIndex:'img', width:70, render:(v) => v !== false
+        ? <span style={{ fontSize:12, color:'#16A34A' }}>有图</span>
+        : <span style={{ fontSize:12, color:'#9CA3AF' }}>无图</span> },
+    { title:<TipText label="筛选条件" tip={"图文卡片对应一组 AND/OR 规则,支持多条件、每条件多枚举值。\n用户点击即按此规则筛选,基于当前 Collection 商品池生效。"} />, dataIndex:'val', render:v => <span className="lp-code">{v}</span> },
+    { title:'操作', key:'op', width:140, render:(_, r) => <Space size={4}><Button size="small" onClick={() => setEdit({ open:true, item:r })}>编辑</Button><Button size="small" danger>删除</Button></Space> },
+  ];
+  return (
+    <div style={{ marginBottom:28 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
+        <FileImageOutlined style={{ color:'#7C3AED', fontSize:16 }} />
+        <span style={{ fontSize:16, fontWeight:600 }}>移动端图文筛</span>
+        <Switch size="small" checked={enabled} onChange={setEnabled} />
+        <span style={{ fontSize:12, color:'#9CA3AF' }}>{enabled?'已启用':'未启用(前台不展示)'}</span>
+      </div>
+      {enabled && <>
+        <div className="lp-note-sm" style={{ marginBottom:12, background:'#F9FAFB', border:'1px solid #E5E7EB', color:'#374151' }}>
+          图文筛为移动端专属——PC 端无图文筛栏形态,本模块配置仅在移动端展示。每条选项可配展示文案、筛选条件与图片。支持拖动排序。
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12, padding:'8px 12px', background:'#FAFAFA', border:'1px solid #E5E7EB', borderRadius:8 }}>
+          <span style={{ fontSize:12, color:'#9CA3AF' }}>共 {data.length} 条选项,其中 {data.filter(r => r.status==='展示').length} 条展示中</span>
+          <Button size="small" type="primary" ghost icon={<PlusOutlined />} style={{ marginLeft:'auto' }} onClick={() => setEdit({ open:true, item:null })}>添加图文筛选项</Button>
+        </div>
+        <Table rowKey="id" size="small" columns={columns} dataSource={data} pagination={false} styles={TABLE_STYLES}
+          locale={{ emptyText:'暂无图文筛选项,点击上方「添加图文筛选项」' }} />
+      </>}
+      <VisualEditModal open={edit.open} item={edit.item} src={src} channel={channel} market={market}
+        onClose={() => setEdit({ open:false, item:null })}
+        onSave={(patch) => {
+          setData(prev => {
+            if (edit.item) return prev.map(r => r.id===edit.item.id ? { ...r, ...patch } : r);
+            return [...prev, { id:Date.now(), label:'新筛选项', val:'品牌 = Chanel', status:'展示', rules:[{ id:Date.now()+1, field:'brand', op:'in', val:'Chanel' }], img:true, ...patch }];
+          });
+          setEdit({ open:false, item:null });
+        }} />
+    </div>
+  );
+}
+
+/* ── 移动端快筛配置(v0.16: PC 端已无快筛功能,本模块固定仅作用于移动端,不再分端) ── */
+function QuickFilterBlock({ isNew, devices=['pc'], onStatus }) {
+  const [enabled, setEnabled] = useState(!isNew);
+  const [add, setAdd] = useState(false);
+  // v0.16: 快筛仅移动端,选项不再带适用终端字段
+  const [data, setData] = useState(isNew ? [] : QUICK_FILTERS.map(q => ({ ...q })));
+  // 上报完成度:模块未启用=完成;启用则需 ≥1 项
+  React.useEffect(() => {
+    if (onStatus) {
+      const done = !enabled || data.length > 0;
+      const st = {}; devices.forEach(d => { st[d] = done; }); onStatus(st);
+    }
+  }, [enabled, data, devices]);
+  const removeRow = (id) => setData(prev => prev.filter(r => r.id !== id));
+  const toggleEnabled = (id) => setData(prev => prev.map(r => r.id===id ? { ...r, enabled: r.enabled===false ? true : false } : r));
+  const columns = [
+    { title:'', key:'drag', width:32, render:() => <HolderOutlined style={{ color:'#D1D5DB', cursor:'grab' }} /> },
+    { title:<TipText label="展示" tip="关闭则该快筛项临时不在前台展示,但保留配置。" />, dataIndex:'enabled', width:64, align:'center',
+      render:(v, r) => <Switch size="small" checked={v !== false} onChange={() => toggleEnabled(r.id)} /> },
+    { title:'筛选器', dataIndex:'name', render:(v, r) => <b style={{ color:r.enabled===false?'#9CA3AF':undefined }}>{v}</b> },
+    { title:'操作', key:'op', width:90, render:(_, r) => <Button size="small" danger onClick={() => removeRow(r.id)}>删除</Button> },
+  ];
+  return (
+    <div style={{ marginBottom:28 }}>
+      {/* 模块标题行:仅总开关 */}
+      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
+        <ThunderboltOutlined style={{ color:'#7C3AED', fontSize:16 }} />
+        <span style={{ fontSize:16, fontWeight:600 }}>移动端快筛</span>
+        <Switch size="small" checked={enabled} onChange={setEnabled} />
+        <span style={{ fontSize:12, color:'#9CA3AF' }}>{enabled?'已启用':'未启用(前台不展示)'}</span>
+      </div>
+      {enabled && <>
+        <div className="lp-note-sm" style={{ marginBottom:12, background:'#F9FAFB', border:'1px solid #E5E7EB', color:'#374151' }}>
+          快筛仅在移动端展示(PC 端无快筛功能)。从全局筛选器中勾选要露出的快筛项,支持拖动排序。
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12, padding:'8px 12px', background:'#FAFAFA', border:'1px solid #E5E7EB', borderRadius:8 }}>
+          <span style={{ fontSize:12, color:'#9CA3AF' }}>从全局筛选器中勾选快筛项 · 共 {data.length} 条</span>
+          <Button size="small" type="primary" ghost icon={<PlusOutlined />} style={{ marginLeft:'auto' }} onClick={() => setAdd(true)}>添加快筛选项</Button>
+        </div>
+        <Table rowKey="id" size="small" columns={columns} dataSource={data} pagination={false} styles={TABLE_STYLES}
+          locale={{ emptyText:'暂无快筛选项,点击上方「添加快筛选项」' }} />
+      </>}
+      <AddFilterModal open={add} title="移动端快筛 · 添加快筛选项" onClose={() => setAdd(false)}
+        onAdded={(keys) => setData(prev => [...prev, ...keys.map((k, i) => {
+          const f = FILTER_POOL.find(x => x.key === k) || { name:k, disp:'双列卡片', dv:'desc' };
+          return { id:Date.now()+i, name:f.name, disp:f.disp, dv:f.dv };
+        })])} />
+    </div>
+  );
+}
+
+/* ── 通用筛选器(原抽屉筛):与 Collection 解耦,从全局筛选器池动态匹配,无需配置 ── */
+function DrawerFilterBlock() {
+  return (
+    <div>
+      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
+        <FilterOutlined style={{ color:'#7C3AED', fontSize:16 }} />
+        <span style={{ fontSize:16, fontWeight:600 }}>通用筛选器</span>
+        <StatusTag variant="req">自动生成</StatusTag>
+      </div>
+      <div className="lp-dashed" style={{ textAlign:'left', padding:'18px 20px' }}>
+        <div style={{ fontSize:13, color:'#374151', lineHeight:1.7 }}>
+          通用筛选器按当前商品池<b>动态匹配生成</b>,无需在此配置。
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── 前台预览设备框 ── */
+function PreviewFrame({ isM, frameW, visualCards, quick, cols, products }) {
+  const screen = (
+    <div style={{ background:'#fff', height:isM?560:520, overflowY:'auto' }}>
+      {/* Banner */}
+      <div style={{ height:isM?130:180, background:'linear-gradient(135deg,#E9D5FF,#F5F3FF 60%,#FCE7F3)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', color:'#A78BFA' }}>
+        <PictureOutlined style={{ fontSize:26 }} />
+        <span style={{ marginTop:6, fontSize:12 }}>Banner 800×400</span>
+      </div>
+      <div style={{ padding:isM?'14px 16px':'20px 28px' }}>
+        <div style={{ fontSize:isM?19:24, fontWeight:700, letterSpacing:0.2 }}>Shoulder Bags</div>
+        <div style={{ fontSize:isM?12:14, color:'#9CA3AF', marginTop:3 }}>Timeless Pieces</div>
+        {/* 图文筛 */}
+        {/* 移动端图文筛(圆形卡):PC 端无图文筛功能,不渲染 */}
+        {isM && (
+        <div style={{ display:'flex', gap:isM?12:16, marginTop:18, overflowX:'auto', paddingBottom:4 }}>
+          {visualCards.map((c, i) => (
+            <div key={i} style={{ flex:'0 0 auto', textAlign:'center' }}>
+              <div style={{ width:isM?64:80, height:isM?64:80, borderRadius:'50%', background:'linear-gradient(135deg,#F3F0FF,#EDE9FE)', display:'flex', alignItems:'center', justifyContent:'center', color:'#7C3AED', border:'1px solid #EDE9FE' }}><FileImageOutlined style={{ fontSize:isM?20:24 }} /></div>
+              <div style={{ fontSize:isM?11:12, marginTop:6, color:'#374151', maxWidth:isM?64:80 }}>{c}</div>
+            </div>
+          ))}
+        </div>
+        )}
+        {/* 移动端快筛(sticky):PC 端无快筛功能,不渲染 */}
+        {isM && (
+          <div style={{ position:'sticky', top:0, background:'#fff', display:'flex', gap:8, marginTop:18, paddingTop:6, overflowX:'auto', zIndex:1 }}>
+            <span style={{ flex:'0 0 auto', padding:'6px 14px', borderRadius:20, fontSize:12, background:'#1F2937', color:'#fff' }}><FilterOutlined /> 筛选</span>
+            {quick.map((q, i) => (
+              <span key={i} style={{ flex:'0 0 auto', padding:'6px 14px', border:'1px solid #E5E7EB', borderRadius:20, fontSize:12, color:'#374151' }}>{q} ▾</span>
+            ))}
+          </div>
+        )}
+        {/* 商品网格 */}
+        <div style={{ display:'grid', gridTemplateColumns:`repeat(${cols},1fr)`, gap:isM?12:18, marginTop:16 }}>
+          {products.map((p, i) => (
+            <div key={i}>
+              <div style={{ width:'100%', paddingTop:'118%', background:'#F3F4F6', borderRadius:10, position:'relative', overflow:'hidden' }}>
+                <PictureOutlined style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', color:'#D1D5DB', fontSize:22 }} />
+                <span style={{ position:'absolute', top:8, left:8, fontSize:10, color:'#9CA3AF', background:'rgba(255,255,255,.8)', padding:'1px 6px', borderRadius:4 }}>{p.brand}</span>
+              </div>
+              <div style={{ fontSize:isM?12:13, marginTop:7, color:'#374151', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.name}</div>
+              <div style={{ fontSize:isM?13:14, fontWeight:700, marginTop:2 }}>{p.price}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+  if (isM) {
+    return (
+      <div style={{ width:frameW, margin:'0 auto', background:'#111827', borderRadius:36, padding:'10px', boxShadow:'0 12px 40px rgba(0,0,0,.18)' }}>
+        <div style={{ borderRadius:28, overflow:'hidden', position:'relative' }}>
+          <div style={{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:120, height:22, background:'#111827', borderRadius:'0 0 14px 14px', zIndex:2 }} />
+          {screen}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div style={{ width:frameW, margin:'0 auto', borderRadius:12, overflow:'hidden', border:'1px solid #E5E7EB', boxShadow:'0 12px 40px rgba(0,0,0,.12)' }}>
+      <div style={{ height:34, background:'#F3F4F6', display:'flex', alignItems:'center', gap:6, padding:'0 12px', borderBottom:'1px solid #E5E7EB' }}>
+        <span style={{ width:10, height:10, borderRadius:'50%', background:'#FF5F57' }} />
+        <span style={{ width:10, height:10, borderRadius:'50%', background:'#FEBC2E' }} />
+        <span style={{ width:10, height:10, borderRadius:'50%', background:'#28C840' }} />
+        <span style={{ marginLeft:12, fontSize:11, color:'#9CA3AF', background:'#fff', borderRadius:6, padding:'2px 12px', flex:1, maxWidth:340 }}>looply.com/collections/shoulder-bags</span>
+      </div>
+      {screen}
+    </div>
+  );
+}
+
+/* ── 前台预览弹窗(高保真模拟 Collection 在前台的展示效果) ── */
+const PREVIEW_PRODUCTS = [
+  { name:'Boy Chanel Medium', price:'$3,200', brand:'Chanel' },
+  { name:'Kelly 28 Etoupe', price:'$15,800', brand:'Hermès' },
+  { name:'2.55 Reissue 226', price:'$4,100', brand:'Chanel' },
+  { name:'Constance 24 Gold', price:'$11,200', brand:'Hermès' },
+  { name:'Picotin Lock 18', price:'$5,600', brand:'Hermès' },
+  { name:'Gabrielle Hobo M', price:'$3,800', brand:'Chanel' },
+  { name:'Classic Flap Medium', price:'$8,900', brand:'Chanel' },
+  { name:'Birkin 30 Togo', price:'$22,400', brand:'Hermès' },
+];
+function PreviewModal({ open, onClose }) {
+  const [term, setTerm] = useState('mobile');
+  const isM = term === 'mobile';
+  const visualCards = ['Chanel', 'Hermès', 'Under $1,000', 'Like New'];
+  const quick = ['Brand', 'Category', 'Color', 'Price'];
+  const cols = isM ? 2 : 4;
+  const products = PREVIEW_PRODUCTS.slice(0, isM ? 4 : 8);
+  const frameW = isM ? 320 : 760;
+  return (
+    <Modal title="前台预览" open={open} onCancel={onClose} centered closable={false} maskClosable={false} width={isM ? 460 : 880}
+      styles={{ body:{ background:'#F3F4F6', padding:'20px 16px', borderRadius:10 } }}
+      footer={<div style={{ display:'flex', alignItems:'center', gap:10, justifyContent:'flex-end' }}>
+        <Button onClick={onClose}>关闭</Button>
+      </div>}>
+      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
+        <span style={{ fontSize:13 }}>预览终端</span>
+        <Select size="small" value={term} onChange={setTerm} style={{ width:140 }}
+          options={[{value:'mobile',label:'移动端'},{value:'pc',label:'PC 端'}]} />
+      </div>
+      <PreviewFrame isM={isM} frameW={frameW} visualCards={visualCards} quick={quick} cols={cols} products={products} />
+    </Modal>
+  );
+}
+
+/* ── Step3 平铺三块 ── */
+function FilterConfigTable({ isNew, src, devices=['pc'], channel, market, onStatus }) {
+  const [vis, setVis] = useState({ pc:true, mobile:true });
+  const [qk, setQk] = useState({ pc:true, mobile:true });
+  React.useEffect(() => {
+    if (!onStatus) return;
+    const merged = {};
+    devices.forEach(d => { merged[d] = (vis[d] !== false) && (qk[d] !== false); });
+    onStatus(merged);
+  }, [vis, qk, devices]);
+  return (
+    <>
+      <VisualFilterBlock isNew={isNew} src={src} devices={devices} channel={channel} market={market} onStatus={setVis} />
+      <QuickFilterBlock isNew={isNew} devices={devices} onStatus={setQk} />
+      <DrawerFilterBlock />
+    </>
+  );
+}
+function CollectionDetailPage({ go, openPicker }) {
+  const [step, setStep] = useState(0);
+  const [src, setSrc] = useState('auto');
+  const [preview, setPreview] = useState(false);
+  const [ruleOpen, setRuleOpen] = useState(false);
+  // 每个 Collection 不区分终端,但基本信息与图文筛/快筛恒按 PC + 移动端两端分别配置
+  const devices = ['pc','mobile'];
+  const [filterStatus, setFilterStatus] = useState({ pc:true, mobile:true });
+  const [channel, setChannel] = useState('us_mall');   // 适用范围渠道(单选),选品规则的渠道条件联动此值
+  const [market, setMarket] = useState('us');          // 适用范围市场(单选),价格条件币种跟随此市场支持币种
+  const stepBasic = (
+    <>
+      <h4 className="lp-section">基本信息</h4>
+      <div className="lp-note-sm" style={{ marginBottom:16 }}>标题 / 副标题 / 文字色值 / Banner 需按 <b>PC + 移动端</b>分别配置(两端规格不同);色值适配各端 Banner 背景,必填。</div>
+      <FormRow label="状态"><Select defaultValue="启用" style={{ width:160 }} options={[{value:'草稿',label:'草稿'},{value:'启用',label:'启用'},{value:'关闭',label:'关闭'}]} /></FormRow>
+      <FormRow label="Collection 标题" required helper="展示在前台页面;右侧色块为标题文字颜色,适配 Banner 背景">
+        <DeviceTextField devices={devices} render={d => <TextColorField text={d==='mobile'?'Shoulder Bags':'Shoulder Bags'} colorValue={d==='mobile'?'#FFFFFF':'#1F2937'} style={{ maxWidth:360 }} />} />
+      </FormRow>
+      <FormRow label="页面副标题" optional helper="展示在前台页面;右侧色块为副标题文字颜色">
+        <DeviceTextField devices={devices} render={d => <TextColorField text={d==='mobile'?'Timeless':'Timeless Pieces'} colorValue={d==='mobile'?'#F5F3FF':'#6B7280'} showCount maxLength={d==='mobile' ? 30 : 60} style={{ maxWidth:360 }} />} />
+      </FormRow>
+      <FormRow label="Banner 图" optional helper="PC 与移动端均为横图,比例不同需分别上传">
+        <DeviceTextField devices={devices} render={d => d==='mobile'
+          ? <UploadBox w={160} h={80} hint="移动端横图 2:1(建议 1080×540)" />
+          : <UploadBox w={160} h={90} hint="PC 横图 16:9(建议 1600×900)" />} />
+      </FormRow>
+      <h4 className="lp-section" style={{ marginTop:24 }}>适用范围</h4>
+      <div className="lp-note-sm" style={{ marginBottom:16, background:'#F9FAFB', border:'1px solid #E5E7EB', color:'#374151' }}>
+        市场、渠道共同决定本 Collection 的展示范围与商品池。
+      </div>
+      <FormRow label="市场" required helper="控制商品池范围;单选。选品规则中价格条件的币种将跟随此市场支持的币种"><Select value={market} onChange={setMarket} style={{ maxWidth:360, width:'100%' }} options={MARKET_OPTS} /></FormRow>
+      <FormRow label="渠道" required helper="读商品中心渠道管理;单选。选品规则中的「渠道」条件将锁定为此渠道"><Select value={channel} onChange={setChannel} style={{ maxWidth:360, width:'100%' }} options={CHANNEL_OPTS} /></FormRow>
+      <h4 className="lp-section" style={{ marginTop:24 }}>URL 与 SEO</h4>
+      <FormRow label="URL Slug" required><Input defaultValue="shoulder-bags" style={{ maxWidth:360 }} /></FormRow>
+      <FormRow label="完整 URL"><span style={{ color:'#6B7280', fontSize:13 }}>https://looply.com/collections/<b style={{ color:'#7C3AED' }}>shoulder-bags</b></span></FormRow>
+      <FormRow label="Meta Title" optional><Input defaultValue="Shoulder Bags | Looply" style={{ maxWidth:420 }} /></FormRow>
+      <FormRow label="Meta Description" optional><Input.TextArea rows={3} defaultValue="Shop authenticated pre-owned luxury shoulder bags from Chanel, Saint Laurent, Gucci and more at Looply. Expertly curated and quality-assured." style={{ maxWidth:520 }} /></FormRow>
+    </>
+  );
+  const stepSource = (
+    <>
+      <Alert type="info" showIcon style={{ marginBottom:16 }} message="选择一种商品来源模式(互斥)。「自动选品」通过条件匹配商品,适合绝大多数场景;「手动选品」适合精选专题和编辑推荐。" />
+      <RadioCardGroup value={src} onChange={setSrc} options={[
+        { value:'auto', title:'自动选品', desc:'通过后台类目、品牌、价格等条件组合自动匹配商品' },
+        { value:'manual', title:'手动选品', desc:'搜索并手动添加商品,支持拖拽排序' },
+      ]} />
+      {src==='auto' ? (
+        <>
+          <div onClick={() => setRuleOpen(!ruleOpen)} style={{ display:'flex', alignItems:'center', cursor:'pointer', padding:'10px 14px', background:'#FAFAFA', border:'1px solid #E5E7EB', borderRadius:10, marginBottom:ruleOpen?12:16 }}>
+            <span style={{ fontSize:15, fontWeight:600 }}>自动选品规则</span>
+            <span style={{ fontSize:12, color:'#9CA3AF', fontWeight:400, marginLeft:8 }}>5 个条件 · 2,156 件商品</span>
+            <span style={{ marginLeft:'auto', fontSize:12, color:'#7C3AED' }}>{ruleOpen ? '收起 ▲' : '展开编辑 ▼'}</span>
+          </div>
+          {ruleOpen && <>
+            <RuleBuilder initial={AUTO_RULES_DEMO} channel={channel} market={market} />
+            <div style={{ margin:'8px 0 20px', fontSize:12, color:'#6B7280' }}>同一条件内多个值为 OR · 条件之间按逻辑选择器组合 · 不支持嵌套分组 · 预览:符合条件商品 <b>2,156</b> 件</div>
+          </>}
+          <SortConfig />
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', margin:'24px 0 12px' }}>
+            <span style={{ fontSize:15, fontWeight:600 }}>商品列表 <span style={{ color:'#9CA3AF', fontWeight:400, fontSize:13 }}>共 2,156 件商品</span></span>
+          </div>
+          <div className="lp-note-sm" style={{ marginBottom:12 }}>商品自动进入 Collection(自动选品命中 / 数据源拉入)时,默认按上方选定的排序规则插入商品池;在「固定位置」列输入数字可固定商品到指定位置(位置不变),其余按排序规则自动填充剩余位置,清空则取消固定。注:商品因下架/停售移出 Collection 时,固定位置记录将同步清除。</div>
+          <PosTable />
+        </>
+      ) : (
+        <>
+          <SortConfig />
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', margin:'24px 0 12px' }}>
+            <span style={{ fontSize:15, fontWeight:600 }}>手动选品 <span style={{ color:'#9CA3AF', fontWeight:400, fontSize:13 }}>已选 8 件</span></span>
+            <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openPicker}>添加商品</Button>
+          </div>
+          <div className="lp-note-sm" style={{ marginBottom:12 }}>手动圈定的商品在前台仍按上方选定的排序规则展示;在「固定位置」列输入数字可固定商品到指定位置(位置不变),其余按排序规则自动填充剩余位置。勾选多个商品后可批量连续固定。点击「添加商品」打开选品器。</div>
+          <PosTable manual />
+        </>
+      )}
+    </>
+  );
+  const panels = [stepBasic, stepSource, <FilterConfigTable key="f" src={src} devices={devices} channel={channel} market={market} onStatus={setFilterStatus} />];
+  const last = panels.length - 1;
+  const onSave = () => { if (validateDeviceSave({ devices, filterStatus, onGoFilter:() => setStep(last) })) go('collection-list'); };
+  return (
+    <Card style={CARD_STYLE}>
+      <PageHead title={<span>Shoulder Bags <span style={{ color:'#9CA3AF', fontSize:14, fontWeight:400 }}>/shoulder-bags</span></span>} desc="Collection 详情编辑"
+        onBack={() => go('collection-list')}
+        extra={<><Button icon={<EyeOutlined />} onClick={() => setPreview(true)}>预览</Button><Button danger>删除</Button><Button type="primary" onClick={onSave}>保存</Button></>} />
+      <Steps current={step} onChange={setStep} style={{ marginBottom:24 }} items={[{ title:'基本信息' }, { title:'商品来源' }, { title:'筛选配置' }]} />
+      <div style={{ minHeight:220, marginBottom:24 }}>{panels[step]}</div>
+      <div style={{ display:'flex', justifyContent:'space-between', paddingTop:16, borderTop:'1px solid #E5E7EB' }}>
+        <Button onClick={() => go('collection-list')}>取消</Button>
+        <Space>
+          {step > 0 && <Button onClick={() => setStep(step-1)}>上一步</Button>}
+          {step < last && <Button type="primary" onClick={() => setStep(step+1)}>下一步</Button>}
+          {step === last && <Button type="primary" onClick={onSave}>保存</Button>}
+        </Space>
+      </div>
+      <PreviewModal open={preview} onClose={() => setPreview(false)} />
+    </Card>
+  );
+}
+const DIMS = [
+  { id:'Brand', name:'Brand', type:'品牌', attr:[], disp:'双列卡片', dv:'desc', opts:'86', gb:'—', status:'启用', sv:'on' },
+  { id:'Category', name:'Category', type:'后台类目', attr:['类目树 · 6 节点'], disp:'单列文本', dv:'panel', opts:'6', gb:'—', status:'启用', sv:'on' },
+  { id:'Price', name:'Price', type:'价格', attr:[], disp:'滑块', dv:'enum', opts:'—', gb:'—', status:'启用', sv:'on' },
+  { id:'Condition', name:'Condition', type:'成色', attr:[], disp:'双列卡片', dv:'desc', opts:'5', gb:'—', status:'启用', sv:'on' },
+  { id:'Size', name:'Cloth Sizes (US)', type:'属性', attr:['US 服装'], disp:'双列卡片', dv:'desc', opts:'12', gb:'—', status:'启用', sv:'on' },
+  { id:'ShoeSize', name:'Shoe Sizes (US)', type:'属性', attr:['SHOE_US'], disp:'单列文本', dv:'panel', opts:'14', gb:'—', status:'启用', sv:'on' },
+  { id:'RingSize', name:'Ring Sizes (US)', type:'属性', attr:['RING_US'], disp:'双列卡片', dv:'desc', opts:'10', gb:'—', status:'启用', sv:'on' },
+  { id:'Color', name:'Color', type:'属性', attr:['色系(color_family)'], disp:'颜色卡片', dv:'sale', opts:'12', gb:'—', status:'启用', sv:'on' },
+  { id:'Series', name:'Series', type:'系列', attr:[], disp:'双列卡片', dv:'desc', opts:'42', gb:'—', status:'启用', sv:'on' },
+  { id:'Material', name:'Material', type:'属性', attr:['material'], disp:'双列卡片', dv:'desc', opts:'8', gb:'—', status:'停用', sv:'off' },
+  { id:'Capacity', name:'Capacity (L)', type:'属性', attr:['capacity_l'], disp:'双列卡片', dv:'numeric', opts:'6', gb:'—', status:'启用', sv:'on' },
+];
+// 维度被各 Collection 模块引用的情况(用于停用前提示)
+const DIM_REFS = {
+  Brand:     ['Sneaker Bags · 图文筛', 'Sneaker Bags · 快筛', 'New Arrivals · 通用筛选'],
+  Category:  ['Sneaker Bags · 图文筛', 'New Arrivals · 快筛'],
+  Price:     ['Sneaker Bags · 快筛', 'New Arrivals · 通用筛选'],
+  Condition: ['Sneaker Bags · 图文筛'],
+  Color:     ['New Arrivals · 快筛'],
+};
+function FilterDimPage({ openDim }) {
+  const [rows, setRows] = useState(DIMS);
+  const [confirm, setConfirm] = useState(null); // 待停用的维度
+  const doToggle = (rec, on) => {
+    if (!on) {
+      const refs = DIM_REFS[rec.id] || [];
+      if (refs.length) { setConfirm({ rec, refs }); return; }
+    }
+    setRows(rs => rs.map(r => r.id===rec.id ? { ...r, sv:on?'on':'off', status:on?'启用':'停用' } : r));
+  };
+  const confirmOff = () => {
+    setRows(rs => rs.map(r => r.id===confirm.rec.id ? { ...r, sv:'off', status:'停用' } : r));
+    setConfirm(null);
+  };
+  const columns = [
+    { title:'', key:'drag', width:32, render:() => <HolderOutlined style={{ color:'#D1D5DB', cursor:'grab' }} /> },
+    { title:'维度名称', dataIndex:'name', render:v => <b>{v}</b> },
+    { title:'数据源', dataIndex:'type', render:v => <Pill>{v}</Pill> },
+    { title:'关联属性', dataIndex:'attr', render:a => a.length ? <Space size={4}>{a.map((t, i) => t.startsWith('+')
+        ? <span key={i} style={{ color:'#9CA3AF', fontSize:11 }}>{t}</span>
+        : <span key={i} className="lp-code">{t}</span>)}</Space> : <span style={{ color:'#9CA3AF' }}>—</span> },
+    { title:'选项数', dataIndex:'opts', align:'right', render:v => v==='—' ? <span style={{ color:'#9CA3AF' }}>—</span> : v },
+    { title:'状态', dataIndex:'status', render:(v, r) => <Space size={8}>
+        <Switch size="small" checked={r.sv==='on'} onChange={on => doToggle(r, on)} />
+        <span style={{ fontSize:12, color:r.sv==='on'?'#16A34A':'#9CA3AF' }}>{v}</span></Space> },
+    { title:'操作', key:'op', width:80, render:(_, r) => <Button size="small" onClick={() => openDim(r.name)}>编辑</Button> },
+  ];
+  return (
+    <>
+    <ListPage title="筛选维度管理" desc="维度启用后,各 Collection 的通用筛选器会从该池按商品池动态匹配。"
+      headActions={<Button type="primary" icon={<PlusOutlined />} onClick={() => openDim(null)}>新增维度</Button>}
+      note={<div className="lp-note-sm" style={{ marginBottom:16 }}>筛选维度是数据源的封装层。支持 7 种数据源类型:属性(attribute)、品牌(brand)、系列(series)、价格(price)、成色(condition)、后台类目(backend_category)、标签(tag)。展示类型有 5 种,决定该维度在图文筛/快筛/通用筛选中的呈现样式:<b>双列卡片</b>、<b>单列文本</b>、<b>滑块</b>(价格)、<b>颜色卡片</b>(颜色类)、<b>分组</b>(类目 / 按作用域分组的属性)。</div>}
+      filters={[
+        <Input key="s" placeholder="搜索维度名称..." prefix={<SearchOutlined style={{ color:'#9CA3AF' }} />} allowClear style={{ width:200 }} />,
+        <Select key="st" defaultValue="" style={{ width:120 }} options={[{value:'',label:'全部状态'},{value:'on',label:'启用'},{value:'off',label:'停用'}]} />,
+      ]}
+      columns={columns} data={rows} total={11} entity="维度" scrollX={900} />
+    <Modal title={<span><ExclamationCircleOutlined style={{ color:'#D97706', marginRight:8 }} />停用筛选维度 — {confirm && confirm.rec.name}</span>}
+      open={!!confirm} centered closable={false} maskClosable={false} width={460} onCancel={() => setConfirm(null)}
+      footer={[<Button key="c" onClick={() => setConfirm(null)}>取消</Button>, <Button key="o" danger type="primary" onClick={confirmOff}>仍要停用</Button>]}>
+      <div style={{ fontSize:13, color:'#374151', lineHeight:1.7 }}>该维度正在被以下模块引用,停用后这些模块将不再展示该筛选项:</div>
+      <ul style={{ margin:'10px 0 0', paddingLeft:18, fontSize:13, color:'#374151' }}>
+        {confirm && confirm.refs.map((r, i) => <li key={i} style={{ marginBottom:4 }}>{r}</li>)}
+      </ul>
+    </Modal>
+    </>
+  );
+}
+const CANDIDATES = [
+  { id:1, name:'Boy Chanel Medium Black', brand:'Chanel', price:'$3,200', cond:'Like New', cv:'on', stock:'在售', at:'2026-05-20' },
+  { id:2, name:'Kelly 28 Etoupe Togo', brand:'Hermès', price:'$15,800', cond:'Excellent', cv:'on', stock:'在售', at:'2026-05-19' },
+  { id:3, name:'2.55 Reissue 226 Black', brand:'Chanel', price:'$4,100', cond:'Good', cv:'enum', stock:'在售', at:'2026-05-18' },
+  { id:4, name:'Constance 24 Gold Epsom', brand:'Hermès', price:'$11,200', cond:'Like New', cv:'on', stock:'在售', at:'2026-05-17' },
+  { id:5, name:'Picotin Lock 18 Etoupe', brand:'Hermès', price:'$5,600', cond:'Excellent', cv:'on', stock:'在售', at:'2026-05-16' },
+  { id:6, name:'Gabrielle Hobo Medium', brand:'Chanel', price:'$3,800', cond:'Good', cv:'enum', stock:'在售', at:'2026-05-15' },
+];
+function PickerDrawer({ open, onClose }) {
+  const columns = [
+    { title:'商品名称', dataIndex:'name' }, { title:'品牌', dataIndex:'brand', width:110 },
+    { title:'价格', dataIndex:'price', width:90, align:'right' },
+    { title:'成色', dataIndex:'cond', width:100, render:(v, r) => <StatusTag variant={r.cv}>{v}</StatusTag> },
+    { title:'上架时间', dataIndex:'at', width:110, render:v => <span style={{ color:'#9CA3AF' }}>{v}</span> },
+  ];
+  return (
+    <Drawer title={<span>添加商品 <span style={{ color:'#9CA3AF', fontWeight:400, fontSize:13 }}>手动选品</span></span>}
+      open={open} onClose={onClose} width={680}
+      footer={<div style={{ display:'flex', alignItems:'center', gap:12, justifyContent:'flex-end' }}>
+        <span style={{ fontSize:12, color:'#6B7280', marginRight:'auto' }}>已勾选 <b>2</b> 件商品</span>
+        <Button onClick={onClose}>取消</Button>
+        <Button type="primary" onClick={onClose}>添加选中商品 (2)</Button>
+      </div>}>
+      <div style={{ border:'1px solid #E5E7EB', borderRadius:10, padding:14, marginBottom:16 }}>
+        <div style={{ fontSize:13, fontWeight:600, marginBottom:10, color:'#6B7280' }}>筛选条件</div>
+        <RuleBuilder initial={[
+          { id:11, field:'backend_category', op:'in', val:'手提类, 单肩类' },
+          { id:12, field:'brand', op:'in', val:'Chanel, Hermès' },
+        ]} />
+        <div style={{ marginTop:8, fontSize:12, color:'#6B7280' }}>同一条件内多个值为 OR · 条件之间按逻辑选择器组合 · 符合条件的候选商品 <b>328</b> 件</div>
+      </div>
+      <Table rowKey="id" size="small" columns={columns} dataSource={CANDIDATES} pagination={false} styles={TABLE_STYLES}
+        rowSelection={{ type:'checkbox', defaultSelectedRowKeys:[1, 2] }} />
+      <div style={{ marginTop:10, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+        <span style={{ color:'#9CA3AF', fontSize:13 }}>显示 1-6 / 共 328 件</span>
+        <CompactPagination total={328} pageSize={6} />
+      </div>
+    </Drawer>
+  );
+}
+const DIM_SOURCE_TYPES = [
+  { value:'attribute', label:'属性 (attribute_def)' }, { value:'brand', label:'品牌 (brand)' },
+  { value:'series', label:'系列 (brand_series)' }, { value:'price', label:'价格 (listing.price)' },
+  { value:'condition', label:'成色 (condition_level)' }, { value:'backend_category', label:'后台类目 (backend_category)' },
+  { value:'tag', label:'标签 (tag)' },
+];
+// 后台类目树 mock(用于「后台类目」数据源:勾选节点 + 配前台展示名)
+// sort=商品侧维护的源排序值(0–9999,越小越靠前);ct=创建序(源排序并列时的次级定序键)
+const CAT_TREE = [
+  { key:'bags', label:'箱包 Bags', disp:'Bags', sort:10, ct:1, children:[
+    { key:'tote', label:'手提包', disp:'Tote', sort:10, ct:1, children:[
+      { key:'tote_large', label:'大号手提包', disp:'Large Tote', sort:10, ct:1 }, { key:'tote_mini', label:'迷你手提包', disp:'Mini Tote', sort:20, ct:2 } ] },
+    { key:'shoulder', label:'单肩包', disp:'Shoulder', sort:20, ct:2, children:[
+      { key:'shoulder_flap', label:'翻盖单肩包', disp:'Flap', sort:10, ct:1 }, { key:'shoulder_hobo', label:'Hobo 单肩包', disp:'Hobo', sort:20, ct:2 } ] },
+    { key:'clutch', label:'手拿包', disp:'Clutch', sort:15, ct:9, children:[
+      { key:'clutch_evening', label:'晚宴包', disp:'Evening', sort:10, ct:1 } ] },
+    { key:'crossbody', label:'斜挎包', disp:'Crossbody', sort:30, ct:3, children:[
+      { key:'crossbody_camera', label:'相机包', disp:'Camera Bag', sort:10, ct:1 }, { key:'crossbody_saddle', label:'马鞍包', disp:'Saddle Bag', sort:20, ct:2 } ] } ] },
+  { key:'jewelry', label:'首饰 Jewelry', disp:'Jewelry', sort:20, ct:2, children:[
+    { key:'necklace', label:'项链', disp:'Necklaces', sort:10, ct:1, children:[
+      { key:'necklace_pendant', label:'吊坠项链', disp:'Pendant', sort:10, ct:1 }, { key:'necklace_chain', label:'素链项链', disp:'Chain', sort:20, ct:2 } ] },
+    { key:'ring', label:'戒指', disp:'Rings', sort:20, ct:2, children:[
+      { key:'ring_band', label:'素圈戒指', disp:'Band', sort:10, ct:1 }, { key:'ring_stone', label:'宝石戒指', disp:'Stone', sort:20, ct:2 } ] } ] },
+];
+// 递归生成 TreeSelect 数据(支持三级)
+const catTreeData = (nodes) => (nodes||[]).map(n => ({ title:n.label, value:n.key, children: n.children ? catTreeData(n.children) : undefined }));
+function CatTreeConfig() {
+  // 后台类目「全量纳入」,顺序合并规则与其它筛选器一致:固定区 + 跟随区。
+  // · 跟随区:运营未手动调整的类目,按商品侧源排序 sort 升序(并列按创建序 ct);源端调序 / 新增类目自动重算,继承商品侧顺序。
+  // · 固定区:运营拖拽或输入序号固定的类目 = 显式 固定到绝对位置(绑 key 不绑下标),始终保持人工位;其余跟随项自动填充剩余空位。
+  // · 新同步类目先进跟随区,按源 sort 自然落位(撞到固定位则顺延其后),可拖拽 / 输入序号归位或保持跟随。
+  // 拖拽限制:仅同级、同父节点内;不支持跨级 / 跨类目。父级位置变化时其下子级整体跟随,子级各自顺序不受影响。
+  const [pins, setPins] = useState({});    // { 类目 key: 固定位置(1-based) } 运营手动固定的位置
+  const [drag, setDrag] = useState(null);  // { level, parent, key }
+  const [over, setOver] = useState(null);  // { level, parent, index }
+  const ROOT = '__root__';
+  // 一组同父兄弟:先按跟随序(sort↑, ct↑),再把 固定项固定到指定位置,其余跟随项填充剩余空位
+  const arrange = (nodes) => {
+    const total = nodes.length;
+    const follow = nodes.slice().sort((a, b) => (a.sort - b.sort) || (a.ct - b.ct));
+    const byKey = Object.fromEntries(nodes.map(n => [n.key, n]));
+    const slots = new Array(total).fill(null);
+    const placed = new Set();
+    Object.entries(pins).filter(([k]) => byKey[k]).sort((a, b) => a[1] - b[1]).forEach(([k, pos]) => {
+      const i = Math.min(Math.max(pos, 1), total) - 1;
+      if (slots[i] === null) { slots[i] = { node: byKey[k], pinnedAt: pos }; placed.add(k); }
+    });
+    const rest = follow.filter(n => !placed.has(n.key));
+    let r = 0;
+    for (let i = 0; i < total; i++) if (slots[i] === null) slots[i] = { node: rest[r++], pinnedAt: null };
+    return slots.filter(s => s && s.node);
+  };
+  const canDrop = (t) => drag && t && drag.level === t.level && drag.parent === t.parent;
+  // 拖拽 = 把该类目 固定到目标展示位置;同位则顶替原固定项(原项恢复跟随)
+  const onDrop = (t, sibKeys) => {
+    if (canDrop(t)) setPins(p => {
+      const n = { ...p };
+      const occupant = (sibKeys || []).find(k => k !== drag.key && n[k] === t.index + 1);
+      if (occupant) { delete n[occupant]; message.warning(`位置 ${t.index + 1} 原固定项已让出,恢复跟随源排序`); }
+      n[drag.key] = t.index + 1;
+      return n;
+    });
+    setDrag(null); setOver(null);
+  };
+  const clearPin = (key) => setPins(p => { const n = { ...p }; delete n[key]; return n; });
+  // 直接输入序号:无需拖拽即可把类目 固定到同级第 N 位(解决"原位固定"与"长列表拖不动"两个问题)
+  const setPinPos = (key, sibKeys, total, raw) => {
+    if (raw === '' || raw == null) { clearPin(key); return; }
+    let pos = Math.round(Number(raw));
+    if (!Number.isFinite(pos)) return;
+    pos = Math.min(Math.max(pos, 1), total);
+    setPins(p => {
+      const n = { ...p };
+      const occupant = (sibKeys || []).find(k => k !== key && n[k] === pos);
+      if (occupant) { delete n[occupant]; message.warning(`位置 ${pos} 原固定项「${occupant}」已让出,恢复跟随源排序`); }
+      n[key] = pos;
+      return n;
+    });
+  };
+  const dragProps = (level, parent, index, key, sibKeys) => ({
+    draggable: true,
+    onDragStart: (e) => { e.stopPropagation(); setDrag({ level, parent, index, key }); },
+    onDragOver: (e) => { if (canDrop({ level, parent, index })) { e.preventDefault(); e.stopPropagation(); setOver({ level, parent, index }); } },
+    onDrop: (e) => { e.stopPropagation(); onDrop({ level, parent, index }, sibKeys); },
+    onDragEnd: () => { setDrag(null); setOver(null); },
+  });
+  const rowStyle = (level, parent, index, base) => ({
+    ...base, cursor:'grab', borderRadius:8, padding:'4px 8px',
+    border:`1px solid ${over && over.level===level && over.parent===parent && over.index===index ? '#7C3AED' : 'transparent'}`,
+    background: drag && drag.level===level && drag.parent===parent && drag.index===index ? '#F5F3FF' : 'transparent',
+  });
+  const handle = <HolderOutlined style={{ color:'#D1D5DB', flexShrink:0 }} />;
+  // 固定位置控件:与枚举值排序 / 选品保持一致——输入框置于行首(免拖拽直接 固定到第 N 位)。total=同级总数,sibKeys=同级 keys
+  const pinInput = (key, pinnedAt, total, sibKeys) => (
+    <span draggable onDragStart={e => e.preventDefault()} style={{ flexShrink:0, display:'inline-flex', alignItems:'center', gap:6 }}>
+      <span style={{ fontSize:12, color:'#6B7280', flexShrink:0 }}>输入序号:</span>
+      <InputNumber size="small" min={1} max={total} controls={false}
+        value={pinnedAt ?? null} onChange={v => setPinPos(key, sibKeys, total, v)}
+        placeholder="固定排序" style={{ width:96 }} title="输入序号固定到同级第 N 位;清空取消" />
+    </span>
+  );
+  // 行内固定标记(已固定时显示)
+  const pinTag = (key, pinnedAt) => (
+    pinnedAt != null ? (
+      <Tag bordered={false} style={{ background:'#F3F0FF', color:'#7C3AED', borderRadius:999, fontSize:11, lineHeight:'16px', padding:'0 6px', marginInlineEnd:0, cursor:'default', flexShrink:0 }}>
+        固定位置 {pinnedAt}
+        <a onClick={() => clearPin(key)} style={{ marginLeft:6, color:'#7C3AED', textDecoration:'underline' }}>取消</a>
+      </Tag>
+    ) : null
+  );
+  return (
+    <div style={{ border:'1px solid #E5E7EB', borderRadius:10, padding:'12px 14px', maxHeight:340, overflow:'auto' }}>
+      {(() => {
+        const l1Keys = CAT_TREE.map(n => n.key);
+        return arrange(CAT_TREE).map(({ node:p, pinnedAt }, pi) => (
+        <div key={p.key} style={{ marginBottom:12 }}>
+          <div {...dragProps(1, ROOT, pi, p.key, l1Keys)} style={rowStyle(1, ROOT, pi, { display:'flex', alignItems:'center', gap:8, fontSize:13, fontWeight:600, marginBottom:6 })}>
+            {handle}{pinInput(p.key, pinnedAt, l1Keys.length, l1Keys)}{p.label} <span style={{ fontSize:11, color:'#9CA3AF', fontWeight:400 }}>一级</span>
+            {pinTag(p.key, pinnedAt)}
+            <Input size="small" defaultValue={p.disp} addonBefore="展示名" style={{ width:220, marginLeft:'auto' }} draggable onDragStart={e => e.preventDefault()} />
+          </div>
+          {(() => {
+            const l2Keys = (p.children||[]).map(n => n.key);
+            return arrange(p.children||[]).map(({ node:c, pinnedAt:cPin }, ci) => (
+            <div key={c.key} style={{ paddingLeft:16, marginBottom:6 }}>
+              <div {...dragProps(2, p.key, ci, c.key, l2Keys)} style={rowStyle(2, p.key, ci, { display:'flex', alignItems:'center', gap:8, fontSize:13, color:'#374151', marginBottom:6 })}>
+                {handle}{pinInput(c.key, cPin, l2Keys.length, l2Keys)}{c.label} <span style={{ fontSize:11, color:'#9CA3AF' }}>二级</span>
+                {pinTag(c.key, cPin)}
+                <Input size="small" defaultValue={c.disp} addonBefore="展示名" style={{ width:220, marginLeft:'auto' }} draggable onDragStart={e => e.preventDefault()} />
+              </div>
+              <div style={{ paddingLeft:16, display:'flex', flexDirection:'column', gap:6 }}>
+                {(() => {
+                  const l3Keys = (c.children||[]).map(n => n.key);
+                  return arrange(c.children||[]).map(({ node:g, pinnedAt:gPin }, gi) => (
+                  <div key={g.key} {...dragProps(3, c.key, gi, g.key, l3Keys)} style={rowStyle(3, c.key, gi, { display:'flex', alignItems:'center', gap:8 })}>
+                    {handle}{pinInput(g.key, gPin, l3Keys.length, l3Keys)}<span style={{ fontSize:13, color:'#374151' }}>{g.label} <span style={{ fontSize:11, color:'#9CA3AF' }}>三级</span></span>
+                    {pinTag(g.key, gPin)}
+                    <Input size="small" defaultValue={g.disp} addonBefore="展示名" style={{ width:220, marginLeft:'auto' }} draggable onDragStart={e => e.preventDefault()} />
+                  </div>
+                  ));
+                })()}
+              </div>
+            </div>
+            ));
+          })()}
+        </div>
+        ));
+      })()}
+    </div>
+  );
+}
+const DIM_ATTRS = [
+  { label:'销售属性', options:[['bag_size','bag_size(包袋尺寸)'],['size','size(通用尺寸)'],['ring_size','ring_size(戒指尺寸)'],['color_family','色系(color_family)']] },
+  { label:'描述属性', options:[['material','material(材质)'],['hardware','hardware(五金材质)'],['closure_type','closure_type(开合方式)'],['style_tag','style_tag(风格标签)'],['capacity_l','capacity_l(容量 L · 纯数字)']] },
+];
+// 「色系(color_family)」属性:商品侧单独配置「色系 → 颜色值」映射表(如 红色系 ⊇ 大红/酒红/砖红)。
+// 仅该属性可选「颜色卡片」展示样式(展示色块);其它属性 / 数据源不出现「颜色卡片」选项。
+const COLOR_FAMILY_ATTRS = new Set(['color_family']);
+// 「按作用域分组」的"建议开启"提示名单:仅用于在开关旁给出文案提示,不改变默认态。
+// 开关默认一律不启用(任何属性都由运营按需手动开启);同名值跨类目语义不同的属性(如 size:服装 S/M/L vs 鞋类 36/37)给出"建议开启"提示。
+const SCOPE_GROUPED_ATTRS = new Set(['size', 'bag_size']);
+/* ── 末级枚举值排序(值来源于商品模块,仅可调序) ── */
+// Color Dictionary(商品系统维护):颜色名 → 色值,用于色卡预览;查不到则不展示色卡
+const COLOR_DICT = {
+  Black:'#1F2937', Brown:'#92400E', Beige:'#E7D8B8', White:'#FFFFFF', Red:'#DC2626',
+  Blue:'#2563EB', Green:'#16A34A', Pink:'#EC4899', Grey:'#9CA3AF', Gray:'#9CA3AF',
+  Gold:'#D4AF37', Silver:'#C0C0C0', Navy:'#1E3A8A', Burgundy:'#7F1D1D', Tan:'#D2B48C',
+};
+const DIM_VALUE_SOURCE = {
+  attribute: ['XS', 'S', 'M', 'L', 'XL'],
+  brand: ['Chanel', 'Hermès', 'Louis Vuitton', 'Gucci', 'Dior'],
+  series: ['Classic Flap', 'Boy', '2.55', 'Birkin', 'Kelly'],
+  condition: ['Like New', 'Excellent', 'Good', 'Fair'],
+  tag: ['Vintage', 'New In', 'Rare Find', 'Trending', 'Limited Edition'],
+};
+// 商品标签库(读商品系统标签管理)。适用对象:physical 实物商品 / channel 渠道商品 / common 通用。
+// Collection 前台展示的是渠道商品(listing),故标签池仅取「渠道商品 + 通用」且状态=启用。
+const TAG_LIBRARY = [
+  { key:'new_in', name:'New In', scope:'channel' },
+  { key:'trending', name:'Trending', scope:'channel' },
+  { key:'staff_pick', name:'Staff Pick', scope:'channel' },
+  { key:'price_drop', name:'Price Drop', scope:'channel' },
+  { key:'best_seller', name:'Best Seller', scope:'channel' },
+  { key:'back_in_stock', name:'Back in Stock', scope:'channel' },
+  { key:'seasonal', name:'Seasonal', scope:'channel' },
+  { key:'holiday_gift', name:'Holiday Gift', scope:'channel' },
+  { key:'editor_choice', name:"Editor's Choice", scope:'channel' },
+  { key:'vintage', name:'Vintage', scope:'common' },
+  { key:'rare_find', name:'Rare Find', scope:'common' },
+  { key:'limited_edition', name:'Limited Edition', scope:'common' },
+  { key:'investment', name:'Investment Piece', scope:'common' },
+  { key:'collector', name:'Collector', scope:'common' },
+  { key:'nwt', name:'NWT (近全新带标签)', scope:'physical' },   // 实物标签:不进 Collection 标签池
+  { key:'has_receipt', name:'附购买凭证', scope:'physical' },
+  { key:'dust_bag', name:'附防尘袋', scope:'physical' },
+];
+const TAG_SCOPE_LABEL = { physical:'实物商品', channel:'渠道商品', common:'通用' };
+// Collection 可用标签池:渠道商品 + 通用(实物标签不展示)
+const COLLECTION_TAG_POOL = TAG_LIBRARY.filter(t => t.scope === 'channel' || t.scope === 'common');
+const DEFAULT_TAG_KEYS = ['new_in', 'trending', 'staff_pick', 'vintage', 'rare_find'];
+const TAG_BY_KEY = Object.fromEntries(TAG_LIBRARY.map(t => [t.key, t]));
+// 标签维度枚举值选择:自定义双栏。左=待选池(scope 过滤+搜索,已选项移除不可再选);右=已选(拖拽排序+前台展示名)
+function TagValuePicker({ values }) {
+  // 已选项:{ key, disp }(disp = 前台展示名,留空用标签原名)
+  const [selected, setSelected] = useState((values || DEFAULT_TAG_KEYS).map(k => typeof k === 'string' ? { key:k, disp:'' } : k));
+  const [leftKw, setLeftKw] = useState('');
+  const [leftScope, setLeftScope] = useState('all');   // all | channel | common
+  const [drag, setDrag] = useState(null);
+  const [over, setOver] = useState(null);
+  const selectedKeys = selected.map(s => s.key);
+  // 待选区:池中排除已选,再按 scope + 关键词过滤;按名称「字母序 A→Z」排序(中文按拼音 A→Z;
+  // 混合形态沿用枚举值字母序的三段式兜底:纯字母 → 字母+数字 → 纯数字)。新值进入自动落到正确位置。
+  const nameCmp = (a, b) => {
+    const ra = { text:0, alnum:1, num:2 }[valueShape(a.name)], rb = { text:0, alnum:1, num:2 }[valueShape(b.name)];
+    if (ra !== rb) return ra - rb;
+    const sa = valueShape(a.name);
+    const zhCmp = (x, y) => x.localeCompare(y, 'zh-Hans-u-co-pinyin');  // 中文按拼音、英文按字母
+    if (sa === 'num') return (numPart(a.name) - numPart(b.name)) || zhCmp(a.name, b.name);
+    if (sa === 'alnum') return zhCmp(letterPart(a.name), letterPart(b.name)) || (numPart(a.name) - numPart(b.name)) || zhCmp(a.name, b.name);
+    return zhCmp(a.name, b.name);
+  };
+  const candidates = COLLECTION_TAG_POOL
+    .filter(t => !selectedKeys.includes(t.key))
+    .filter(t => leftScope === 'all' || t.scope === leftScope)
+    .filter(t => t.name.toLowerCase().includes(leftKw.trim().toLowerCase()))
+    .slice().sort(nameCmp);
+  const add = (key) => setSelected(prev => [...prev, { key, disp:'' }]);
+  const removeAt = (i) => setSelected(prev => prev.filter((_, idx) => idx !== i));
+  const setDisp = (i, v) => setSelected(prev => prev.map((s, idx) => idx === i ? { ...s, disp:v } : s));
+  const onDrop = (to) => {
+    if (drag === null || drag === to) { setDrag(null); setOver(null); return; }
+    setSelected(prev => { const next = prev.slice(); const [m] = next.splice(drag, 1); next.splice(to, 0, m); return next; });
+    setDrag(null); setOver(null);
+  };
+  const ScopeTag = ({ scope }) => (
+    <Tag bordered={false} style={{ background:scope==='common'?'#F3EEFF':'#EFF6FF', color:scope==='common'?'#7C3AED':'#2563EB', borderRadius:999, fontSize:11, lineHeight:'16px', padding:'0 6px', marginInlineEnd:0, flexShrink:0 }}>{TAG_SCOPE_LABEL[scope]}</Tag>
+  );
+  const PANE = { flex:1, minWidth:0, height:300, border:'1px solid #E5E7EB', borderRadius:10, display:'flex', flexDirection:'column', overflow:'hidden' };
+  const HEAD = { padding:'8px 12px', borderBottom:'1px solid #F3F4F6', fontSize:13, fontWeight:600, display:'flex', alignItems:'center', gap:6 };
+  return (
+    <div style={{ maxWidth:1040 }}>
+      <div style={{ fontSize:12, color:'#9CA3AF', marginBottom:10 }}>枚举值读取商品标签库(仅<b>渠道商品 / 通用</b>标签,实物标签不可用)。左侧选入右侧作为前台筛选项;已选项可拖拽排序、配置前台展示名。已选 <b style={{ color:'#7C3AED' }}>{selected.length}</b> 个。</div>
+      <div style={{ display:'flex', gap:16, alignItems:'flex-start' }}>
+        {/* 待选区 */}
+        <div style={PANE}>
+          <div style={HEAD}>全部标签 <span style={{ color:'#9CA3AF', fontWeight:400 }}>({candidates.length})</span><span style={{ color:'#9CA3AF', fontWeight:400, fontSize:11, marginLeft:'auto' }}>按名称 A→Z(中文按拼音)</span></div>
+          <div style={{ padding:'8px 10px', display:'flex', gap:8 }}>
+            <Input size="small" allowClear value={leftKw} onChange={e => setLeftKw(e.target.value)}
+              prefix={<SearchOutlined style={{ color:'#9CA3AF' }} />} placeholder="搜索标签..." style={{ flex:1, minWidth:0 }} />
+            <Select size="small" value={leftScope} onChange={setLeftScope} style={{ width:130, flexShrink:0 }}
+              options={[{value:'all',label:'全部适用对象'},{value:'channel',label:'渠道商品'},{value:'common',label:'通用'}]} />
+          </div>
+          <div style={{ flex:1, overflow:'auto', padding:'0 10px 10px', display:'flex', flexDirection:'column', gap:6 }}>
+            {candidates.length === 0 && <div style={{ fontSize:13, color:'#9CA3AF', padding:'8px 2px' }}>无可选标签</div>}
+            {candidates.map(t => (
+              <div key={t.key} onClick={() => add(t.key)}
+                style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 10px', borderRadius:8, cursor:'pointer', border:'1px solid #E5E7EB' }}>
+                <PlusOutlined style={{ color:'#7C3AED', fontSize:12, flexShrink:0 }} />
+                <span style={{ fontSize:13, flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.name}</span>
+                <ScopeTag scope={t.scope} />
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* 已选区 */}
+        <div style={PANE}>
+          <div style={HEAD}>已选标签 <span style={{ color:'#9CA3AF', fontWeight:400 }}>({selected.length})</span><span style={{ marginLeft:'auto', fontSize:11, color:'#9CA3AF', fontWeight:400 }}>拖拽排序</span></div>
+          <div style={{ flex:1, overflow:'auto', padding:'10px', display:'flex', flexDirection:'column', gap:6 }}>
+            {selected.length === 0 && <div style={{ fontSize:13, color:'#9CA3AF', padding:'8px 2px' }}>从左侧选择标签加入</div>}
+            {selected.map((s, i) => {
+              const t = TAG_BY_KEY[s.key] || { name:s.key, scope:'common' };
+              return (
+                <div key={s.key} draggable
+                  onDragStart={() => setDrag(i)}
+                  onDragOver={e => { e.preventDefault(); setOver(i); }}
+                  onDrop={() => onDrop(i)}
+                  onDragEnd={() => { setDrag(null); setOver(null); }}
+                  style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 8px', borderRadius:8, cursor:'grab',
+                    border:`1px solid ${over===i && drag!==null ? '#7C3AED' : '#E5E7EB'}`,
+                    background: drag===i ? '#F5F3FF' : '#fff' }}>
+                  <HolderOutlined style={{ color:'#D1D5DB', flexShrink:0 }} />
+                  <span style={{ fontSize:13, width:88, flexShrink:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.name}</span>
+                  <ScopeTag scope={t.scope} />
+                  <Input size="small" value={s.disp} onChange={e => setDisp(i, e.target.value)}
+                    placeholder={`展示名(默认 ${t.name})`} style={{ flex:1, minWidth:160 }}
+                    draggable onDragStart={e => e.preventDefault()} />
+                  <Button size="small" type="text" danger icon={<CloseOutlined />} style={{ flexShrink:0 }} onClick={() => removeAt(i)} />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+/* ── 枚举值排序策略(数据源驱动默认 + 固定位) ── */
+const SORT_STRATEGIES = {
+  source:     '数据源默认序',
+  count_desc: '按商品数降序',
+  alpha:      '字母序 A→Z',
+  numeric:    '数值升序',
+};
+// 各策略的说明文案:含义 + 新值落位行为。
+// 二期规划:按点击量 / 点击率 / 销量等指标排序(需前台埋点统计)。
+const STRATEGY_HINT = {
+  source:     { desc:'按数据源自身顺序展示:选项配有排序值时按排序值升序,否则按创建时间升序。', incoming:'新同步的值按数据源排序值 / 创建顺序自动落位,无需人工整理。', autoPlace:true },
+  numeric:    { desc:'按数值大小升序展示(如 5 < 5.5 < 6 < 10,非字符串序)。混有「字母+数字」「纯字母」时分三段:纯数字在前、「字母+数字」按其中数字居中、纯字母末尾(A→Z)。', incoming:'新同步的值按数值大小自动插入正确位置,无需人工整理。', autoPlace:true },
+  alpha:      { desc:'按字母字典序 A→Z 展示。混有「字母+数字」「纯数字」时分三段:纯字母在前、「字母+数字」按其中字母居中、纯数字末尾(按数值小到大)。', incoming:'新同步的值按字母顺序自动插入正确位置,无需人工整理。', autoPlace:true },
+  count_desc: { desc:'按命中商品数从多到少展示(热门值靠前)。', incoming:'新同步的值按当前商品数自动落到对应位置,排序随商品数实时变化。', autoPlace:true },
+};
+// 排序策略可选范围:按「数据源类型」决定(不再靠猜测值的形态)。
+// 任何数据源都先提供「数据源默认序」(跟随源排序值 / 创建序)+「按商品数降序」;
+// 属性(attribute_def)源:无法保证选项值的存储类型(number_input 存数值,其它控件也可能写入数字),
+//   故开放全部策略(数值升序 / 字母序均可选),由运营按实际属性自行选择。
+// 系列 / 标签:文本型,提供字母序;品牌:固定字母序 A→Z 不可改(走 fixedAlpha 锁定,不读此可选范围);成色:有固定业务序,默认跟随源。
+const STRATEGY_BY_SOURCE = {
+  attribute: { def:'source', opts:['source', 'numeric', 'alpha', 'count_desc'] },
+  brand:     { def:'source', opts:['source', 'alpha', 'count_desc'] },
+  series:    { def:'source', opts:['source', 'alpha', 'count_desc'] },
+  tag:       { def:'source', opts:['source', 'alpha', 'count_desc'] },
+};
+// 成色(condition)不提供排序配置:固定业务序,新值按「数据源默认序」插入(见维度编辑页 condition 分支)。
+const strategyCfgFor = (srcType) => STRATEGY_BY_SOURCE[srcType] || STRATEGY_BY_SOURCE.brand;
+// 演示用的确定性"商品数"(无随机,仅用于 count_desc 排序展示)。口径:全站「在架+有库存」命中该值的商品数。
+const mockCount = (v) => ((v.length * 7 + v.charCodeAt(0)) % 90) + 10;
+// 值形态分类:用于字母序 / 数值序的防呆三段式排序。
+//  'num'   纯数字(无字母,如 19、2.55、5)
+//  'alnum' 字母+数字混合(如 M2、US8、Size3)
+//  'text'  纯字母/文本(无数字,如 Black、Like New)
+function valueShape(v) {
+  const s = String(v);
+  const hasLetter = /[a-zA-Z]/.test(s);
+  const hasDigit  = /[0-9]/.test(s);
+  if (hasLetter && hasDigit) return 'alnum';
+  if (hasDigit) return 'num';
+  return 'text';
+}
+const letterPart = (v) => String(v).replace(/[^a-zA-Z]/g, '');             // 取其中字母用于排序
+const numPart    = (v) => { const m = String(v).match(/-?\d+(\.\d+)?/); return m ? parseFloat(m[0]) : NaN; }; // 取其中首个数字
+// 按策略计算展示顺序。自动策略的同值兜底统一用「数据源序(srcIdx)」,保证多个新值/同分值时顺序确定可复现。
+// 「数据源默认序」= 按 srcIdx 升序:srcIdx 即数据源下发的排序(有 sort 值按 sort 升序,无则按创建时间升序≈创建序),前端原样保留。
+// 字母序 / 数值序的防呆:值混合纯数字、字母+数字、纯字母时分三段,避免「19 排在 2.55 前」「数字与文字混排」等反直觉结果。
+function orderValues(strategy, items) {
+  const arr = items.slice();
+  const tie = (a, b) => (a.srcIdx - b.srcIdx);
+  const cmpAlpha = (a, b) => a.v.localeCompare(b.v) || tie(a, b);
+  const cmpNum   = (a, b) => (numPart(a.v) - numPart(b.v)) || tie(a, b);
+  if (strategy === 'source')     return arr.sort(tie);
+  if (strategy === 'count_desc') return arr.sort((a, b) => (b.count - a.count) || tie(a, b));
+  if (strategy === 'alpha') {
+    // 纯字母(A→Z) → 字母+数字(按其中字母 A→Z) → 纯数字(数值小到大)
+    const rank = { text:0, alnum:1, num:2 };
+    return arr.sort((a, b) => {
+      const ra = rank[valueShape(a.v)], rb = rank[valueShape(b.v)];
+      if (ra !== rb) return ra - rb;
+      const sa = valueShape(a.v);
+      if (sa === 'num') return cmpNum(a, b);
+      if (sa === 'alnum') return letterPart(a.v).localeCompare(letterPart(b.v)) || cmpNum(a, b) || tie(a, b);
+      return cmpAlpha(a, b);
+    });
+  }
+  if (strategy === 'numeric') {
+    // 纯数字(数值小到大) → 字母+数字(按其中数字小到大) → 纯字母(A→Z)
+    const rank = { num:0, alnum:1, text:2 };
+    return arr.sort((a, b) => {
+      const ra = rank[valueShape(a.v)], rb = rank[valueShape(b.v)];
+      if (ra !== rb) return ra - rb;
+      const sa = valueShape(a.v);
+      if (sa === 'num') return cmpNum(a, b);
+      if (sa === 'alnum') return (numPart(a.v) - numPart(b.v)) || letterPart(a.v).localeCompare(letterPart(b.v)) || tie(a, b);
+      return cmpAlpha(a, b);
+    });
+  }
+  return arr;
+}
+// 固定位置:pinned 值占住其指定的 1-based 固定位,未 pin 的值按自动策略顺序填充剩余位。
+// 返回最终展示数组(每项含 pinnedAt 标记)。
+function applyPins(autoOrdered, pins) {
+  const total = autoOrdered.length;
+  const byVal = Object.fromEntries(autoOrdered.map(it => [it.v, it]));
+  const pinnedVals = new Set(Object.keys(pins));
+  const slots = new Array(total).fill(null);
+  // 先放 pinned(按位置序;同位已在输入时去重,这里防御性跳过越界/占用)
+  Object.entries(pins).sort((a, b) => a[1] - b[1]).forEach(([v, pos]) => {
+    const i = Math.min(Math.max(pos, 1), total) - 1;
+    if (byVal[v] && slots[i] === null) slots[i] = { ...byVal[v], pinnedAt: pos };
+  });
+  // 未 pin 的按自动顺序填入剩余空位
+  const rest = autoOrdered.filter(it => !pinnedVals.has(it.v));
+  let r = 0;
+  for (let i = 0; i < total; i++) if (slots[i] === null) slots[i] = rest[r++] || null;
+  return slots.filter(Boolean);
+}
+/* ── 按属性作用域层级分组(size 等"同名属性跨类目语义不同"的维度) ── */
+// 组 = 全站该维度命中的作用域规则实例(三层同时生效、命中即停、不跨层合并)。
+// 组间排序(嵌套):① 先按一级类目排序(商品端类目 sort_order),同类目聚为一片;
+//   ② 同类目内按品牌排序(品牌名 A→Z,无品牌的纯类目组排最前);③ 同品牌内按系列排序(系列名 A→Z,无系列的排最前)。
+const LEVEL_LABEL = { CATEGORY:'类目', CATEGORY_BRAND:'类目+品牌', CATEGORY_SERIES:'类目+品牌+系列' };
+// 演示数据:size 维度命中的作用域组。
+// 组标题:后端用中点直接拼接「类目名 · 品牌名 · 系列名」(空段跳过)后下发,前端原样展示。
+// 演示数据保留三级字段(catName/brandName/seriesName)仅为前端 mock 拼接;真实接口由后端拼好 title 字段。
+const SIZE_SCOPE_GROUPS = [
+  { key:'apparel',         level:'CATEGORY',        catSort:1, catName:'服装',  brandName:'',        seriesName:'', vals:['XS','S','M','L','XL'],        kind:'size' },
+  { key:'apparel-moncler', level:'CATEGORY_BRAND',  catSort:1, catName:'服装',  brandName:'Moncler', seriesName:'', vals:['0','1','2','3','4','5'],      kind:'numeric' },
+  { key:'apparel-cdg',     level:'CATEGORY_BRAND',  catSort:1, catName:'服装',  brandName:'Comme des Garçons', seriesName:'', vals:['XS','S','M','L'], kind:'size' },
+  { key:'shoes',           level:'CATEGORY',        catSort:2, catName:'鞋类',  brandName:'',        seriesName:'', vals:['36','37','38','39','40','41'], kind:'numeric' },
+  { key:'shoes-gucci',     level:'CATEGORY_BRAND',  catSort:2, catName:'鞋类',  brandName:'Gucci',   seriesName:'', vals:['35','36','37','38','39','40'], kind:'numeric' },
+  { key:'shoes-nike-aj',   level:'CATEGORY_SERIES', catSort:2, catName:'鞋类',  brandName:'Nike',    seriesName:'Air Jordan', vals:['40','41','42','43','44','45'], kind:'numeric' },
+  { key:'acc',             level:'CATEGORY',        catSort:3, catName:'配饰',  brandName:'',        seriesName:'', vals:['One Size'],                    kind:'text' },
+];
+// 组标题:后端拼好下发(此处 mock 用三级名按 ' · ' 连接,空段跳过)
+const groupTitle = (g) => [g.catName, g.brandName, g.seriesName].filter(Boolean).join(' · ');
+// 组间稳定排序(嵌套:类目序 → 品牌 A→Z → 系列 A→Z;空品牌/空系列排在该层最前)
+function sortGroups(groups) {
+  const zh = (x, y) => (x || '').localeCompare(y || '', 'zh-Hans-u-co-pinyin');
+  return groups.slice().sort((a, b) =>
+    (a.catSort - b.catSort)                                  // ① 一级类目排序(商品端)
+    || zh(a.catName, b.catName)                              //    类目排序值并列时按类目名兜底
+    || zh(a.brandName, b.brandName)                          // ② 同类目内品牌 A→Z(空品牌最前)
+    || zh(a.seriesName, b.seriesName));                      // ③ 同品牌内系列 A→Z(空系列最前)
+}
+// size 维度分组展示:默认折叠 + 搜索 + 空态 + 新组优先展开(应对作用域组合可能达数百条)
+const GROUP_PAGE_SIZE = 20;
+function SizeGroupedSort() {
+  const all = sortGroups(SIZE_SCOPE_GROUPS);
+  const [kw, setKw] = useState('');
+  const [open, setOpen] = useState(() => new Set());
+  const [page, setPage] = useState(1);
+  const filtered = kw.trim()
+    ? all.filter(g => groupTitle(g).toLowerCase().includes(kw.trim().toLowerCase()))
+    : all;
+  const pageCount = Math.ceil(filtered.length / GROUP_PAGE_SIZE) || 1;
+  const cur = Math.min(page, pageCount);
+  const shown = filtered.slice((cur - 1) * GROUP_PAGE_SIZE, cur * GROUP_PAGE_SIZE);
+  const toggle = (k) => setOpen(s => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n; });
+  const expandAll = () => setOpen(new Set(filtered.map(g => g.key)));
+  const collapseAll = () => setOpen(new Set());
+
+  // 空态:首次配置、商品尚未归类时无组合
+  if (all.length === 0) {
+    return (
+      <div style={{ maxWidth:560 }}>
+        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description={<span style={{ fontSize:12, color:'#9CA3AF' }}>暂无作用域组合。该属性已启用作用域分组,商品归类后系统将按 类目/品牌/系列 自动生成分组。</span>} />
+      </div>
+    );
+  }
+  return (
+    <div style={{ maxWidth:560 }}>
+      <div className="lp-note-sm" style={{ marginBottom:10, padding:'8px 12px' }}>
+        组间顺序自动决定,运营不手动调组序:<b>先按一级类目排序</b>(商品端类目排序),同类目聚为一片;<b>同类目内按品牌 A→Z</b>,<b>同品牌内按系列 A→Z</b>。<b>组标题由后端用中点直接拼接「一级类目名 · 品牌名 · 系列名」</b>(空段跳过)后下发,前端原样展示,组合动态增减无需运营维护。
+      </div>
+      <div className="lp-note-sm" style={{ marginBottom:10, padding:'8px 12px', background:'#FFFBEB', border:'1px solid #FDE68A', color:'#92400E' }}>
+        刚开启「按作用域分组」时,后端需<b>异步扫描全站商品并归类</b>,作用域组合<b>不会即时生成</b>(通常数分钟,组合多时更久)。可先保存维度,稍后回到本页<b>刷新</b>查看实际分组效果;在组合生成完成前,前台该维度按已有结果展示、增量同步。
+        <Button size="small" type="link" icon={<ReloadOutlined />} style={{ padding:'0 4px' }}>刷新分组</Button>
+      </div>
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+        <Input size="small" allowClear prefix={<SearchOutlined style={{ color:'#9CA3AF' }} />}
+          placeholder="搜索组合(类目 / 品牌 / 系列名)" value={kw}
+          onChange={e => { setKw(e.target.value); setPage(1); }} style={{ width:260 }} />
+        <span style={{ fontSize:12, color:'#9CA3AF' }}>共 {filtered.length} 组{kw.trim() && ` / 全部 ${all.length} 组`}</span>
+        <span style={{ marginLeft:'auto', display:'flex', gap:6 }}>
+          <Button size="small" type="text" onClick={expandAll}>展开全部</Button>
+          <Button size="small" type="text" onClick={collapseAll}>收起全部</Button>
+        </span>
+      </div>
+      {filtered.length === 0 ? (
+        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<span style={{ fontSize:12, color:'#9CA3AF' }}>没有匹配「{kw}」的组合</span>} />
+      ) : (
+      <Space direction="vertical" size={8} style={{ width:'100%' }}>
+        {shown.map(g => {
+          const isOpen = open.has(g.key);
+          return (
+          <div key={g.key} style={{ border:'1px solid #E5E7EB', borderRadius:10, overflow:'hidden' }}>
+            <div onClick={() => toggle(g.key)}
+              style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 12px', cursor:'pointer',
+                background:'#F9FAFB', borderBottom: isOpen ? '1px solid #F3F4F6' : 'none' }}>
+              {isOpen ? <DownOutlined style={{ fontSize:11, color:'#9CA3AF' }} /> : <RightOutlined style={{ fontSize:11, color:'#9CA3AF' }} />}
+              <span style={{ fontSize:13, fontWeight:600 }}>{groupTitle(g)}</span>
+              <Tag bordered={false} style={{ background:'#EFF6FF', color:'#2563EB', borderRadius:999, fontSize:11, lineHeight:'16px', padding:'0 6px', marginInlineEnd:0 }}>{LEVEL_LABEL[g.level]}</Tag>
+              <span style={{ marginLeft:'auto', fontSize:11, color:'#9CA3AF' }}>{g.vals.length} 个值</span>
+            </div>
+            {isOpen && (
+              <div style={{ padding:'8px 12px' }}>
+                <SizeGroupValues vals={g.vals} />
+              </div>
+            )}
+          </div>
+        );})}
+      </Space>
+      )}
+      {pageCount > 1 && (
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:10, marginTop:12 }}>
+          <Button size="small" disabled={cur <= 1} onClick={() => setPage(cur - 1)}>上一页</Button>
+          <span style={{ fontSize:12, color:'#6B7280' }}>{cur} / {pageCount}</span>
+          <Button size="small" disabled={cur >= pageCount} onClick={() => setPage(cur + 1)}>下一页</Button>
+        </div>
+      )}
+    </div>
+  );
+}
+// 组内值:沿用排序策略(自动策略,无手动拖拽)。组内同属一个属性数据源,策略可选范围按 attribute 源给出。
+// 固定位置支持跨组联动:同一属性值在任一组固定后,其它含该值的组联动同位置(由后端按属性值持久化,原型不做跨组实时演示,详见 PRD)。
+function SizeGroupValues({ vals, groupKey }) {
+  // 分组态:组内排序固定为「数据源默认序」,不提供策略选择(分组后值较少,靠固定位置手动排即可)
+  const [pins, setPins] = useState({});
+  const items = vals.map((v, i) => ({ v, srcIdx: i, count: mockCount(v) }));
+  const autoOrdered = orderValues('source', items);
+  const ordered = applyPins(autoOrdered, pins);
+  const setPin = (val, raw) => {
+    const total = items.length;
+    if (raw === '' || raw == null) { setPins(p => { const n = { ...p }; delete n[val]; return n; }); return; }
+    let pos = Math.round(Number(raw));
+    if (!Number.isFinite(pos)) return;
+    pos = Math.min(Math.max(pos, 1), total);
+    setPins(p => {
+      const n = { ...p };
+      const occupant = Object.keys(n).find(k => k !== val && n[k] === pos);
+      if (occupant) { delete n[occupant]; message.warning('位置 ' + pos + ' 原固定项「' + occupant + '」已让出'); }
+      n[val] = pos;
+      return n;
+    });
+  };
+  return (
+    <div>
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+        <span style={{ fontSize:12, color:'#9CA3AF' }}>组内排序</span>
+        <span style={{ fontSize:12, color:'#6B7280' }}>数据源默认序(分组后靠固定位置手动排)</span>
+      </div>
+      <div className="lp-note-sm" style={{ marginBottom:8, padding:'6px 10px', fontSize:11 }}>
+        输入序号可将某值固定到组内指定位置。同一属性值在任一组固定后,其它包含该值的组将联动到相同位置(系统按属性值统一记忆,无需逐组配置)。
+      </div>
+      <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+        {ordered.map((it, i) => (
+          <div key={it.v} style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <span style={{ width:22, textAlign:'center', fontSize:11, color:'#9CA3AF', flexShrink:0 }}>{i+1}</span>
+            <div style={{ display:'flex', alignItems:'center', gap:8, padding:'4px 10px', borderRadius:999, fontSize:13, flex:1, minWidth:0,
+              border:'1px solid ' + (it.pinnedAt ? '#C4B5FD' : '#E5E7EB'),
+              background: it.pinnedAt ? '#FAF5FF' : '#fff' }}>
+              <span style={{ flexShrink:0 }}>{it.v}</span>
+              {it.pinnedAt && <Tag bordered={false} style={{ background:'#F3F0FF', color:'#7C3AED', borderRadius:999, fontSize:11, lineHeight:'16px', padding:'0 6px', marginInlineEnd:0 }}>固定位置 {it.pinnedAt}</Tag>}
+              <span style={{ fontSize:12, color:'#6B7280', flexShrink:0, marginLeft:'auto' }}>输入序号:</span>
+              <InputNumber size="small" min={1} max={items.length} controls={false}
+                value={it.pinnedAt ?? null} onChange={v => setPin(it.v, v)}
+                placeholder="固定排序" style={{ width:96, flexShrink:0 }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DimValueSort({ srcType, attr, values, grouped, noStrategy, fixedAlpha }) {
+  const baseVals = values || DIM_VALUE_SOURCE[srcType] || DIM_VALUE_SOURCE.brand;
+  const cfg = strategyCfgFor(srcType);
+  // srcIdx = 数据源下发顺序(数组顺序即代表源排序值 / 创建序),用于「数据源默认序」与同值兜底
+  const items = baseVals.map((v, i) => ({ v, srcIdx: i, count: mockCount(v) }));
+
+  // fixedAlpha: 品牌等固定字母序维度,锁定「字母序 A→Z」、不展示策略选择、不提供固定位置
+  // noStrategy: 成色等固定业务序维度,锁定「数据源默认序」、不展示策略选择,但仍可固定位置
+  const initStrategy = fixedAlpha ? 'alpha' : (noStrategy ? 'source' : cfg.def);
+  const [strategy, setStrategy] = useState(initStrategy);
+  const [pins, setPins] = useState({});                        // { 值: 1-based 位置 } 自动策略下的 固定位
+  React.useEffect(() => { setStrategy(fixedAlpha ? 'alpha' : (noStrategy ? 'source' : cfg.def)); setPins({}); }, [srcType, attr]);
+
+  const autoOrdered = orderValues(strategy, items);
+  const ordered = applyPins(autoOrdered, pins);
+  // 输入 固定位置:相同序号时新值顶掉旧值并提示
+  const setPin = (val, raw) => {
+    const total = items.length;
+    if (raw === '' || raw == null) { setPins(p => { const n = { ...p }; delete n[val]; return n; }); return; }
+    let pos = Math.round(Number(raw));
+    if (!Number.isFinite(pos)) return;
+    pos = Math.min(Math.max(pos, 1), total);
+    setPins(p => {
+      const n = { ...p };
+      const occupant = Object.keys(n).find(k => k !== val && n[k] === pos);
+      if (occupant) { delete n[occupant]; message.warning(`位置 ${pos} 原为「${occupant}」,已被「${val}」顶替,「${occupant}」恢复自动排序`); }
+      n[val] = pos;
+      return n;
+    });
+  };
+  const hint = STRATEGY_HINT[strategy] || STRATEGY_HINT.count_desc;
+  const pinCount = Object.keys(pins).length;
+  // alpha / numeric 策略下,若值混合了纯数字 / 字母+数字 / 纯字母,采用三段式排序;给出说明提示
+  const shapes = new Set(items.map(it => valueShape(it.v)));
+  const mixedShapes = (strategy === 'alpha' || strategy === 'numeric') && shapes.size > 1;
+
+  // size 类:按作用域层级自然分组展示(组内各自排序;组间自动归位)
+  // 是否启用作用域分组:由维度编辑页的「按作用域分组」开关控制(默认取属性定义建议值)
+  if (srcType === 'attribute' && grouped) return <SizeGroupedSort />;
+
+  // 属性源未选定关联属性前,枚举值未知,不展示具体值与策略(策略可选范围本身不依赖具体属性)
+  if (srcType === 'attribute' && !attr) {
+    return (
+      <div style={{ maxWidth:480 }}>
+        <div className="lp-note-sm" style={{ padding:'8px 12px' }}>
+          请先在上方选择<b>关联属性</b>;选定后将载入该属性的枚举值并可配置排序策略。属性源默认按<b>数据源默认序</b>展示,可切换为数值升序 / 字母序 / 按商品数降序。
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ maxWidth:480 }}>
+      {!noStrategy && !fixedAlpha && (
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
+          <span style={{ fontSize:13, color:'#374151', flexShrink:0 }}>排序策略</span>
+          <Select size="small" value={strategy} onChange={setStrategy} style={{ width:180 }}
+            options={cfg.opts.map(k => ({ value:k, label:SORT_STRATEGIES[k] }))} />
+          <span style={{ fontSize:12, color:'#9CA3AF' }}>默认「{SORT_STRATEGIES[cfg.def]}」</span>
+        </div>
+      )}
+      <div style={{ fontSize:12, color:'#9CA3AF', marginBottom:8 }}>
+        {fixedAlpha
+          ? <>共 {items.length} 个枚举值(取自商品模块,自动同步,运营不可增删)。品牌<b>固定按字母序 A→Z 展示、不可调整</b>(中文按拼音 A→Z);新增品牌按字母顺序自动插入正确位置,无需人工整理。</>
+          : noStrategy
+          ? <>共 {items.length} 个枚举值(取自商品模块,自动同步,运营不可增删)。成色为平台固定业务序,<b>不提供排序策略</b>,新增成色值按「数据源默认序」自动插入;如需调整个别位置,可在「固定位置」列输入序号固定,其余按数据源序填充剩余位置,清空取消固定。</>
+          : <>共 {items.length} 个枚举值(取自商品模块,自动同步,运营不可增删;商品数为全站「在架+有库存」口径,count=0 前台隐藏)。{hint.desc}
+              <span style={{ color:'#6B7280' }}>{hint.incoming}</span>
+              <span>在「固定位置」列输入序号可把某值固定到指定位置,其余按策略自动填充;清空取消固定。</span></>}
+      </div>
+      {mixedShapes && (
+        <div className="lp-note-sm" style={{ marginBottom:10, padding:'8px 12px' }}>
+          该维度同时包含<b>纯数字</b> / <b>字母+数字</b> / <b>纯字母</b>等不同形态的值,已自动分段排序避免混排:
+          {strategy === 'alpha'
+            ? <>纯字母(A→Z)在前 → 「字母+数字」按其中字母排序居中 → 纯数字(按数值小到大)在末。</>
+            : <>纯数字(按数值小到大)在前 → 「字母+数字」按其中数字排序居中 → 纯字母(A→Z)在末。</>}
+          如需自定义顺序,请用「固定位置」固定。
+          {pinCount > 0 && <span> 已 固定 <b>{pinCount}</b> 个值。</span>}
+        </div>
+      )}
+      <div style={{ border:'1px solid #E5E7EB', borderRadius:10, padding:'10px 12px', maxHeight:300, overflow:'auto' }}>
+        <Space direction="vertical" size={6} style={{ width:'100%' }}>
+          {ordered.map((it, i) => (
+            <div key={it.v} style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <span style={{ width:22, textAlign:'center', fontSize:11, color:'#9CA3AF', flexShrink:0 }}>{i+1}</span>
+              <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', borderRadius:8, flex:1, minWidth:0,
+                border:`1px solid ${it.pinnedAt ? '#C4B5FD' : '#E5E7EB'}`,
+                background: it.pinnedAt ? '#FAF5FF' : '#fff' }}>
+                <span style={{ fontSize:13, width:90, flexShrink:0 }}>{it.v}</span>
+                {COLOR_DICT[it.v] && <span title={COLOR_DICT[it.v]} style={{ width:14, height:14, borderRadius:'50%', background:COLOR_DICT[it.v], border:'1px solid #D1D5DB', flexShrink:0 }} />}
+                {it.pinnedAt && <Tag bordered={false} style={{ background:'#F3F0FF', color:'#7C3AED', borderRadius:999, fontSize:11, lineHeight:'16px', padding:'0 6px', marginInlineEnd:0 }}>固定位置 {it.pinnedAt}</Tag>}
+                {!fixedAlpha && (
+                <>
+                <span style={{ fontSize:12, color:'#6B7280', flexShrink:0, marginLeft:'auto' }}>输入序号:</span>
+                <InputNumber size="small" min={1} max={items.length} controls={false}
+                  value={it.pinnedAt ?? null} onChange={v => setPin(it.v, v)}
+                  placeholder="固定排序" style={{ width:96, flexShrink:0 }} />
+                </>
+                )}
+                <span style={{ fontSize:12, color:'#9CA3AF', flexShrink:0, marginLeft:fixedAlpha?'auto':0 }}>{it.count} 件</span>
+              </div>
+            </div>
+          ))}
+        </Space>
+      </div>
+    </div>
+  );
+}
+
+/* ── 展示类型(5 种)、各数据源可选范围、各筛选模块支持的样式 ── */
+// 注:展示样式 'tree' 的前台呈现为「分组」(标题 + 值,如类目"一级名→三级名"、属性作用域"类目·品牌·系列→组内值"),故 label 为「分组」。
+const DISP_TYPES = [
+  { value:'card', label:'双列卡片' }, { value:'panel', label:'单列文本' },
+  { value:'slider', label:'滑块' }, { value:'color', label:'颜色卡片' },
+  { value:'tree', label:'分组' },
+];
+const DISP_LABEL = Object.fromEntries(DISP_TYPES.map(d => [d.value, d.label]));
+// 数据源决定该维度可用的展示样式。属性源去掉「滑块」(滑块仅价格用);
+// 「颜色卡片」仅当属性=色系(color_family)时出现;「分组」仅当属性开启「按作用域分组」时出现(关闭时无分组结构可返回)。
+// 故 attribute 基础集只含 card/panel,color 与 tree 均由 dispOptionsFor / groupedFixed 按条件动态补。
+const DISP_BY_SOURCE = {
+  attribute:        ['card', 'panel'],
+  brand:            ['card', 'panel'],
+  series:           ['card', 'panel'],
+  condition:        ['card', 'panel'],
+  price:            ['slider'],
+  backend_category: ['tree'],
+  tag:              ['card', 'panel'],
+};
+// 各筛选模块支持的展示样式(图文筛只做卡片;快筛/通用筛支持全部)
+const FILTER_MODULES = [
+  { key:'quick',  label:'快筛',   styles:['card', 'panel', 'slider', 'color', 'tree'] },
+  { key:'common', label:'通用筛选', styles:['card', 'panel', 'slider', 'color', 'tree'] },
+];
+// 某数据源在某模块下的可选样式 = 数据源允许 ∩ 模块支持。
+// 「颜色卡片」仅在属性=色系(color_family)时追加;其它情况不出现该选项。
+function dispOptionsFor(srcType, moduleStyles, attr) {
+  let allowed = DISP_BY_SOURCE[srcType] || ['card'];
+  if (srcType === 'attribute' && COLOR_FAMILY_ATTRS.has(attr || '')) allowed = [...allowed, 'color'];
+  return DISP_TYPES.filter(d => allowed.includes(d.value) && moduleStyles.includes(d.value));
+}
+// 各维度的真实编辑详情(按维度名称索引)
+const DIM_DETAIL = {
+  'Brand':           { zh:'品牌', src:'brand', disp:{ visual:'card', quick:'card', common:'card' }, status:'active', vals:['Chanel','Hermès','Louis Vuitton','Gucci','Dior','Prada','Loewe','Celine'] },
+  'Category':        { zh:'后台类目', src:'backend_category', disp:{ visual:'card', quick:'panel', common:'panel' }, status:'active' },
+  'Price':           { zh:'价格', src:'price', disp:{ visual:null, quick:'slider', common:'slider' }, status:'active' },
+  'Condition':       { zh:'成色', src:'condition', disp:{ visual:'card', quick:'card', common:'card' }, status:'active', vals:['Like New','Excellent','Good','Fair'] },
+  'Cloth Sizes (US)':{ zh:'服装尺寸(US)', src:'attribute', attr:'size', disp:{ visual:'card', quick:'panel', common:'panel' }, status:'active', vals:['XXS','XS','S','M','L','XL','XXL'] },
+  'Shoe Sizes (US)': { zh:'鞋码(US)', src:'attribute', attr:'size', disp:{ visual:'card', quick:'panel', common:'panel' }, status:'active', vals:['5','5.5','6','6.5','7','7.5','8','8.5','9','9.5','10','11'] },
+  'Ring Sizes (US)': { zh:'戒指尺寸(US)', src:'attribute', attr:'ring_size', disp:{ visual:'card', quick:'card', common:'card' }, status:'active', vals:['4','5','6','7','8','9','10'] },
+  'Color':           { zh:'色系', src:'attribute', attr:'color_family', disp:{ visual:'color', quick:'color', common:'color' }, status:'active', vals:['Black','Brown','Beige','White','Red','Blue','Green','Pink'] },
+  'Series':          { zh:'系列', src:'series', disp:{ visual:'card', quick:'card', common:'card' }, status:'active', vals:['Classic Flap','Boy','2.55','Birkin','Kelly','Constance'] },
+  'Material':        { zh:'材质', src:'attribute', attr:'material', disp:{ visual:'card', quick:'card', common:'card' }, status:'inactive', vals:['Caviar','Lambskin','Togo','Epsom','Canvas'] },
+  'Capacity (L)':    { zh:'容量(L)', src:'attribute', attr:'capacity_l', disp:{ visual:'card', quick:'card', common:'card' }, status:'active', vals:['2.5','5','7.5','10','12','20'] },
+};
+function DimEditPage({ go, name }) {
+  const detail = (name && DIM_DETAIL[name]) || {};
+  const [srcType, setSrcType] = useState(detail.src || 'attribute');
+  const [attr, setAttr] = useState(detail.attr);
+  // 「按作用域分组」开关:默认一律不启用(运营按需手动开启);SCOPE_GROUPED_ATTRS 仅作为"建议开启"的文案提示
+  const [grouped, setGrouped] = useState(detail.grouped === true);
+  React.useEffect(() => { setGrouped(false); }, [attr]);
+  // 每个筛选模块各自的展示样式
+  const [dispByModule, setDispByModule] = useState(detail.disp || { visual:'card', quick:'card', common:'card' });
+  const attrOptions = DIM_ATTRS.map(g => ({ label:g.label, title:g.label, options:g.options.map(([v, l]) => ({ value:v, label:l })) }));
+  const allowedDisp = DISP_BY_SOURCE[srcType] || ['card'];
+  // 成色(condition):有固定业务序,不提供排序配置,新值按「数据源默认序」插入,故与 slider/backend_category/tag 一同排除
+  // 品牌(brand):固定字母序 A→Z、不可改、不提供固定位置,走 fixedAlpha 锁定分支(仍在 showValueSort 内,只读列表)
+  const showValueSort = !allowedDisp.every(d => d==='slider') && srcType!=='backend_category' && srcType!=='tag' && srcType!=='condition';
+  const onSrcChange = (v) => {
+    setSrcType(v);
+    // 切换数据源后,把每个模块的样式收敛到新数据源可选范围内
+    setDispByModule(prev => {
+      const next = { ...prev };
+      FILTER_MODULES.forEach(m => {
+        const opts = dispOptionsFor(v, m.styles);
+        if (!opts.length) { next[m.key] = null; return; }
+        if (!opts.some(o => o.value === prev[m.key])) next[m.key] = opts[0].value;
+      });
+      return next;
+    });
+  };
+  return (
+    <Card style={CARD_STYLE}>
+      <PageHead title={name ? `编辑筛选维度 — ${name}` : '新增筛选维度'} desc="定义一个全局筛选器:数据源与展示类型" onBack={() => go('filter-dim')}
+        extra={<Button type="primary" onClick={() => go('filter-dim')}>保存</Button>} />
+      <div style={{ maxWidth:1100 }}>
+        <FormRow label="维度名称(EN)" required><Input defaultValue={name || ''} placeholder="如 Brand, Size, Color" style={{ maxWidth:360 }} /></FormRow>
+        <FormRow label="数据源" required helper={srcType==='attribute' ? '选择数据源,并指定该维度取值的关联属性(单个)' : (srcType==='backend_category' ? <span>后台类目固定为三级结构,商品挂在三级;此处<b>全量纳入</b>,无需勾选。一、二、三级均可配置前台展示名(留空则用后台名)。顺序默认<b>跟随商品侧排序</b>(同父级内按源排序升序);可<b>拖拽</b>或在行首 <b>固定位置框输入序号</b>把某类目固定到同级位置(仅同级 / 同父,不跨级跨类目),其余兄弟仍按源排序自动填充;父级位置变化时其下子级整体跟随,子级各自的顺序不受影响。<b>原位固定</b>(如把当前第 1 位 固定到第 1 位)或<b>长列表远距离移动</b>,直接在 固定位置框输入序号即可,无需拖拽。</span> : '该数据源无需级联配置')}>
+          <Space size={10} align="start" wrap>
+            <Select value={srcType} onChange={onSrcChange} style={{ width:200 }} options={DIM_SOURCE_TYPES} />
+            {srcType==='attribute' && (
+              <Select key={detail.attr || 'na'} placeholder="关联属性(单选)" value={attr} onChange={setAttr} style={{ width:240 }} options={attrOptions} />
+            )}
+            {srcType==='backend_category' && (
+              <span style={{ fontSize:12, color:'#9CA3AF', paddingTop:7 }}>↓ 见下方类目结构(全量纳入)</span>
+            )}
+          </Space>
+        </FormRow>
+        {srcType==='backend_category' && (
+          <FormRow label="关联类目">
+            <CatTreeConfig />
+          </FormRow>
+        )}
+        <FormRow label="展示类型" required helper="同一维度在不同筛选模块可配置不同展示样式;「颜色卡片」仅在属性=色系(color_family)时可选">
+          <Space direction="vertical" size={10} style={{ width:'100%' }}>
+            {/* 属性=色系(color_family)时,颜色卡片可选;其它情况不出现该选项 */}
+            {srcType==='attribute' && COLOR_FAMILY_ATTRS.has(attr || '') && !grouped && (
+              <div className="lp-note-sm" style={{ padding:'6px 10px' }}>当前属性为<b>色系(color_family)</b>,可选「颜色卡片」展示样式(前台展示色块);色系→颜色值映射由商品侧维护。</div>
+            )}
+            {/* 属性源开启「按作用域分组」时,展示样式固定为「分组」,不可改 */}
+            {srcType==='attribute' && grouped && (
+              <div className="lp-note-sm" style={{ padding:'6px 10px' }}>已开启「按作用域分组」,各筛选模块展示样式固定为「分组」。</div>
+            )}
+            {FILTER_MODULES.map(m => {
+              const groupedFixed = srcType==='attribute' && grouped;
+              const opts = groupedFixed ? DISP_TYPES.filter(d => d.value==='tree') : dispOptionsFor(srcType, m.styles, attr);
+              const val = groupedFixed ? 'tree' : (opts.some(o => o.value===dispByModule[m.key]) ? dispByModule[m.key] : (opts[0] && opts[0].value));
+              const locked = groupedFixed || opts.length===1;
+              return (
+                <div key={m.key} style={{ display:'flex', alignItems:'center', gap:12 }}>
+                  <span style={{ width:72, fontSize:13, color:'#374151' }}>{m.label}</span>
+                  {opts.length === 0
+                    ? <span style={{ fontSize:12, color:'#9CA3AF' }}>图文卡片</span>
+                    : <Select value={val} onChange={v => setDispByModule(prev => ({ ...prev, [m.key]:v }))}
+                        disabled={locked} style={{ width:200 }} options={opts} />}
+                  {locked && opts.length > 0 && <span style={{ fontSize:12, color:'#9CA3AF' }}>固定「{DISP_LABEL[opts[0].value]}」</span>}
+                </div>
+              );
+            })}
+          </Space>
+        </FormRow>
+        {Object.values(dispByModule).includes('slider') && (
+          <FormRow label="价格范围" helper="价格范围由前端按各 Collection 当前商品池动态生成:最小固定 $0,最大取商品池最高价向上取整到百位(不足 $100 按 $100),无小数/十位/个位。此处不可手动设置。">
+            <Space size={8} align="center">
+              <Input value="$0" disabled style={{ width:120 }} />
+              <span style={{ color:'#9CA3AF' }}>—</span>
+              <Input value="$ 商品池最高价 ⌈百位⌉" disabled style={{ width:200 }} />
+              <Tag bordered={false} style={{ background:'#F5F3FF', color:'#7C3AED', borderRadius:999 }}>动态</Tag>
+            </Space>
+          </FormRow>
+        )}
+        {srcType==='tag' && (
+          <FormRow label="枚举值" required helper="读取商品标签库(仅渠道商品/通用标签);左侧选入右侧作为前台筛选项,已选项可拖拽排序并配置前台展示名">
+            <TagValuePicker values={detail.vals} />
+          </FormRow>
+        )}
+        {srcType==='attribute' && (
+          <FormRow label="按作用域分组" helper="开启后,该属性的枚举值按商品命中的「类目 / 品牌 / 系列」作用域自然分组展示,组内各自排序,避免同名值跨类目混排(如 size:服装 S/M/L 与鞋类 36/37)。默认不启用,按需手动开启;全站语义一致的属性(如颜色/材质)无需开启。">
+            <Space size={10} align="center">
+              <Switch size="small" checked={grouped} onChange={setGrouped} disabled={!attr} />
+              <span style={{ fontSize:12, color:'#9CA3AF' }}>
+                {!attr
+                  ? '请先选择关联属性'
+                  : <>
+                      {grouped ? '已开启:枚举值将按作用域分组展示' : '未开启:枚举值平铺展示'}
+                      {SCOPE_GROUPED_ATTRS.has(attr) ? '(该属性建议开启)' : ''}
+                    </>}
+              </span>
+            </Space>
+          </FormRow>
+        )}
+        {showValueSort && (
+          <FormRow label="枚举值排序">
+            <DimValueSort srcType={srcType} attr={attr} values={detail.vals} grouped={grouped} fixedAlpha={srcType==='brand'} />
+          </FormRow>
+        )}
+        {srcType==='condition' && (
+          <FormRow label="枚举值排序">
+            <DimValueSort srcType="condition" values={detail.vals} noStrategy />
+          </FormRow>
+        )}
+        <FormRow label="状态"><Select key={detail.status || 'active'} defaultValue={detail.status || 'active'} style={{ width:140 }} options={[{value:'active',label:'启用'},{value:'inactive',label:'停用'}]} /></FormRow>
+      </div>
+    </Card>
+  );
+}
+
+/* ───────────── 菜单 ───────────── */
+const MENU = [
+  { key:'collection', icon:<AppstoreOutlined />, label:'Collection 管理',
+    children:[{ key:'collection-list', icon:<UnorderedListOutlined />, label:'Collection 列表' }] },
+  { key:'filter', icon:<FilterOutlined />, label:'筛选配置',
+    children:[{ key:'filter-dim', icon:<FilterOutlined />, label:'筛选维度管理' }] },
+];
+const PAGE_MENU = {
+  'collection-list':'collection-list', 'collection-new':'collection-list', 'collection-detail':'collection-list',
+  'filter-dim':'filter-dim', 'dim-edit':'filter-dim',
+};
+const CRUMB = {
+  'collection-list':'Collection 管理 / Collection 列表', 'collection-new':'Collection 管理 / 新建 Collection',
+  'collection-detail':'Collection 管理 / Collection 详情', 'filter-dim':'筛选配置 / 筛选维度管理', 'dim-edit':'筛选配置 / 筛选维度管理 / 编辑维度',
+};
+
+function App() {
+  const [currentPage, setCurrentPage] = useState('collection-list');
+  const [picker, setPicker] = useState(false);
+  const [dimName, setDimName] = useState(null);
+  const go = (key) => setCurrentPage(key);
+  const openPicker = () => setPicker(true);
+  const openDim = (name) => { setDimName(name); setCurrentPage('dim-edit'); };
+  const activeMenu = PAGE_MENU[currentPage];
+  const menuItems = MENU.map(g => ({ key:g.key, icon:g.icon, label:g.label,
+    children: g.children.map(c => ({ key:c.key, icon:c.icon,
+      label:<span style={{ fontWeight: activeMenu===c.key ? 600 : 400 }}>{c.label}</span> })) }));
+  return (
+    <ConfigProvider theme={looplyTheme}>
+      <Layout style={{ height:'100vh' }}>
+        <Layout.Header style={{ borderBottom:'1px solid #E5E7EB', display:'flex', alignItems:'center' }}>
+          <img src={LOGO_SRC} alt="Looply" style={{ height:32, display:'block' }} />
+          <div style={{ width:1, height:20, background:'#E5E7EB', margin:'0 16px' }} />
+          <span style={{ fontSize:14, fontWeight:500, color:'#6B7280' }}>类目管理</span>
+          <span style={{ marginLeft:'auto', color:'#9CA3AF', fontSize:13 }}>{CRUMB[currentPage]}</span>
+        </Layout.Header>
+        <Layout>
+          <Layout.Sider width={220} theme="light" style={SIDER_STYLE}>
+            <Menu mode="inline" items={menuItems} selectedKeys={[activeMenu]} defaultOpenKeys={['collection','filter']}
+              style={{ borderInlineEnd:'none' }} onClick={({ key }) => { if (PAGE_MENU[key]) go(key); }} />
+          </Layout.Sider>
+          <Layout.Content style={{ padding:28, overflow:'auto' }}>
+            {currentPage==='collection-list' && <CollectionListPage go={go} />}
+            {currentPage==='collection-new' && <CollectionNewPage go={go} openPicker={openPicker} />}
+            {currentPage==='collection-detail' && <CollectionDetailPage go={go} openPicker={openPicker} />}
+            {currentPage==='filter-dim' && <FilterDimPage openDim={openDim} />}
+            {currentPage==='dim-edit' && <DimEditPage go={go} name={dimName} />}
+          </Layout.Content>
+        </Layout>
+      </Layout>
+      <PickerDrawer open={picker} onClose={() => setPicker(false)} />
+    </ConfigProvider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
