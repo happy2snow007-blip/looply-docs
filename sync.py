@@ -347,6 +347,7 @@ MODULES = {
             'prd_html': {
                 'subdir': 'PRD',
                 'pattern': r'looply-CMS管理-PRD\.html',
+                'no_version': True,
             },
             'prd': {
                 'subdir': 'PRD',

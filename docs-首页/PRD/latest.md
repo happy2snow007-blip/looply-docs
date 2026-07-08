@@ -1,1691 +1,1054 @@
-# Looply 首页 Explore Finds Feed PRD
+# Looply · 首页 PRD v1.3
 
-## 1. 模块概述
-
-Explore Finds Feed 是首页中的商品流模块，位于 Hero Banner、Trust 模块、Curated Collections 之后，用于持续展示当前 Market + Channel 下的可售商品，并通过 Tab 区分不同商品发现场景。
-
-Feed 的核心目标不是单纯展示商品，而是让用户在首页持续发现商品，并在用户发生点击、收藏、购买等行为后，为 For You 推荐提供行为数据基础。
-
-本版本重点更新 For You 推荐逻辑：
-
-```text
-For You =
-A1 当前 Session 兴趣相似召回
-+
-A2 24h 近期兴趣相似召回
-+
-B New Arrivals 召回
-+
-C Best Sellers 召回
-```
-
-其中：
-
-- A1 和 A2 使用同一套相似召回算法，只是基准商品来源不同。
-- A1 基准来自当前推荐 Session 的点击和收藏。
-- A2 基准来自最近 24h 的点击和收藏，但必须先剔除当前 Session 已发生点击 / 收藏行为的 listing。
-- B 复用 New Arrivals Tab 的商品池。
-- C 复用 Best Sellers Tab 的商品池。
-- For You 复用 B / C 的商品池，但不复用 B / C 的展示顺序。
-- For You 是无限流，不展示“已全部看完”的结束状态。
+> 版本：v1.3 | 日期：2026-07-02 | 端：移动端（主）+ PC 端
+> 状态：🔄 迭代中
 
 ---
 
-## 2. 功能目标
+## 目录
 
-| 目标 | 说明 |
-|---|---|
-| 商品发现 | 用户可以在首页持续浏览可售商品 |
-| 多场景切换 | 通过 For You / New Arrivals / Best Sellers / Deals 区分浏览场景 |
-| 支持未登录浏览 | 未登录用户也可以浏览商品流 |
-| 支持会话级推荐 | 未登录和已登录用户均可通过推荐 Session 产生会话级推荐 |
-| 支持 24h 近期兴趣推荐 | 根据用户最近 24h 点击、收藏、购买行为判断用户兴趣强度 |
-| 支持当前 Session 兴趣推荐 | 当前 Session 内点击 / 收藏会影响 A1 通路 |
-| 支持跨 Session 近期兴趣推荐 | 最近 24h 但不属于当前 Session 的点击 / 收藏会影响 A2 通路 |
-| 支持商品去重 | 同一 Session 已展示商品不重复展示 |
-| 支持曝光频控 | 同一 listing 在 24h 内对同一用户最多展示指定次数 |
-| 支持间隔去重 | 同一 listing 在间隔 X 个商品内不得重复出现 |
-| 支持多通路混排 | A1 / A2 / B / C 进入统一候选池后混排 |
-| 支持多样性控制 | 控制同品牌、同系列、同类目、同价格带连续出现 |
-| 支持无限流 | 每次加载默认返回 20 个 listing，不主动展示结束态 |
-| 支持后续推荐演进 | 为长期画像、向量召回、精排模型积累行为数据 |
-| 支持多 Market | 推荐数据按 Market + Channel 隔离 |
-
----
-
-## 3. 不做什么
-
-| 不做事项 | 原因 |
-|---|---|
-| 不在 Feed 侧管理商品主数据 | 商品主数据由商品系统维护 |
-| 不在 Feed 侧重复计算库存数量 | 可售性由商品 / 库存域通过 listing_status / product_status 表达 |
-| 不使用 available_quantity | Feed 只消费上游可售状态结果 |
-| 不主动推荐不可售商品 | 首页 Feed 以转化为目标，不主动推荐不可购买商品 |
-| 不在 MVP 做长期用户画像 | 先做 24h 行为分层和基础召回 |
-| 不在 MVP 做向量召回 | 向量能力放到后续版本 |
-| 不在 MVP 做深度学习排序 | 当前阶段使用规则召回 + 配额混排 |
-| 不在 MVP 强依赖 Deals | 促销价、降价记录等营销能力未完整定义 |
-| 不在 MVP 直接按 listing 购买数做 Best Sellers | Looply 一物一码，单个 listing 通常只能售出一次，listing 级购买数区分度不足 |
-| 不把 wishlist_click 当作收藏兴趣 | wishlist_click 只是点击收藏按钮，只有 wishlist_add 成功才代表收藏成立 |
-| 不把曝光 / 滚动作为兴趣分 | 曝光和滚动不能稳定代表用户兴趣，MVP 不参与用户状态判断 |
+- [§1 概述](#1-概述)
+- [§2 全局上下文 — Market & Language](#2-全局上下文--market--language)
+- [§3 顶部导航 Header](#3-顶部导航-header)
+- [§4 搜索功能](#4-搜索功能)
+- [§5 首页 Banner（home_banner 资源位）](#5-首页-bannerhome_banner-资源位)
+- [§6 信任板块 Trust Bar](#6-信任板块-trust-bar)
+- [§7 精选合集 Collections（home_collection 资源位）](#7-精选合集-collectionshome_collection-资源位)
+- [§8 Explore Finds Feed 流](#8-explore-finds-feed-流)
+- [§9 底部导航 Tab Bar（移动端）](#9-底部导航-tab-bar移动端)
+- [§10 页脚 Footer（PC 端）](#10-页脚-footerpc-端)
+- [§11 登录态差异矩阵](#11-登录态差异矩阵)
+- [§12 降级策略汇总](#12-降级策略汇总)
+- [§13 性能要求](#13-性能要求)
+- [§14 依赖与风险](#14-依赖与风险)
+- [§15 版本规划](#15-版本规划)
+- [§16 数据与埋点](#16-数据与埋点)
+- [§17 附录 — 设计稿索引](#17-附录--设计稿索引)
 
 ---
 
-## 4. 术语说明
+## §1 概述
 
-| 术语 | 说明 | 定义来源 |
-|---|---|---|
-| Explore Finds Feed | 首页商品流模块 | 本次 PRD 新定义 |
-| Tab | Feed 内的场景切换入口，如 For You、New Arrivals | 本次 PRD 新定义 |
-| 商品卡 | Feed 中每个 listing 的展示卡片 | 本次 PRD 新定义 |
-| listing | 渠道商品，一件实物商品在某个销售渠道的上架记录，是 Feed 的展示对象 | 已有，商品系统 listing |
-| product | 实物商品，一物一码，独立成色、质检和鉴定信息 | 已有，商品系统 product |
-| standard_sku | 标品 SKU，SPU 下按销售属性组合拆分的标准规格 | 已有，商品系统 standard_sku |
-| spu | 标准产品单元，代表标准商品 | 已有，商品系统 spu |
-| backend_category | 后台类目，商品主数据分类维度 | 已有，商品系统 backend_category |
-| brand | 品牌主数据 | 已有，商品系统 brand |
-| series | 品牌系列 | 已有，商品系统 series |
-| grade | 成色等级 | 已有，product / product_inspection |
-| wishlist | 用户收藏关系 | 收藏模块 |
-| Market | 市场维度，决定语言、货币、渠道和商品池 | Market 系统 |
-| Channel | 销售渠道维度 | Channel 配置 |
-| 可售 | listing 处于在售状态且商品处于可售状态 | 本次 PRD 定义业务规则 |
-| 推荐 Session | 推荐侧浏览会话，不等于登录注册系统 user_session | 本次 PRD 新定义 |
-| anonymous_user_id | 未登录用户的匿名访问标识，由推荐 / 埋点侧生成，不属于登录注册系统表 | 本次 PRD 新定义 |
-| user_key | 推荐侧用户识别键，已登录用 user_id，未登录用 anonymous_user_id | 本次 PRD 新定义 |
-| A1 通路 | 当前 Session 兴趣相似召回 | 本次 PRD 新定义 |
-| A2 通路 | 24h 近期兴趣相似召回，排除当前 Session 行为商品后取基准 | 本次 PRD 新定义 |
-| B 通路 | New Arrivals 商品池召回 | 本次 PRD 新定义 |
-| C 通路 | Best Sellers 商品池召回 | 本次 PRD 新定义 |
-| interest_score_24h | 最近 24h 用户兴趣分 | 本次 PRD 新定义 |
-| 曝光频控 | 控制同一 listing 在一定时间内重复展示次数 | 本次 PRD 新定义 |
-| 间隔去重 | 控制同一 listing 在最近 X 个已展示商品内不重复出现 | 本次 PRD 新定义 |
-| 打散 | 控制同品牌、同类目、同系列商品不要连续出现 | 本次 PRD 新定义 |
-| 降级 | 当推荐依赖不可用时，使用稳定规则替代 | 本次 PRD 定义业务规则 |
+### §1.1 背景与目标
 
-说明：
+Looply 是面向美国市场的大牌二手电商平台。首页是用户进入 App 的第一个落点，承担三项核心任务：
 
-登录注册系统已有 user_account、user_session 等概念，但 user_session 是登录态会话，不等于推荐 Session。未登录用户的 anonymous_user_id 不属于登录注册模块原有表，本 PRD 只定义推荐 / 埋点侧需要具备匿名用户识别能力，具体命名和实现由研发确定。
+1. **建立品牌信任**：通过 Trust Bar 传递鉴定能力和正品心智，降低用户对二手品的顾虑
+2. **运营精选曝光**：通过 Banner + Collections 资源位传递活动和品类场景
+3. **个性化留存**：通过 Feed 流持续为用户发现好货，加深浏览深度
+
+### §1.2 不做什么（MVP 边界）
+
+| 功能 | MVP 状态 | 说明 |
+|------|----------|------|
+| 搜索联想词 / 模糊匹配 | ❌ 不做 | 搜索输入态不展示候选词 |
+| 搜索配置后台 | ❌ 不做 | 搜索占位词和热门趋势一期硬编码 |
+| PC 端搜索框交互 | ⏳ 待做 | 搜索框当前为占位，交互设计优先级靠后；预置搜索内容待搜推确认后再实现 |
+| Deals Tab | ❌ 隐藏 | 营销系统未上线，一期不展示 |
+| Best Sellers Tab | ❌ 隐藏 | MVP 原型未实现，后续版本上线 |
+| 划线价 / 促销价 | ❌ 不做 | 营销系统未就绪，商品卡片仅展示 listing_price |
+| Trust Bar 运营配置 | ❌ 不做 | 前端硬编码，内容固定 |
+| Feed Tab 顺序配置 | ❌ 不做 | Tab 前后顺序固定，暂未做配置化 |
+| C1 回收/寄卖入口 | ❌ 不做 | 当前仅 C2 买家侧业务 |
+| 多语言 UI（i18n） | ❌ 不做 | MVP 仅英文界面，语言选项仅影响 Market 关联的货币 / 配置，不影响页面文案翻译 |
+| PC Navbar Heart/Cart 侧栏 | ❌ 不做 | MVP 暂不设计侧栏展开交互，后续迭代 |
+
+### §1.3 用户角色
+
+| 角色 | 状态 | 首页核心行为 |
+|------|------|-------------|
+| 访客（未登录） | 未登录 | 浏览 Feed、查看 Banner、搜索商品 |
+| 普通买家（已登录） | 已登录 | 个性化推荐、收藏、购物车 |
+
+### §1.4 核心场景
+
+| 场景 | 用户状态 | 首页对应模块 |
+|------|----------|-------------|
+| Discover：第一次打开 Looply | 无行为数据 | Trust Bar → Feed (New Arrivals) |
+| Browse：没有明确需求，随便逛 | 有/无行为数据 | Banner → Collections → Feed (For You / New Arrivals) |
+| Intent：有明确品类或品牌需求 | 任意 | 搜索 → (跳转搜索结果页) |
+| Consideration：回来看收藏/考虑下单 | 已登录 | Feed (For You) → (跳转商详) |
+
+### §1.5 全局页面流转
+
+```
+首页
+├── 搜索展开卡 ──→ 搜索结果页（点击搜索词 / 提交搜索）← 跳转暂不做，搜索结果页待设计
+├── Banner CTA ──→ 活动落地页 / 品类页（landing_page 字段决定）← 跳转暂不做，结果页待设计
+├── Collections 卡片 ──→ 合集落地页 ← 跳转暂不做，结果页待设计
+├── Feed 商品卡 ──→ 商品详情页 ← 已有，参考商详 PRD
+├── Header Market & Language ──→ 展开 Market & Language 面板（浮层，不跳页）
+├── Header Account 图标（未登录）──→ 弹出登录引导浮层（Sign In / Create Account）
+├── Header Account 图标（已登录）──→ 展开账户菜单浮层（My Orders / My Profile / Settings / Sign Out）
+└── 底部 Tab Bar ──→ Shop / Favorites / Account
+
+> ⚠️ 首页不关注以下 Header 展开态，本期不设计、不交付：
+> - 🔍 Search bar 点击展开搜索卡（PC 端）
+> - ♡ Favorites 侧栏滑出
+> - 🛒 Cart 侧栏滑出 / 数量徽标
+> 上述交互即便在原型文件中有示意，首页 PRD 本期也不覆盖，待对应页面设计完成后再补。
+```
+
+### §1.6 术语说明
+
+| 术语 | 含义 |
+|------|------|
+| `market_id` | Looply 内部市场标识符（见 Market PRD v1.2） |
+| `country_code` | ISO 3166-1 alpha-2 国家代码（如 `US`、`GB`） |
+| `language_code` | BCP 47 语言代码（如 `en`、`zh-Hans`） |
+| `currency_code` | ISO 4217 货币代码（如 `USD`、`GBP`） |
+| `zone_key` | CMS 资源位唯一标识（如 `home_banner`、`home_collection`） |
+| `listing_price` | 商品当前上架价格 |
+| `grade` | 商品成色等级：NWT / Excellent / Good / Fair |
+| Trust Bar | 首页信任板块，前端硬编码，不通过 CMS 配置 |
+| 资源位 | CMS 系统中由运营人员配置的内容插槽 |
 
 ---
 
-## 5. 多 Market 与多 Channel 策略
+## §2 全局上下文 — Market & Language
 
-说明：Market 检测与来源优先级（用户选择 > 账户默认 > IP/浏览器推断 > 系统默认）属于页面层/会话层职责，不属于 Feed 模块。Feed 只消费当前已确定的 market_id + channel_id，不做 Market 推断。详见 Market 系统 PRD v1.2。Channel 归属于 Market，不可跨 Market 切换，详见商品系统 PRD v1.7。
+首页加载时，系统需确定当前用户所在的 Market 以及使用的语言。此上下文影响资源位内容、货币显示。
 
-| 项目 | 规则 |
-|---|---|
-| 商品池 | Feed 仅读取当前 market_id + channel_id 下的可售 listing |
-| 行为数据维度 | 所有点击、收藏、购买、曝光行为记录时必须携带 market_id + channel_id |
-| 推荐召回范围 | A1/A2 相似召回、B 新上架、C Best Sellers 均只返回当前 market_id + channel_id 下的商品 |
-| 用户相似性范围 | 用户兴趣基准商品和候选商品匹配均限定在当前 market_id + channel_id 内，不跨 Market 或 Channel |
-| 推荐配置 | 配置项支持按 Market / Channel 覆盖，未配置时使用系统默认值 |
+### §2.1 市场（Market）自动识别机制
 
-### 5.1 Feed 数据隔离规则
+系统按以下优先级逐级判断，取第一个成功匹配的结果：
 
-| 项目 | 规则 |
-|---|---|
-| 商品曝光 | 按 market_id + channel_id 隔离，独立统计 |
-| 点击数据 | 按 market_id + channel_id 隔离，独立统计 |
-| 收藏数据 | 按 market_id + channel_id 隔离，独立统计 |
-| 购买数据 | 按 market_id + channel_id 隔离，独立统计 |
-| 热门统计 | 按 market_id + channel_id 隔离，独立统计 |
-| 用户兴趣分 | interest_score_24h 按 user_key + market_id + channel_id 计算 |
-| 推荐训练 | 按 market_id 隔离，不跨 Market 共享训练数据 |
+| 优先级 | 来源 | 说明 |
+|--------|------|------|
+| 1 | 用户已保存的选择 | 从本地持久化存储（见 §2.4）读取 `saved_market_id` |
+| 2 | IP 地理位置 | 服务端通过请求 IP → GeoIP 库 → `country_code` → Market 系统映射 `market_id`；仅取"running"状态的 market |
+| 3 | 设备 WiFi / 位置权限 | App 侧：若用户已授予位置权限，取设备 GPS/WiFi 所在国家 `country_code` → 同上映射；Web 侧不适用 |
+| 4 | 浏览器语言首选项 | 从 `Accept-Language` 或 `navigator.language` 提取 `language_code` → Market 系统中首选语言为该语言的 market；多个 market 匹配时取 priority 最高的 |
+| 5 | 默认兜底 | 使用 US 市场（`market_id` 对应美国），货币 USD |
+
+**country_code → market_id 映射规则**（来自 Market PRD v1.2）：
+- 查 `market_countries` 表，找 `country_code` 匹配且 `market.status = 'running'` 的记录
+- 若一个国家对应多个 market（通常不会），取 `market.priority` 最高的
+
+**时机**：首页 SSR/初始化请求时由服务端完成判断，结果通过 `market_id` + `currency_code` 随页面数据下发。客户端不重复检测。
+
+### §2.2 语言（Language）自动识别机制
+
+| 优先级 | 来源 | 说明 |
+|--------|------|------|
+| 1 | 用户已保存的选择 | 从本地持久化存储读取 `saved_language_code` |
+| 2 | 设备系统输入法语言 | App 侧：读取系统首选语言（iOS: `preferredLanguages[0]`；Android: `Locale.getDefault()`） |
+| 3 | 浏览器语言 | Web 侧：`navigator.language` 或 `Accept-Language` 第一项 |
+| 4 | 当前 Market 的默认语言 | Market PRD 中 market 对应的 `default_language_code` |
+| 5 | 默认兜底 | `en`（英文） |
+
+**MVP 限制**：MVP 阶段 UI 界面固定为英文，语言识别结果不影响页面文案。多语言版本上线后，语言选择的影响包括：在 Market & Language 面板中回显用户当前语言、确定 Market 候选列表的展示语言、整体页面的文案展示。
+
+### §2.3 Market & Language 切换面板
+
+**入口**：
+- 移动端：Header 右侧 Globe 图标（市场与语言设置）
+- PC 端：Navbar 右侧 Globe 图标
+
+> ⚠️ 当前方案：语言和市场设置入口在 Globe 图标。后续建议收口到 Account 页进行手动设置（Account 功能待设计）。
+
+**面板形态**：
+- 移动端：从 Header 下方向下展开（dropdown），背景遮罩
+- PC 端：下拉浮层，宽 320px，出现在 Globe 图标正下方
+
+**交互线框图**
+
+移动端从 Header 下方向下展开的下拉面板：
+
+```
+┌────────────────────────────────┐
+│                                │  ← 背景半透明遮罩（点击关闭）
+│  ┌──────────────────────────┐  │
+│  │                          │  │  ← 从 Header 下方向下展开
+│  │  Language                │  │
+│  │  ● English          ✓    │  │  ← 单选，已选中高亮
+│  │  ○ 简体中文              │  │
+│  │                          │  │
+│  │  Market                  │  │  ← 语言改变后列表联动刷新
+│  │  ● 🇺🇸 United States (USD)│  │
+│  │  ○ 🇬🇧 United Kingdom (GBP)│  │
+│  │  ○ ...                   │  │
+│  │                          │  │
+│  │  [        Apply         ]│  │  ← 点击确认并刷新页面
+│  └──────────────────────────┘  │
+└────────────────────────────────┘
+点击遮罩 / 未点 Apply → 不保存，恢复原值
+```
+
+PC 端下拉浮层（Globe 图标正下方，宽 320px）：
+
+```
+                     ┌──────────────────┐
+                     │ Language          │
+                     │ ● English    ✓   │
+                     │ ○ 简体中文       │
+                     │                  │
+                     │ Market           │
+                     │ ● 🇺🇸 US (USD)  ✓│
+                     │ ○ 🇬🇧 UK (GBP)   │
+                     │                  │
+                     │ [ Apply ]        │
+                     └──────────────────┘
+                          ↑ Globe 图标正下方，320px 宽
+```
+
+**面板结构（先语言，后市场）**：
+
+```
+┌─────────────────────────────┐
+│  Language                   │  ← 区块标题
+│  ○ English                  │  ← 单选，当前已选中高亮
+│  ○ 简体中文                 │
+│  ○ ...（仅展示 running 语言）│
+│                             │
+│  Market                     │  ← 区块标题（随语言更新）
+│  ○ 🇺🇸 United States (USD)  │  ← 单选，含国旗 emoji + 货币代码
+│  ○ 🇬🇧 United Kingdom (GBP) │
+│  ○ ...（仅展示 running market）│
+└─────────────────────────────┘
+```
+
+**交互规则**：
+1. 语言变更后，Market 候选列表立即根据新语言过滤并重新渲染（展示语言本地化名称）
+2. 两者均为单选
+3. 市场候选项包含：国旗 emoji（由 `country_code` 映射）+ 国家名称 + 货币代码；仅展示 `market.status = 'running'` 的 market
+4. 选择完成后点击"Apply"/"Save"按钮确认，浮层关闭，页面以新 `market_id` 刷新首页资源位内容
+5. 关闭浮层未点击 Apply → 不保存，恢复原值
+
+**字段映射**（来自 Market PRD v1.2）：
+
+| 面板展示 | 字段来源 |
+|----------|---------|
+| Language 选项文本 | `language.local_name` |
+| Market 国旗 | 由 `market.primary_country_code` → Unicode 国旗 emoji 计算得出 |
+| Market 国家名称 | `country.country_name`（当前语言版本） |
+| Market 货币 | `market.default_currency_code` |
+
+### §2.4 持久化策略
+
+| 数据 | 存储位置 | 生命周期 |
+|------|----------|---------|
+| 已登录用户的语言和市场选择 | 用户账号 profile（服务端） | 永久，直至用户再次修改 |
+| 未登录访客的语言和市场选择 | 客户端本地（App: UserDefaults/SharedPreferences；Web: localStorage） | 30 天 |
 
 ---
 
-## 6. Explore Finds Feed 模块总览
+## §3 顶部导航 Header
 
-### 6.1 功能描述
+### §3.1 移动端 Header
 
-Explore Finds Feed 在首页中展示商品卡片流，由模块标题、Tab 区、商品卡片网格、加载更多状态和异常状态组成。
+**尺寸**：高度 52px，横向 full-width，背景色白色，底部无分割线（与 Banner 无缝连接）。
 
-该模块独立于首页 Banner、Trust、Collections，不受这些模块的展示状态影响。
+**交互线框图**
 
-### 6.2 页面布局
+```
+┌──────────────────────────────────────────────┐  h: 52px
+│ LOOPLY  [ 🔍  Chanel...           ]  🌐      │
+└──────────────────────────────────────────────┘
+  ↑Logo      ↑Search Pill (flex 1)     ↑图标组
+  18px       h:36px 圆角18px 灰色背景   24×24px
+  Playfair   占位词每3s淡入淡出轮播     
+  Italic
+  点击→首页   点击→搜索展开态          🌐→Market面板
+```
 
-| 区域 | 内容 | 说明 |
-|---|---|---|
-| 模块标题 | Explore Finds | 固定展示 |
-| Tab 区 | For You / New Arrivals / Best Sellers / Deals | 横向排列，移动端可横向滑动 |
-| 商品网格 | 商品卡片 | PC 4 列，Mobile 2 列 |
-| 异常状态 | 加载失败、重试 | 仅影响 Feed 模块，不影响首页其他模块 |
-| 无限流 | 下滑持续加载 | 不展示“已全部看完”的结束态 |
+**布局（从左到右）**：
 
-说明：
+| 元素 | 规格 | 说明 |
+|------|------|------|
+| Logo | Playfair Display Italic，约 18px，`LOOPLY` | 左对齐，点击返回首页 |
+| Search Pill | 胶囊形（border-radius: 18px），高度 36px，fill: 背景灰（`$color-surface-secondary`），占据大部分中间空间 | 内含搜索图标 + 预埋占位词；点击进入搜索展开态 |
+| Market & Language 图标（🌐） | 24×24px，globe 形 | 点击展开 Market & Language 面板（见 §2.3） |
 
-本版本不设计结束状态。Feed 是无限流，每次加载默认返回 20 个 listing。若当前请求无法生成足够新候选，则进入兜底逻辑，不直接展示 “You’ve seen it all”。
+**Search Pill 预埋占位词**：
+- MVP 一期：前端硬编码轮播词列表：`["Chanel", "bags", "iPhone", "Gucci", "cameras", "Prada", "watches"]`
+- 展示方式：每隔 3 秒切换到下一个词，淡入淡出动画；切换时显示为灰色占位文字（非实际输入内容）
+- 后续迭代：词库由运营后台配置（搜索配置页）+ 算法策略动态生成
+
+**Header 滚动行为**：
+- 向下滚动时：Header 保持 sticky（吸顶），始终可见
+- 向上滚动时：Header 无额外动画，始终可见
+
+### §3.2 PC 端 Header
+
+**PC 端分为两层**：Announcement Bar + Navbar。样式与交互见原型「PC 首页原型稿 v1.0」。
+
+#### §3.2.1 Announcement Bar（公告条）
+
+- **高度**：40px
+- **背景色**：`#6432FC`（品牌紫）
+- **内容**：文字公告，MVP 一期前端硬编码文案（正式文案由运营提供）
+- **文字**：14px，白色，居中
+- **可关闭**：MVP 不做关闭按钮，始终展示
+
+#### §3.2.2 Navbar
+
+- **高度**：72px，背景色白色，底部 `1px solid #e5e7eb`
+- **三栏布局**：navLeft（Logo + NavLinks）/ searchBar（320px 居中）/ navRight（图标组）
+
+**navLeft（左栏）**：
+- Logo：Playfair Display Italic，`LOOPLY`，点击返回首页
+- NavLinks：一级导航入口列表，**内容与顺序由 CMS 导航栏配置统一管理**，非首页独有需求，详见「导航栏配置 PRD」（`/Users/zz/looply/cms/导航栏配置`）；字号 14px，Regular；hover 下划线；active 态文字加粗 + 品牌紫下划线
+
+**searchBar（中栏）**：
+- 宽度 320px，胶囊形，背景灰，内含搜索图标 + 占位词
+- MVP 阶段搜索框为占位，交互设计优先级靠后；预置搜索内容待搜推确认后再做
+- 点击后交互逻辑见 §4
+
+**navRight（右栏）**：
+- 图标样式与顺序以原型为准
+- 本期展示：**Market & Language 入口**（点击展开下拉浮层，见 §2.3）、**我的（Account）**（已登录 → hover 展开个人中心菜单；未登录 → 点击跳转登录页）
+- 搜索、收藏、购物车等其他图标**本期不在此处展示**
+
+**Navbar 滚动行为**：向下滚动后 Navbar sticky 吸顶（Announcement Bar 可滚动消失）。
+
+#### §3.2.3 PC 端导航下拉面板
+
+PC 端 Navbar 各 NavLink hover 时触发对应级别的下拉面板，浮于页面内容上方。
+
+**一级导航（无子分类，如 New Arrivals）**：
+- 点击高亮（文字加粗 + 品牌紫下划线）
+- 无下拉面板，直接跳转对应页面
+
+**二级导航（有子分类，如 Handbags）**：
+- hover 触发浮动白卡，从 Navbar 底部向下展开
+- 内容：2 列平铺子分类链接，无分组标题
+- 宽度约 460px，8px 圆角，阴影
+- 示例链接：Shop All Bags / Bucket Bag / Tote Bag / Crossbody Bag / Shoulder Bag / Clutch / Top Handle Bag / Belt Bag / Backpack / Luggage
+
+**三级导航（有品牌分组，如 Brands）—— MVP 采用版本 A**：
+- hover 触发全宽白色面板（full-width），紧贴 Navbar 底部向下展开，覆盖页面内容
+- 按二级目录分组，每组：组标题（粗体）+ 水平分割线 + 三级品牌名多列平铺（每组 4 列）
+- 组间有间距分割，品牌数量多的组自动增加行高
+- 待定：二级目录标题是否支持点击跳转，需产品确认
+
+> 📌 原型中保留了版本 B 方案（左侧二级分类竖向 Tab，hover 切换，右侧显示对应品牌列表）作为备选，MVP 阶段采用版本 A。
 
 ---
 
-## 7. 前置依赖
+## §4 搜索功能
 
-| 依赖模块 | 依赖内容 | 当前状态 | 是否阻塞 MVP | 当前处理 |
-|---|---|---|---|---|
-| 商品系统 | listing、product、standard_sku、spu、brand、series、backend_category | 已有 PRD + 已有实体关系设计 / 字段定义 | 是 | Feed 展示对象必须是 listing_id |
-| 商品系统（字段待新增） | listed_at（listing 首次变为 active 的时间戳） | 字段缺失，需提需求。商品系统 v1.7 明确"上架时间通过操作日志查看，不作为独立字段"，即当前无可查询字段 | 是，阻塞 New Arrivals 和 B 通路 | 需向商品系统侧提字段新增需求，建议命名 listed_at 或 on_shelf_at |
-| 商品系统（字段名待确认） | 成色等级字段名（枚举值 NWT / Excellent / Good / Fair） | 商品系统 v1.7 有成色录入和枚举，但字段名（如 grade、condition 等）未在 PRD 中显式写出 | 是 | 快照表 grade 字段同步时需确认源字段名 |
-| Market 系统 | market_id、language_code、currency_code、channel_id | 已有 PRD | 是 | 决定当前用户应该看到哪个市场、哪个渠道的商品 |
-| 登录注册 | user_id、登录态识别 | 已有 PRD | 否 | 已登录时记录 user_id；推荐不按是否登录判断状态 |
-| 匿名用户识别 | anonymous_user_id | 待新增 | 是 | 未登录用户也需要记录 24h 点击、收藏、曝光等行为 |
-| 收藏模块 | 收藏状态读取、收藏成功写入 | 待确认 | 是 | 商品卡收藏入口依赖；收藏成功后记录 wishlist_add |
-| 推荐系统 | A1/A2/B/C 召回、用户状态分层、混排、去重、频控 | 缺失 | 是 | 本 PRD 新增 |
-| 用户行为数据 | 曝光、点击、收藏成功、取消收藏、购买、Tab 切换、加载更多 | 部分缺失 | 是 | 用于推荐、去重、频控、分析 |
-| 订单系统 | listing / product / spu 的购买完成记录 | 待确认 | 是 | 用于 Best Sellers 中的购买热度，以及用户 24h 购买行为统计 |
-| 营销系统 | promotion_price、price_drop、折扣 | 缺失 | 否 | Deals MVP 可隐藏或延后 |
-| 埋点系统 | Feed 曝光、点击、收藏、加载更多 | 已有框架，事件需新增 | 是 | MVP 必须接入 |
-| CMS / 运营配置 | Tab 开关、推荐配置默认值 | 缺失 | 否 | MVP 可先通过配置表维护 |
-| 翻译模块 | 商品标题、品牌、类目、属性翻译 | 已有 PRD | 是 | 无翻译时 fallback 默认语言 |
-| 图片服务 | 图片裁剪、CDN、WebP、兜底图 | 已有能力 | 是 | 商品卡必须稳定展示图片 |
+### §4.1 搜索栏状态机
+
+**状态转换图**：
+
+```
+                    ┌──────────────────────────────────────────────┐
+                    │                                              │
+              ┌─────▼──────┐   点击 Search Pill   ┌──────────────┐│
+              │   Idle     │──────────────────────►│  Expanded   ││
+              │  占位词轮播  │                       │  展开搜索卡  ││
+              └────────────┘◄──────────────────────└──────┬───────┘│
+                    ▲        点击遮罩 / Cancel              │       │
+                    │                             键入字符 │       │
+                    │                                      ▼       │
+                    │                             ┌──────────────┐ │
+                    │       点击遮罩 / Cancel      │   Typing    │ │
+                    │◄────────────────────────────│  搜索卡隐藏  │ │
+                    │                             └──────┬───────┘ │
+                    │                                    │         │
+                    │               点击搜索词/标签/Enter/🔍        │
+                    └────────────────────────────────────┘         │
+                              搜索结果页（新页面）                    │
+                                                                    │
+                    点击遮罩 / Cancel ───────────────────────────────┘
+```
+
+| 状态 | 触发条件 | 表现 |
+|------|----------|------|
+| 默认态（Idle） | 初始 / 搜索收起后 | Search Pill 显示占位词轮播，无展开卡片 |
+| 展开态（Expanded） | 点击 Search Pill（未输入内容） | Search Pill 变为可输入文本框，下方展开搜索卡片（含热门词） |
+| 输入态（Typing） | 在搜索框中键入字符 | 搜索卡片内容隐藏（无联想词），光标闪烁 |
+| 提交 | 点击搜索按钮 / 按 Enter / 点击搜索词 | 导航至搜索结果页 |
+| 关闭 | 点击卡片外部遮罩区域 / 点击"取消"按钮 | 回到 Idle 态，搜索框内容清空 |
+
+### §4.2 搜索展开卡片（Expanded 态）
+
+展开卡片从 Search Pill 正下方向下滑出，紧贴搜索框底部，宽度覆盖整个屏幕宽度（移动端为全宽下拉卡片，浮于内容上方；PC 端为下拉卡片，宽度与搜索框对齐）。
+
+**交互线框图（Expanded 态）**：
+
+```
+[ 🔍  _________________________________ ] [Cancel]  ← 搜索框激活，可输入
+┌────────────────────────────────────────┐
+│  Recent Searches          清除全部 >   │  ← 条件渲染：本地有历史时才展示
+│  ↻ iPhone 12 Pro                  [✕] │  ← 点击词 → 提交搜索；✕ → 删除该条
+│  ↻ Chanel classic flap            [✕] │
+│  ↻ Gucci belt                     [✕] │  最多5条，时间倒序
+├────────────────────────────────────────┤
+│  Hot Trends                            │  ← 始终展示
+│  [Luxury Bags] [Watches] [Jewelry]     │  ← 品类标签 Row1（5个）
+│  [Smartphones] [Cameras]               │
+│  [Gucci] [Prada] [Fendi] [Leica]       │  ← 品牌标签 Row2（5个）
+│  [Sony]                                │
+└────────────────────────────────────────┘
+
+无历史记录时（不渲染 Recent Searches 区块）：
+[ 🔍  _________________________________ ] [Cancel]
+┌────────────────────────────────────────┐
+│  Hot Trends                            │
+│  [Luxury Bags] [Watches] [Jewelry]     │
+│  [Smartphones] [Cameras]               │
+│  [Gucci] [Prada] [Fendi] [Leica] [Sony]│
+└────────────────────────────────────────┘
+```
+
+**输入态（Typing）时搜索卡内容变化**：
+
+```
+[ 🔍  Chan_  ] [Cancel]
+                           ← 搜索卡内容完全隐藏（无联想词）
+                           ← MVP 不做 autocomplete
+                           ← 用户继续输入，直到手动提交
+```
+
+**Recent Searches**：
+- 仅当本地存在搜索历史（`≥ 1` 条）时，整个 Recent Searches 区块才渲染
+- 无历史：直接从 Hot Trends 开始，不留空白
+- 最多展示最近 5 条，按时间倒序
+- 每条右侧有 ✕ 按钮，点击删除该条记录（不关闭卡片）
+- 点击词：记录到搜索历史，跳转搜索结果页
+
+**Hot Trends**：
+- MVP 一期：前端硬编码，内容如下：
+  - 品类标签（Row 1，5 个）：`Luxury Bags`、`Watches`、`Jewelry`、`Smartphones`、`Cameras`
+  - 品牌标签（Row 2，5 个）：`Gucci`、`Prada`、`Fendi`、`Leica`、`Sony`
+- 标签样式：浅色填充胶囊，14px，可点击；品类与品牌标签可用不同填充色区分
+- 点击标签：以标签文字为关键词提交搜索，记录到搜索历史，跳转搜索结果页
+- 后续迭代：支持运营后台配置 + 算法策略动态生成
+
+### §4.3 搜索输入态
+
+- 用户开始在搜索框中输入字符后，展开卡片内所有内容（Recent Searches + Hot Trends）**立即隐藏**
+- 搜索框保持可见和可输入状态，背景不遮罩
+- MVP 不做搜索联想词（autocomplete / fuzzy match）
+- 用户继续输入直到手动点击搜索图标 / 按 Enter 提交
+
+### §4.4 搜索历史本地持久化
+
+| 数据 | 存储位置 | 生命周期 |
+|------|----------|---------|
+| 搜索历史（最近 20 条） | 客户端本地（App: UserDefaults；Web: localStorage） | 30 天，超时自动清除；用户手动删除单条 / 全部 |
 
 ---
 
-## 8. Feed 展示对象
+## §5 首页 Banner（home_banner 资源位）
 
-Feed 的展示对象必须是：
+Banner 是首页最顶部的视觉焦点，内容由 CMS 系统控制（见 CMS PRD v2.5.1）。Banner 内容由 CMS 系统控制，详见 CMS PRD v2.5.1。
 
-```text
-listing_id
+### §5.1 CMS 资源位规格
+
+| 字段 | 值 |
+|------|----|
+| `zone_key` | `home_banner` |
+| 最大配置数 | 4 条（按 `start_time` 和 `market_id` 过滤后取 active 状态） |
+| 支持模板 | `banner_image`（P0）、`banner_video`（P1） |
+| Terminal 维度 | App / PC 各自独立配置 |
+
+**CMS 配置字段（前端消费）**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `asset_image` | URL | Banner 图片地址（banner_image 模板使用） |
+| `asset_video` | URL | Banner 视频地址（banner_video 模板使用） |
+| `title` | 文本 | 主标题文案（可为空） |
+| `subtitle` | 文本 | 副标题文案（可为空） |
+| `cta_text` | 文本 | CTA 按钮文案（如 "Explore Finds →"） |
+| `text_color` | HEX | 覆盖在图片上的文字颜色（默认白色） |
+| `landing_page` | URL | 点击跳转地址，由 CMS 后台提供 |
+
+### §5.2 移动端 Banner 展示规则
+
+**交互线框图（移动端 Banner 轮播）**：
+
+```
+┌────────────────────────────────┐  h: 320px，full-width
+│                                │
+│   （Banner 图片 / 视频内容）     │
+│                                │
+│░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░│  ← 底部渐变黑色遮罩（从底向上）
+│  Title Text                    │  ← 文字颜色读取 text_color
+│  Subtitle Text                 │
+│  [ Explore Finds →  ]          │  ← CTA 按钮
+└────────────────────────────────┘
+              ●  ○  ○  ○           ← 分页圆点指示器，居中，当前 Banner 实心
+              
+点击 Banner 任意区域（含 CTA）→ 跳转 landing_page
+自动轮播：默认间隔4s（可配置），点击 Banner 后暂停
+多 Banner 时：左右滑动切换，圆点跟随更新
 ```
 
-原因：
-
-| 原因 | 说明 |
-|---|---|
-| 一物一码 | Looply 商品是二手实物商品，每件 product 独立成色、图片、质检、鉴定 |
-| 多渠道 | 同一 product 可以在不同 channel 下有不同 listing |
-| 前台售卖 | 用户实际点击、收藏、购买的对象是 listing |
-| 价格独立 | listing_price / currency_code / listing_status 都在 listing 侧表达 |
-| 推荐去重 | Feed 需要按 listing_id 做曝光去重和返回去重 |
-| 购买特殊性 | 单个 listing 通常只能售出一次，购买热度需从 SPU 维度继承 |
-
-Feed 不直接以 spu_id、standard_sku_id 或 product_id 作为前台展示对象。
-
----
-
-## 9. 通用基础商品池
-
-Feed 所有 Tab 和推荐通路均从基础商品池开始过滤。
-
-```text
-base_pool =
-当前 market_id
-+ 当前 channel_id
-+ listing_status = 可售
-+ product_status = 可售
-+ listing_price > 0
-+ main_image_url 不为空
-+ grade 不为空
-```
-
-说明：
-
-| 规则 | 说明 |
-|---|---|
-| 不使用 available_quantity | Feed 不重复计算库存 |
-| 不使用库存数量字段 | 不读取 quantity_on_hand / quantity_reserved / quantity_locked |
-| 可售性来源 | 由商品 / 库存域在 listing_status / product_status 中统一表达 |
-| 图片有效 | 无主图商品不进入首页 Feed |
-| 价格有效 | listing_price <= 0 的商品不进入 Feed |
-| 成色有效 | grade 为空的商品不进入 Feed |
-| Market 隔离 | 不同 Market 使用不同 Channel 下的 listing 池 |
-
-注意：
-
-已展示过滤、24h 曝光频控、间隔去重、跨通路去重不属于基础商品池规则，而属于推荐混排阶段规则。
-
----
-
-## 10. 推荐 Session
-
-Feed 推荐使用推荐侧 session_id，不是登录注册系统的 user_session。
-
-| 项目 | 规则 |
-|---|---|
-| session_id | 推荐侧浏览会话 ID |
-| 作用 | 串联曝光、点击、收藏、加载更多、Tab 切换等行为 |
-| 是否要求登录 | 否，未登录用户也必须有 |
-| 与 user_id 关系 | 已登录时同时记录 session_id + user_id；未登录时 user_id 为空 |
-| 与 anonymous_user_id 关系 | 未登录或未识别用户用 anonymous_user_id 做行为归因 |
-| 是否等于一屏商品 | 否，session 是一次连续浏览会话 |
-| 下一屏请求是否更新 | 不更新 session_id，只更新行为数据 |
-| 失效规则 | 连续 30 分钟无首页 Feed 行为后失效 |
-
-### 10.1 首页 Feed 行为定义
-
-首页 Feed 行为是用户在商品流中产生的操作或系统可记录的展示事件。行为需要写入行为日志，供推荐、统计、频控和分析使用。
-
-| 行为事件 | 中文意思 | 是否需要记录 | 用途 |
-|---|---|---:|---|
-| product_card_impression | 商品卡曝光，即商品卡进入可视区域 | 是 | 用于曝光统计、CTR 分母、Session 去重、24h 曝光频控 |
-| product_card_click | 用户点击商品卡进入商详 | 是 | 用于 A1/A2 基准、用户状态分、CTR 分子 |
-| wishlist_click | 用户点击收藏按钮 | 是 | 用于收藏漏斗分析，不等于收藏成功 |
-| wishlist_add | 收藏成功 | 是 | 用于 A1/A2 基准、用户状态分、Best Sellers 热度分 |
-| wishlist_remove | 取消收藏 | 是 | 用于负反馈分析，MVP 不进入用户状态分 |
-| feed_tab_switch | 用户切换 Feed Tab | 是 | 用于分析用户偏好哪个 Tab |
-| feed_load_more | 用户触发下一屏加载 | 是 | 用于浏览深度分析和请求日志 |
-| scroll_depth | 用户滚动深度 | 是 | 用于 Feed 吸引力分析，MVP 不进入用户状态分 |
-| purchase_complete | 购买完成 | 是 | 用于用户状态分、Best Sellers 购买热度。注意：该事件由订单系统/支付完成后触发，触发点在商详页/结账页，不在首页 Feed；Feed 侧消费该事件数据，不负责触发埋点 |
-
----
-
-## 11. Feed Tabs
-
-### 11.1 Tab 列表
-
-| Tab | 中文说明 | MVP 状态 | 说明 |
-|---|---|---|---|
-| For You | 个性化推荐 | 启用 | 基于 A1/A2/B/C 召回进入统一候选池 |
-| New Arrivals | 新上架 | 启用 | 基于 listed_at 倒序 |
-| Best Sellers | 热卖 / 热门 | 启用 | 使用 C 通路热门逻辑，不直接按 listing 销量排序 |
-| Deals | 折扣 | 一期暂时留空 | 依赖促销价、降价记录、营销活动 |
-
-### 11.2 默认 Tab
-
-| 行为数据情况 | 默认 Tab | 说明 |
-|---|---|---|
-| 有行为数据（24h 内有点击或收藏） | For You | 已登录或匿名用户均可；已登录用 user_id 查询行为，未登录用跨 session 持久的 anonymous_user_id |
-| 无行为数据（24h 内无点击或收藏） | For You，使用 B/C 冷启动 | A1/A2 无基准，由 B New Arrivals + C Best Sellers 承载 |
-| 推荐服务异常（A1/A2/B/C 全部不可用） | New Arrivals 商品池直接排序兜底 | 降级到 B 通路排序逻辑，不依赖推荐算法 |
-
-说明：
-
-"有行为数据" = 当前 24h 内有 product_card_click 或 wishlist_add，与是否登录无关。anonymous_user_id 跨 session 持久（生命周期 ≥30 天），支持匿名用户跨多个 session 积累 24h 行为，不因关闭浏览器而重置。
-
----
-
-## 12. For You 规则
-
-### 12.1 功能描述
-
-For You 是首页 Feed 的核心 Tab，目标是根据用户当前 Session 行为、最近 24h 行为、新上架商品和热门商品，返回更符合用户兴趣的商品流。
-
-MVP 阶段 For You 不做长期画像、不做向量召回、不做深度学习排序。
-
-采用：
-
-```text
-用户状态分层
-+ A1/A2/B/C 多通路召回
-+ 统一候选池
-+ 配额混排
-+ 去重与曝光频控
-+ 多样性打散
-+ 无限流兜底
-```
-
-### 12.2 用户识别
-
-推荐系统不以“是否登录”判断推荐状态。
-
-推荐系统使用 user_key 识别用户行为：
-
-| 场景 | user_key | 说明 |
-|---|---|---|
-| 已登录 | user_id | 来自登录注册系统 |
-| 未登录 | anonymous_user_id | 推荐 / 埋点侧生成的匿名访问标识 |
-| 登录前后合并 | 后续支持 | MVP 可先不强制做历史合并 |
-
-说明：
-
-anonymous_user_id 不是登录注册模块已有字段，本 PRD 只定义推荐系统需要一个匿名用户识别键。实际字段名和存储方式由研发确认。
-
-持久化要求：anonymous_user_id 需跨 session 持久，生命周期建议 ≥30 天（覆盖用户常规回访周期）。MVP 不强制合并匿名行为到登录后的 user_id，V1.1 支持历史合并。
-
-### 12.3 用户状态分层
-
-用户状态由最近 24h 兴趣行为决定。
-
-24h 行为定义：
-
-```text
-当前 user_key
-+ 当前 market_id
-+ 当前 channel_id
-+ 当前请求时间往前 24 小时内
-已经成功上报的行为
-```
-
-24h 行为包含当前 Session 内已经发生并成功上报的行为。
-
-兴趣分公式：
-
-```text
-interest_score_24h =
-click_count_24h × click_weight
-+ wishlist_add_count_24h × wishlist_weight
-+ purchase_count_24h × purchase_weight
-```
-
-MVP 默认：
-
-| 行为 | 默认权重 | 是否进入用户状态 | 是否进入 A1/A2 基准 | 是否支持配置 |
-|---|---:|---:|---:|---:|
-| product_card_click | 1 | 是 | 是 | 是 |
-| wishlist_add | 3 | 是 | 是 | 是 |
-| purchase_complete | 10 | 是 | 否 | 是 |
-| product_card_impression | 0 | 否 | 否 | 是 |
-| wishlist_click | 0 | 否 | 否 | 是 |
-| wishlist_remove | 0 | 否 | 否 | 是 |
-| scroll_depth | 0 | 否 | 否 | 是 |
-
-说明：
-
-- 点击和收藏都可表达兴趣，收藏优先级高于点击。
-- 购买只用于判断用户活跃和兴趣强度，不作为 A1/A2 相似召回基准。
-- 曝光和滚动默认不作为兴趣分，避免用户快速划过导致误判。
-- 行为权重必须配置化。
-- 架构说明：24h 行为来源包含用户在**所有页面**的行为（不只是首页 Feed），支持后续其他页面行为纳入兴趣分计算。MVP 阶段仅首页 Feed 接入埋点，因此实际行为来源为首页 Feed；架构设计上不限制来源页面，后续可扩展。
-
-### 12.4 用户状态枚举
-
-| 状态 | 默认条件 | 说明 | 是否支持配置 |
-|---|---|---|---:|
-| S0 冷启动 | interest_score_24h = 0 | 最近 24h 无有效兴趣行为 | 是 |
-| S1 轻兴趣 | 1 ≤ interest_score_24h < 5 | 有少量点击或收藏 | 是 |
-| S2 中兴趣 | 5 ≤ interest_score_24h < 15 | 有较明确兴趣 | 是 |
-| S3 强兴趣 | interest_score_24h ≥ 15 | 高频点击、收藏或购买 | 是 |
-
-所有阈值均支持配置。
-
-### 12.5 MVP 召回来源
-
-| 通路 | 说明 | 是否启用 | 复用关系 |
-|---|---|---:|---|
-| A1 当前 Session 兴趣相似召回 | 基于当前 Session 的点击 + 收藏商品召回相似 listing | 是 | For You 专属 |
-| A2 24h 近期兴趣相似召回 | 基于最近 24h 的点击 + 收藏商品召回相似 listing，但剔除当前 Session 行为商品 | 是 | For You 专属 |
-| B 新上架召回 | 当前 Market + Channel 下最新上架商品 | 是 | 复用 New Arrivals 商品池 |
-| C Best Sellers 召回 | 近期浏览、点击、收藏、购买表现较好的商品 | 是 | 复用 Best Sellers 商品池 |
-
-说明：A1/A2 的行为基准来源于用户在**所有页面**产生的行为（架构预留），MVP 阶段仅首页 Feed 接入埋点，实际行为来源为首页 Feed。
-
-### 12.6 A1/A2 基准商品规则
-
-A1 和 A2 使用完全相同的相似召回算法，区别只在基准商品来源。
-
-| 通路 | 基准来源 | 时间范围 | 是否排除当前 Session 行为商品 |
-|---|---|---|---|
-| A1 | 当前 Session 内 wishlist_add + product_card_click | 当前推荐 Session | 否 |
-| A2 | 最近 24h wishlist_add + product_card_click | 当前请求时间往前 24 小时 | 是 |
-
-#### 12.6.1 A1 基准商品生成
-
-A1 基准商品来自当前推荐 Session 内已经成功上报的兴趣行为。
-
-兴趣行为包括：
-
-```text
-wishlist_add
-product_card_click
-```
-
-生成规则：
-
-```text
-先取当前 Session 内 wishlist_add 商品
-不足 seed_count 时
-再用当前 Session 内 product_card_click 商品补齐
-```
-
-#### 12.6.2 A2 基准商品生成
-
-A2 基准商品来自最近 24h 兴趣行为，但必须先排除当前 Session 已发生兴趣行为的商品。
-
-生成流程：
-
-```text
-读取当前 user_key 最近 24h wishlist_add + product_card_click 行为
-↓
-读取当前 Session 已发生 wishlist_add + product_card_click 的 listing_id
-↓
-从 24h 行为列表中剔除这些 listing_id
-↓
-先取剩余 wishlist_add 商品
-↓
-不足 seed_count 时
-再用剩余 product_card_click 商品补齐
-```
-
-说明：
-
-- 24h 行为天然包含当前 Session 行为。
-- A2 的定位是补充“当前 Session 之外的近期兴趣”。
-- 当前 Session 内的点击和收藏只由 A1 消费，避免 A1/A2 使用同一批基准商品重复召回。
-
-#### 12.6.3 基准商品去重规则
-
-| 场景 | 处理方式 |
-|---|---|
-| 同一 listing 在同一通路内既被点击又被收藏 | 按收藏基准处理 |
-| 同一 listing 在同一通路内多次点击 | 只保留最近一次点击 |
-| 同一 listing 在同一通路内多次收藏 | 只保留最近一次收藏 |
-| 同一 listing 同时出现在 A1 和 A2 原始基准中 | A2 生成基准时剔除，优先由 A1 消费 |
-| A2 剔除当前 Session 行为商品后不足 seed_count | 有多少用多少 |
-| A2 剔除后为空 | A2 不触发，配额释放给 A1/B/C |
-
-#### 12.6.4 A1/A2 基准案例
-
-当前请求时间为 6 月 11 日 20:00。
-
-最近 24h 行为：
-
-| 时间 | 行为 | listing |
-|---|---|---|
-| 6 月 11 日 19:50 | wishlist_add | LV Neverfull |
-| 6 月 11 日 19:40 | product_card_click | Rolex Datejust |
-| 6 月 11 日 10:00 | wishlist_add | Chanel CF |
-| 6 月 10 日 23:00 | product_card_click | Omega Speedmaster |
-
-当前 Session 行为：
-
-| 行为 | listing |
-|---|---|
-| wishlist_add | LV Neverfull |
-| product_card_click | Rolex Datejust |
-
-A1 基准：
-
-```text
-LV Neverfull
-Rolex Datejust
-```
-
-A2 先剔除当前 Session 已发生行为的：
-
-```text
-LV Neverfull
-Rolex Datejust
-```
-
-A2 剩余 24h 基准：
-
-```text
-Chanel CF
-Omega Speedmaster
-```
-
-### 12.7 A1/A2 相似召回规则
-
-对每个基准 listing 单独执行一次相似召回。
-
-系统从 recommend_listing_feature_snapshot（本次新增，见§20.2）读取基准商品特征：
-
-```text
-brand_id
-series_id
-backend_category_id
-grade
-price_band
-listing_price
-```
-
-候选商品必须至少命中以下任一条件：
-
-| 匹配条件 | 是否进入候选 |
-|---|---:|
-| 同 series_id | 是 |
-| 同 brand_id | 是 |
-| 同 backend_category_id | 是 |
-| 同 grade | 是 |
-| 同 price_band | 是 |
-| 相邻 price_band | 是 |
-| 以上均不命中 | 否 |
-
-单个基准商品相似分：
-
-| 子分项 | 计算规则 | 默认分值 | 是否支持配置 |
-|---|---|---:|---:|
-| series_match_score | candidate.series_id = seed.series_id，且 seed.series_id 不为空 | 3.0 | 是 |
-| brand_match_score | candidate.brand_id = seed.brand_id | 2.5 | 是 |
-| category_match_score | candidate.backend_category_id = seed.backend_category_id | 2.0 | 是 |
-| grade_match_score | candidate.grade = seed.grade | 1.0 | 是 |
-| same_price_band_score | candidate.price_band = seed.price_band | 1.5 | 是 |
-| adjacent_price_band_score | candidate.price_band 与 seed.price_band 相邻 | 0.8 | 是 |
-
-A1 和 A2 的基准数量、匹配条件、相似分配置分别独立配置，即使 MVP 初始值一致，也不共用同一套配置。
-
-A1/A2 内部聚合规则：
-
-| 项目 | 规则 |
-|---|---|
-| 去重字段 | listing_id |
-| 同一 listing 被多个基准召回 | 只保留一条 |
-| 分数保留 | 保留最高 single_similar_score |
-| 命中次数 | 记录 recall_hit_count |
-| 是否分数累加 | 否 |
-| 排序辅助 | similar_score desc、recall_hit_count desc、listed_at desc、listing_id asc |
-
-### 12.8 B 通路规则
-
-B 通路复用 New Arrivals 商品池。
-
-召回规则：
-
-从基础商品池（base_pool）中，筛选出 listed_at 不为空、且上架时间在最近 b_freshness_days 天内（默认 30 天）的商品，按以下顺序排序后作为 B 通路候选池：
-
-1. 上架时间从新到旧（listed_at 降序）
-2. 成色从高到低（grade 降序：NWT > Excellent > Good > Fair）
-3. listing_id 升序（分页稳定性兜底）
-
-排序说明：
-- 第一排序键确保最新上架的商品优先进入 Feed，体现"New Arrivals"的核心价值
-- 第二排序键在同一时间上架的商品中，优先展示成色更好的商品，提升 Feed 整体品质感
-- 第三排序键保证分页时结果顺序稳定，避免翻页时商品乱跳
-
-B 通路在 New Arrivals Tab 中按上述规则展示。
-
-B 通路在 For You 中仅作为候选来源，不直接复用 New Arrivals 的最终展示顺序。
-
-### 12.9 C 通路规则
-
-C 通路复用 Best Sellers 商品池。
-
-C 通路不是直接对全量商品计算热门分，而是先用曝光量过滤，再计算 hot_score。
-
-召回源流程：
-
-```text
-当前 Market + Channel 基础商品池
-↓
-关联 recommend_listing_stats（本次新增，见§20.3）
-↓
-按 impression_session_count_7d 倒序
-↓
-取曝光 session Top K 商品
-↓
-计算 hot_score
-↓
-按 hot_score 倒序
-↓
-进入 C 通路候选池
-```
-
-默认：
-
-```text
-impression_top_k = 2000
-```
-
-#### 12.9.1 C 通路统计口径
-
-| 指标 | 中文定义 | 字段 |
-|---|---|---|
-| 7天曝光 session 数 | 近 7 天看过该 listing 的去重 session 数 | impression_session_count_7d |
-| 7天点击 session 数 | 近 7 天点击过该 listing 的去重 session 数 | click_session_count_7d |
-| 7天 CTR | 7天点击 session 数 / 7天曝光 session 数 | ctr_7d |
-| 7天收藏数 | 近 7 天该 listing 被收藏成功的次数 | wishlist_add_count_7d |
-| 30天 SPU 购买数 | 当前 listing 对应 spu_id 在近 30 天内的购买次数 | spu_purchase_count_30d |
-
-说明：
-
-Looply 是一物一码业务，单个 listing 通常只能卖出一次，因此购买热度不直接用 listing 购买数，而是从 SPU 维度继承。
-
-#### 12.9.2 C 通路归一化规则
-
-C 通路 hot_score 满分 10 分。CTR、收藏数、购买数需要先归一化到 0–1，再按权重计算。
-
-归一化只在 C 通路浏览量 Top K 候选池内计算。
-
-```text
-hot_source_pool =
-base_pool
-+ impression_session_count_7d Top K
-```
-
-默认：
-
-```text
-impression_top_k = 2000
-```
-
-CTR 归一化：
-
-```text
-ctr_norm_score =
-ctr_7d / max_ctr_7d_in_hot_source_pool
-```
-
-处理规则：
+- **尺寸**：full-width，高度 320px
+- **多条 Banner**：分页展示（Carousel / Swiper），底部居中分页圆点指示器
+- **自动轮播**：默认间隔 4 秒（可配置），点击暂停
+- **覆盖层**：图片下方从底部向上渐变黑色遮罩（用于文字可读性）
+- **文字排布**（从下到上）：`cta_text` 按钮 → `subtitle` → `title`；文字左对齐，文字颜色读取 `text_color`
+- **点击**：点击 Banner 任意区域（含 CTA 按钮）→ 跳转 `landing_page`
+
+### §5.3 PC 端 Banner 展示规则
+
+- **尺寸**：full-width，高度 400px（原型稿定值）
+- CTA 按钮 padding 比移动端更宽
+- 其余规则同移动端（轮播、自动播放、点击跳转 `landing_page`）
+
+### §5.4 降级策略
 
 | 场景 | 处理 |
-|---|---|
-| 候选池最高 CTR > 0 | 正常计算 |
-| 候选池最高 CTR = 0 | 所有商品 ctr_norm_score = 0 |
-| 计算结果超过 1 | 按 1 处理 |
-
-收藏数归一化：
-
-```text
-wishlist_norm_score =
-log(1 + wishlist_add_count_7d)
-/
-max(log(1 + wishlist_add_count_7d) in hot_source_pool)
-```
-
-购买数归一化：
-
-```text
-purchase_norm_score =
-log(1 + spu_purchase_count_30d)
-/
-max(log(1 + spu_purchase_count_30d) in hot_source_pool)
-```
-
-说明：
-
-- 收藏数和购买数是次数型指标，头部商品可能明显高于其他商品，因此先用 log(1 + 次数) 做平滑，再归一化。
-- CTR 本身已经是比例，不做 log 处理。
-
-#### 12.9.3 C 通路热门分
-
-中文公式：
-
-```text
-热门分 =
-CTR归一化分 × CTR权重
-+ 收藏归一化分 × 收藏权重
-+ 购买归一化分 × 购买权重
-```
-
-英文字段公式：
-
-```text
-hot_score =
-ctr_norm_score × ctr_weight
-+ wishlist_norm_score × wishlist_weight
-+ purchase_norm_score × purchase_weight
-```
-
-默认权重：
-
-| 因子 | 权重 | 是否支持配置 |
-|---|---:|---:|
-| CTR | 2 | 是 |
-| 收藏 | 4 | 是 |
-| SPU 购买 | 4 | 是 |
-
-说明：
-
-- 三个权重默认合计为 10，因此 hot_score 为 10 分制。
-- 收藏和购买权重大于点击。
-- 权重支持配置。
-- C 通路在 Best Sellers Tab 中按 hot_score 展示。
-- C 通路在 For You 中仅作为候选来源，不直接复用 Best Sellers 的最终展示顺序。
-
-### 12.10 用户状态对应配额
-
-For You 每页默认返回 20 个 listing。
-
-各状态默认目标配额：
-
-| 状态 | A1 当前 Session 兴趣 | A2 24h 近期兴趣 | B 新上架 | C Best Sellers |
-|---|---:|---:|---:|---:|
-| S0 | 0% | 0% | 60% | 40% |
-| S1 | 10% | 20% | 35% | 35% |
-| S2 | 25% | 25% | 25% | 25% |
-| S3 | 40% | 30% | 15% | 15% |
-
-说明：
-
-- S1 中 A2 可高于 A1，因为轻兴趣用户当前 Session 行为可能很少，24h 近期兴趣更稳定。
-- 所有配额均支持配置化。
-- 配额用于控制最终返回结果，不代表召回数量。
-
-### 12.11 For You 召回阶段规则
-
-```text
-用户请求 For You
-↓
-读取 session_id、user_key、market_id、channel_id
-↓
-读取 / 计算 recommend_user_interest_24h（本次新增，见§20.4）
-↓
-判断 user_state = S0 / S1 / S2 / S3
-↓
-读取 user_state 对应 A1/A2/B/C 目标配额
-↓
-构建 base_pool
-↓
-A1：当前 Session 点击 + 收藏基准，相似召回 Top 200
-↓
-A2：24h 点击 + 收藏基准，剔除当前 Session 行为商品后，相似召回 Top 300
-↓
-B：New Arrivals 商品池召回 Top 500
-↓
-C：Best Sellers 商品池召回 Top 500
-↓
-合并 A1/A2/B/C 候选
-↓
-按 listing_id 跨通路去重
-↓
-执行过滤：当前 Session 已展示、24h 曝光频控、间隔去重、不可售等
-↓
-混排位置分配（加权轮询，含内联打散检查，见下方 mix-ranking 设计和 §12.14）
-↓
-通路不足时执行配额释放
-↓
-返回 20 个 listing
-```
-
-召回数量默认值：
-
-| 通路 | 默认召回数量 | 说明 |
-|---|---:|---|
-| A1 | Top 200 | 当前 Session 兴趣，候选损耗较大 |
-| A2 | Top 300 | 24h 近期兴趣，覆盖更宽 |
-| B | Top 500 | 新上架商品池 |
-| C | Top 500 | Best Sellers 商品池 |
-
-召回数量故意放大，用于覆盖以下损耗：
-
-1. A1/A2/B/C 跨通路去重；
-2. 当前 Session 已展示 listing 过滤；
-3. 同一 listing 24h 曝光频控；
-4. 间隔 X 个商品内不重复推荐同一 listing；
-5. 同品牌、同系列、同类目、同价格带打散；
-6. 不可售、无图、价格无效商品过滤；
-7. 某通路基准不足或候选不足。
-
-#### 12.11.1 mix-ranking 位置分配设计
-
-在过滤完成后，使用加权轮询（weighted round-robin）分配最终展示位置，同时内联执行打散检查（见 §12.14），两步合并为单次遍历，不额外增加遍历开销。
-
-**分配原则：**
-
-- 按各通路配额比例，将 20 个位置均匀分配给各通路，避免同通路候选连续堆积
-- A1/A2 具有高于 B/C 的位置优先权，优先填充靠前位置
-- B/C 候选分散填充中后段槽位，形成"兴趣推荐为主、发现为辅"的位置结构
-
-**参考位置模式（以 S3 状态 A1:A2:B:C = 8:6:3:3 为例）：**
-
-```text
-位置:  1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19  20
-通路: A1  A2  A1  A2  A1  A2  B   A1  C   A2  A1  A2  B   C   A1  A2  B   C   A1  —
-```
-
-实际分配使用加权轮询算法，各通路获得位置数与配额比例一致，上述仅为示意。
-
-**打散检查内联在混排过程中执行（§12.14）**，每选一个候选商品时同步检查打散约束，不满足则跳过取该通路下一个候选，不另起独立的打散遍历。
-
-### 12.12 过滤与去重规则
-
-| 规则 | 默认值 | 说明 | 是否支持配置 |
-|---|---:|---|---:|
-| 当前 Session 已展示过滤 | 开启 | 当前推荐 Session 已展示 listing 不再返回 | 是 |
-| 24h 曝光频控 | 3 次 | 同一 user_key 下，同一 listing 24h 内 For You 曝光次数达到 3 次后不再返回 | 是 |
-| 间隔去重 | 100 个商品 | 同一 listing 在最近 100 个已展示商品内不得重复返回 | 是 |
-| 跨通路去重 | 开启 | A1/A2/B/C 按 listing_id 去重 | 是 |
-| 不可售过滤 | 开启 | listing_status / product_status 不可售不返回 | 是 |
-| 无图过滤 | 开启 | main_image_url 为空不返回 | 是 |
-| 价格过滤 | 开启 | listing_price <= 0 不返回 | 是 |
-| 成色过滤 | 开启 | grade 为空不返回 | 是 |
-
-说明：
-
-- “当前 Session 已展示过滤”优先级高于间隔去重。
-- 间隔去重用于兜底处理超长浏览场景，避免用户刷很久后短时间内又看到同一 listing。
-- 如果当前 Session 已展示过滤开启，则同一 Session 内理论上不会重复；间隔去重主要用于跨 Session 或使用历史候选池兜底时控制重复。
-
-### 12.13 配额释放机制
-
-任一通路出现以下情况，视为该通路可用候选不足：
-
-- 无基准商品；
-- 召回结果为空；
-- 召回结果被过滤后不足目标数量；
-- 召回结果被打散规则消耗后不足目标数量。
-
-释放规则：
-
-```text
-缺失配额
-由其他仍有可用候选的通路
-按原目标配额比例吸收
-```
-
-示例：
-
-S3 原始配额：
-
-| 通路 | 目标 |
-|---|---:|
-| A1 | 40% |
-| A2 | 30% |
-| B | 15% |
-| C | 15% |
-
-返回 20 个商品，对应：
-
-| 通路 | 目标数量 |
-|---|---:|
-| A1 | 8 |
-| A2 | 6 |
-| B | 3 |
-| C | 3 |
-
-如果 A1 只能返回 5 个，缺 3 个。
-
-剩余通路按 A2:B:C = 30:15:15 = 2:1:1 吸收。
-
-调整后尽量返回：
-
-| 通路 | 调整后数量 |
-|---|---:|
-| A1 | 5 |
-| A2 | 8 |
-| B | 4 |
-| C | 3 |
-
-若 A1、A2 均无可用候选，则缺口由 B 和 C 按原比例吸收。
-
-### 12.14 打散规则
-
-打散与混排位置分配（§12.11.1）合并为单次遍历，内联执行，不额外增加遍历开销。
-
-**执行方式：**
-
-每个槽位通过加权轮询确定应从哪个通路取商品后，取出该通路队首候选，立即检查以下配置的打散约束：
-
-- 若满足所有约束 → 放入该槽位，推进该通路队列指针
-- 若不满足某项约束 → 跳过该候选，取该通路下一个候选继续检查
-- 若该通路候选全部检查后均不满足 → 降级到下一优先级通路补位
-- 全部通路均无法满足约束时 → 放宽约束，将最近跳过的候选补入该槽位（不因打散返回不可售或已展示商品）
-
-**打散维度与默认值（均可配置，见 §24.9）：**
-
-| 维度 | 配置项 | 默认最大连续数 | 说明 |
-|---|---|---:|---|
-| 品牌 | max_consecutive_same_brand | 2 | 同 brand_id 连续最多 2 个 |
-| 系列 | max_consecutive_same_series | 1 | 同 series_id 连续最多 1 个；series_id 为空不参与限制 |
-| 后台类目 | max_consecutive_same_category | 3 | 同 backend_category_id 连续最多 3 个 |
-| 价格带 | max_consecutive_same_price_band | 4 | 保持价格层次多样性 |
-
-维度是否启用及各维度的最大连续数均通过 §24.9 配置项控制，不需修改代码。
-
-### 12.15 无限流与兜底规则
-
-For You 不展示结束状态。
-
-每次加载默认返回 20 个 listing。
-
-当本次召回 + 混排无法得到 20 个新商品时，按以下顺序兜底：
-
-| 顺序 | 兜底方式 | 说明 |
-|---:|---|---|
-| 1 | 使用本次 A1/A2/B/C 剩余候选继续补足 | 排除已展示、超频、不可售商品 |
-| 2 | 使用上一推荐请求未展示候选池 | 剔除已经展示的 20 个及之后已展示商品 |
-| 3 | 对上一候选池中用户点击 / 收藏过的商品重新做相似召回 | 仍按 A1/A2 相似逻辑执行 |
-| 4 | 使用 B New Arrivals 扩大候选池 | 从更靠后的新上架商品中补 |
-| 5 | 使用 C Best Sellers 扩大候选池 | 从更靠后的热门商品中补 |
-| 6 | 使用基础商品池稳定排序兜底 | 按 listed_at desc + listing_id asc 补足 |
-
-说明：
-
-- 兜底仍必须遵守可售、无图、价格有效、成色有效规则。
-- 兜底仍尽量遵守当前 Session 已展示过滤、曝光频控和间隔去重。
-- 若极端情况下仍不足 20 个，可返回实际数量，但前端不展示结束态，下次加载继续请求。
-- New Arrivals Tab 同样不展示结束态，可使用更深分页的新上架商品或基础商品池排序兜底。
-
-### 12.16 For You 返回规则
-
-| 项目 | 规则 |
-|---|---|
-| 每页目标数量 | 20 个 listing |
-| A1 召回数量 | 默认 Top 200 |
-| A2 召回数量 | 默认 Top 300 |
-| B 召回数量 | 默认 Top 500 |
-| C 召回数量 | 默认 Top 500 |
-| 候选池数量 ≥ 20 | 混排后返回 20 个 |
-| 候选池数量 < 20 | 进入无限流兜底逻辑 |
-| 是否允许重复 listing | 默认不允许 |
-| 是否允许当前 Session 已展示 listing 再次返回 | 默认不允许 |
-| 是否允许 24h 曝光超频 listing 返回 | 默认不允许 |
-| 是否保存推荐结果 | 保存逻辑结果用于排查与分析；具体物理存储由研发决定 |
-
-### 12.17 推荐案例
-
-用户最近 24h 行为：
-
-| 行为 | 商品 | 数量 |
-|---|---|---:|
-| 点击 | Rolex Datejust、Omega Speedmaster | 2 |
-| 收藏 | LV Neverfull | 1 |
-| 购买 | Chanel CF | 1 |
-
-兴趣分：
-
-```text
-interest_score_24h =
-点击 2 × 1
-+ 收藏 1 × 3
-+ 购买 1 × 10
-= 15
-```
-
-用户状态：
-
-```text
-S3 强兴趣用户
-```
-
-S3 配额：
-
-| 通路 | 配额 | 20 个商品目标数量 |
-|---|---:|---:|
-| A1 | 40% | 8 |
-| A2 | 30% | 6 |
-| B | 15% | 3 |
-| C | 15% | 3 |
-
-当前 Session 行为：
-
-| 行为 | 商品 |
-|---|---|
-| 收藏 | LV Neverfull |
-| 点击 | Rolex Datejust |
-
-A1 基准：
-
-```text
-LV Neverfull
-Rolex Datejust
-```
-
-最近 24h 行为：
-
-| 行为 | 商品 |
-|---|---|
-| 收藏 | LV Neverfull |
-| 点击 | Rolex Datejust、Omega Speedmaster |
-
-A2 先剔除当前 Session 已发生行为：
-
-```text
-LV Neverfull
-Rolex Datejust
-```
-
-A2 剩余基准：
-
-```text
-Omega Speedmaster
-```
-
-召回结果：
-
-| 通路 | 召回数量 | 过滤后可用 |
-|---|---:|---:|
-| A1 | 200 | 5 |
-| A2 | 300 | 80 |
-| B | 500 | 300 |
-| C | 500 | 260 |
-
-A1 目标 8，但只有 5，缺 3。
-
-缺口由 A2、B、C 按原配额 30:15:15 吸收。
-
-最终返回示例：
-
-| 通路 | 最终数量 |
-|---|---:|
-| A1 | 5 |
-| A2 | 8 |
-| B | 4 |
-| C | 3 |
-| 合计 | 20 |
-
-最终 20 个商品还需执行打散：
-
-- 同品牌连续不超过 2 个；
-- 同系列连续不超过 1 个；
-- 同后台类目连续不超过 3 个；
-- 同价格带连续不超过 4 个；
-- 同一 listing 在最近 100 个已展示商品内不得重复出现。
+|------|------|
+| 当前 market 无 active Banner 配置 | 隐藏 Banner 区域，页面从 Trust Bar 开始 |
+| 图片加载失败 | 显示品牌色填充背景（`#6432FC`），文字和 CTA 按钮正常显示 |
+| 视频加载失败 | 自动降级展示 `asset_image`；若 `asset_image` 也加载失败，处理方式同图片加载失败 |
 
 ---
 
-## 13. New Arrivals 规则
+## §6 信任板块 Trust Bar
 
-### 13.1 功能描述
+Trust Bar 展示 Looply 平台的核心鉴定和服务能力，建立用户信任。**MVP 阶段内容固定，前端硬编码，不接入 CMS 配置。**
 
-New Arrivals 用于展示当前 Market + Channel 下最新上架的可售商品。
+### §6.1 内容结构
 
-### 13.2 排序规则
+**位置**：Banner 正下方，Collections 正上方。
 
-中文规则：
+**交互线框图**
 
-```text
-新上架商品 =
-基础商品池
-+ listed_at 不为空
-+ listed_at 在近 b_freshness_days 天内（默认 30 天）
-按 listed_at 倒序
-同 listed_at 时按成色从高到低（grade 降序：NWT > Excellent > Good > Fair）
-再同时按 listing_id 正序
+移动端（2×2 网格）：
+
+```
+┌─────────────────────────────────────────┐
+│  Confidence in Every Find               │  ← 版块标题（不可折叠，无交互）
+├───────────────────┬─────────────────────┤
+│  [img 60×60]      │  [img 60×60]        │
+│  Authenticated    │  Reliable           │
+│  Luxury           │  Electronics        │
+│  Expert-reviewed  │  Tested, refurbished│
+│  through a        │  and ready for...   │
+│  rigorous...      │                     │
+├───────────────────┼─────────────────────┤
+│  [img 60×60]      │  [img 60×60]        │
+│  True to          │  Tech-Driven        │
+│  the Piece        │  Verification       │
+│  Real product     │  Powered by...      │
+│  photos, clear... │                     │
+└───────────────────┴─────────────────────┘
+Trust Bar 整体不可点击，无跳转行为
 ```
 
-英文字段规则：
+PC 端（4×1 横排）：
 
-```text
-new_arrivals =
-base_pool
-where listed_at is not null
-  and listed_at >= now() - interval b_freshness_days day
-order by listed_at desc, grade desc, listing_id asc
+```
+┌──────────┬──────────┬──────────┬──────────┐
+│[img]     │[img]     │[img]     │[img]     │
+│Authenti- │Reliable  │True to   │Tech-Driven│
+│cated     │Electron- │the Piece │Verif...  │
+│Luxury    │ics       │          │          │
+│subtitle  │subtitle  │subtitle  │subtitle  │
+└──────────┴──────────┴──────────┴──────────┘
+4列横排，布局更宽松
 ```
 
-### 13.3 字段来源
+**各条目字段（MVP 硬编码）**：
 
-| 字段 | 来源 | 说明 |
-|---|---|---|
-| listing_id | listing | 推荐对象 |
-| listed_at | 推荐快照 | listing 首次上架成功时间 / 首次变为 active 的时间 |
-| listing_status | listing | 可售过滤 |
-| product_status | product | 可售过滤 |
-| listing_price | listing | 价格有效过滤 |
-| main_image_url | product_image / listing.og_image_url | 图片有效过滤 |
-| grade | 商品系统成色等级（字段名待确认），枚举：NWT / Excellent / Good / Fair | 成色有效过滤 |
+| 序号 | 标题 | 副文案 |
+|------|------|--------|
+| 1 | Authenticated Luxury | Expert-reviewed through a rigorous authentication process. |
+| 2 | Reliable Electronics | Tested, refurbished, and ready for everyday performance. |
+| 3 | True to the Piece | Real product photos, clear condition notes, and listed flaws. |
+| 4 | Tech-Driven Verification | Powered by intelligent technologies and trusted partners. |
 
-### 13.4 与 For You 的关系
+> ⚠️ **文案待最终确认**：以上文案来自设计稿占位内容，运营提供最终版本后直接替换硬编码值。
 
-New Arrivals Tab 使用 B 通路商品池。
+每个条目配有一张缩略图（约 60×60px），图片资源由设计同步提供，前端静态引入。
 
-For You 中的 B 通路复用 New Arrivals 商品池，但不复用 New Arrivals 的最终展示顺序。
+### §6.2 展示规则
 
-### 13.5 New Arrivals 无限流兜底
-
-New Arrivals 不展示结束状态。
-
-当最新上架商品不足 20 个时：
-
-1. 继续向更早 listed_at 的商品分页（超出 b_freshness_days 窗口后继续分页历史商品）；
-2. 过滤已展示商品；
-3. 若全部新上架商品已在当前 Session 内展示完毕，从 listed_at 最新的商品重新循环，跳过当前 Session 已展示的（即回到第一页重新过一遍，已展示的自动跳过）；
-4. 极端情况下返回实际数量，但前端不展示结束态。
+- **移动端**：2 列 × 2 行网格，每格显示图标 + 标题 + 副文案
+- **PC 端**：4 列 × 1 行网格，布局更宽松
+- Trust Bar 区域不可点击（无跳转行为）
+- Trust Bar 不受 market_id 影响，全市场统一内容
 
 ---
 
-## 14. Best Sellers 规则
+## §7 精选合集 Collections（home_collection 资源位）
 
-### 14.1 当前判断
+Collections 展示运营精选的商品合集场景（如 Everyday Carry、Travel Ready、Quiet Luxury），引导用户进入特定品类场景。内容由 CMS 系统控制。
 
-Best Sellers 不建议在 MVP 直接按 listing 购买数上线。
+### §7.1 CMS 资源位规格
 
-原因：
+| 字段 | 值 |
+|------|----|
+| `zone_key` | `home_collection` |
+| 最大配置数 | 8 条（同一 market + terminal 下 active 状态的） |
+| 支持模板 | `collection_card_slide`（P0）、`collection_chip`（P1）、`collection_card_small`（P1） |
+| Terminal 维度 | App / PC 各自独立配置 |
 
-Looply 是一物一码业务，单个 listing 通常只能售出一次；如果直接按 listing 购买数排序，会导致绝大多数商品购买数为 0 或 1，区分度不足。
+**CMS 配置字段（前端消费）**：
 
-### 14.2 推荐口径
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `asset_image` | URL | 合集封面图 |
+| `title` | 文本 | 合集名称（如 "Everyday Carry"） |
+| `subtitle` | 文本 | 合集副标题（可为空） |
+| `collection_id` | ID | 关联的商品合集 ID |
+| `landing_page` | URL | 点击跳转地址（由 CMS 后台提供） |
 
-Best Sellers 使用 C 通路逻辑。
+### §7.2 移动端 Collections 展示规则
 
-Best Sellers 的商品排序不是简单销量榜，而是综合：
+**交互线框图（移动端横向滚动）**：
 
-```text
-CTR
-+ 收藏数
-+ SPU 购买数
+```
+Curated Collections
+←──────────────── 横向单行滚动（swipe 左右）────────────────→
+ ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
+ │          │  │          │  │          │  │  ...     │
+ │  封面图   │  │  封面图   │  │  封面图   │  │  (更多)  │
+ │  180px   │  │  180px   │  │  180px   │  │          │
+ │          │  │          │  │          │  │          │
+ │  Title   │  │  Title   │  │  Title   │  │  Title   │
+ └──────────┘  └──────────┘  └──────────┘  └──────────┘
+  180×220px，圆角12px，点击→ landing_page，最多8张
 ```
 
-计算 10 分制 hot_score。
+**Section 标题**：`Curated Collections`（前端固定文案）
 
-### 14.2.1 排序规则
+- 布局：横向单行滚动（horizontal scroll），左右滑动浏览更多
+- 每张卡片：宽度 180px，高度约 220px，图片 + 标题
+- 卡片圆角：12px
+- 最多展示 8 张（由 CMS 活跃配置数决定）
+- 点击卡片：跳转 `landing_page`
 
-Best Sellers Tab 展示顺序与 C 通路召回后排序一致：
+### §7.3 PC 端 Collections 展示规则
 
-中文规则：
+**Section 标题**：`Curated Collections` 或 `Explore Our Collection`（跟随设计稿确定）
 
-```text
-Best Sellers 商品池
-按 hot_score 倒序
-再同时按 listing_id 正序（分页稳定性兜底）
+- 布局：多列网格（3-4 列），不横向滚动
+- 卡片尺寸比移动端大，图片 aspect-ratio 16:9 或 4:3
+- 悬停（hover）：封面图轻微缩放效果
+- 其余规则同移动端
+
+### §7.4 降级策略
+
+| 场景 | 处理 |
+|------|------|
+| 当前 market 无 active Collections 配置 | 隐藏整个 Collections 区域 |
+| 图片加载失败 | 单张卡片图片渲染失败 → 该卡片不展示；若所有卡片均渲染失败 → 隐藏整个 Collections 区域，直接接下一模块 |
+
+---
+
+## §8 Explore Finds Feed 流
+
+Feed 流展示平台上的个性化推荐商品，位于 Collections 下方，是首页沉浸浏览的主体。
+
+### §8.1 Tab 结构
+
+**交互线框图（Feed Tab 切换）**：
+
+```
+Explore Finds
+┌────────────────────────────────────────┐
+│  [■ For You ■]  [New Arrivals]         │  ← 胶囊式 Tab（MVP 仅 2 个）
+│   激活：深色背景   未激活：透明+边框    │
+└────────────────────────────────────────┘
+点击 Tab → 切换商品列表内容（Tab 内容独立加载）
+默认 Tab：有行为数据 → For You；无行为数据 → New Arrivals
+
+Tab 内容区域切换示意：
+For You  ───────► 个性化推荐 (A1/A2/B/C 混排)
+New Arrivals ────► 最近X天新上架（可配置，B通路）
 ```
 
-英文字段规则：
+**Tab 样式**：胶囊式（pill style）
+- 激活 Tab：深色背景填充（`$color-ink-primary`），白色文字
+- 未激活 Tab：透明背景，深色文字，边框
+- Tab 容器：横向排列，左对齐，可横向滚动（如 Tab 超出宽度）
 
-```text
-best_sellers =
-c_pool
-order by hot_score desc, listing_id asc
+**Tab 列表（MVP）**：
+
+| Tab | 标识 | MVP 状态 | 说明 |
+|-----|------|----------|------|
+| For You | `for_you` | ✅ 展示 | 个性化推荐（A1/A2/B/C 通路混排） |
+| New Arrivals | `new_arrivals` | ✅ 展示 | 最近 X 天新上架商品（X 为可配置参数，默认 30 天，B 通路） |
+| Best Sellers | `best_sellers` | ❌ 隐藏 | MVP 原型中未实现，后续版本上线 |
+| Deals | `deals` | ❌ 隐藏 | 营销系统未上线，MVP 不展示 |
+
+**Tab 顺序**：固定为 For You → New Arrivals，后续版本配置化。
+
+**默认 Tab**：
+- 有行为数据（历史交互 ≥ 1 次）→ For You
+- 无行为数据（全新访客）→ New Arrivals
+
+**推荐规则**：完整规则见《Looply 首页 Feed PRD v2.3》（`/Users/zz/looply/home/feed-prd/Looply-首页Feed-PRD-v2.3.md`）。首页 PRD 仅定义展示层规格，不重复推荐逻辑。
+
+### §8.2 商品卡片规格
+
+**交互线框图（商品卡片 + 双列网格布局）**：
+
+```
+移动端（2列网格，列间距8px，行间距12px）：
+
+ ┌──────────┐  ┌──────────┐
+ │          │  │          │
+ │  商品图   │  │  商品图   │  ← 1:1 正方形，object-fit: cover
+ │          │  │     ♡    │  ← 心形收藏按钮（右上角）
+ │          │  │          │    outline（未收藏）/ filled（已收藏）
+ ├──────────┤  ├──────────┤
+ │ Brand    │  │ Brand    │  ← 12px，灰色
+ │ Title..  │  │ Title..  │  ← 14px，深色，最多2行省略
+ │ [Good]   │  │ [NWT]    │  ← 成色彩色标签（绿/蓝绿/蓝/橙）
+ │ $299.00  │  │ $189.00  │  ← listing_price，16px 加粗
+ └──────────┘  └──────────┘
+
+已售出商品：
+ ┌──────────┐
+ │░░SOLD░░░ │  ← 灰色遮罩 + SOLD 标签，不可点击
+ │░░░░░░░░░ │
+ └──────────┘
+
+PC端（4列网格，列间距12px，行间距16px）：同结构，宽度更大
 ```
 
-### 14.3 与 For You 的关系
+**布局**：
+- 移动端：2 列等宽网格，列间距 8px，行间距 12px
+- PC 端：4 列等宽网格，列间距 12px，行间距 16px
 
-Best Sellers Tab 使用 C 通路商品池。
+**卡片结构（从上到下）**：
 
-For You 中的 C 通路复用该商品池，但不复用 Best Sellers 的最终展示顺序。
-
-### 14.4 Best Sellers 无限流兜底
-
-Best Sellers 不展示结束状态。
-
-当当前候选池（默认 impression_top_k = 2000）展示完毕时：
-
-1. 扩展候选池至下一批 2000（按 impression_session_count_7d 排序的第 2001–4000 名），使用相同 hot_score 计算逻辑；
-2. 若下一批 2000 也已展示完毕，继续扩展至再下一批，依此类推；
-3. 若商品池真正耗尽（全部可售商品均已展示），从 hot_score 最高商品重新循环，跳过当前 Session 已展示的；
-4. 极端情况下返回实际数量，但前端不展示结束态。
-
----
-
-## 15. Deals 规则
-
-### 15.1 当前判断
-
-Deals 依赖促销价、降价记录、营销活动配置等能力。当前商品系统不应由 Feed 自行创造折扣字段。
-
-### 15.2 依赖字段
-
-| 字段 | 来源 | 当前状态 |
-|---|---|---|
-| promotion_price | 营销系统 | 待建设 |
-| price_drop | 营销 / 价格记录 | 待建设 |
-| promotion_start_at | 营销系统 | 待建设 |
-| promotion_end_at | 营销系统 | 待建设 |
-| listing_price | listing | 已有 |
-
-### 15.3 推荐口径
-
-MVP 可隐藏 Deals Tab。
-
-若展示 Deals，必须确保营销系统已经提供明确促销价或降价记录，Feed 只消费结果，不自行计算营销状态。
-
----
-
-## 16. 商品卡字段
-
-### 16.1 商品卡展示字段
-
-| 页面展示 | 字段 | 来源 | 是否已有 / 处理方式 |
-|---|---|---|---|
-| 商品图片 | main_image_url | product_image / listing.og_image_url | 推荐侧快照派生 |
-| 品牌名 | brand_id / brand name | listing → product → standard_sku → spu → brand | 链路可取 |
-| 商品标题 | listing_title | listing | 商品系统已有展示标题概念 |
-| 当前价格 | listing_price | listing | 已有 |
-| 货币 | currency_code | listing / Market | 已有 |
-| 成色 | grade | 商品系统成色等级，枚举：NWT / Excellent / Good / Fair | 快照表同步，源字段名待确认 |
-| 收藏状态 | wishlist relation | 收藏模块 | 待确认 |
-| 鉴定标识 | is_authenticated | product_inspection | 可用于 V1.1 展示 |
-| Sold Out | listing_status / product_status | 商品系统 | MVP 不主动展示不可售商品 |
-
-### 16.2 商品卡点击
-
-| 行为 | 规则 |
-|---|---|
-| 点击商品卡 | 跳转商品详情页 |
-| 跳转参数 | listing_id |
-| 埋点事件 | product_card_click |
-| 推荐作用 | 进入用户状态统计；作为 A1/A2 相似召回基准 |
-
----
-
-## 17. 收藏规则
-
-| 场景 | 规则 |
-|---|---|
-| 已登录用户点击收藏 | 调用收藏模块写入 wishlist |
-| 未登录用户点击收藏 | 触发登录 / 注册引导 |
-| 收藏成功 | 记录 wishlist_add |
-| 取消收藏 | 记录 wishlist_remove |
-| 推荐使用 | wishlist_add 进入用户状态统计、A1/A2 基准、C 通路热门分 |
-| 不使用项 | 不把 wishlist_click 当成收藏关系 |
-
-说明：
-
-收藏关系只以 wishlist_add 成功结果为准。
-
-wishlist_click 仅作为行为埋点，用于分析未登录收藏意图、登录弹窗转化和收藏漏斗，不进入 A1/A2 基准。
-
----
-
-## 18. 分页与加载更多
-
-| 项目 | 规则 |
-|---|---|
-| 每页数量 | 默认 20 个 listing |
-| 加载方式 | 下滑加载更多 |
-| 请求参数 | session_id、anonymous_user_id、tab、page_index、page_size、market_id、channel_id |
-| 去重规则 | 当前 Session 已展示 listing 不再返回 |
-| 曝光频控 | 同一 user_key 下同一 listing 24h 内 For You 曝光次数达到配置阈值后不再返回 |
-| 间隔去重 | 同一 listing 在最近 X 个已展示商品内不得重复返回 |
-| 空态 | 当前 Tab 首屏无任何商品时展示空态 |
-| 结束态 | 不展示结束态，按无限流兜底规则继续加载 |
-
----
-
-## 19. 埋点事件
-
-| 事件 | 中文意思 | 触发时机 | 关键字段 | 用途 |
-|---|---|---|---|---|
-| product_card_impression | 商品卡曝光 | 商品卡进入可视区域 | session_id、anonymous_user_id、user_id、listing_id、tab、page_index、position | 曝光统计、CTR 分母、去重、频控 |
-| product_card_click | 商品卡点击 | 点击商品卡进入商详 | session_id、anonymous_user_id、user_id、listing_id、tab、page_index、position | A1/A2 基准、CTR 分子、24h 用户状态 |
-| wishlist_click | 点击收藏按钮 | 用户点击商品卡上的收藏按钮 | session_id、anonymous_user_id、user_id、listing_id、tab | 收藏漏斗 |
-| wishlist_add | 收藏成功 | 收藏模块确认收藏写入成功 | session_id、anonymous_user_id、user_id、listing_id、tab | A1/A2 基准、收藏热度、24h 用户状态 |
-| wishlist_remove | 取消收藏 | 用户取消收藏成功 | session_id、anonymous_user_id、user_id、listing_id、tab | 负反馈分析，MVP 先不进入状态分 |
-| feed_tab_switch | Tab 切换 | 用户切换 Feed Tab | session_id、anonymous_user_id、user_id、from_tab、to_tab | 分析用户偏好哪个 Tab |
-| feed_load_more | 加载更多 | 用户请求下一屏 | session_id、anonymous_user_id、tab、page_index | 浏览深度、请求日志 |
-| scroll_depth | 页面滚动深度 | 用户滚动页面 | session_id、anonymous_user_id、tab、depth | Feed 吸引力分析 |
-| purchase_complete | 购买完成 | 订单完成支付后触发（触发点在商详/结账页，不在首页 Feed；Feed 侧消费此事件数据） | user_id、anonymous_user_id、listing_id、product_id、spu_id、order_id | 用户状态分、Best Sellers 购买热度 |
-
----
-
-## 20. 推荐侧新增数据对象
-
-### 20.0 说明
-
-以下为推荐逻辑所需的数据结构设计，用于表达产品规则、字段来源和数据关系。
-
-PRD 不强制要求研发必须按以下名称创建物理数据库表。
-
-实际研发实现可根据数据量、成本和架构选择：
-
-```text
-MySQL
-Redis
-ClickHouse
-Elasticsearch
-数据仓库
-日志系统
-缓存
+```
+┌─────────────────┐
+│   商品主图       │  ← 1:1 正方形，object-fit: cover；右上角心形收藏按钮
+│                 │
+│                 │
+├─────────────────┤
+│ 品牌名           │  ← 12px，灰色
+│ 商品标题         │  ← 14px，深色，最多 2 行省略
+│ 成色             │  ← grade 枚举：NWT / Excellent / Good / Fair；12px 彩色标签
+│ $XXX.XX         │  ← listing_price，16px，加粗
+└─────────────────┘
 ```
 
-本 PRD 中的表名和字段名作为逻辑参考。
+**价格展示规则**：
+- MVP 仅展示 `listing_price`（当前上架价）
+- ❌ 不展示划线价（原价）/ 促销价（营销系统未就绪）
+- 后续迭代：营销系统上线后，有促销的商品展示 `~~原价~~` + 促销价 + 折扣标签
 
-### 20.1 recommend_behavior_event_log（本次新增）
+**成色标签颜色**（参考规范）：
 
-作用：
+| grade | 标签文字 | 颜色建议 |
+|-------|---------|----------|
+| NWT | New With Tags | 绿色 |
+| Excellent | Excellent | 蓝绿色 |
+| Good | Good | 蓝色 |
+| Fair | Fair | 橙色 |
 
-记录 Feed 行为原始日志，是推荐召回、24h 用户状态、曝光频控、CTR、Best Sellers 统计的基础。
+**Sold Out 商品**：
+- 图片加灰色遮罩 + "SOLD" 标签
+- 仍展示在列表中（不过滤），但不可点击进入商详
+- Feed PRD 控制是否向前端下发已售出商品
 
-| 字段 | 说明 |
-|---|---|
-| event_id | 行为事件 ID |
-| session_id | 推荐侧浏览会话 ID |
-| user_id | 已登录用户 ID，未登录为空 |
-| anonymous_user_id | 未登录匿名访问标识 |
-| user_key | 推荐侧用户识别键，已登录用 user_id，未登录用 anonymous_user_id |
-| market_id | 行为发生 Market |
-| channel_id | 行为发生 Channel |
-| event_type | 行为类型 |
-| listing_id | 行为关联 listing |
-| product_id | 可从 listing 关联 product，允许异步补齐 |
-| spu_id | 可从 product → standard_sku → spu 关联，购买统计使用 |
-| tab | 行为发生的 Feed Tab |
-| page_index | 当前第几屏 |
-| position | 商品在当前屏位置 |
-| event_time | 行为发生时间 |
+### §8.3 收藏交互
 
-event_type 枚举：
+**交互线框图（心形收藏按钮状态）**：
 
-| 枚举值 | 含义 | 是否进入用户状态 | 是否进入 A1/A2 基准 |
-|---|---|---:|---:|
-| product_card_impression | 商品曝光 | 否 | 否 |
-| product_card_click | 商品点击 | 是 | 是 |
-| wishlist_click | 点击收藏按钮 | 否 | 否 |
-| wishlist_add | 收藏成功 | 是 | 是 |
-| wishlist_remove | 取消收藏 | 否 | 否 |
-| feed_tab_switch | Tab 切换 | 否 | 否 |
-| feed_load_more | 加载更多 | 否 | 否 |
-| scroll_depth | 滚动深度 | 否 | 否 |
-| purchase_complete | 购买完成 | 是 | 否 |
+```
+未收藏：  ♡（outline）  ──点击──►  ♡（filled，即时切换）  ──API失败──►  ♡（回滚到 outline）
+已收藏：  ♡（filled）   ──点击──►  ♡（outline，即时切换）  ──API失败──►  ♡（回滚到 filled）
 
-### 20.2 recommend_listing_feature_snapshot（本次新增）
-
-作用：
-
-推荐侧商品特征快照表，供 A1/A2/B/C 快速查询，不直接实时 join 商品系统多张表。
-
-| 字段 | 说明 |
-|---|---|
-| listing_id | 推荐对象 |
-| product_id | 关联实物商品 |
-| standard_sku_id | 关联标品 SKU |
-| spu_id | 关联 SPU |
-| brand_id | 品牌 |
-| series_id | 系列，允许为空 |
-| backend_category_id | 后台类目 |
-| listing_price | 挂牌价 |
-| currency_code | 货币 |
-| price_band | 推荐侧派生价格带 |
-| grade | 成色等级，来源：商品系统成色等级字段（源字段名待确认）；枚举：NWT / Excellent / Good / Fair |
-| listing_status | listing 状态 |
-| product_status | product 状态 |
-| main_image_url | 主图 |
-| listed_at | 首次上架成功时间 |
-| snapshot_updated_at | 快照更新时间 |
-
-### 20.3 recommend_listing_stats（本次新增）
-
-作用：
-
-推荐侧 listing 热门统计表，支撑 C 通路和 Best Sellers。
-
-| 字段 | 说明 |
-|---|---|
-| listing_id | 统计对象 |
-| spu_id | 购买热度继承维度 |
-| market_id | 市场 |
-| channel_id | 渠道 |
-| impression_session_count_7d | 近 7 天曝光 session 数 |
-| click_session_count_7d | 近 7 天点击 session 数 |
-| wishlist_add_count_7d | 近 7 天收藏成功数 |
-| spu_purchase_count_30d | 近 30 天 SPU 购买数 |
-| ctr_7d | 点击率 |
-| ctr_norm_score | CTR 归一化分 |
-| wishlist_norm_score | 收藏归一化分 |
-| purchase_norm_score | 购买归一化分 |
-| hot_score | Best Sellers 热门分 |
-| stats_updated_at | 统计更新时间 |
-
-说明：
-
-购买热度按 SPU 维度统计，再回填到同 SPU 下可售 listing。
-
-### 20.4 recommend_user_interest_24h（本次新增）
-
-作用：
-
-存储 user_key 最近 24h 兴趣聚合，用于快速判断 S0/S1/S2/S3，并为 A2 生成基准商品。
-
-| 字段 | 说明 |
-|---|---|
-| user_key | 推荐侧用户识别键 |
-| user_key_type | user / anonymous |
-| market_id | 市场 |
-| channel_id | 渠道 |
-| click_count_24h | 最近 24h 点击数 |
-| wishlist_add_count_24h | 最近 24h 收藏成功数 |
-| purchase_count_24h | 最近 24h 购买数 |
-| interest_score_24h | 最近 24h 兴趣分 |
-| user_state | S0 / S1 / S2 / S3 |
-| recent_click_listing_ids | 最近 24h 点击 listing 列表，按时间倒序，原始包含当前 Session |
-| recent_wishlist_listing_ids | 最近 24h 收藏 listing 列表，按时间倒序，原始包含当前 Session |
-| updated_at | 更新时间 |
-
-说明：
-
-A2 使用 recent_click_listing_ids / recent_wishlist_listing_ids 时，必须结合当前 Session 行为集合，先剔除当前 Session 已点击 / 收藏的 listing。
-
-### 20.5 recommend_request_log（本次新增）
-
-作用：
-
-记录每次推荐请求，用于排查、分析和实验。
-
-| 字段 | 说明 |
-|---|---|
-| request_id | 推荐请求 ID |
-| session_id | 推荐侧 Session |
-| user_key | 推荐侧用户识别键 |
-| user_key_type | user / anonymous |
-| market_id | 市场 |
-| channel_id | 渠道 |
-| tab | 当前 Tab |
-| user_state | S0 / S1 / S2 / S3 |
-| page_index | 第几屏 |
-| page_size | 请求数量 |
-| a1_target_ratio | A1 目标配额 |
-| a2_target_ratio | A2 目标配额 |
-| b_target_ratio | B 目标配额 |
-| c_target_ratio | C 目标配额 |
-| request_time | 请求时间 |
-
-### 20.6 recommend_result_log（本次新增）
-
-作用：
-
-记录推荐返回结果，用于排查、曝光分析、CTR 计算、AB 实验和频控。
-
-| 字段 | 说明 |
-|---|---|
-| request_id | 推荐请求 ID |
-| listing_id | 返回 listing |
-| position | 最终位置 |
-| recall_path_codes | 命中的召回通路，可能包含 A1/A2/B/C |
-| primary_recall_path_code | 最终占用配额的通路 |
-| final_score | 混排后分数或排序分 |
-| is_exposed | 前端是否实际曝光 |
-| exposed_at | 曝光时间 |
-| created_at | 结果生成时间 |
-
-说明：
-
-结果明细数据量较大，具体是否逐行落库、压缩为 JSON、采样或进入日志系统，由研发决定。
-
-### 20.7 recommend_exposure_control（本次新增）
-
-作用：
-
-记录或支撑曝光频控，避免同一 listing 在 24h 内反复展示给同一 user_key。
-
-| 字段 | 说明 |
-|---|---|
-| user_key | 推荐侧用户识别键 |
-| user_key_type | user / anonymous |
-| listing_id | listing |
-| market_id | 市场 |
-| channel_id | 渠道 |
-| exposure_count_24h | 最近 24h For You 曝光次数 |
-| last_exposed_at | 最近一次曝光时间 |
-| updated_at | 更新时间 |
-
-说明：
-
-该对象也可通过 recommend_result_log 或行为日志聚合实现。PRD 只定义需要具备“同一 listing 24h 曝光次数判断能力”。
-
----
-
-## 21. 异常与降级
-
-| 场景 | 处理方式 |
-|---|---|
-| For You 推荐失败 | 降级 New Arrivals 或基础商品池 |
-| user_state 计算失败 | 默认 S0，使用 B/C |
-| A1 无基准商品 | A1 不触发，配额释放给 A2/B/C |
-| A2 剔除当前 Session 行为商品后无基准 | A2 不触发，配额释放给 A1/B/C |
-| A1/A2 均无基准 | 使用 B/C |
-| B 无新上架候选 | 使用 A1/A2/C |
-| C 无 Best Sellers 候选 | 使用 A1/A2/B |
-| 任一通路候选不足 | 缺口由其他可用通路按比例补齐 |
-| 四通路候选不足 20 | 进入无限流兜底逻辑 |
-| 商品无图 | 不进入基础商品池 |
-| 商品价格无效 | 不进入基础商品池 |
-| 商品状态不可售 | 不进入基础商品池 |
-| 当前 Session 已展示 | 不重复返回 |
-| 24h 曝光达到配置阈值 | 不再返回 |
-| 间隔 X 个商品内已出现过 | 不再返回 |
-| 收藏接口失败 | Toast 提示失败，不记录 wishlist_add，不进入 A1/A2 基准 |
-| 埋点失败 | 不阻塞用户浏览，客户端重试或降级丢弃 |
-| 推荐配置读取失败 | 使用系统默认配置 |
-| 结果日志写入失败 | 不阻塞推荐返回 |
-
----
-
-## 22. MVP 范围
-
-| 项目 | MVP 是否包含 |
-|---|---:|
-| For You Tab | 是 |
-| New Arrivals Tab | 是 |
-| Best Sellers Tab | 是 |
-| Deals Tab | 一期暂时留空 |
-| 商品卡基础展示 | 是 |
-| 收藏入口 | 是 |
-| Feed 曝光 / 点击 / 收藏埋点 | 是 |
-| 推荐 Session | 是 |
-| anonymous_user_id 匿名识别 | 是 |
-| 24h 用户状态分层 | 是 |
-| A1 当前 Session 兴趣相似召回 | 是 |
-| A2 24h 近期兴趣相似召回 | 是 |
-| B New Arrivals 召回 | 是 |
-| C Best Sellers 召回 | 是 |
-| 统一混排 | 是 |
-| 配额释放 | 是 |
-| 当前 Session 去重 | 是 |
-| 24h 单商品曝光频控 | 是 |
-| 间隔 X 个商品内不重复推荐 | 是 |
-| 品牌 / 系列 / 类目 / 价格带打散 | 是 |
-| 无限流兜底 | 是 |
-| 长期用户画像 | 否 |
-| 向量召回 | 否 |
-| 深度学习精排 | 否 |
-| 运营后台配置界面 | 否，先配置表维护 |
-
----
-
-## 23. 后续迭代方向
-
-| 版本 | 能力 |
-|---|---|
-| V1.1 | 增加运营配置后台、Tab 开关、推荐权重配置 |
-| V1.2 | 增加用户长期兴趣画像 |
-| V1.3 | 增加搜索意图召回 |
-| V1.4 | 增加 A/B 实验与推荐效果看板 |
-| V2.0 | 增加 embedding / 向量召回 |
-| V2.1 | 增加更精细的多样性控制和探索流量策略 |
-| V2.2 | 增加 Deals / 营销活动召回 |
-
----
-
-## 24. 配置项总表
-
-### 24.1 配置项必备维度
-
-所有推荐配置至少需要支持以下维度：
-
-| 维度 | 是否必备 | 说明 |
-|---|---:|---|
-| config_key | 是 | 配置项名称 |
-| config_value | 是 | 配置项值 |
-| value_type | 是 | number / string / boolean / json |
-| market_id | 是 | 支持按 Market 配置；为空时表示系统默认值 |
-| channel_id | 是 | 支持按 Channel 配置；为空时表示 Market 默认值 |
-| status | 是 | active / inactive |
-| effective_at | 是 | 生效时间 |
-| updated_by | 是 | 修改人 |
-| updated_at | 是 | 修改时间 |
-| remark | 否 | 备注 |
-
-配置读取优先级：
-
-```text
-Market + Channel 专属配置
->
-Market 默认配置
->
-系统默认配置
+未登录用户点击 ♡ ：
+          ♡（outline）  ──点击──►  [ 登录引导弹窗（可关闭，继续浏览）]
 ```
 
-### 24.2 用户状态配置
+- 商品主图右上角：心形图标，默认 outline（未收藏）
+- 点击后：即时切换为 filled（已收藏），触发收藏 API；若失败则回滚
+- 未登录用户点击：弹出登录引导弹窗（非强制跳转，可关闭弹窗继续浏览）
+- 已收藏商品的 heart 始终显示 filled 状态
 
-| 模块 | 配置项 | 默认值 | 说明 |
-|---|---|---:|---|
-| 用户状态 | click_weight | 1 | 点击行为权重 |
-| 用户状态 | wishlist_add_weight | 3 | 收藏成功权重 |
-| 用户状态 | purchase_weight | 10 | 购买权重 |
-| 用户状态 | s1_min_score | 1 | S1 起始分 |
-| 用户状态 | s2_min_score | 5 | S2 起始分 |
-| 用户状态 | s3_min_score | 15 | S3 起始分 |
+### §8.4 PC 端商品列表加载方式
 
-### 24.3 用户状态配额配置
+**PC 端采用分页加载（非无限滚动）**：
 
-| 模块 | 配置项 | 默认值 | 说明 |
-|---|---|---:|---|
-| S0 配额 | s0_a1_ratio | 0 | S0 A1 配额 |
-| S0 配额 | s0_a2_ratio | 0 | S0 A2 配额 |
-| S0 配额 | s0_b_ratio | 60 | S0 B 配额 |
-| S0 配额 | s0_c_ratio | 40 | S0 C 配额 |
-| S1 配额 | s1_a1_ratio | 10 | S1 A1 配额 |
-| S1 配额 | s1_a2_ratio | 20 | S1 A2 配额 |
-| S1 配额 | s1_b_ratio | 35 | S1 B 配额 |
-| S1 配额 | s1_c_ratio | 35 | S1 C 配额 |
-| S2 配额 | s2_a1_ratio | 25 | S2 A1 配额 |
-| S2 配额 | s2_a2_ratio | 25 | S2 A2 配额 |
-| S2 配额 | s2_b_ratio | 25 | S2 B 配额 |
-| S2 配额 | s2_c_ratio | 25 | S2 C 配额 |
-| S3 配额 | s3_a1_ratio | 40 | S3 A1 配额 |
-| S3 配额 | s3_a2_ratio | 30 | S3 A2 配额 |
-| S3 配额 | s3_b_ratio | 15 | S3 B 配额 |
-| S3 配额 | s3_c_ratio | 15 | S3 C 配额 |
+- 首屏默认展示 **16 个商品**（4 列 × 4 行）
+- 页面底部展示「View More」按钮
+- 点击「View More」每次追加加载 **4 行（16 个）**商品，追加至当前列表末尾
+- **无翻页 / 页码逻辑**，仅 View More 追加
+- 加载中：View More 按钮显示 loading 状态
+- 所有商品加载完毕：隐藏 View More 按钮，显示"You've seen it all"
 
-### 24.4 A1 通路配置
+**移动端**保持原有无限滚动逻辑（见原 §8.4）：
+- 首屏约 20 个商品，滚动至距底部约 200px 触发加载下一页
+- 加载失败：底部显示 Retry 按钮
 
-| 模块 | 配置项 | 默认值 | 说明 |
-|---|---|---:|---|
-| A1 基准 | a1_interest_seed_count | 5 | A1 基准商品数量 |
-| A1 召回 | a1_recall_top_k | 200 | A1 召回截断 |
-| A1 相似分 | a1_series_match_score | 3.0 | 系列相似分 |
-| A1 相似分 | a1_brand_match_score | 2.5 | 品牌相似分 |
-| A1 相似分 | a1_category_match_score | 2.0 | 类目相似分 |
-| A1 相似分 | a1_grade_match_score | 1.0 | 成色相似分 |
-| A1 相似分 | a1_same_price_band_score | 1.5 | 同价格带分 |
-| A1 相似分 | a1_adjacent_price_band_score | 0.8 | 相邻价格带分 |
-
-### 24.5 A2 通路配置
-
-| 模块 | 配置项 | 默认值 | 说明 |
-|---|---|---:|---|
-| A2 基准 | a2_interest_seed_count | 5 | A2 基准商品数量 |
-| A2 召回 | a2_recall_top_k | 300 | A2 召回截断 |
-| A2 相似分 | a2_series_match_score | 3.0 | 系列相似分 |
-| A2 相似分 | a2_brand_match_score | 2.5 | 品牌相似分 |
-| A2 相似分 | a2_category_match_score | 2.0 | 类目相似分 |
-| A2 相似分 | a2_grade_match_score | 1.0 | 成色相似分 |
-| A2 相似分 | a2_same_price_band_score | 1.5 | 同价格带分 |
-| A2 相似分 | a2_adjacent_price_band_score | 0.8 | 相邻价格带分 |
-
-### 24.6 B 通路配置
-
-| 模块 | 配置项 | 默认值 | 说明 |
-|---|---|---:|---|
-| B 召回 | b_recall_top_k | 500 | New Arrivals 候选池召回数量 |
-| B 排序 | b_sort_by | listed_at_desc | 默认按 listed_at 倒序 |
-| B 新鲜度 | b_freshness_days | 30 | 商品上架有效天数窗口，超出此天数的商品不进入 B 通路候选池 |
-
-### 24.7 C 通路配置
-
-| 模块 | 配置项 | 默认值 | 说明 |
-|---|---|---:|---|
-| C 召回 | c_recall_top_k | 500 | Best Sellers 候选池召回数量 |
-| C 曝光候选池 | c_impression_top_k | 2000 | 先按曝光 session 数取 Top K |
-| C 权重 | c_ctr_weight | 2 | CTR 权重 |
-| C 权重 | c_wishlist_weight | 4 | 收藏权重 |
-| C 权重 | c_purchase_weight | 4 | SPU 购买权重 |
-| C 归一化 | c_wishlist_log_smooth | true | 收藏数是否使用 log(1+x) 平滑 |
-| C 归一化 | c_purchase_log_smooth | true | 购买数是否使用 log(1+x) 平滑 |
-
-### 24.8 过滤与频控配置
-
-| 模块 | 配置项 | 默认值 | 说明 |
-|---|---|---:|---|
-| Session 去重 | filter_session_exposed | true | 当前 Session 已展示商品不再返回 |
-| 24h 曝光频控 | max_listing_exposure_24h | 3 | 同一 listing 24h 内最多展示次数 |
-| 间隔去重 | listing_repeat_gap_count | 100 | 同一 listing 在最近 X 个已展示商品内不得重复返回 |
-| 跨通路去重 | dedupe_by_listing_id | true | A1/A2/B/C 按 listing_id 去重 |
-| 可售过滤 | filter_unavailable_listing | true | 不可售商品不返回 |
-| 图片过滤 | filter_empty_main_image | true | 无主图商品不返回 |
-| 价格过滤 | filter_invalid_price | true | listing_price <= 0 不返回 |
-| 成色过滤 | filter_empty_grade | true | grade 为空不返回 |
-
-### 24.9 打散配置
-
-| 模块 | 配置项 | 默认值 | 说明 |
-|---|---|---|---|
-| 打散维度开关 | scatter_enabled_dimensions | brand,series,category,price_band | 启用的打散维度列表，逗号分隔；可按需增减或置空（置空则关闭打散） |
-| 品牌打散 | max_consecutive_same_brand | 2 | 同品牌连续最多 2 个 |
-| 系列打散 | max_consecutive_same_series | 1 | 同系列连续最多 1 个 |
-| 类目打散 | max_consecutive_same_category | 3 | 同后台类目连续最多 3 个 |
-| 价格带打散 | max_consecutive_same_price_band | 4 | 同价格带连续最多 4 个 |
-
-### 24.10 无限流兜底配置
-
-| 模块 | 配置项 | 默认值 | 说明 |
-|---|---|---:|---|
-| 无限流 | page_size | 20 | 每次默认返回 20 个 listing |
-| 无限流 | enable_previous_candidate_pool_fallback | true | 是否允许使用上一请求未展示候选池 |
-| 无限流 | enable_previous_interest_similar_fallback | true | 是否允许对上一候选池中用户点击 / 收藏过的商品重新做相似召回 |
-| 无限流 | enable_base_pool_fallback | true | 是否允许使用基础商品池稳定排序兜底 |
-| 无限流 | base_pool_fallback_sort | listed_at_desc_listing_id_asc | 基础商品池兜底排序 |
+**Section 标题**：`Explore Finds`（前端固定文案），紧贴 Tab 行上方。
 
 ---
+
+## §9 底部导航 Tab Bar（移动端）
+
+**交互线框图**：
+
+```
+┌────────────────────────────────────────────┐  h: 60px（含底部安全区域）
+│   🏠        🛍️        ♡         👤          │
+│  Home      Shop    Favorites   Account     │
+│ (激活：      (未激活:   (未激活：   (未激活：  │
+│  filled    outline   outline    outline    │
+│  品牌色)    灰色)      灰色)       灰色)     │
+└────────────────────────────────────────────┘
+  fixed 吸底，毛玻璃效果（backdrop-filter: blur）
+  内容页可滚动穿透 Tab Bar 下方
+```
+
+**高度**：60px（含安全区域底部 inset 自适应）
+**背景**：毛玻璃效果（backdrop-filter: blur），半透明白色
+**位置**：fixed 吸底，内容页面可滚动穿透 Tab Bar 下方
+
+**Tab 列表**：
+
+| Tab | 图标 | 激活状态 |
+|-----|------|---------|
+| Home | house 形 | filled icon，标签文字加粗 |
+| Shop | grid / search 形 | filled icon，标签文字加粗 |
+| Favorites | heart 形 | filled icon，标签文字加粗 |
+| Account | person 形 | filled icon，标签文字加粗 |
+
+- 图标 24×24px，标签文字 10px
+- 激活 Tab：filled 图标 + 加粗文字 + 品牌色（`$color-brand-primary`）
+- 非激活：outline 图标 + 灰色
+
+**首页对应**：Tab Bar 中 Home 为激活态
+
+---
+
+## §10 页脚 Footer（PC 端）
+
+PC 端首页最底部展示通用 Footer。移动端首页无 Footer（由 Tab Bar 替代导航）。
+
+**交互线框图（PC 端页面整体纵向结构）**：
+
+```
+┌───────────────────────────────────────────────────────────┐
+│  [ Announcement Bar 40px - 品牌紫 ]                        │  sticky-scrollable
+├───────────────────────────────────────────────────────────┤
+│  [ Navbar 72px - 白底 sticky ]                             │  sticky
+│   LOOPLY  NavLinks  [  Search  ]  ♡  🛒  🌐  👤           │
+├───────────────────────────────────────────────────────────┤
+│  [ Banner 400px - full-width ]                             │
+├───────────────────────────────────────────────────────────┤
+│  [ Trust Bar - 4列横排 ]                                   │
+├───────────────────────────────────────────────────────────┤
+│  Curated Collections                                       │
+│  [ 卡片1 ][ 卡片2 ][ 卡片3 ][ 卡片4 ]  (3-4列网格)          │
+├───────────────────────────────────────────────────────────┤
+│  Explore Finds                                             │
+│  [■ For You ■] [New Arrivals]                              │
+│  ┌──────┐┌──────┐┌──────┐┌──────┐  (4列网格)               │
+│  │      ││      ││      ││      │                          │
+│  └──────┘└──────┘└──────┘└──────┘                         │
+│  ... (默认16个，点击 View More 追加加载)                     │
+│  [ View More ]                                             │
+├───────────────────────────────────────────────────────────┤
+│  [ Footer - 深色背景 ]                                      │
+│  About | Support | Social                 © 2026 Looply   │
+└───────────────────────────────────────────────────────────┘
+```
+
+**Footer 内容（MVP 版）**：
+
+> ℹ️ MVP 阶段 Footer 内容与 Shopify 默认保持一致，内容不变。参考【Footer截图（shopify）】。Footer 内所有交互、跳转、二级页面暂不设计。如有余力可重新排版，优先级靠后，不强制。
+
+- Footer 背景色：深色（`#1a1a2e` 或设计稿定义值）
+- 文字颜色：白色
+- 底部版权：`© 2026 Looply. All rights reserved.`
+
+---
+
+## §11 登录态差异矩阵
+
+| 功能 | 未登录 | 已登录 |
+|------|--------|--------|
+| 浏览 Feed / Banner / Collections | ✅ 正常展示 | ✅ 正常展示 |
+| Feed For You 推荐 | 基于 anonymous_user_id 的行为数据（若无历史→ New Arrivals 兜底） | 基于 user_id 的行为数据 |
+| 商品卡片收藏（Heart） | 点击 → 登录引导弹窗 | 即时收藏，同步账户 |
+| Header Cart 徽标 | — | — |
+| Header Favourite 图标 | — | — |
+| Market & Language 选择持久化 | 本地存储（30 天） | 账号 profile 永久保存 |
+
+---
+
+## §12 降级策略汇总
+
+| 模块 | 场景 | 降级处理 |
+|------|------|---------|
+| Market 识别 | 所有来源均失败 | 默认 US 市场（market_id = US_MARKET_ID） |
+| Banner（home_banner） | 无 active 配置 | 隐藏整个 Banner 区域 |
+| Banner（home_banner） | 图片加载失败 | 显示品牌色背景块，文字和 CTA 按钮正常显示 |
+| Trust Bar | 静态资源加载失败 | 显示文字条目，隐藏图标 |
+| Collections（home_collection） | 无 active 配置 | 隐藏整个 Collections 区域 |
+| Collections（home_collection） | 图片加载失败 | 单张卡片渲染失败 → 该卡片不展示；全部失败 → 隐藏整个区域 |
+| Feed | 推荐服务异常 | For You 降级至 New Arrivals 商品池排序兜底 |
+| Feed | 商品池为空 | 展示"No items available"空态插图 |
+| Feed | 下一页加载失败 | 底部显示 Retry 按钮，不崩溃 |
+| 搜索展开卡片 | 无搜索历史 | 隐藏 Recent Searches 区块，直接展示 Hot Trends |
+
+---
+
+## §13 性能要求
+
+> ℹ️ 以下指标为产品侧参考建议，最终目标值由研发团队根据实际情况确认。
+
+| 指标 | 目标值 | 说明 |
+|------|--------|------|
+| 首屏 LCP（Largest Contentful Paint） | ≤ 2.5s（P75） | Banner 图片为 LCP 候选元素，需优先加载 |
+| Feed 首屏 TTI（Time to Interactive） | ≤ 3.5s（P75） | 首屏 20 张卡片渲染完成 |
+| 图片格式 | WebP（AVIF 可选） | Banner 和商品主图使用 CDN 压缩版本 |
+| Feed 分页加载 | ≤ 800ms（P90） | 下一页 20 条 API 响应时间 |
+| Banner 图片预加载 | 首屏 Banner 图片 `<link rel="preload">` | 减少 LCP 时间 |
+
+---
+
+## §14 依赖与风险
+
+### §14.1 上下游系统依赖
+
+| 系统 | 依赖内容 | PRD 文档 |
+|------|---------|---------|
+| CMS 系统 | `home_banner` + `home_collection` 资源位配置和下发 API | CMS PRD v2.5.1 |
+| Market 系统 | `market_id` 映射、country → market 关系、Market 列表枚举 | Market PRD v1.2 |
+| 商品系统 | 商品列表（listing_id / grade / listing_price / main_image_url / listed_at） | 商品系统 PRD |
+| Feed 推荐引擎 | For You / New Arrivals / Best Sellers 商品列表 API | Feed PRD v2.3 |
+| GeoIP 服务 | IP → country_code 地理位置解析 | 外部服务（三方库或自建） |
+| 用户系统 | 收藏状态、购物车数量、账号信息 | 用户/账号 PRD |
+| Collections 合集系统 | collection_id 对应的合集数据 | Collections PRD v1.0 |
+| 商品详情系统 | 商品详情页（Feed 商品卡点击跳转目标） | 商详 PRD（已有） |
+
+### §14.2 关键依赖缺口
+
+| 缺口 | 影响 | 状态 |
+|------|------|------|
+| `listed_at` 字段 | New Arrivals / B 通路排序依赖此字段，商品系统尚未添加 | 需向商品系统提需求（见 Feed PRD §25.2） |
+| 营销系统 | Deals Tab、划线价均依赖营销系统，MVP 均不上线 | 后续迭代 |
+| GeoIP 库选型 | IP → country_code 需选定服务商 | 待技术确认 |
+| Trust Bar 最终文案 | 当前为设计稿占位文案，运营未提供最终版本 | 待运营提供 |
+
+### §14.3 风险
+
+| 风险 | 等级 | 缓解措施 |
+|------|------|---------|
+| Market 识别失败导致错误币种 | 高 | 兜底默认 US，前端显示"Price in USD"提示 |
+| CMS 资源位请求超时 | 中 | 隐藏对应区域，不阻塞页面主体加载 |
+| Feed 推荐服务不稳定 | 中 | 降级到 B 通路直接排序，用户体验可接受 |
+| Banner 大图影响 LCP | 中 | 图片 preload + CDN + WebP 格式 |
+
+---
+
+## §15 版本规划
+
+### §15.1 当前版本（v1.0 / MVP）
+
+- 首页移动端 + PC 端全结构
+- Market & Language 自动识别 + 手动切换面板
+- Search 展开卡（Recent Searches + Hot Trends 硬编码，仅移动端）；PC 端搜索框为占位，展开态本期不设计
+- home_banner + home_collection CMS 资源位
+- Trust Bar 硬编码（待运营文案）
+- PC 端 Navbar：NavLinks 由导航栏配置 PRD 管理；navRight 本期展示 Market & Language + Account；搜索/收藏/购物车图标本期不在首页展示，其展开态不属于首页交付范围
+- PC 端 Navbar Account 交互：未登录 → Sign In 引导浮层；已登录 → 账户菜单（My Orders / My Profile / Settings / Sign Out）；浮层外点击关闭
+- PC 端 Navbar：含二级/三级导航展开面板（三级 Brands 面板采用版本 A：多组横排，4列，组间分割线）
+- Feed 两 Tab（For You / New Arrivals），Best Sellers 和 Deals 隐藏
+- 商品卡片（无促销价）
+- PC 端 Feed 分页加载：默认 16 个，View More 追加 4 行，无页码
+
+### §15.2 后续迭代方向（建议）
+
+| 功能 | 预期版本 | 条件 |
+|------|---------|------|
+| Best Sellers Tab 上线 | v1.1 | Feed PRD 热卖榜通路就绪 |
+| Deals Tab 上线 | v1.1 | 营销系统上线 |
+| 划线价 / 促销价展示 | v1.1 | 营销系统上线 |
+| 搜索配置后台（Hot Trends 运营化） | v1.1 | 搜索配置页开发完成 |
+| PC 端搜索框展开态交互 | v1.1 | 搜推确认预置内容后实现 |
+| PC Navbar Favorites / Cart 侧栏 | v1.1 | Favorites 页 / 购物车页完成后补 |
+| Trust Bar CMS 化 | v1.2 | CMS 扩展支持 trust_bar 区块 |
+| Feed Tab 顺序配置化 | v1.2 | Feed 配置后台扩展 |
+| 搜索联想词 | v1.2 | 搜索引擎接入 |
+| 匿名行为合并（anonymous → user_id） | v1.1（Feed PRD V1.1） | 见 Feed PRD v2.3 §12.2 |
+
+---
+
+## §16 数据与埋点
+
+所有事件均携带 `market_id`、`user_id`（已登录）或 `anonymous_user_id`（未登录）、`session_id`、`terminal`（App/PC）。
+
+### §16.1 关键埋点事件
+
+| 事件名 | 触发时机 | 关键参数 |
+|--------|---------|---------|
+| `page_view_home` | 首页加载完成 | `market_id`, `detected_market_source`（ip/saved/default 等） |
+| `search_pill_tap` | 点击搜索 Pill，进入展开态 | `has_recent_searches`（bool） |
+| `search_submit` | 搜索提交（按 Enter / 点击词 / 点击标签） | `query`, `source`（recent/trend_category/trend_brand/input） |
+| `search_recent_delete` | 删除某条搜索历史 | `deleted_query` |
+| `banner_view` | Banner 进入视口 | `banner_config_id`, `position`（第几张） |
+| `banner_click` | 点击 Banner | `banner_config_id`, `landing_page` |
+| `collection_click` | 点击 Collections 卡片 | `collection_config_id`, `collection_id`, `position` |
+| `feed_tab_switch` | 切换 Feed Tab | `to_tab`, `from_tab` |
+| `product_card_view` | 商品卡片进入视口 | `listing_id`, `tab`, `position`, `rec_source`（A1/A2/B/C） |
+| `product_card_click` | 点击商品卡片（跳商详） | `listing_id`, `tab`, `position`, `rec_source` |
+| `product_favorite_toggle` | 点击收藏心形 | `listing_id`, `action`（add/remove）, `logged_in` |
+| `market_language_panel_open` | 点击 Globe 图标 | — |
+| `market_language_save` | 点击面板 Apply | `new_language_code`, `new_market_id` |
+
+### §16.2 Feed 行为数据
+
+Feed 相关埋点的详细定义见《Looply 首页 Feed PRD v2.3》§10 行为数据 + §19 埋点事件。首页 PRD 不重复定义。
+
+---
+
+## §17 附录 — 设计稿索引
+
+| 页面 / 区域 | 端 | 设计稿文件 | 关键 Frame / Node |
+|-------------|----|-----------|--------------------|
+| 首页移动端全页 | App | [首页 APP 端（Figma）](https://www.figma.com/design/hwPpMTL2rFF8fcWD8mHmLE/Untitled?node-id=280-2&t=n8yG97WUo5EQiBJF-1) | Node 280-2 |
+| 首页 PC 端全页 | PC | `looply-home-PC.pen` | Frame `kSmej` |
+| 移动端 Header + Search Pill | App | [首页 APP 端（Figma）](https://www.figma.com/design/hwPpMTL2rFF8fcWD8mHmLE/Untitled?node-id=280-2&t=n8yG97WUo5EQiBJF-1) | — |
+| PC Navbar（含搜索 + navRight） | PC | `looply-home-PC.pen` | Node `PP8Uk` |
+| PC Announcement Bar | PC | `looply-home-PC.pen` | Node `EhX1v` |
+| Trust Bar | App / PC | `looply-home-PC.pen` | Trust Bar 区域 |
+| Collections（横向卡片） | App / PC | `looply-home-PC.pen` | Collections 区域 |
+| Feed 区域（Tab + 商品网格） | App / PC | `looply-home-PC.pen` | Feed 区域 |
+| 底部 Tab Bar | App | `looply-home-PC.pen` | Node `o4oh3V` |
+
+设计稿路径：
+- 移动端：[首页 APP 端（Figma）](https://www.figma.com/design/hwPpMTL2rFF8fcWD8mHmLE/Untitled?node-id=280-2&t=n8yG97WUo5EQiBJF-1)
+- PC 端：`/Users/zz/looply/cms/looply-home-PC.pen`
+
+---
+
+*文档维护：Looply 产品团队 | 首页 PRD v1.3 | 2026-07-02*
+
+---
+
+## 变更日志
+
+### v1.3 · 2026-07-02
+
+| 编号 | 章节 | 变更内容 | 原因 |
+|------|------|---------|------|
+| C2 | §1.2 不做什么 | 新增 PC 端搜索框交互（⏳ 待做）、Best Sellers Tab（❌ 隐藏）、PC Navbar Heart/Cart 侧栏（❌ 不做）三行 | 对齐原型稿 MVP 边界 |
+| C3 | §3.2 PC 端 Header | 删除 PC 端整体简笔画线框图；§3.2 改为"样式与交互见原型" | 线框图与原型重复且易失真，以原型为唯一视觉基准 |
+| C4 | §3.2.2 NavLinks | 删除固定品类列表与顺序约束，改为「内容与顺序由 CMS 导航栏配置统一管理，详见导航栏配置 PRD」 | NavLinks 是全局可配置内容，非首页独有需求，不在此处硬编码 |
+| C5 | §3.2.2 navRight | 删除逐图标交互说明；明确本期仅展示 Market & Language 入口 + Account 入口，搜索/收藏/购物车本期不在此处展示；图标样式与顺序以原型为准 | 与导航栏配置 PRD 对齐，避免首页 PRD 重复定义 |
+| C6 | §3.2.3（新增） | 新增 PC 端导航下拉面板说明：一级（无面板）/ 二级（浮动小卡，2列）/ 三级（全宽面板，MVP 采用版本 A，版本 B 保留备选） | 原型稿新增交互设计 |
+| C7 | §5.3 PC 端 Banner | 高度从 600px 改为 400px | 对齐原型稿实际定值 |
+| C8 | §8.1 Feed Tab | Tab 从 3 个（For You / New Arrivals / Best Sellers）改为 2 个（For You / New Arrivals）；Best Sellers 改为 ❌ 隐藏 | 对齐原型稿 MVP 实现 |
+| C9 | §8.4（重写） | PC 端由无限滚动改为分页加载：默认 16 个（4×4），点击 View More 追加 4 行，无页码；移动端保持无限滚动 | 对齐原型稿交互备注及 View More 按钮设计 |
+| C10 | §10 Footer 线框图 | Banner 高度更正为 400px，Feed 描述从「无限滚动」改为「View More 追加加载」，Tab 更新为 2 个 | 对齐 C7/C8/C9 |
+| C11 | §10 Footer 内容 | 改为「与 Shopify 默认保持一致，内容不变」，去掉硬编码列表，优先级靠后，不强制重排 | 对齐原型备注 |
+| C12 | §15.1 当前版本 | 补全 PC Navbar 导航结构、搜索框状态、Feed Tab 变更、View More 分页信息 | 对齐原型实际范围 |
+| C13 | §15.2 后续迭代 | 新增 Best Sellers Tab、PC 搜索框完整交互、PC Navbar Heart/Cart 侧栏三个迭代项 | 补全待做清单 |
+| C14 | §1.5 全局页面流转 | 删除 Header 收藏/购物车图标跳转条目，改为 Account 浮层交互（未登录引导 / 已登录菜单）；新增说明：Search 展开卡、Favorites 侧栏、Cart 侧栏展开态本期不属于首页范围 | 明确首页 MVP 边界，避免开发对 Header 展开态产生误解 |
+| C15 | §11 登录态差异矩阵 | Header Cart 徽标 / Header Favourite 图标两行改为「—」，本期首页不关注此两项 | 与 §1.5 边界对齐 |
+| C16 | §15.1 当前版本 | 补充 PC 端 Account 浮层交互说明；明确搜索/收藏/购物车图标展开态不属于首页交付范围 | 与 §1.5 边界对齐，防止开发误交付 |
+| C17 | §15.2 后续迭代 | 「PC 端搜索框完整交互」和「PC Navbar Heart/Cart 侧栏展开」描述对齐新边界说明 | 措辞清晰化 |
+
+### v1.2 · 2026-06-18
+
+| 编号 | 章节 | 变更内容 | 原因 |
+|------|------|---------|------|
+| C1 | §4.2 搜索展开卡片（Expanded 态） | 移动端展开卡片交互由 bottom sheet 改为全宽下拉卡片：紧贴搜索框底部向下滑出，宽度覆盖整个屏幕宽度，不从底部弹出 | 底部弹出与搜索入口位置脱节，用户视线从顶部搜索框跳到底部 sheet，体验断层；改为贴顶下拉后视觉连贯 |
