@@ -28,6 +28,7 @@ import glob as globmod
 import zipfile
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import quote as url_quote
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 _updated_files = set()
@@ -1174,7 +1175,11 @@ def update_index_html(updates, all_versions, all_history=None):
             href_dir = upd['href_dir']
             file_pattern = upd['file_pattern']
             new_file = upd['new_file']
-            regex = re.compile(r'(href="' + re.escape(href_dir) + r')([^"]+)(")')
+            href_dir_encoded = url_quote(href_dir, safe='/')
+            href_variants = [re.escape(href_dir)]
+            if href_dir_encoded != href_dir:
+                href_variants.append(re.escape(href_dir_encoded))
+            regex = re.compile(r'(href="(?:' + '|'.join(href_variants) + r'))([^"]+)(")')
             match = regex.search(lines[i])
             if match:
                 old_filename = match.group(2)
@@ -1297,9 +1302,13 @@ def update_index_html(updates, all_versions, all_history=None):
                             href_prefix = f'{mod_dir}/'
                         else:
                             href_prefix = f'{mod_dir}/{subdir}/'
-                        if href_prefix not in lookback:
+                        href_prefix_encoded = url_quote(href_prefix, safe='/')
+                        if href_prefix not in lookback and href_prefix_encoded not in lookback:
                             continue
-                        href_m = re.search(r'href="' + re.escape(href_prefix) + r'([^"]+)"', lookback)
+                        prefix_alts = [re.escape(href_prefix)]
+                        if href_prefix_encoded != href_prefix:
+                            prefix_alts.append(re.escape(href_prefix_encoded))
+                        href_m = re.search(r'href="(?:' + '|'.join(prefix_alts) + r')([^"]+)"', lookback)
                         if href_m and re.match(file_pattern, href_m.group(1)):
                             matched_key = (mk, art_type)
                             break
@@ -1347,8 +1356,9 @@ def update_index_html(updates, all_versions, all_history=None):
                             break
                         i += 1
                 new_items = []
+                href_prefix_enc = url_quote(href_prefix, safe='/')
                 for hist_file, hist_ver in history:
-                    href = f'{href_prefix}{hist_file}'
+                    href = f'{href_prefix_enc}{hist_file}'
                     if href not in existing_hrefs:
                         new_items.append(f'          <li class="history-item">{ver_prefix}{hist_ver} <a href="{href}" {link_attr}>{link_label}</a></li>\n')
                 if new_items or existing_lines:
