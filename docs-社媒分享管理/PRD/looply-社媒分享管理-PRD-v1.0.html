@@ -1,0 +1,2116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Looply 社媒分享管理 PRD v1.0</title>
+<style>
+  :root { --primary:#7C3AED; --ink:#1F2937; --muted:#6B7280; --border:#E5E7EB; --bg:#F9FAFB; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; padding:0; }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+         color:var(--ink); background:var(--bg); line-height:1.7; font-size:15px; }
+  #layout { display:flex; align-items:flex-start; }
+  /* 侧边目录 */
+  #toc { position:sticky; top:0; height:100vh; width:300px; flex-shrink:0; overflow-y:auto;
+          background:#fff; border-right:1px solid var(--border); padding:24px 16px; }
+  #toc .toc-title { font-size:14px; font-weight:700; color:var(--primary); margin:0 0 12px; letter-spacing:.02em; }
+  #toc ul { list-style:none; margin:0; padding-left:0; }
+  #toc ul ul { padding-left:14px; }
+  #toc li { margin:2px 0; }
+  #toc a { color:var(--muted); text-decoration:none; font-size:13px; display:block;
+            padding:4px 8px; border-radius:6px; transition:all .15s; }
+  #toc a:hover { background:#F3EEFF; color:var(--primary); }
+  #toc a.active { background:#F3EEFF; color:var(--primary); font-weight:600; }
+  /* 正文 */
+  #content { flex:1; max-width:920px; margin:0 auto; padding:48px 56px 120px; background:#fff;
+              min-height:100vh; box-shadow:0 0 0 1px var(--border); }
+  #content h1 { font-size:30px; font-weight:800; margin:0 0 8px; }
+  #content h2 { font-size:23px; font-weight:700; margin:44px 0 14px; padding-bottom:10px;
+                 border-bottom:2px solid var(--border); scroll-margin-top:20px; }
+  #content h3 { font-size:18px; font-weight:700; margin:30px 0 10px; color:#111827; scroll-margin-top:20px; }
+  #content p { margin:10px 0; }
+  #content blockquote { margin:14px 0; padding:12px 16px; background:#F3EEFF; border-left:4px solid var(--primary);
+                         border-radius:6px; color:#4C1D95; font-size:14px; }
+  #content blockquote p { margin:4px 0; }
+  #content table { border-collapse:collapse; width:100%; margin:16px 0; font-size:13.5px; }
+  #content th { background:#F3EEFF; color:#4C1D95; text-align:left; font-weight:600;
+                 padding:9px 12px; border:1px solid #DDD6FE; }
+  #content td { padding:9px 12px; border:1px solid var(--border); vertical-align:top; }
+  #content tr:nth-child(even) td { background:#FBFAFF; }
+  #content code { font-family:Menlo,Monaco,Consolas,monospace; font-size:12.5px; color:#BE185D;
+                   background:#F3F4F6; padding:1px 6px; border-radius:4px; }
+  #content pre { background:#1F2937; color:#E5E7EB; padding:16px 18px; border-radius:10px; overflow-x:auto;
+                  font-size:12.5px; line-height:1.55; }
+  #content pre code { background:none; color:inherit; padding:0; }
+  #content hr { border:none; border-top:1px solid var(--border); margin:36px 0; }
+  #content ul,#content ol { padding-left:24px; }
+  #content li { margin:4px 0; }
+  #content a { color:var(--primary); }
+  .meta-banner { background:linear-gradient(180deg,#FEFCFF,#F3EEFF); border:1px solid #DDD6FE;
+                  border-radius:14px; padding:18px 22px; margin:18px 0 8px; font-size:13.5px; color:#4C1D95; }
+  @media print { #toc { display:none; } #content { box-shadow:none; max-width:100%; } }
+  @media (max-width:900px) { #toc { display:none; } #content { padding:24px; } }
+</style>
+</head>
+<body>
+<div id="layout">
+  <nav id="toc">
+    <div class="toc-title">目录</div>
+    <div class="toc">
+<ul>
+<li><a href="#_1">一、概述</a><ul>
+<li><a href="#11">1.1 背景与目标</a></li>
+<li><a href="#12">1.2 不做什么（明确边界）</a></li>
+<li><a href="#13">1.3 用户角色</a></li>
+<li><a href="#14">1.4 核心场景</a></li>
+<li><a href="#15">1.5 全局页面流转</a></li>
+<li><a href="#16">1.6 术语说明</a></li>
+<li><a href="#17">1.7 多语言 / 多国家策略</a></li>
+</ul>
+</li>
+<li><a href="#_2">二、需求详细描述</a><ul>
+<li><a href="#21">2.1 公共功能组件</a></li>
+<li><a href="#22-c">2.2 C 端商品分享</a></li>
+<li><a href="#23">2.3 短链服务（系统机制）</a></li>
+<li><a href="#24">2.4 渠道归因与数据采集</a></li>
+<li><a href="#25">2.5 后台短链管理</a></li>
+</ul>
+</li>
+<li><a href="#_3">三、依赖与风险</a><ul>
+<li><a href="#31">3.1 上下游系统依赖</a></li>
+<li><a href="#32">3.2 外部服务依赖</a></li>
+<li><a href="#33">3.3 关键风险</a></li>
+</ul>
+</li>
+<li><a href="#_4">四、版本规划</a><ul>
+<li><a href="#41-v10-mvp">4.1 当前版本（v1.0 MVP）范围</a></li>
+<li><a href="#42">4.2 后续迭代方向</a></li>
+<li><a href="#43-tbd">4.3 待规划事项（TBD）</a></li>
+</ul>
+</li>
+<li><a href="#_5">五、数据与埋点</a><ul>
+<li><a href="#51">5.1 分享漏斗与核心事件</a></li>
+<li><a href="#52">5.2 关键指标</a></li>
+<li><a href="#53-id">5.3 用户 ID 处理（未登录场景）</a></li>
+<li><a href="#54-vs">5.4 系统弹窗 vs 自定义弹窗追踪差异</a></li>
+</ul>
+</li>
+<li><a href="#_6">六、附录</a><ul>
+<li><a href="#61">6.1 设计稿索引</a></li>
+<li><a href="#62-er-v11">6.2 数据模型参考（ER v1.1）</a></li>
+<li><a href="#63-er-er">6.3 给 ER 图的反馈（待产品确认后回写 ER）</a></li>
+</ul>
+</li>
+</ul>
+</div>
+
+  </nav>
+  <main id="content">
+    <h1 id="looply-prd">Looply 社媒分享管理 PRD</h1>
+<p><strong>模块名称</strong>：社媒分享管理（Social Share Management）
+<strong>版本</strong>：v1.0（MVP）
+<strong>文档日期</strong>：2026-06-07
+<strong>目标市场</strong>：美国二手奢侈品电商
+<strong>状态</strong>：待评审</p>
+<blockquote>
+<p>修订记录单独维护在同目录 <code>looply-社媒分享管理-PRD-修订记录.md</code>，正文不含修订历史。</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、概述</h2>
+<h3 id="11">1.1 背景与目标</h3>
+<p><strong>背景</strong></p>
+<p>Looply 是转转国际业务面向美国市场的大牌二手电商平台，从二手奢侈品（包袋、首饰、配饰）切入。平台当前处于冷启动阶段，品牌认知度低、用户信任待建立，需要低成本、可量化的获客与曝光手段。</p>
+<p>竞品调研结论：外部社媒分享是行业<strong>基础配置</strong>而非核心竞争力——Poshmark 有外部分享但增长来自站内社交，The RealReal 无外部分享靠重金推荐增长。因此 Looply 的策略是：<strong>先以最小成本做好基础分享 + 可量化的短链归因能力</strong>，验证分享意愿与转化，再决定是否投入推荐计划、站内社交等更重的增长杠杆。</p>
+<p><strong>目标（MVP）</strong></p>
+<ol>
+<li>为商品详情页提供全端（PC Web / Mobile Web / iOS App / Android App）基础社媒分享能力，满足用户基本预期。</li>
+<li>建立统一短链服务，同时承载<strong>用户分享</strong>与<strong>运营投放</strong>两类链接，替代 Google Campaign URL Builder 的手工拼链方式。</li>
+<li>提供后台短链管理，让运营可创建投放短链、查看每条短链的点击与独立访客数据，沉淀渠道归因基础。</li>
+<li>技术方案从简：MVP 用原生深度链接（Universal Links + App Links）+ UTM 参数 + 自建短链，技术成本为零，不引入 Branch.io 等付费深链方案。</li>
+</ol>
+<p><strong>衡量标准</strong>（来自调研报告 §8.1）</p>
+<ul>
+<li>商品详情页分享率 &gt; 2%（行业基准 1–3%）</li>
+<li>分享点击率 &gt; 5%</li>
+<li>Copy Link 渠道占比 &gt; 50%（最通用）</li>
+</ul>
+<h3 id="12">1.2 不做什么（明确边界）</h3>
+<p>本期（MVP）<strong>明确不做</strong>以下内容，避免范围蔓延：</p>
+<table>
+<thead>
+<tr>
+<th>不做项</th>
+<th>原因</th>
+<th>计划</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>推荐拉新计划（邀请好友、奖励发放、反作弊）</td>
+<td>独立的较大模块，需单独立项</td>
+<td>后续版本</td>
+</tr>
+<tr>
+<td>站内社交（关注、信息流、社区达人）</td>
+<td>需用户基数支撑，重构信息流架构</td>
+<td>Phase 3</td>
+</tr>
+<tr>
+<td>归因转化（点击 → 注册 / 下单链路打通）</td>
+<td>依赖订单侧回传 UTM + 用户身份识别，当前 user_id 常为空</td>
+<td>后续规划（TBD-3）</td>
+</tr>
+<tr>
+<td>短链启用 / 停用 / 封禁 / 过期管理</td>
+<td>运营止损场景已记录，但本期不做；DB <code>status</code> 字段保留</td>
+<td>后续迭代</td>
+</tr>
+<tr>
+<td>WebView 中间页引导（Instagram/TikTok 内置浏览器）</td>
+<td>Universal Links 在 WebView 不生效，需中间页</td>
+<td>Phase 2</td>
+</tr>
+<tr>
+<td>动态合成 OG 分享卡片图（商品图 + 价格 + 水印）</td>
+<td>MVP 的 OG 图直接用商品主图，不动态合成（注：Instagram Stories 所需的 9:16 合成图本期做，见 2.2.3）</td>
+<td>Phase 2</td>
+</tr>
+<tr>
+<td>卖家工具包（批量导出、店铺短链、竖屏素材）</td>
+<td>Depop 路线，赋能卖家自运营</td>
+<td>Phase 2</td>
+</tr>
+<tr>
+<td>分享激励（分享得优惠券）</td>
+<td>属于营销活动模块</td>
+<td>后续评估</td>
+</tr>
+<tr>
+<td>目标商品下架后的短链落地兜底页</td>
+<td>需规划"商品已下架"提示页 / 推荐相似商品</td>
+<td>后续规划（TBD-1）</td>
+</tr>
+<tr>
+<td>用户分享短链滥用管控（刷量、不当内容紧急关闭）</td>
+<td>优先级与触发条件待定</td>
+<td>待评估（TBD-2）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="13">1.3 用户角色</h3>
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>说明</th>
+<th>在本模块的职责</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>C 端用户（分享人）</strong></td>
+<td>平台买家 / 浏览用户，可未登录</td>
+<td>在商品详情页点击分享，将商品通过社媒渠道分享给他人</td>
+</tr>
+<tr>
+<td><strong>C 端用户（接收方）</strong></td>
+<td>收到分享链接的人</td>
+<td>点击短链，被唤起 App 或跳转落地页</td>
+</tr>
+<tr>
+<td><strong>运营人员</strong></td>
+<td>Looply 市场 / 增长运营</td>
+<td>在后台创建运营投放短链、查看短链点击数据</td>
+</tr>
+<tr>
+<td><strong>系统</strong></td>
+<td>短链服务 / 归因服务</td>
+<td>自动生成用户分享短链、解析点击、记录归因数据</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>本模块为 MVP，后台仅区分"运营人员"单一角色，不做差异化权限矩阵（故第六章权限矩阵省略）。</p>
+</blockquote>
+<h3 id="14">1.4 核心场景</h3>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>触发</th>
+<th>主体</th>
+<th>商业价值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>场景 1：买家推荐好货</strong></td>
+<td>浏览商品时发现好东西，分享给特定朋友（"这个包适合你"）</td>
+<td>C 端用户</td>
+<td>高意向流量</td>
+</tr>
+<tr>
+<td><strong>场景 2：买家晒单</strong></td>
+<td>购买 / 收货后展示品味（注：晒单入口在订单/收货页，本期仅做详情页分享，晒单场景见 Phase 2）</td>
+<td>C 端用户</td>
+<td>品牌曝光</td>
+</tr>
+<tr>
+<td><strong>场景 3：运营投放</strong></td>
+<td>在社媒平台投放广告 / 达人合作，需带 UTM 的可追踪链接</td>
+<td>运营人员</td>
+<td>拉新、可量化归因</td>
+</tr>
+<tr>
+<td><strong>场景 4：效果复盘</strong></td>
+<td>运营查看各短链 / 渠道的点击与独立访客表现</td>
+<td>运营人员</td>
+<td>投放决策依据</td>
+</tr>
+</tbody>
+</table>
+<h3 id="15">1.5 全局页面流转</h3>
+<p><strong>C 端（商品分享）</strong></p>
+<pre><code>商品详情页（PC/Mobile Web/iOS/Android）
+    │ 点击「Share」按钮
+    ▼
+分享弹窗 / 分享面板（渠道列表）
+    │ 选择渠道
+    ├── Copy Link → 复制到剪贴板（本地操作，toast 提示）
+    ├── 社媒渠道（Facebook/Pinterest/X/...）→ 唤起对应 App / 跳转 Web 分享页
+    ├── IM 渠道（Message/WhatsApp/...）→ 唤起对应 App 预填文案
+    └── More → 调起系统分享面板（系统级，渠道由 OS 决定）
+</code></pre>
+<p><strong>接收方（点击短链）</strong></p>
+<pre><code>点击 looply.com/s/{short_code}
+    │
+    ├── 已装 App（OS 拦截 Universal Links / App Links）→ 直接打开 App → 商品详情页
+    ├── 社媒爬虫（UA 匹配）→ 返回 OG HTML 渲染预览卡片（不跳转）
+    └── 未装 App 真人 → 服务端记录点击 + 写 Cookie → 302 → 商品页 H5
+</code></pre>
+<p><strong>后台（短链管理）</strong></p>
+<pre><code>短链管理（列表页）
+    ├── 点击「创建运营短链」→ 创建运营短链页 → 提交 → 返回列表
+    └── 点击「详情」→ 短链详情页（只读看板：KPI + 点击趋势 + 点击记录）→ 返回列表
+    └── 点击「复制链接」→ 复制短链到剪贴板（toast 提示）
+</code></pre>
+<h3 id="16">1.6 术语说明</h3>
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>英文 / 字段</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>短链</td>
+<td>short link / <code>short_code</code></td>
+<td>形如 <code>looply.com/s/sh_8f3k29</code> 的短地址，是全局唯一标识</td>
+</tr>
+<tr>
+<td>长链</td>
+<td><code>long_url</code></td>
+<td>短链最终重定向到的、带完整 UTM 参数的目标 URL</td>
+</tr>
+<tr>
+<td>用户分享短链</td>
+<td><code>sh_</code> 前缀</td>
+<td>由系统在 C 端用户分享时自动生成</td>
+</tr>
+<tr>
+<td>运营投放短链</td>
+<td><code>oc_</code> 前缀</td>
+<td>由运营在后台手动创建</td>
+</tr>
+<tr>
+<td>渠道平台</td>
+<td><code>utm_source</code></td>
+<td>链接被创建 / 分发的渠道（如 facebook、whatsapp）</td>
+</tr>
+<tr>
+<td>营销类型</td>
+<td><code>utm_medium</code></td>
+<td>区分链接类型（<code>social_share</code> = 用户分享，其余 = 运营营销类型）</td>
+</tr>
+<tr>
+<td>活动 / 内容主题</td>
+<td><code>utm_campaign</code></td>
+<td>用户分享为 <code>product_share</code>，运营为自定义活动名</td>
+</tr>
+<tr>
+<td>分享入口 / 账号</td>
+<td><code>utm_content</code></td>
+<td>用户分享为分享入口标识，运营为自营 / 达人账号</td>
+</tr>
+<tr>
+<td>点击数</td>
+<td><code>click_count</code></td>
+<td>短链被点击总次数（含重复）</td>
+</tr>
+<tr>
+<td>独立访客</td>
+<td><code>unique_visitor_count</code></td>
+<td>按 <code>visitor_id</code> 去重后的访客数</td>
+</tr>
+<tr>
+<td>访客 ID</td>
+<td><code>visitor_id</code></td>
+<td>Looply 第一方 Cookie 种下的匿名标识，用于独立访客去重</td>
+</tr>
+<tr>
+<td>Referer</td>
+<td><code>referer</code></td>
+<td>本次点击浏览器从哪个页面跳来（HTTP Referer 头），按域名归一化为渠道名</td>
+</tr>
+<tr>
+<td>OG 卡片</td>
+<td>Open Graph</td>
+<td>社媒爬取页面 meta 标签生成的链接预览卡片</td>
+</tr>
+<tr>
+<td>Universal Links / App Links</td>
+<td>—</td>
+<td>iOS / Android 的域名验证深度链接，静默唤起 App</td>
+</tr>
+</tbody>
+</table>
+<h3 id="17">1.7 多语言 / 多国家策略</h3>
+<ul>
+<li><strong>市场范围</strong>：MVP 仅聚焦美国本土社媒（Facebook、iMessage、Pinterest、WhatsApp、X、Instagram），不铺全球，规避跨境合规复杂度。</li>
+<li><strong>语言</strong>：C 端分享 UI 文案为英文（如 "Share to"、"Copy Link"），OG 卡片描述为英文（如 "Authentic pre-owned, verified by Looply"）。后台管理为中文（运营内部使用）。</li>
+<li><strong>币种 / 时区</strong>：OG 卡片价格按商品币种展示（USD）；后台点击时间按运营所在时区展示。</li>
+<li><strong>合规</strong>：分享链接不在中国大陆社媒（微信等）分发；短链落地写 Cookie 需遵循目标市场 Cookie 同意要求（与平台统一 Cookie 同意机制对接，本模块不单独实现）。</li>
+</ul>
+<hr />
+<h2 id="_2">二、需求详细描述</h2>
+<p>本章是 PRD 核心。公共功能组件放在最前，其后为 C 端商品分享、短链服务、渠道归因、后台短链管理四个模块，平级排列。</p>
+<h3 id="21">2.1 公共功能组件</h3>
+<h4 id="211-copy-link">2.1.1 Copy Link（复制链接）</h4>
+<p><strong>功能描述</strong>：在 C 端分享面板与后台短链列表 / 详情中复用的"复制链接到剪贴板"能力。</p>
+<p><strong>处理流程</strong>：
+1. 用户点击「Copy Link」/「复制链接」。
+2. 优先调用 <code>navigator.clipboard.writeText(url)</code> 写入剪贴板。
+3. 成功 → 显示 toast 提示（C 端 "Link copied"，后台 "已复制：{短链}"）。
+4. 失败（非 HTTPS / API 不可用）→ 降级用临时 <code>textarea</code> + <code>execCommand('copy')</code> 兜底。</p>
+<p><strong>规则说明</strong>：
+- 必须 HTTPS 环境，HTTP 不可用。
+- iOS Safari 要求在同步 click 事件回调内调用，不能在 async/await 之后调用（否则被拒）。
+- 复制的内容：C 端为短链（<code>looply.com/s/sh_xxx</code>），后台列表 / 详情为对应短链。
+- 用户粘贴到哪里不可追踪，仅记录"点击复制"行为（埋点见第五章）。</p>
+<p><strong>异常处理</strong>：剪贴板权限被拒或两种方式均失败 → toast 提示"复制失败，请手动复制"并选中链接文本。</p>
+<h4 id="212-og-open-graph">2.1.2 OG 预览卡片（Open Graph）</h4>
+<p><strong>功能描述</strong>：社媒平台爬取被分享链接时，渲染的商品预览卡片（图 + 标题 + 价格 + 描述）。</p>
+<p><strong>触发条件</strong>：短链服务通过 User-Agent 识别为社媒爬虫（facebookexternalhit / Twitterbot / WhatsApp / Pinterest / LinkedInBot / TelegramBot / iMessageLinkPreview / Discordbot 等）。</p>
+<p><strong>处理流程</strong>：爬虫请求 <code>looply.com/s/{short_code}</code> → 服务端<strong>不 302</strong>，实时关联查询商品表 → 返回含 OG 标签的 HTML → 爬虫渲染预览卡片。</p>
+<p><strong>OG 标签内容（MVP）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>标签</th>
+<th>内容</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>og:title</code></td>
+<td><code>{品牌} {商品名} - ${价格}</code></td>
+<td>商品表 brand + title + price_cents</td>
+</tr>
+<tr>
+<td><code>og:image</code></td>
+<td>商品主图 URL</td>
+<td>商品表 image_url</td>
+</tr>
+<tr>
+<td><code>og:description</code></td>
+<td>"Authentic pre-owned, verified by Looply"</td>
+<td>固定文案</td>
+</tr>
+<tr>
+<td><code>og:type</code></td>
+<td><code>product</code></td>
+<td>固定</td>
+</tr>
+<tr>
+<td><code>og:url</code></td>
+<td><code>looply.com/s/{short_code}</code></td>
+<td>短链自身</td>
+</tr>
+<tr>
+<td><code>twitter:card</code></td>
+<td><code>summary_large_image</code></td>
+<td>固定</td>
+</tr>
+</tbody>
+</table>
+<p><strong>OG 图片规格</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>平台</th>
+<th>推荐尺寸</th>
+<th>文件限制</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Facebook / iMessage / WhatsApp</td>
+<td>1200×630 (1.91:1)</td>
+<td>&lt; 8MB</td>
+</tr>
+<tr>
+<td>X (Twitter)</td>
+<td>1200×628</td>
+<td>&lt; 5MB</td>
+</tr>
+<tr>
+<td>Pinterest</td>
+<td>1000×1500 (2:3)</td>
+<td>&lt; 20MB</td>
+</tr>
+</tbody>
+</table>
+<p><strong>规则说明</strong>：
+- MVP 直接用商品主图作 <code>og:image</code>，不动态合成（OG 卡片图的动态合成为 Phase 2；此处不含 Instagram Stories 的 9:16 竖图——后者本期做，见 2.2.3）。
+- Facebook 对 OG 图片缓存约 30 天，商品图更新后需用 Facebook Sharing Debugger 手动刷新。</p>
+<p><strong>异常处理</strong>：商品不存在 / 已下架 → 返回通用品牌 OG 卡片（Looply logo + slogan），不报错（落地兜底页为 TBD-1）。</p>
+<h3 id="22-c">2.2 C 端商品分享</h3>
+<p><strong>模块概述</strong>：在商品详情页提供分享入口，点击后按端形态展示渠道列表，用户选择渠道后由系统生成用户分享短链并调起对应渠道。本模块为<strong>页面型 + 流程型混合</strong>，按端拆分形态差异。</p>
+<h4 id="221">2.2.1 分享入口（商品详情页）</h4>
+<p><strong>功能描述</strong>：商品详情页的「Share」按钮，是所有分享的统一入口。</p>
+<p><strong>前置条件</strong>：用户处于商品详情页（PDP）。用户可未登录（未登录时分享人记为匿名）。</p>
+<p><strong>页面布局（各端差异）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>端</th>
+<th>入口位置</th>
+<th>触发方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PC Web</td>
+<td>商品图右上角浮动分享图标</td>
+<td>点击 → 模态弹窗（半透明遮罩）</td>
+</tr>
+<tr>
+<td>Mobile Web</td>
+<td>商品图右上角分享图标</td>
+<td>点击 → 底部弹出分享面板</td>
+</tr>
+<tr>
+<td>iOS App</td>
+<td>商品图右上角分享图标</td>
+<td>点击 → 底部弹出分享面板</td>
+</tr>
+<tr>
+<td>Android App</td>
+<td>商品图右上角分享图标</td>
+<td>点击 → 底部弹出分享面板</td>
+</tr>
+</tbody>
+</table>
+<p><strong>页面元素</strong>：分享图标按钮（次要按钮样式，icon + 可选 "Share" 文字）。</p>
+<p><strong>操作流程</strong>：点击「Share」→ 打开分享弹窗 / 面板（见 2.2.2）。</p>
+<p><strong>交互说明</strong>：分享按钮在 PDP 常驻显示，不做悬停触发（保证移动端可复用）。</p>
+<p><strong>UI 关联</strong>：
+- PC：<code>looply-share-prototype.pen</code> → Frame「PC Web - Product Detail + Share Modal」(<code>tFl2A</code>)
+- Mobile Web：Frame「Mobile Web - Product Detail + Share Sheet」(<code>NPfew</code>)
+- iOS：Frame「iOS App - Product Detail + Share Sheet」(<code>rMtyB</code>)
+- Android：Frame「Android App - Product Detail + Share Sheet」(<code>9wWk7</code>)</p>
+<h4 id="222">2.2.2 分享弹窗 / 面板（渠道列表）</h4>
+<p><strong>功能描述</strong>：展示可用分享渠道，PC 为模态弹窗，移动端为底部面板。移动端面板顶部带商品摘要卡（商品主图 + 商品名 + 价格）。</p>
+<p><strong>页面元素</strong>：
+- 标题："Share to"
+- 商品摘要卡（仅移动端）：主图缩略 + 商品名（截断）+ 价格
+- 渠道图标列表（圆形图标 + 渠道名）
+- 关闭方式：× 按钮、点击遮罩、ESC（PC）</p>
+<p><strong>各端渠道方案</strong></p>
+<p>各端首屏渠道由"固定渠道 + 动态检测渠道"组成。<strong>动态检测</strong>仅 App 端做（通过 <code>canOpenURL</code> / <code>&lt;queries&gt;</code> 检测目标 App 是否安装），未安装则不显示该渠道；Web 端全部固定显示。</p>
+<p><strong>① PC Web</strong>（全固定显示，对标 SHEIN 点击弹窗）</p>
+<table>
+<thead>
+<tr>
+<th>渠道</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Facebook</td>
+<td>跳 Facebook 分享对话框</td>
+</tr>
+<tr>
+<td>Pinterest</td>
+<td>跳 Pinterest pin 创建页</td>
+</tr>
+<tr>
+<td>X (Twitter)</td>
+<td>跳 X intent 分享页</td>
+</tr>
+<tr>
+<td>Email</td>
+<td>调起邮件客户端（<code>mailto:</code>，预填标题 + 链接）</td>
+</tr>
+<tr>
+<td>Copy Link</td>
+<td>复制短链（见 2.1.1）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>说明：PC 端保留 Email 渠道（与前端原型一致）。不放 Message（Windows 不可用）、WhatsApp（桌面端非主流）。</p>
+</blockquote>
+<p><strong>② Mobile Web</strong>（全固定显示）</p>
+<table>
+<thead>
+<tr>
+<th>渠道</th>
+<th>未安装降级</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WhatsApp</td>
+<td>跳 <code>wa.me</code> / App Store</td>
+</tr>
+<tr>
+<td>Message</td>
+<td>系统 SMS（<code>sms:&amp;body=</code>），必有</td>
+</tr>
+<tr>
+<td>Facebook</td>
+<td>跳 Facebook 网页版分享</td>
+</tr>
+<tr>
+<td>Pinterest</td>
+<td>跳 Pinterest 网页版</td>
+</tr>
+<tr>
+<td>X (Twitter)</td>
+<td>跳 <code>twitter.com/intent/tweet</code> 分享页（预填链接 + 文案，必有 Web 降级）</td>
+</tr>
+<tr>
+<td>Messenger</td>
+<td><code>facebook.com/dialog/send</code>（需登录 FB）</td>
+</tr>
+<tr>
+<td>Copy Link</td>
+<td>复制短链</td>
+</tr>
+<tr>
+<td>More</td>
+<td><code>navigator.share()</code> 调系统面板</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Mobile Web 不做安装检测：用户已在浏览器内，每个渠道都有 Web 降级方案，跳转不突兀。</p>
+</blockquote>
+<p><strong>③ iOS App</strong>（固定 + 动态混合）</p>
+<ul>
+<li>固定渠道（必显示）：Message (iMessage) / Facebook / Copy Link</li>
+<li>动态渠道（<code>canOpenURL</code> 检测，按权重排序后取首屏前 2 个补位）：</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>渠道</th>
+<th>URL Scheme</th>
+<th>权重</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WhatsApp</td>
+<td><code>whatsapp://</code></td>
+<td>100</td>
+</tr>
+<tr>
+<td>Pinterest</td>
+<td><code>pinterest://</code></td>
+<td>90</td>
+</tr>
+<tr>
+<td>X</td>
+<td><code>twitter://</code></td>
+<td>80</td>
+</tr>
+<tr>
+<td>Instagram</td>
+<td><code>instagram://</code></td>
+<td>30（Stories 合成图方案，调起见 2.2.3）</td>
+</tr>
+<tr>
+<td>Messenger</td>
+<td><code>fb-messenger://</code></td>
+<td>20（收进 More）</td>
+</tr>
+</tbody>
+</table>
+<p>示例：已装 WhatsApp → <code>Message → FB → WhatsApp → Pinterest → Copy Link → More</code>；未装 WhatsApp → <code>Message → FB → Pinterest → Copy Link → More</code>。</p>
+<p><strong>④ Android App</strong>（固定 + 动态混合）</p>
+<ul>
+<li>固定渠道（必显示）：Facebook / SMS（系统内置，100% 可用） / Copy Link</li>
+<li>动态渠道（<code>&lt;queries&gt;</code> 声明包名后检测，按权重排序）：</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>渠道</th>
+<th>URL Scheme</th>
+<th>权重</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WhatsApp</td>
+<td><code>whatsapp://</code></td>
+<td>100（检测到后插首屏，SMS 挤进 More）</td>
+</tr>
+<tr>
+<td>X</td>
+<td><code>twitter://</code></td>
+<td>90</td>
+</tr>
+<tr>
+<td>Pinterest</td>
+<td><code>pinterest://</code></td>
+<td>80</td>
+</tr>
+<tr>
+<td>Instagram</td>
+<td><code>instagram://</code></td>
+<td>30（Stories 合成图方案，调起见 2.2.3）</td>
+</tr>
+<tr>
+<td>Messenger</td>
+<td><code>fb-messenger://</code></td>
+<td>20（收进 More）</td>
+</tr>
+</tbody>
+</table>
+<p>示例：已装 WhatsApp → <code>FB → WhatsApp → X → Copy Link → More</code>（SMS 收进 More）；未装 → <code>FB → SMS → X → Copy Link → More</code>。</p>
+<blockquote>
+<p><strong>PRD 口径</strong>：以上"固定 + 动态检测"规则为准；前端原型（<code>rMtyB</code> / <code>9wWk7</code>）展示的是"已安装全部 App"的最大视图，作渠道形态示例，不代表固定渲染列表。</p>
+</blockquote>
+<p><strong>操作流程（主流程）</strong>：
+1. 用户在分享面板点击某渠道。
+2. 前端调用短链创建接口，传入 <code>product_id</code>、<code>channel</code>（渠道）、<code>share_page</code>（入口，PDP 为 <code>pdp_share_button</code>）。
+3. 服务端生成用户分享短链（见 2.3），返回短链 URL。
+4. 前端用该短链调起对应渠道：
+   - Copy Link → 写剪贴板 + toast
+   - 社媒 / IM 渠道 → 按渠道 API 调起（见 2.2.3）
+   - More → <code>navigator.share()</code> / 系统面板，<code>channel</code> 记为 <code>native_share</code></p>
+<p><strong>分支流程</strong>：
+- 点击 More（系统面板）→ 渠道由 OS 决定，前端无法获知最终渠道，<code>channel</code> 标记 <code>native_share</code>，接收方点击后由服务端从 Referer 反推真实渠道。
+- 用户中途关闭弹窗 → 不生成分享动作，记录弹窗放弃埋点。</p>
+<p><strong>校验规则</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>规则</th>
+<th>时机</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>product_id</td>
+<td>必须为有效在售商品 ID</td>
+<td>创建短链时</td>
+</tr>
+<tr>
+<td>channel</td>
+<td>必须在渠道枚举内（见 2.4.1）</td>
+<td>创建短链时</td>
+</tr>
+</tbody>
+</table>
+<p><strong>异常处理</strong>：
+- 短链创建接口失败 → toast "Failed to generate link, please retry"，不调起渠道。
+- 目标渠道 App 未安装（App 端动态渠道）→ 该渠道不显示（不会出现"点了没反应"）。
+- 网络异常 → toast 网络错误提示。</p>
+<p><strong>交互说明</strong>：分享面板打开 / 关闭动效遵循平台规范；遮罩半透明；移动端面板从底部滑入。</p>
+<p><strong>UI 关联</strong>：同 2.2.1（各端 Frame）。</p>
+<h4 id="223">2.2.3 各渠道调起方式（技术说明）</h4>
+<blockquote>
+<p>本节为流程型功能的技术说明，供开发理解各渠道 API 与坑点。所有渠道分享的都是<strong>短链</strong>（<code>looply.com/s/{short_code}</code>），非原始长链。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>渠道</th>
+<th>调起方式</th>
+<th>关键坑点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Facebook</td>
+<td><code>facebook.com/dialog/share?app_id=X&amp;href={短链}&amp;hashtag=%23shoplooply</code></td>
+<td>需注册 FB App；hashtag 仅一个；OG 图缓存 30 天</td>
+</tr>
+<tr>
+<td>Pinterest</td>
+<td><code>pinterest.com/pin/create/button/?url={短链}&amp;media={图}&amp;description=X</code></td>
+<td>media 防盗链会加载失败；Rich Pin 审核 2–5 工作日</td>
+</tr>
+<tr>
+<td>X (Twitter)</td>
+<td><code>twitter.com/intent/tweet?text=X&amp;url={短链}&amp;hashtags=shoplooply&amp;via=LooplyApp</code></td>
+<td>text+url ≤ 280 字符（t.co 占 23）；hashtag 不与 text 重复</td>
+</tr>
+<tr>
+<td>WhatsApp</td>
+<td>App：<code>whatsapp://send?text={编码文案}</code>；Web：<code>wa.me/?text=X</code></td>
+<td>iOS 需 Info.plist 注册 <code>whatsapp</code>；Android 11+ 需 <code>&lt;queries&gt;</code> 声明 <code>com.whatsapp</code></td>
+</tr>
+<tr>
+<td>iMessage / SMS</td>
+<td>iOS：<code>sms:&amp;body={编码文案}</code>；Android：<code>sms:?body=X</code></td>
+<td>iOS 8+ 用 <code>&amp;body=</code>；用户是否真发送无法感知</td>
+</tr>
+<tr>
+<td>Messenger</td>
+<td>App：<code>fb-messenger://share?link={短链}</code>；Web：<code>facebook.com/dialog/send?app_id=X&amp;link={短链}</code></td>
+<td>Web 需登录 FB；只能发单个好友</td>
+</tr>
+<tr>
+<td>Email（PC）</td>
+<td><code>mailto:?subject={商品名}&amp;body={短链}</code></td>
+<td>依赖本地邮件客户端配置</td>
+</tr>
+<tr>
+<td>Copy Link</td>
+<td>见 2.1.1</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Instagram Stories</td>
+<td>服务端合成 9:16 图 → <code>instagram-stories://share?backgroundImage={本地URI}</code>（贴纸层可附带短链跳转）</td>
+<td>须先下载合成图到本地取文件 URI；分享无点击回调（归因靠落地页 Referer）；Android 需配 FileProvider 授予 IG 读取权限；iOS 需 Info.plist 注册 <code>instagram-stories</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Facebook 品牌 Hashtag</strong>：所有端 Facebook 分享统一通过 <code>hashtag=%23shoplooply</code> 预填品牌标签，便于社媒搜索聚合与品牌曝光追踪。</p>
+<h3 id="23">2.3 短链服务（系统机制）</h3>
+<p><strong>模块概述</strong>：一套统一短链服务，同时承载用户分享（API 自动生成）与运营投放（后台手动创建），统一入口 <code>looply.com/s/{short_code}</code>。本模块为<strong>机制型</strong>（无独立 C 端页面，后台创建页见 2.5）。</p>
+<h4 id="231">2.3.1 短链生成</h4>
+<p><strong>触发条件</strong>：
+- 用户分享：C 端点击渠道时，前端调用短链创建接口。
+- 运营投放：运营在后台「创建运营短链」页提交。</p>
+<p><strong>处理流程（用户分享）</strong>：
+1. 前端传入 <code>product_id</code>、<code>channel</code>、<code>share_page</code>。
+2. 服务端生成 <code>short_code = sh_ + 6位Base62</code>。
+3. 按渠道与商品上下文拼接长链（<code>long_url</code>），写入 UTM 参数（取值规则见 2.4.1）。
+4. 写入 <code>short_links</code> 表（含冗余的 4 个 UTM 字段、product_id、sharer_user_id / session_id）。
+5. 返回短链 <code>looply.com/s/sh_xxx</code>。</p>
+<p><strong>处理流程（运营投放）</strong>：
+1. 运营填写基础 URL + 备注名称 + 4 个 UTM 参数（见 2.5.2）。
+2. 服务端生成 <code>short_code = oc_ + 6位Base62</code>。
+3. <strong>自动拼接长链</strong>：<code>base_url</code> + 拼接符 + UTM 参数串 → <code>long_url</code>。
+   - base_url 无参数：第一个 UTM 用 <code>?</code> 连接。
+   - base_url 已含参数（如 <code>?ref=xxx</code>）：第一个 UTM 用 <code>&amp;</code> 连接。
+   - 各 UTM 参数间用 <code>&amp;</code> 连接。
+4. 写入 <code>short_links</code> 表（含 created_by 运营 ID、campaign_name 备注名）。<strong>不存储 base_url</strong>（ER 仅有 long_url + 4 个 UTM 字段）。
+5. 返回短链，支持复制 + 生成二维码（二维码为后台能力）。</p>
+<p><strong>short_code 生成规则</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>格式</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>用户分享（API）</td>
+<td><code>sh_</code> + 6 位 Base62</td>
+<td><code>sh_8f3k29</code></td>
+</tr>
+<tr>
+<td>运营创建</td>
+<td><code>oc_</code> + 6 位 Base62</td>
+<td><code>oc_x7Km9p</code></td>
+</tr>
+</tbody>
+</table>
+<p>固定 6 位（62⁶ ≈ 568 亿组合），容量充足。前缀用于人工快速区分两类短链来源。</p>
+<p><strong>规则说明（UTM 命名规范）</strong>：
+- 小写 + 下划线（如 <code>organic_social</code>、<code>summer_bags_2026</code>）。运营投放的 utm_source 枚举因沿用现有外链规范保留原始大小写（见 2.4.1）。
+- 禁止空格和特殊字符（<code>&amp; = # +</code> 等），避免破坏 URL 拼接。</p>
+<p><strong>异常处理</strong>：
+- short_code 碰撞（极低概率）→ 重新生成。
+- 基础 URL 格式非法 → 后台创建时校验拦截（见 2.5.2）。
+- 商品不存在 → 用户分享创建失败，返回错误。</p>
+<h4 id="232">2.3.2 短链点击解析</h4>
+<p><strong>功能描述</strong>：接收方点击短链后的解析与跳转逻辑，是归因数据的采集起点。</p>
+<p><strong>触发条件</strong>：任意来源点击 <code>looply.com/s/{short_code}</code>。</p>
+<p><strong>处理流程</strong>：</p>
+<pre><code>GET /s/{short_code}
+    ↓
+① 已装 App（OS 层 Universal Links / App Links 拦截，请求不到服务器）
+   → 直接打开 App → App 解析 long_url 路径 → 调 API 记录点击 → 跳商品详情页
+    ↓（未被 OS 拦截，请求到达服务器）
+② 判断 User-Agent：
+   ├── 社媒爬虫 → 返回 OG HTML（200，不跳转，见 2.1.2）
+   ├── WebView（Instagram/TikTok 内置浏览器）→ 返回中间页引导&quot;在浏览器打开&quot;（Phase 2，MVP 暂按真人处理）
+   └── 普通真人 →
+        1. 记录 share_clicks（visitor_id、user_id、clicked_at、ip、user_agent、referer）
+        2. 写 Cookie `_looply_ref={short_code}`（30 天有效）
+        3. click_count +1，按 visitor_id 去重更新 unique_visitor_count
+        4. 302 重定向到 long_url（带完整 UTM 参数，GA4 可识别）
+</code></pre>
+<p><strong>规则说明</strong>：
+- <strong>多次点击归因</strong>：Last Click 归因（以最后一次点击为准）。
+- <strong>Cookie</strong>：<code>_looply_ref</code>，30 天有效，供后续注册 / 下单时反查归因（归因转化为 TBD-3，本期仅写 Cookie 不打通转化）。
+- <strong>App 唤起</strong>：Universal Links (iOS) + App Links (Android)，部署 <code>/.well-known/apple-app-site-association</code> 与 <code>/.well-known/assetlinks.json</code> 声明 <code>/s/*</code> 与 <code>/product/*</code> 路径。App 内部据 long_url 路径决定跳转页面，无需额外 Deep Link ID 字段。</p>
+<p><strong>异常处理</strong>：
+- short_code 不存在 → 返回 404 或通用首页（落地兜底为 TBD-1）。
+- 目标商品已下架 → MVP 仍 302 到商品页（由商品页自行处理下架展示）；规范化兜底页为 TBD-1。</p>
+<p><strong>技术说明（已知限制）</strong>：
+- Instagram / TikTok 内置 WebView 中 Universal Links 不生效 → Phase 2 用中间页引导。
+- Safari 地址栏直接输入 URL 不触发唤起（符合预期）。
+- 从同域名页面跳转不触发唤起（iOS 限制）。
+- iOS 26 系统级剥离 <code>utm_*</code> / <code>fbclid</code> / <code>gclid</code> 参数 → <strong>短链路径方案（<code>/s/{short_code}</code>）天然免疫</strong>，因 URL 路径永不被剥离，归因上下文存在服务端而非 URL 参数。</p>
+<h3 id="24">2.4 渠道归因与数据采集</h3>
+<p><strong>模块概述</strong>：定义 UTM 参数取值规范、Referer 归一化规则、访客去重口径。本模块为<strong>机制型</strong>，是后台报表与渠道分析的数据口径基础。</p>
+<h4 id="241-utm">2.4.1 UTM 参数取值规范</h4>
+<p>短链服务用 4 个 UTM 字段承载归因信息，<strong>用户分享</strong>与<strong>运营投放</strong>两类取值不同：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>用户分享取值</th>
+<th>运营投放取值</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>utm_source</code></td>
+<td>见下方【用户分享 source 枚举】</td>
+<td>见下方【运营投放 source 枚举】</td>
+<td>渠道平台</td>
+</tr>
+<tr>
+<td><code>utm_medium</code></td>
+<td><code>social_share</code>（固定）</td>
+<td><code>organic_social</code> / <code>paid_social</code> / <code>influencer</code> / <code>paid_search</code> / <code>paid_shopping</code></td>
+<td>营销类型</td>
+</tr>
+<tr>
+<td><code>utm_campaign</code></td>
+<td><code>product_share</code>（固定）</td>
+<td>自定义活动名（小写 + 下划线）</td>
+<td>活动 / 内容主题</td>
+</tr>
+<tr>
+<td><code>utm_content</code></td>
+<td>分享入口标识（见下方【入口枚举】）</td>
+<td>自营账号 / 达人账号</td>
+<td>分享入口 / 账号</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>核心过滤器</strong>：<code>utm_medium=social_share</code> 即可在 GA4 / 报表中分离"用户分享"与"运营投放"流量。<code>utm_medium</code> 同时替代了早期设计中 <code>link_type</code> 字段的区分职责——故 ER 不单设 link_type。</p>
+</blockquote>
+<p><strong>【用户分享 source 枚举】</strong>（系统按用户选择的渠道自动写入）</p>
+<table>
+<thead>
+<tr>
+<th>枚举值</th>
+<th>含义</th>
+<th>触发时机</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>whatsapp</code></td>
+<td>WhatsApp 分享</td>
+<td>用户在面板选 WhatsApp</td>
+</tr>
+<tr>
+<td><code>imessage</code></td>
+<td>iMessage 分享</td>
+<td>iOS 选 Message</td>
+</tr>
+<tr>
+<td><code>sms</code></td>
+<td>短信分享</td>
+<td>Android 选 SMS</td>
+</tr>
+<tr>
+<td><code>facebook</code></td>
+<td>Facebook 分享</td>
+<td>用户选 Facebook</td>
+</tr>
+<tr>
+<td><code>messenger</code></td>
+<td>Messenger 分享</td>
+<td>用户选 Messenger</td>
+</tr>
+<tr>
+<td><code>pinterest</code></td>
+<td>Pinterest 分享</td>
+<td>用户选 Pinterest</td>
+</tr>
+<tr>
+<td><code>twitter</code></td>
+<td>X (Twitter) 分享</td>
+<td>用户选 X</td>
+</tr>
+<tr>
+<td><code>instagram</code></td>
+<td>Instagram Stories 分享</td>
+<td>App 端选 Instagram（合成 9:16 图调起 Stories）</td>
+</tr>
+<tr>
+<td><code>email</code></td>
+<td>邮件分享</td>
+<td>PC 选 Email</td>
+</tr>
+<tr>
+<td><code>copy_link</code></td>
+<td>复制链接</td>
+<td>用户选 Copy Link</td>
+</tr>
+<tr>
+<td><code>native_share</code></td>
+<td>系统分享面板</td>
+<td>用户选 More，渠道由 OS 决定</td>
+</tr>
+</tbody>
+</table>
+<p><strong>【运营投放 source 枚举】</strong>（后台创建时下拉选择，支持自定义输入；沿用现有外链规范，保留原始大小写）</p>
+<table>
+<thead>
+<tr>
+<th>枚举值</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tiktok</code></td>
+<td>TikTok</td>
+</tr>
+<tr>
+<td><code>Instagram</code></td>
+<td>Instagram</td>
+</tr>
+<tr>
+<td><code>Youtube</code></td>
+<td>YouTube</td>
+</tr>
+<tr>
+<td><code>Facebook</code></td>
+<td>Facebook</td>
+</tr>
+<tr>
+<td><code>google</code></td>
+<td>Google</td>
+</tr>
+<tr>
+<td><code>email</code></td>
+<td>邮件营销</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>运营 source 为下拉 + 可自定义输入（应对列表外平台）。</p>
+</blockquote>
+<p><strong>【运营投放 medium 枚举】</strong>（后台创建时下拉选择，支持自定义输入）</p>
+<table>
+<thead>
+<tr>
+<th>枚举值</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>organic_social</code></td>
+<td>非付费社媒内容</td>
+</tr>
+<tr>
+<td><code>paid_social</code></td>
+<td>付费社交广告</td>
+</tr>
+<tr>
+<td><code>influencer</code></td>
+<td>达人带货 / 种草 / 测评</td>
+</tr>
+<tr>
+<td><code>paid_search</code></td>
+<td>付费搜索广告</td>
+</tr>
+<tr>
+<td><code>paid_shopping</code></td>
+<td>Google Performance Max 广告</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>运营创建表单仅给以上 5 个营销类型（不含 <code>social_share</code>——运营不创建用户分享链接）。</p>
+</blockquote>
+<p><strong>【utm_content 用户分享入口枚举】</strong></p>
+<table>
+<thead>
+<tr>
+<th>枚举值</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pdp_share_button</code></td>
+<td>商品详情页分享按钮（MVP 唯一入口）</td>
+</tr>
+<tr>
+<td><code>product_card_share</code></td>
+<td>商品卡片分享（Phase 2）</td>
+</tr>
+<tr>
+<td><code>wishlist_share_button</code></td>
+<td>心愿单分享（Phase 2）</td>
+</tr>
+<tr>
+<td><code>collection_share_button</code></td>
+<td>合集页分享（Phase 2）</td>
+</tr>
+<tr>
+<td><code>order_share_button</code></td>
+<td>订单完成页分享（Phase 2）</td>
+</tr>
+<tr>
+<td><code>app_product_share</code></td>
+<td>App 内商品分享（Phase 2）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>【utm_content 运营账号枚举（参考值，可自定义输入）】</strong>：<code>looply_luxury</code> / <code>looplybags</code> / <code>looply.rebirth</code> / <code>looplyfinds</code> / <code>Archive Edit</code> / <code>inspoetry</code> / <code>sarah</code> / <code>relovemybag</code> / <code>FshnLuxeClub</code> / <code>BreeLuxeFinds</code>，以及其他达人账号（直接输入，不限于列表）。</p>
+<h4 id="242-referer">2.4.2 Referer 归一化与渠道口径</h4>
+<p><strong>功能描述</strong>：点击记录中的 Referer 字段，记录本次点击浏览器从哪个页面跳来，归一化为友好渠道名。</p>
+<p><strong>核心口径：utm_source ≠ Referer，互补不替代</strong></p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>utm_source</th>
+<th>Referer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>含义</td>
+<td>链接被创建 / 分发的渠道</td>
+<td>本次点击从哪个页面跳来</td>
+</tr>
+<tr>
+<td>时机</td>
+<td>建链时写死（静态）</td>
+<td>每次点击动态采集</td>
+</tr>
+<tr>
+<td>归属</td>
+<td>短链记录（<code>short_links</code>）</td>
+<td>每条点击日志（<code>share_clicks</code>）</td>
+</tr>
+<tr>
+<td>可靠性</td>
+<td>高（一定在 URL 里）</td>
+<td>低（社媒 / 原生 App 常丢失）</td>
+</tr>
+<tr>
+<td>回答</td>
+<td>"链接推到了哪个渠道"</td>
+<td>"这次点击真实来自哪里"</td>
+</tr>
+</tbody>
+</table>
+<p>链接发出后会二次传播（转发到别的渠道、复制粘贴），一条 <code>utm_source=imessage</code> 的链接完全可能最终从 Twitter 点进来。<strong>两者不一致是有效信号（链接破圈），不是数据错误</strong>。</p>
+<ul>
+<li>看<strong>分发渠道 / 投放效果</strong> → 以 <code>utm_source</code> 为准（权威）。</li>
+<li>看<strong>本次点击真实来源</strong> → 看 Referer。</li>
+</ul>
+<p><strong>Referer 归一化规则</strong>：取 host → 查"域名 → 渠道"映射表 → 输出友好渠道名。</p>
+<table>
+<thead>
+<tr>
+<th>来源域名（host / 通配）</th>
+<th>归一化渠道名</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>*.instagram.com</code> / <code>l.instagram.com</code></td>
+<td>Instagram</td>
+</tr>
+<tr>
+<td><code>*.facebook.com</code> / <code>l.facebook.com</code> / <code>m.facebook.com</code></td>
+<td>Facebook</td>
+</tr>
+<tr>
+<td><code>t.co</code> / <code>x.com</code> / <code>*.twitter.com</code></td>
+<td>Twitter/X</td>
+</tr>
+<tr>
+<td><code>*.tiktok.com</code></td>
+<td>TikTok</td>
+</tr>
+<tr>
+<td><code>*.pinterest.com</code></td>
+<td>Pinterest</td>
+</tr>
+<tr>
+<td><code>*.youtube.com</code> / <code>youtu.be</code></td>
+<td>YouTube</td>
+</tr>
+<tr>
+<td><code>*.whatsapp.com</code> / <code>wa.me</code></td>
+<td>WhatsApp</td>
+</tr>
+<tr>
+<td><code>*.google.*</code></td>
+<td>Google</td>
+</tr>
+<tr>
+<td><code>*.bing.com</code></td>
+<td>Bing</td>
+</tr>
+<tr>
+<td>命中不了的其它合法域名</td>
+<td>直接显示原始 host（不归入"其它"）</td>
+</tr>
+<tr>
+<td>referer 为空 / 取不到</td>
+<td>显示 <code>—</code>（见下方规则）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>实现要点</strong>：
+- 匹配维度是 host，不是整段 URL；先剥协议和路径再比对。
+- 子域用后缀通配（<code>endsWith</code>），避免漏掉 <code>l.</code> / <code>m.</code> 等跳转域。
+- 未命中映射表的合法域名保留原始 host，不归到"其它/Direct"，避免丢失长尾渠道。
+- 映射表是可配置项，新渠道上线只加表项，不改代码。</p>
+<p><strong>空 Referer 规则（硬性）</strong>：
+- 取不到 referer → 统一显示 <code>—</code>，语义是"未采集到来源"。
+- <strong>禁止</strong>使用 "Direct" 标签——社媒场景中空 referer 99% 是被剥离 / 丢失（App 抹掉、HTTPS→HTTP 降级、Referrer-Policy），标 "Direct" 会让丢失流量伪装成直接流量，造成归因误判。
+- 渠道占比统计中，空 referer 单列为"未知来源"，不计入任何具体渠道，也不计入"直接访问"。</p>
+<p><strong>重要局限（避免误读数据）</strong>：
+- 原生 App（iMessage、WhatsApp、Instagram / Facebook 内置浏览器）点击大概率空 referer。
+- 因此"靠 referer 识别出 iMessage"现实中基本做不到——要区分是否 iMessage 仍需依赖 utm_source。
+- <strong>结论</strong>：渠道分析主依据是 utm_source，Referer 仅作辅助交叉验证。</p>
+<h4 id="243-visitor_id">2.4.3 访客去重（visitor_id）</h4>
+<p><strong>功能描述</strong>：独立访客统计的标识口径。</p>
+<p><strong>规则说明</strong>：
+- <code>visitor_id</code> 不是请求带来的，是 Looply 第一方生成的匿名标识。
+- 首次访问跳转服务 / 落地页时种第一方 Cookie，值为随机 ID（如 <code>vis_a1b2</code>）；同浏览器再次访问读回同一 Cookie → 同一 visitor_id。
+- <code>unique_visitor_count</code> 按 visitor_id 去重计算。
+- 访客已登录时，可将 visitor_id 关联到 <code>user_id</code>（点击记录"登录用户 ID"列，未登录为空）。
+- Cookie 不可用时降级用 IP + User-Agent 指纹兜底，主路径是第一方 Cookie。</p>
+<h3 id="25">2.5 后台短链管理</h3>
+<p><strong>模块概述</strong>：运营在后台管理短链的入口，含列表页、创建运营短链页、短链详情页三个页面。MVP 定位为"创建运营短链 + 只读数据看板"，不含启用 / 停用 / 编辑等写操作（详见各页面）。一级菜单「短链管理」点击直接进入列表页。</p>
+<h4 id="251">2.5.1 短链列表页</h4>
+<p><strong>功能类型</strong>：页面型。</p>
+<p><strong>功能描述</strong>：展示系统内所有短链（用户分享 + 运营投放），支持筛选、查看详情、复制链接、创建运营短链。</p>
+<p><strong>前置条件</strong>：运营登录后台。</p>
+<p><strong>页面布局</strong>：标题区（标题 + 描述 + 右上「创建运营短链」按钮）→ 筛选区 → 表格 → 分页。</p>
+<p><strong>页面元素</strong></p>
+<blockquote>
+<p>说明：列表页<strong>不设 KPI 卡片区</strong>。短链整体数据（总点击 / 独立访客等）按单条短链在「详情页」呈现；列表页定位为"查询 + 列表"，避免与详情页数据重复。早期版本曾设计 3 个列表级 KPI（总短链数 / 总点击数 / 独立访客），本期移除。</p>
+</blockquote>
+<p>筛选区：</p>
+<table>
+<thead>
+<tr>
+<th>筛选项</th>
+<th>类型</th>
+<th>选项</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>渠道（utm_source）</td>
+<td>下拉单选，可清除</td>
+<td>全部渠道 + 各渠道值（imessage / facebook / instagram / pinterest / tiktok / copy_link / email / twitter / whatsapp 等）</td>
+</tr>
+<tr>
+<td>营销类型（utm_medium）</td>
+<td>下拉单选，可清除</td>
+<td>全部营销类型 + 6 个值：<code>social_share</code>（用户分享）/ <code>organic_social</code> / <code>paid_social</code> / <code>influencer</code> / <code>paid_search</code> / <code>paid_shopping</code></td>
+</tr>
+<tr>
+<td>创建时间</td>
+<td>日期范围（RangePicker）</td>
+<td>创建开始 ~ 创建结束</td>
+</tr>
+<tr>
+<td>查询 / 重置</td>
+<td>按钮</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>筛选区<strong>不含</strong>「全部状态」（MVP 不做启用 / 停用）。营销类型筛选含 <code>social_share</code>，用于筛出用户分享的短链。</p>
+</blockquote>
+<p>表格列：</p>
+<table>
+<thead>
+<tr>
+<th>列</th>
+<th>字段</th>
+<th>渲染规则</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>短码</td>
+<td><code>short_code</code></td>
+<td>代码样式（如 <code>sh_8f3k29</code>）</td>
+</tr>
+<tr>
+<td>渠道</td>
+<td><code>utm_source</code></td>
+<td>标签展示</td>
+</tr>
+<tr>
+<td>utm_medium</td>
+<td><code>utm_medium</code></td>
+<td>代码样式；表头带 tooltip：<code>social_share = 用户主动分享</code>，其它 = 运营手动选择的营销类型</td>
+</tr>
+<tr>
+<td>备注</td>
+<td><code>campaign_name</code> / <code>product_name</code></td>
+<td>渲染优先级：<code>campaign_name</code> → <code>product_name</code> → <code>—</code>（规则见下）</td>
+</tr>
+<tr>
+<td>点击</td>
+<td><code>click_count</code></td>
+<td>数字，可排序；表头 tooltip："短链被点击总次数（含重复）"</td>
+</tr>
+<tr>
+<td>独立访客</td>
+<td><code>unique_visitor_count</code></td>
+<td>数字，可排序；表头 tooltip："去重后的独立访客数"</td>
+</tr>
+<tr>
+<td>创建时间</td>
+<td><code>created_at</code></td>
+<td>时间</td>
+</tr>
+<tr>
+<td>操作</td>
+<td>—</td>
+<td>「详情」+「复制链接」两个平铺按钮</td>
+</tr>
+</tbody>
+</table>
+<p><strong>「备注」列渲染规则</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>短链类型</th>
+<th>utm_medium</th>
+<th>来源字段</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>用户分享 PDP</td>
+<td><code>social_share</code></td>
+<td><code>product_name</code>（系统生成短链时从商品数据带入）</td>
+<td>Chanel Classic Flap</td>
+</tr>
+<tr>
+<td>运营投放</td>
+<td><code>organic_social</code> / <code>paid_social</code> 等</td>
+<td><code>campaign_name</code>（运营填写的备注名）</td>
+<td>Summer Bags 推广</td>
+</tr>
+<tr>
+<td>非单品页分享（Wishlist / 合集等）</td>
+<td><code>social_share</code></td>
+<td>两字段均为空</td>
+<td><code>—</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>非单品页分享场景，两字段均空时列显示 <code>—</code>，不从 utm_content 反推入口类型。</p>
+</blockquote>
+<p><strong>列表无「状态」列</strong>：MVP 不做启用 / 停用，列表不展示状态列。数据库 <code>status</code> 字段保留（默认 active），留待后续启用。</p>
+<p><strong>操作列规则</strong>：
+- 固定展示「详情」「复制链接」两个平铺按钮（不使用「···」下拉菜单）。
+- 所有短链（用户分享 / 运营投放）均可查看详情、复制链接。
+- 不含「编辑备注」「停用」等写操作。</p>
+<p><strong>页面状态变体</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th>表现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>正常数据</td>
+<td>显示表格 + 分页</td>
+</tr>
+<tr>
+<td>零数据</td>
+<td>隐藏筛选区，居中引导 + CTA「创建运营短链」</td>
+</tr>
+<tr>
+<td>筛选无匹配</td>
+<td>保留筛选区，表格替换为提示 + 「清除筛选」</td>
+</tr>
+<tr>
+<td>网络异常</td>
+<td>保留筛选区，表格替换为错误提示 + 「重试」</td>
+</tr>
+<tr>
+<td>加载态</td>
+<td>表格 loading</td>
+</tr>
+</tbody>
+</table>
+<p><strong>操作流程</strong>：
+- 点击「创建运营短链」→ 进入创建页（2.5.2）。
+- 点击「详情」→ 进入详情页（2.5.3）。
+- 点击「复制链接」→ 复制该短链到剪贴板（2.1.1），toast "已复制：lply.link/{short_code}"。
+- 筛选 + 查询 → 刷新表格；重置 → 清空筛选。</p>
+<p><strong>校验规则</strong>：筛选项均非必填；日期范围结束不得早于开始。</p>
+<p><strong>异常处理</strong>：列表加载失败 → 网络异常态 + 重试；筛选无结果 → 无匹配态。</p>
+<p><strong>交互说明</strong>：列表默认按创建时间倒序；分页用紧凑分页器。</p>
+<p><strong>UI 关联</strong>：
+- PC：<code>looply-社媒分享管理-antd-原型-v1.2.html</code> → <code>ShortLinkListPage</code>
+- APP 端：后台管理为 PC Web 应用，无 APP 端设计稿（运营后台不提供移动端，下同）。</p>
+<h4 id="252">2.5.2 创建运营短链页</h4>
+<p><strong>功能类型</strong>：页面型。</p>
+<p><strong>功能描述</strong>：运营填写基础 URL + 备注 + UTM 参数，系统自动拼接生成运营投放短链。</p>
+<p><strong>前置条件</strong>：运营从列表页点击「创建运营短链」进入。</p>
+<p><strong>页面布局</strong>：标题区（标题 +「返回列表」）→「链接信息」分区 →「UTM 参数（用于自动拼接）」分区 → 底部操作栏（取消 + 创建短链）。</p>
+<p><strong>页面元素 / 表单字段</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>必填</th>
+<th>控件</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>基础 URL</td>
+<td>是</td>
+<td>输入框</td>
+<td>填不含参数的目标页面 URL（如 <code>https://looply.com/product/1001</code>），系统自动拼接 UTM 生成长链</td>
+</tr>
+<tr>
+<td>备注名称</td>
+<td>否</td>
+<td>输入框</td>
+<td>内部管理用，不对外展示（如 "Summer Bags 推广 — BreeLuxeFinds"），存入 <code>campaign_name</code></td>
+</tr>
+<tr>
+<td>utm_source</td>
+<td>是</td>
+<td>下拉 + 可自定义输入（单值）</td>
+<td>平台，6 个枚举（见 2.4.1），支持输入列表外值</td>
+</tr>
+<tr>
+<td>utm_medium</td>
+<td>是</td>
+<td>下拉 + 可自定义输入（单值）</td>
+<td>营销类型，5 个枚举（见 2.4.1），支持输入列表外值</td>
+</tr>
+<tr>
+<td>utm_campaign</td>
+<td>否</td>
+<td>输入框</td>
+<td>活动 / 内容主题，自定义内容名称（小写字母），如 <code>summer_bags_2026</code></td>
+</tr>
+<tr>
+<td>utm_content</td>
+<td>否</td>
+<td>下拉 + 可自定义输入（单值）</td>
+<td>自营 / 达人账号，参考枚举见 2.4.1，其他达人账号可直接输入</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>三个 UTM 下拉均为"可输入列表外值的单值选择"（保留自定义能力但限制单值，一条链接的每个 UTM 只能有一个值）。</p>
+</blockquote>
+<p><strong>自动拼接逻辑</strong>：<code>base_url</code> + 拼接符（无参数用 <code>?</code>，已有参数用 <code>&amp;</code>）+ <code>utm_source=X&amp;utm_medium=X&amp;utm_campaign=X&amp;utm_content=X</code> → 存入 <code>long_url</code>。4 个 UTM 同时单独存储（冗余，用于筛选）。<strong>不存储 base_url</strong>。</p>
+<p><strong>操作流程（主流程）</strong>：
+1. 填写基础 URL（必填）。
+2. 填写备注名称（可选）。
+3. 选择 / 输入 utm_source、utm_medium（必填），utm_campaign、utm_content（可选）。
+4. 点击「创建短链」→ 校验通过 → 系统生成 <code>oc_</code> 短链 → toast "短链已创建" → 返回列表页。</p>
+<p><strong>分支流程</strong>：点击「取消」/「返回列表」→ 不保存，返回列表页。</p>
+<p><strong>校验规则</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>规则</th>
+<th>校验时机</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>基础 URL</td>
+<td>必填；须为合法 URL（http/https 开头）</td>
+<td>提交时</td>
+</tr>
+<tr>
+<td>utm_source</td>
+<td>必填</td>
+<td>提交时</td>
+</tr>
+<tr>
+<td>utm_medium</td>
+<td>必填</td>
+<td>提交时</td>
+</tr>
+<tr>
+<td>各 UTM 值</td>
+<td>小写 + 下划线；禁止空格和 <code>&amp; = # +</code> 等特殊字符（utm_source 运营枚举保留原始大小写除外）</td>
+<td>提交时</td>
+</tr>
+</tbody>
+</table>
+<p><strong>异常处理</strong>：
+- 必填项为空 → 字段下方红色提示，不提交。
+- URL 格式非法 → 提示"请输入合法的 URL"。
+- 提交接口失败 → toast 错误提示，停留在当前页保留已填内容。</p>
+<p><strong>交互说明</strong>：本页为纯新建表单，无操作记录区（短链创建后不可编辑，无编辑历史）。</p>
+<p><strong>UI 关联</strong>：PC <code>ShortLinkCreatePage</code>（<code>looply-社媒分享管理-antd-原型-v1.2.html</code>）；无 APP 端。</p>
+<h4 id="253">2.5.3 短链详情页</h4>
+<p><strong>功能类型</strong>：页面型。</p>
+<p><strong>功能描述</strong>：只读数据看板，展示单条短链的基本信息、点击趋势、点击记录。所有短链（用户分享 / 运营投放）均可查看。</p>
+<p><strong>前置条件</strong>：运营从列表页点击「详情」进入。</p>
+<p><strong>页面布局</strong>：标题区（标题 +「返回列表」）→ KPI 卡片（2 个）→「基本信息」→「点击趋势」→「点击记录」表。</p>
+<p><strong>页面元素</strong></p>
+<p>KPI 卡片（2 个）：总点击数、独立访客。</p>
+<blockquote>
+<p>早期设计的「归因转化 / 归因订单」KPI 为占位假数据，本期移除（依赖点击→下单链路打通，归入 TBD-3）。</p>
+</blockquote>
+<p>基本信息（只读）：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>短码</td>
+<td><code>short_code</code></td>
+</tr>
+<tr>
+<td>短链地址</td>
+<td><code>lply.link/{short_code}</code></td>
+</tr>
+<tr>
+<td>目标 URL</td>
+<td><code>long_url</code>（完整长链，含 UTM）</td>
+</tr>
+<tr>
+<td>分享人 / 创建人</td>
+<td>用户分享（<code>social_share</code>）显示分享人 <code>sharer_user_id</code>（未登录显示"未登录（匿名分享）"）；运营投放显示创建人 <code>created_by</code></td>
+</tr>
+<tr>
+<td>备注</td>
+<td><code>campaign_name</code> / <code>product_name</code>，均空显示 <code>—</code></td>
+</tr>
+<tr>
+<td>创建时间</td>
+<td><code>created_at</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>说明：基本信息<strong>不单独展示 <code>utm_source</code> / <code>utm_medium</code> / <code>utm_campaign</code> / <code>utm_content</code> 四个原始 UTM 字段</strong>——完整含 UTM 的长链已在「目标 URL」行可见，运营可直接从中读出渠道，无需重复罗列。</p>
+</blockquote>
+<p>点击趋势：
+- 折线图（点击数 + 独立访客双线）。
+- 时间范围切换：近 7 日 / 近 30 日 / 全部，默认近 7 日。
+- 趋势区高度固定，长周期下横向加密点位，不纵向撑长页面。</p>
+<p>点击记录表：</p>
+<table>
+<thead>
+<tr>
+<th>列</th>
+<th>字段</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>点击时间</td>
+<td><code>clicked_at</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>访客 ID</td>
+<td><code>visitor_id</code></td>
+<td>表头 tooltip：系统首次访问种下的第一方 Cookie 标识，用于独立访客去重，未登录也可识别同一浏览器</td>
+</tr>
+<tr>
+<td>登录用户 ID</td>
+<td><code>user_id</code></td>
+<td>未登录显示 <code>—</code></td>
+</tr>
+<tr>
+<td>IP</td>
+<td><code>ip</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>User Agent</td>
+<td><code>user_agent</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>Referer</td>
+<td><code>referer</code></td>
+<td>表头 tooltip：HTTP Referer 头按域名归一化为渠道名；原生 App 常不发送、取不到显示 <code>—</code>；描述"本次点击从哪来"，与 utm_source 不同、可能不一致。有值显示渠道名，空值显示 <code>—</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>页面状态变体</strong>：正常（有数据）/ 点击记录为空（表格空提示）/ 加载态 / 网络异常。</p>
+<p><strong>操作流程</strong>：仅查看 + 「返回列表」。本页为只读，无写操作。</p>
+<p><strong>异常处理</strong>：短链不存在 → 提示并返回列表；数据加载失败 → 错误态 + 重试。</p>
+<p><strong>交互说明</strong>：详情页为只读看板，不计入「操作」，不含启用 / 停用 / 编辑入口。本页无操作记录区（短链不可编辑，无变更历史可记录）。</p>
+<p><strong>UI 关联</strong>：PC <code>ShortLinkDetailPage</code>（<code>looply-社媒分享管理-antd-原型-v1.2.html</code>）；无 APP 端。</p>
+<hr />
+<h2 id="_3">三、依赖与风险</h2>
+<h3 id="31">3.1 上下游系统依赖</h3>
+<table>
+<thead>
+<tr>
+<th>依赖系统</th>
+<th>依赖内容</th>
+<th>本模块用途</th>
+<th>关系</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>商品模块</td>
+<td><code>products</code>（product_id / title / brand / price_cents / image_url）</td>
+<td>拼接 OG 卡片、列表「商品名」、长链商品路径</td>
+<td>只读</td>
+</tr>
+<tr>
+<td>用户模块</td>
+<td><code>users</code>（user_id / username）</td>
+<td>分享人、点击者、登录用户识别</td>
+<td>只读</td>
+</tr>
+<tr>
+<td>订单模块</td>
+<td><code>orders</code>（order_id / user_id / total_cents）</td>
+<td>归因订单（TBD-3，本期不打通）</td>
+<td>只读</td>
+</tr>
+<tr>
+<td>平台 Cookie 同意机制</td>
+<td>Cookie 合规授权</td>
+<td>落地写 <code>_looply_ref</code> / <code>visitor_id</code> Cookie</td>
+<td>依赖</td>
+</tr>
+<tr>
+<td>埋点平台</td>
+<td>统一埋点规则</td>
+<td>分享漏斗事件上报（见第五章）</td>
+<td>依赖（规则待定）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="32">3.2 外部服务依赖</h3>
+<table>
+<thead>
+<tr>
+<th>外部服务</th>
+<th>用途</th>
+<th>前置准备</th>
+<th>审核周期</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Facebook App（Meta）</td>
+<td>Facebook / Messenger 分享对话框需 <code>app_id</code></td>
+<td>注册 Facebook App、配置 redirect_uri 白名单、准备隐私政策</td>
+<td>基础 Share Dialog 无需审核</td>
+</tr>
+<tr>
+<td>Pinterest Rich Pin</td>
+<td>商品 Rich Pin 自动抓价格 / 库存</td>
+<td>申请 Rich Pin（全站一次性）</td>
+<td>2–5 工作日</td>
+</tr>
+<tr>
+<td>X (Twitter) intent</td>
+<td>X 分享</td>
+<td>无需注册（intent 公开）</td>
+<td>无</td>
+</tr>
+<tr>
+<td>域名 / SSL</td>
+<td>短链 <code>looply.com/s/*</code> 需 HTTPS</td>
+<td>配置 AASA / assetlinks.json，部署 <code>.well-known/</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>iOS / Android 应用</td>
+<td>Universal Links / App Links 唤起</td>
+<td>App 端集成深链解析、声明 URL Scheme（whatsapp / Info.plist、Android <code>&lt;queries&gt;</code>）</td>
+<td>随 App 发版</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>外部服务对接提醒</strong>：Facebook App 注册需准备隐私政策 / 服务条款链接；Pinterest Rich Pin 有审核周期，需提前申请。建议在开发排期前确认上述账号注册与合规材料就绪。</p>
+</blockquote>
+<h3 id="33">3.3 关键风险</h3>
+<table>
+<thead>
+<tr>
+<th>风险</th>
+<th>影响</th>
+<th>规避</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WebView 深链失效（Instagram/TikTok 内置浏览器）</td>
+<td>30–40% 社媒流量唤起 App 失败</td>
+<td>MVP 降级为正常网页落地；Phase 2 加中间页引导"在浏览器打开"</td>
+</tr>
+<tr>
+<td>iOS 26 剥离 UTM 参数</td>
+<td>URL 参数归因丢失</td>
+<td>短链路径方案（<code>/s/{short_code}</code>）天然免疫，归因上下文存服务端</td>
+</tr>
+<tr>
+<td>Referer 大量为空</td>
+<td>点击真实来源识别率低</td>
+<td>渠道分析主用 utm_source，Referer 仅辅助；空值显示 <code>—</code> 不标 Direct</td>
+</tr>
+<tr>
+<td>归因不准（跨设备 / 无 IDFA）</td>
+<td>概率匹配 70–85%</td>
+<td>接受模糊度，本期不承诺精确归因；归因转化打通为 TBD-3</td>
+</tr>
+<tr>
+<td>平台外链政策变动</td>
+<td>单一渠道失效</td>
+<td>不重度依赖单一渠道；MVP 多渠道并行</td>
+</tr>
+<tr>
+<td>用户分享短链滥用（刷量 / 不当内容）</td>
+<td>数据污染 / 品牌风险</td>
+<td>已记录为 TBD-2，本期无紧急关闭手段，待评估</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_4">四、版本规划</h2>
+<h3 id="41-v10-mvp">4.1 当前版本（v1.0 MVP）范围</h3>
+<ul>
+<li>C 端商品详情页分享（PC / Mobile Web / iOS / Android 四端）。</li>
+<li>统一短链服务：用户分享 API 自动生成 + 运营投放后台手动创建；点击解析 302 + Cookie 写入。</li>
+<li>社媒爬虫 OG 卡片返回（实时查商品表）。</li>
+<li>Universal Links / App Links App 唤起。</li>
+<li>后台短链管理：列表（筛选 / 复制 / 创建入口）、创建运营短链、短链详情（只读看板）。</li>
+<li>渠道归因数据采集口径：UTM 规范、Referer 归一化、visitor_id 去重。</li>
+</ul>
+<h3 id="42">4.2 后续迭代方向</h3>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>功能</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Phase 2</td>
+<td>WebView 中间页引导</td>
+<td>Instagram/TikTok 内置浏览器降级</td>
+</tr>
+<tr>
+<td>Phase 2</td>
+<td>动态合成 OG 分享卡片图</td>
+<td>商品图 + 价格 + 品牌 + Looply 水印（OG 1200×630；Instagram Stories 的 9:16 合成图已在 MVP 实现）</td>
+</tr>
+<tr>
+<td>Phase 2</td>
+<td>分享入口扩展</td>
+<td>订单完成页 / 收货确认页 / 心愿单 / 合集页 / 卖家店铺页</td>
+</tr>
+<tr>
+<td>Phase 2</td>
+<td>卖家工具包</td>
+<td>批量导出 CSV、店铺短链、竖屏素材</td>
+</tr>
+<tr>
+<td>Phase 2</td>
+<td>短链状态管理</td>
+<td>启用 / 停用 / 封禁 / 过期（DB status 已预留）</td>
+</tr>
+<tr>
+<td>Phase 2</td>
+<td>分享报表完整版</td>
+<td>渠道 / 入口 / 热门商品多维度</td>
+</tr>
+<tr>
+<td>后续规划</td>
+<td>归因转化打通（TBD-3）</td>
+<td>点击→注册 / 下单链路，依赖订单回传 UTM + 身份识别</td>
+</tr>
+<tr>
+<td>后续规划</td>
+<td>目标下架短链落地兜底（TBD-1）</td>
+<td>"商品已下架"提示页 / 推荐相似 / 引导首页</td>
+</tr>
+<tr>
+<td>待评估</td>
+<td>用户分享短链滥用管控（TBD-2）</td>
+<td>刷量 / 不当内容紧急关闭</td>
+</tr>
+<tr>
+<td>后续立项</td>
+<td>推荐拉新计划</td>
+<td>邀请奖励 + 反作弊，独立模块</td>
+</tr>
+<tr>
+<td>Phase 3</td>
+<td>站内社交</td>
+<td>关注 / 信息流 / 社区达人</td>
+</tr>
+</tbody>
+</table>
+<h3 id="43-tbd">4.3 待规划事项（TBD）</h3>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>事项</th>
+<th>说明</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TBD-1</td>
+<td>用户分享短链目标下架后的落地处理</td>
+<td>目标商品 / 页面已下架但链接仍被点击，需兜底页而非 404</td>
+<td>后续规划</td>
+</tr>
+<tr>
+<td>TBD-2</td>
+<td>用户分享短链滥用管控</td>
+<td>刷量 / 不当内容的紧急关闭手段，优先级与触发条件待定</td>
+<td>待评估</td>
+</tr>
+<tr>
+<td>TBD-3</td>
+<td>归因转化 / 归因订单</td>
+<td>点击→下单 / 注册链路打通，依赖订单回传 UTM/click_id + 用户身份识别</td>
+<td>后续规划</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_5">五、数据与埋点</h2>
+<blockquote>
+<p>⚠ 以下为事件框架设计。具体埋点字段规范待埋点平台模块设计统一规则后补充，再进入开发。</p>
+</blockquote>
+<h3 id="51">5.1 分享漏斗与核心事件</h3>
+<p><strong>核心漏斗</strong>：分享入口曝光 → 弹窗打开 → 渠道点击 → 分享完成 → 链接被点击 → 安装 / 注册 / 首单。</p>
+<table>
+<thead>
+<tr>
+<th>事件名</th>
+<th>触发时机</th>
+<th>关键字段</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>share_entry_view</code></td>
+<td>分享按钮曝光</td>
+<td>page, product_id, platform</td>
+</tr>
+<tr>
+<td><code>share_sheet_open</code></td>
+<td>弹窗 / 面板打开</td>
+<td>channels_shown（用户看到的渠道列表）</td>
+</tr>
+<tr>
+<td><code>share_channel_click</code></td>
+<td>选择某渠道</td>
+<td>channel, channel_position, is_dynamic, short_code</td>
+</tr>
+<tr>
+<td><code>share_complete</code></td>
+<td>分享动作完成</td>
+<td>channel, short_code</td>
+</tr>
+<tr>
+<td><code>share_sheet_dismiss</code></td>
+<td>弹窗关闭（放弃）</td>
+<td>dismiss_action, time_open_ms, any_channel_clicked</td>
+</tr>
+<tr>
+<td><code>share_more_click</code></td>
+<td>点击 More</td>
+<td>channels_shown_before_more</td>
+</tr>
+<tr>
+<td><code>share_link_click</code>（服务端）</td>
+<td>接收方点击短链</td>
+<td>short_code, channel（UTM/Referer 反推）, is_new_visitor</td>
+</tr>
+</tbody>
+</table>
+<h3 id="52">5.2 关键指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>计算</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>分享按钮 CTR</td>
+<td><code>share_sheet_open</code> / <code>share_entry_view</code></td>
+</tr>
+<tr>
+<td>渠道选择率</td>
+<td><code>share_channel_click(channel=X)</code> / <code>share_sheet_open</code></td>
+</tr>
+<tr>
+<td>弹窗放弃率</td>
+<td><code>share_sheet_dismiss(any_channel_clicked=false)</code> / <code>share_sheet_open</code></td>
+</tr>
+<tr>
+<td>More 使用率</td>
+<td><code>share_more_click</code> / <code>share_sheet_open</code>（高则首屏渠道不够）</td>
+</tr>
+<tr>
+<td>渠道位置效应</td>
+<td>按 channel_position 分组的点击率</td>
+</tr>
+<tr>
+<td>分享点击率</td>
+<td>链接被点击次数 / 分享次数</td>
+</tr>
+</tbody>
+</table>
+<h3 id="53-id">5.3 用户 ID 处理（未登录场景）</h3>
+<ul>
+<li>所有事件同时携带 <code>user_id</code>（登录时有值）和 <code>anonymous_id</code>（始终有值），登录后通过 ID Merge 关联历史行为。</li>
+<li>Web 端 anonymous_id：localStorage 持久化 + 服务端 Cookie 双存备份。</li>
+<li>App 端 anonymous_id：iOS Keychain / Android EncryptedSharedPreferences。</li>
+</ul>
+<h3 id="54-vs">5.4 系统弹窗 vs 自定义弹窗追踪差异</h3>
+<table>
+<thead>
+<tr>
+<th>追踪能力</th>
+<th>系统弹窗（More）</th>
+<th>自定义弹窗</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>链接被点击（UTM/short_code）</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>用户点了分享按钮</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>用户选了哪个渠道</td>
+<td>❌ 拿不到</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>弹窗放弃</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<p>核心差距：系统弹窗（More）拿不到用户最终选的渠道，<code>channel</code> 记为 <code>native_share</code>，接收方点击后由服务端从 Referer 反推。因页面内有明显自定义分享入口，大部分用户走自定义路径，可追踪率 80%+。</p>
+<hr />
+<h2 id="_6">六、附录</h2>
+<h3 id="61">6.1 设计稿索引</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>子页面</th>
+<th>PC 设计稿</th>
+<th>APP 设计稿</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C 端商品分享</td>
+<td>商品详情 + 分享弹窗</td>
+<td><code>looply-share-prototype.pen</code> → <code>tFl2A</code>（PC Web）</td>
+<td><code>rMtyB</code>（iOS）/ <code>9wWk7</code>（Android）/ <code>NPfew</code>（Mobile Web）</td>
+</tr>
+<tr>
+<td>C 端商品分享</td>
+<td>iOS 系统分享面板（示意）</td>
+<td>—</td>
+<td><code>vYyqr</code></td>
+</tr>
+<tr>
+<td>后台短链管理</td>
+<td>短链列表</td>
+<td><code>looply-社媒分享管理-antd-原型-v1.2.html</code> → <code>ShortLinkListPage</code></td>
+<td>后台无 APP 端</td>
+</tr>
+<tr>
+<td>后台短链管理</td>
+<td>创建运营短链</td>
+<td>同上 → <code>ShortLinkCreatePage</code></td>
+<td>后台无 APP 端</td>
+</tr>
+<tr>
+<td>后台短链管理</td>
+<td>短链详情</td>
+<td>同上 → <code>ShortLinkDetailPage</code></td>
+<td>后台无 APP 端</td>
+</tr>
+</tbody>
+</table>
+<h3 id="62-er-v11">6.2 数据模型参考（ER v1.1）</h3>
+<p>本模块涉及 3 张自有表 + 3 张外部只读表，详见 <code>实体关系图/looply-社媒分享实体关系图-v1.1</code>。</p>
+<table>
+<thead>
+<tr>
+<th>表</th>
+<th>类型</th>
+<th>关键字段</th>
+<th>本期使用情况</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>short_links</code></td>
+<td>自有（核心）</td>
+<td>short_code(PK) / long_url / utm_source / utm_medium / utm_campaign / utm_content / product_id / sharer_user_id / session_id / created_by / campaign_name / click_count / unique_visitor_count / status / created_at</td>
+<td>全字段使用；<code>status</code> 字段保留但 MVP 不操作</td>
+</tr>
+<tr>
+<td><code>share_clicks</code></td>
+<td>自有（追踪）</td>
+<td>id(PK) / short_code(FK) / visitor_id / user_id / clicked_at / ip / user_agent / referer</td>
+<td>全字段使用（详情页点击记录）</td>
+</tr>
+<tr>
+<td><code>share_attributions</code></td>
+<td>自有（归因）</td>
+<td>id(PK) / short_code(FK) / user_id / event_type / order_id / gmv_cents / attributed_at</td>
+<td><strong>本期不写入</strong>（归因转化为 TBD-3，预留表结构）</td>
+</tr>
+<tr>
+<td><code>products</code></td>
+<td>外部只读</td>
+<td>product_id / title / brand / price_cents / image_url</td>
+<td>OG 卡片 + 列表商品名</td>
+</tr>
+<tr>
+<td><code>users</code></td>
+<td>外部只读</td>
+<td>user_id / username</td>
+<td>分享人 / 点击者识别</td>
+</tr>
+<tr>
+<td><code>orders</code></td>
+<td>外部只读</td>
+<td>order_id / user_id / total_cents</td>
+<td>归因订单（TBD-3，本期不用）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>接口清单属技术文档范畴，本 PRD 不含。</p>
+</blockquote>
+<h3 id="63-er-er">6.3 给 ER 图的反馈（待产品确认后回写 ER）</h3>
+<p>PRD 撰写过程中发现的 ER 优化点，供后续回写 ER 图：</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>short_links.status</code> 枚举定义</td>
+<td>当前 ER 仅标"状态"，建议补枚举：<code>active</code>（启用）/ <code>disabled</code>（停用）/ <code>expired</code>（过期）。MVP 默认 active，启停为后续迭代</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>share_attributions.event_type</code> 枚举定义</td>
+<td>建议补枚举：<code>signup</code>（注册）/ <code>first_order</code>（首单）/ <code>repeat_order</code>（复购）。本期不写入，预留</td>
+</tr>
+<tr>
+<td>3</td>
+<td>早期 <code>link_type</code> 字段已废弃</td>
+<td>用 <code>utm_medium</code>（social_share vs 运营值）区分用户 / 运营，无需单设 link_type，ER 当前已无此字段，确认保持</td>
+</tr>
+</tbody>
+</table>
+  </main>
+</div>
+<script>
+  // 滚动高亮当前章节
+  const links = Array.from(document.querySelectorAll('#toc a'));
+  const map = {};
+  links.forEach(a => { const id = decodeURIComponent(a.getAttribute('href').slice(1)); map[id] = a; });
+  const heads = Array.from(document.querySelectorAll('#content h2, #content h3'));
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const a = map[e.target.id];
+        if (a) { a.classList.add('active'); }
+      }
+    });
+  }, { rootMargin: '0px 0px -80% 0px', threshold: 0 });
+  heads.forEach(h => obs.observe(h));
+</script>
+</body>
+</html>

@@ -890,7 +890,11 @@ def sync_module_files(source_dir, target_dir, mod_key):
     if os.path.isdir(src_prd):
         dst_prd = os.path.join(REPO_DIR, target_dir, 'PRD')
         os.makedirs(dst_prd, exist_ok=True)
-        for ext in ['.docx', '.md']:
+        # 社媒分享 PRD 用自包含 html 阅读器（无模板阅读器），需同步 .html
+        prd_exts = ['.docx', '.md']
+        if target_dir == 'docs-社媒分享管理':
+            prd_exts.append('.html')
+        for ext in prd_exts:
             for f in globmod.glob(os.path.join(src_prd, f'*{ext}')):
                 if os.path.isfile(f):
                     smart_cp(f, dst_prd)
