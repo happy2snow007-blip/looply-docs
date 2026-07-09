@@ -13,7 +13,7 @@ var PROTOTYPE_CONFIG = {
   'pdp':          'docs-商详/原型/looply-商详页CMS配置后台原型-v3-antd.html',
   'Favourites':   'docs-Favourites/原型/looply-favourites-prototype-v6.html',
   'cms':          'docs-CMS管理/原型/looply-cms-antd-原型-v1.0.html',
-  'collection':   'docs-Collection管理/原型/looply-类目管理-后台-v0.19-antd.html',
+  'collection':   'docs-Collection管理/原型/looply-类目管理-后台-v0.20-antd.html',
   'logistics':    'docs-物流管理/原型/looply-物流管理后台原型-v5.11-antd.html',
   'order':        'docs-订单支付/原型/looply-订单管理后台原型-v5.html',
   'shop':         'docs-shop页/后台原型/looply-shop页导航栏配置-后台原型-v0.1-antd.html',

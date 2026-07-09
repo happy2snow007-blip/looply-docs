@@ -496,15 +496,10 @@ MODULES = {
                 'subdir': '原型',
                 'pattern': r'looply-类目页-Mobile-v(.+?)\.html',
             },
-            # 后台 PRD（类目管理）为本模块主 PRD
+            # 类目管理 PRD 为本模块主 PRD（落地页内容已并入 v0.21）
             'prd': {
                 'subdir': 'PRD',
                 'pattern': r'looply-类目管理-PRD-v(.+?)\.md',
-            },
-            # 前台落地页 PRD（collection-landing），独立卡片
-            'prd_landing': {
-                'subdir': 'PRD',
-                'pattern': r'looply-collection-landing-PRD-v(.+?)\.md',
             },
             'er': {
                 'subdir': '实体关系图',
