@@ -18,6 +18,8 @@ MODULE_LIST=(
     "$HOME/Desktop/海外业务/库存|docs-库存管理"
     "$HOME/Desktop/海外业务/汇率管理|docs-汇率管理"
     "$HOME/Desktop/海外业务/用户管理|docs-用户管理"
+    "$HOME/Desktop/海外业务/订单列表详情|docs-订单列表详情"
+    "$HOME/Desktop/海外业务/订单支付|docs-订单支付"
 )
 
 # 颜色
