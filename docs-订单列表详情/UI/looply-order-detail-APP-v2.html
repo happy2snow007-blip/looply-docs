@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order Detail (APP) v2 - Looply</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1A1A1A;background:#111;line-height:1.5;display:flex;justify-content:center;padding:40px 20px;gap:48px;min-height:100vh}
+a{text-decoration:none;color:inherit}
+button{cursor:pointer;border:none;background:none;font-family:inherit}
+
+/* Phone Mockup */
+.phone{width:375px;flex-shrink:0;background:#F9FAFB;border-radius:40px;border:6px solid #1A1A1A;overflow:hidden;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.phone-screen{height:812px;overflow-y:auto;position:relative;scrollbar-width:none}
+.phone-screen::-webkit-scrollbar{display:none}
+
+/* Status bar */
+.status-bar{display:flex;justify-content:space-between;align-items:center;padding:12px 24px 8px;background:#fff;position:sticky;top:0;z-index:10}
+.status-bar__time{font-size:15px;font-weight:600}
+.status-bar__icons{display:flex;gap:5px;align-items:center}
+.status-bar__icons svg{width:16px;height:16px}
+
+/* App header */
+.app-header{display:flex;align-items:center;justify-content:space-between;padding:4px 16px 12px;background:#fff;border-bottom:1px solid #E5E7EB;position:sticky;top:38px;z-index:10}
+.app-header__back{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;color:#1A1A1A}
+.app-header__back svg{width:22px;height:22px}
+.app-header__title{font-size:16px;font-weight:700;color:#1A1A1A}
+.app-header__action{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;color:#1A1A1A}
+.app-header__action svg{width:20px;height:20px}
+
+/* Content */
+.app-content{padding:16px}
+
+/* Order meta */
+.order-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.order-meta__id{font-size:15px;font-weight:700;color:#1A1A1A}
+.order-meta__status{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:16px;font-size:11px;font-weight:600}
+.m-status-shipped{background:#ECFDF5;color:#059669}
+.m-status-dot{width:5px;height:5px;border-radius:50%}
+.m-status-dot.shipped{background:#059669}
+.order-meta__date{font-size:12px;color:#9CA3AF;margin-bottom:16px}
+
+/* Card */
+.m-card{background:#fff;border-radius:12px;border:1px solid #E5E7EB;padding:16px;margin-bottom:12px}
+.m-card__title{font-size:13px;font-weight:700;color:#1A1A1A;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.m-card__title svg{width:16px;height:16px;color:#6B7280}
+
+/* Compact Progress Stepper */
+.m-stepper{display:flex;align-items:center;justify-content:space-between;position:relative;margin-bottom:12px}
+.m-stepper__track{position:absolute;top:10px;left:16px;right:16px;height:2px;background:#E5E7EB;z-index:0}
+.m-stepper__fill{position:absolute;top:10px;left:16px;height:2px;background:#059669;z-index:1;width:calc((100% - 32px) * 0.75)}
+.m-step{display:flex;flex-direction:column;align-items:center;z-index:2;width:48px}
+.m-step__dot{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:4px}
+.m-step__dot.done{background:#059669}
+.m-step__dot.done svg{width:10px;height:10px;color:#fff}
+.m-step__dot.current{background:#059669;box-shadow:0 0 0 3px rgba(5,150,105,.15)}
+.m-step__dot.current svg{width:10px;height:10px;color:#fff}
+.m-step__dot.pending{background:#E5E7EB}
+.m-step__label{font-size:9px;color:#9CA3AF;text-align:center;line-height:1.2;font-weight:500}
+.m-step__label.done,.m-step__label.current{color:#1A1A1A;font-weight:600}
+
+/* Current Status Summary */
+.m-status-summary{display:flex;align-items:flex-start;gap:10px;padding:12px;background:#F0FDF4;border-radius:8px;margin-bottom:0}
+.m-status-icon{width:32px;height:32px;border-radius:8px;background:#059669;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.m-status-icon svg{width:18px;height:18px;color:#fff}
+.m-status-info{flex:1;min-width:0}
+.m-status-info__title{font-size:13px;font-weight:700;color:#059669}
+.m-status-info__desc{font-size:11px;color:#6B7280;margin-top:1px}
+
+/* Tracking Card */
+.m-tracking{background:#fff;border-radius:12px;border:1px solid #E5E7EB;margin-bottom:12px;overflow:hidden}
+.m-tracking__header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 0}
+.m-tracking__title{font-size:13px;font-weight:700;color:#1A1A1A;display:flex;align-items:center;gap:6px}
+.m-tracking__title svg{width:16px;height:16px;color:#6B7280}
+.m-tracking__carrier{font-size:11px;color:#6B7280;font-weight:500}
+.m-tracking__latest{padding:10px 16px 14px;display:flex;gap:10px}
+.m-tracking__dot-line{display:flex;flex-direction:column;align-items:center;padding-top:2px}
+.m-tracking__dot{width:8px;height:8px;border-radius:50%;background:#059669;flex-shrink:0}
+.m-tracking__line{width:1px;flex:1;background:#E5E7EB;margin-top:4px}
+.m-tracking__event{flex:1;min-width:0}
+.m-tracking__event-text{font-size:12px;font-weight:600;color:#1A1A1A;line-height:1.4}
+.m-tracking__event-time{font-size:11px;color:#9CA3AF;margin-top:2px}
+.m-tracking__prev{padding:0 16px 4px 34px}
+.m-tracking__prev-item{font-size:11px;color:#9CA3AF;padding:6px 0;border-top:1px solid #F3F4F6;display:flex;justify-content:space-between}
+.m-tracking__view-all{display:flex;align-items:center;justify-content:center;gap:4px;padding:10px 16px;border-top:1px solid #E5E7EB;font-size:12px;font-weight:600;color:#6432FC;cursor:pointer}
+.m-tracking__view-all svg{width:14px;height:14px}
+
+/* Order item */
+.m-item{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #F3F4F6}
+.m-item:last-child{border-bottom:none}
+.m-item__img{width:56px;height:56px;background:#FAFAFA;border-radius:6px;overflow:hidden;flex-shrink:0}
+.m-item__img img{width:100%;height:100%;object-fit:cover}
+.m-item__info{flex:1;min-width:0}
+.m-item__brand{font-size:9px;font-weight:700;color:#6B7280;letter-spacing:.5px;text-transform:uppercase}
+.m-item__name{font-size:12px;font-weight:500;color:#1A1A1A;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m-item__condition{display:inline-flex;padding:1px 6px;border-radius:10px;font-size:9px;font-weight:600;margin-top:2px}
+.m-cond-vg{background:#EFF6FF;color:#2563EB}
+.m-cond-ln{background:#ECFDF5;color:#059669}
+.m-item__price{font-size:14px;font-weight:700;color:#1A1A1A;flex-shrink:0;align-self:center}
+
+/* Info rows */
+.m-info-label{font-size:10px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.m-info-value{font-size:12px;color:#1A1A1A;line-height:1.6}
+.m-info-value strong{font-weight:600}
+.m-info-divider{height:1px;background:#F3F4F6;margin:12px 0}
+
+/* Price rows */
+.m-price-row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;color:#374151}
+.m-price-row .label{color:#6B7280}
+.m-price-free{color:#059669;font-weight:600}
+.m-price-divider{height:1px;background:#E5E7EB;margin:8px 0}
+.m-price-total{display:flex;justify-content:space-between;font-size:16px;font-weight:700;padding:4px 0;color:#1A1A1A}
+.m-price-method{display:flex;align-items:center;gap:5px;margin-top:8px;font-size:11px;color:#6B7280}
+.m-method-icon{width:28px;height:18px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;background:#1A1F71;color:#fff}
+
+/* Action buttons */
+.m-actions{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.m-btn-primary{width:100%;padding:13px;font-size:14px;font-weight:600;color:#fff;background:#6432FC;border-radius:10px;font-family:inherit;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px}
+.m-btn-primary svg{width:16px;height:16px}
+.m-btn-support{width:100%;padding:13px;font-size:14px;font-weight:600;color:#6432FC;background:#fff;border:1.5px solid #6432FC;border-radius:10px;font-family:inherit;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px}
+.m-btn-support svg{width:16px;height:16px}
+
+/* Home indicator */
+.home-indicator{display:flex;justify-content:center;padding:8px 0 6px;background:#F9FAFB}
+.home-indicator__bar{width:134px;height:5px;border-radius:3px;background:#1A1A1A;opacity:.2}
+
+/* ========== Annotation Panel ========== */
+.annotation-panel{width:420px;flex-shrink:0;color:#E5E7EB}
+.annotation-panel h2{font-size:20px;font-weight:700;color:#fff;margin-bottom:4px}
+.annotation-panel .subtitle{font-size:13px;color:#9CA3AF;margin-bottom:28px}
+
+/* Module */
+.module{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;margin-bottom:16px;overflow:hidden}
+.module__header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;cursor:pointer;transition:background .15s}
+.module__header:hover{background:rgba(255,255,255,.03)}
+.module__num{width:24px;height:24px;border-radius:6px;background:#6432FC;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-right:10px;flex-shrink:0}
+.module__title{font-size:14px;font-weight:600;color:#fff;flex:1}
+.module__toggle{color:#6B7280;transition:transform .2s}
+.module__toggle svg{width:18px;height:18px}
+.module__body{padding:0 18px 16px;display:none}
+.module.open .module__body{display:block}
+.module.open .module__toggle{transform:rotate(180deg)}
+
+/* Annotation items */
+.anno{margin-bottom:14px}
+.anno:last-child{margin-bottom:0}
+.anno__label{font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.anno__text{font-size:13px;color:#D1D5DB;line-height:1.6}
+.anno__text strong{color:#fff;font-weight:600}
+.anno__text code{background:rgba(100,50,252,.2);color:#C4B5FD;padding:1px 5px;border-radius:3px;font-size:11px;font-family:'DM Sans',monospace}
+
+/* Tags */
+.tag{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:600;margin-right:4px;margin-bottom:4px}
+.tag-tap{background:rgba(37,99,235,.15);color:#93C5FD}
+.tag-state{background:rgba(5,150,105,.15);color:#6EE7B7}
+.tag-edge{background:rgba(234,88,12,.15);color:#FDBA74}
+.tag-gesture{background:rgba(168,85,247,.15);color:#D8B4FE}
+
+/* Legend */
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,.08)}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:#9CA3AF}
+.legend-dot{width:8px;height:8px;border-radius:2px}
+.legend-dot.tap{background:rgba(37,99,235,.4)}
+.legend-dot.gesture{background:rgba(168,85,247,.4)}
+.legend-dot.state{background:rgba(5,150,105,.4)}
+.legend-dot.edge{background:rgba(234,88,12,.4)}
+</style>
+</head>
+<body>
+
+<!-- Phone Mockup -->
+<div class="phone">
+<div class="phone-screen">
+
+<!-- Status Bar -->
+<div class="status-bar">
+<div class="status-bar__time">9:41</div>
+<div class="status-bar__icons">
+<svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3a4.24 4.24 0 0 0-6 0zm-4-4l2 2a7.07 7.07 0 0 1 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
+<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 22h20V2z"/></svg>
+<svg viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="6" width="18" height="12" rx="2" stroke="currentColor" stroke-width="1" fill="none"/><rect x="4" y="8" width="10" height="8" rx="1" fill="currentColor"/><path d="M22 10v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+</div>
+</div>
+
+<!-- App Header -->
+<div class="app-header">
+<div class="app-header__back">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+</div>
+<div class="app-header__title">Order Details</div>
+<div class="app-header__action">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+</div>
+</div>
+
+<!-- Content -->
+<div class="app-content">
+
+<!-- Order Meta -->
+<div class="order-meta">
+<div class="order-meta__id">#LPY-20260604-0847</div>
+<div class="order-meta__status m-status-shipped"><span class="m-status-dot shipped"></span>Shipped</div>
+</div>
+<div class="order-meta__date">Placed on Jun 4, 2026</div>
+
+<!-- Compact Order Status -->
+<div class="m-card">
+<div class="m-card__title">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+Order Status
+</div>
+<!-- Horizontal Progress Stepper -->
+<div class="m-stepper">
+<div class="m-stepper__track"></div>
+<div class="m-stepper__fill"></div>
+<div class="m-step">
+<div class="m-step__dot done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></div>
+<div class="m-step__label done">Placed</div>
+</div>
+<div class="m-step">
+<div class="m-step__dot done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></div>
+<div class="m-step__label done">Paid</div>
+</div>
+<div class="m-step">
+<div class="m-step__dot done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></div>
+<div class="m-step__label done">Processing</div>
+</div>
+<div class="m-step">
+<div class="m-step__dot current"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#fff" stroke="#fff"/></svg></div>
+<div class="m-step__label current">Shipped</div>
+</div>
+<div class="m-step">
+<div class="m-step__dot pending"></div>
+<div class="m-step__label">Delivered</div>
+</div>
+</div>
+<!-- Current Status Summary -->
+<div class="m-status-summary">
+<div class="m-status-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="m16 8 4 2v6h-3"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+</div>
+<div class="m-status-info">
+<div class="m-status-info__title">Your package is on the way</div>
+<div class="m-status-info__desc">Estimated delivery: Jun 9 - Jun 11, 2026</div>
+</div>
+</div>
+</div>
+
+<!-- Tracking Card -->
+<div class="m-tracking">
+<div class="m-tracking__header">
+<div class="m-tracking__title">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+Tracking
+</div>
+<div class="m-tracking__carrier">FedEx · 7489 2104 5678</div>
+</div>
+<div class="m-tracking__latest">
+<div class="m-tracking__dot-line">
+<div class="m-tracking__dot"></div>
+<div class="m-tracking__line"></div>
+</div>
+<div class="m-tracking__event">
+<div class="m-tracking__event-text">Package departed FedEx facility</div>
+<div class="m-tracking__event-time">Jun 6, 2026 · 2:15 PM · Memphis, TN</div>
+</div>
+</div>
+<div class="m-tracking__prev">
+<div class="m-tracking__prev-item">
+<span>Package arrived at FedEx facility</span>
+<span>Jun 6, 8:30 AM</span>
+</div>
+<div class="m-tracking__prev-item">
+<span>Shipment picked up</span>
+<span>Jun 5, 4:20 PM</span>
+</div>
+</div>
+<div class="m-tracking__view-all">
+View Full Tracking History
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+</div>
+</div>
+
+<!-- Items -->
+<div class="m-card">
+<div class="m-card__title">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/></svg>
+Items (2)
+</div>
+<div class="m-item">
+<div class="m-item__img"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/001_cd443847-229b-45ca-bf86-122d7b8af10e.png?v=1778472154&width=200" alt=""></div>
+<div class="m-item__info">
+<div class="m-item__brand">LOUIS VUITTON</div>
+<div class="m-item__name">Silver Tone Metal Silver Necklace</div>
+<div class="m-item__condition m-cond-vg">Very Good</div>
+</div>
+<div class="m-item__price">$652.00</div>
+</div>
+<div class="m-item">
+<div class="m-item__img"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/002_695d5fdf-4436-4f02-9788-f23ac7a8f904.png?v=1778472157&width=200" alt=""></div>
+<div class="m-item__info">
+<div class="m-item__brand">CHANEL</div>
+<div class="m-item__name">Classic Flap Medium Lambskin Black Crossbody Bag</div>
+<div class="m-item__condition m-cond-ln">Like New</div>
+</div>
+<div class="m-item__price">$976.00</div>
+</div>
+</div>
+
+<!-- Shipping & Delivery -->
+<div class="m-card">
+<div class="m-card__title">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="m16 8 4 2v6h-3"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+Shipping &amp; Delivery
+</div>
+<div class="m-info-label">Shipping Address</div>
+<div class="m-info-value">
+<strong>John Doe</strong><br>
+123 Main Street, Apt 4B<br>
+New York, NY 10001<br>
+(212) 555-0147
+</div>
+<div class="m-info-divider"></div>
+<div class="m-info-label">Shipping Method</div>
+<div class="m-info-value">
+<strong>Standard Shipping</strong><br>
+Est. delivery: Jun 9 - Jun 11, 2026
+</div>
+</div>
+
+<!-- Payment Summary -->
+<div class="m-card">
+<div class="m-card__title">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
+Payment Summary
+</div>
+<div class="m-price-row"><span class="label">Subtotal (2 items)</span><span>$1,628.00</span></div>
+<div class="m-price-row"><span class="label">Shipping</span><span class="m-price-free">Free</span></div>
+<div class="m-price-row"><span class="label">Estimated Tax</span><span>$65.12</span></div>
+<div class="m-price-divider"></div>
+<div class="m-price-total"><span>Total</span><span>$1,693.12</span></div>
+<div class="m-price-method">
+<span>Paid with</span>
+<span class="m-method-icon">VISA</span>
+<span>ending in 4242</span>
+</div>
+</div>
+
+<!-- Action Buttons -->
+<div class="m-actions">
+<button class="m-btn-primary">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="m16 8 4 2v6h-3"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+Track Package
+</button>
+<button class="m-btn-support">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+Contact Support
+</button>
+</div>
+
+<div style="height:20px"></div>
+</div>
+
+<!-- Home Indicator -->
+<div class="home-indicator"><div class="home-indicator__bar"></div></div>
+
+</div>
+</div>
+
+<!-- Annotation Panel -->
+<div class="annotation-panel">
+<h2>Order Detail - APP v2</h2>
+<div class="subtitle">Shipped status view with compact progress stepper + tracking</div>
+
+<!-- Module 1: Header & Navigation -->
+<div class="module open">
+<div class="module__header" onclick="toggleModule(this)">
+<span class="module__num">1</span>
+<span class="module__title">Header &amp; Navigation</span>
+<span class="module__toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span>
+</div>
+<div class="module__body">
+<div class="anno">
+<div class="anno__label">Back Button</div>
+<div class="anno__text"><span class="tag tag-tap">Tap</span>Returns to <strong>My Orders</strong> list page. Preserves the active tab filter.</div>
+</div>
+<div class="anno">
+<div class="anno__label">More Menu</div>
+<div class="anno__text"><span class="tag tag-tap">Tap</span>Bottom sheet: <strong>Download Invoice</strong>, <strong>Share Order</strong>, <strong>Report Issue</strong>.</div>
+</div>
+<div class="anno">
+<div class="anno__label">Order Number</div>
+<div class="anno__text"><span class="tag tag-gesture">Gesture</span>Long press copies order number with haptic feedback and toast.</div>
+</div>
+</div>
+</div>
+
+<!-- Module 2: Compact Status -->
+<div class="module open">
+<div class="module__header" onclick="toggleModule(this)">
+<span class="module__num">2</span>
+<span class="module__title">Order Status (Compact Stepper)</span>
+<span class="module__toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span>
+</div>
+<div class="module__body">
+<div class="anno">
+<div class="anno__label">Horizontal Progress</div>
+<div class="anno__text"><span class="tag tag-state">State</span>5-step horizontal stepper replacing vertical timeline. Green check = done, green pulse = current, gray = pending. Progress bar fills proportionally to current step.</div>
+</div>
+<div class="anno">
+<div class="anno__label">Status Summary Card</div>
+<div class="anno__text"><span class="tag tag-state">State</span>Below stepper, green card shows current status with icon + one-line description + estimated delivery date. Adapts per status:
+<br>&bull; <strong>Processing</strong>: truck icon, "Items being prepared for shipment"
+<br>&bull; <strong>Shipped</strong>: truck icon, "Your package is on the way" + delivery estimate
+<br>&bull; <strong>Delivered</strong>: check icon, "Delivered on Jun 10" + signed-by info</div>
+</div>
+<div class="anno">
+<div class="anno__label">V1 vs V2 Comparison</div>
+<div class="anno__text"><span class="tag tag-state">State</span>V1 used full vertical 5-step timeline (~180px height). V2 compact stepper takes ~100px. <strong>65% space saved</strong>, same information density.</div>
+</div>
+</div>
+</div>
+
+<!-- Module 3: Tracking -->
+<div class="module open">
+<div class="module__header" onclick="toggleModule(this)">
+<span class="module__num">3</span>
+<span class="module__title">Tracking &amp; Logistics</span>
+<span class="module__toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span>
+</div>
+<div class="module__body">
+<div class="anno">
+<div class="anno__label">Tracking Card Visibility</div>
+<div class="anno__text"><span class="tag tag-state">State</span>Only visible when status = <strong>Shipped</strong> or <strong>Delivered</strong>. Hidden for Processing/Placed/Cancelled.</div>
+</div>
+<div class="anno">
+<div class="anno__label">Carrier &amp; Tracking Number</div>
+<div class="anno__text"><span class="tag tag-tap">Tap</span>Header shows carrier name + tracking number. <strong>Tap tracking number</strong> copies to clipboard with toast. <strong>Long press</strong> opens carrier website in in-app browser.</div>
+</div>
+<div class="anno">
+<div class="anno__label">Latest Event</div>
+<div class="anno__text"><span class="tag tag-state">State</span>Highlighted with green dot. Shows event description + timestamp + location. Auto-updates via push notification.</div>
+</div>
+<div class="anno">
+<div class="anno__label">Previous Events</div>
+<div class="anno__text"><span class="tag tag-state">State</span>Shows 2 most recent previous events in compact single-line format. Provides quick context without full history.</div>
+</div>
+<div class="anno">
+<div class="anno__label">View Full Tracking History</div>
+<div class="anno__text"><span class="tag tag-tap">Tap</span>Opens full-screen tracking detail page with complete event timeline, map view (if supported), and carrier link.</div>
+</div>
+</div>
+</div>
+
+<!-- Module 4: Items & Shipping -->
+<div class="module">
+<div class="module__header" onclick="toggleModule(this)">
+<span class="module__num">4</span>
+<span class="module__title">Items &amp; Shipping Details</span>
+<span class="module__toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span>
+</div>
+<div class="module__body">
+<div class="anno">
+<div class="anno__label">Item Card</div>
+<div class="anno__text"><span class="tag tag-tap">Tap</span>Navigates to <strong>PDP</strong>. Shows brand, name (single line ellipsis), condition badge, price.</div>
+</div>
+<div class="anno">
+<div class="anno__label">Shipping Address</div>
+<div class="anno__text"><span class="tag tag-state">State</span>Read-only. Full US format. Cannot be changed after order placed.</div>
+</div>
+</div>
+</div>
+
+<!-- Module 5: Payment -->
+<div class="module">
+<div class="module__header" onclick="toggleModule(this)">
+<span class="module__num">5</span>
+<span class="module__title">Payment Summary</span>
+<span class="module__toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span>
+</div>
+<div class="module__body">
+<div class="anno">
+<div class="anno__label">Price Breakdown</div>
+<div class="anno__text"><span class="tag tag-state">State</span>Subtotal + Shipping + Tax = Total. Matches checkout/success pages.</div>
+</div>
+<div class="anno">
+<div class="anno__label">Refund Scenario</div>
+<div class="anno__text"><span class="tag tag-edge">Edge Case</span>Cancelled/refunded orders show <strong>Refund</strong> line below total with amount + status (Pending/Completed).</div>
+</div>
+</div>
+</div>
+
+<!-- Module 6: Actions -->
+<div class="module open">
+<div class="module__header" onclick="toggleModule(this)">
+<span class="module__num">6</span>
+<span class="module__title">Actions by Order Status</span>
+<span class="module__toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span>
+</div>
+<div class="module__body">
+<div class="anno">
+<div class="anno__label">Processing</div>
+<div class="anno__text"><span class="tag tag-tap">Tap</span><strong>Cancel Order</strong> (red outline) + <strong>Contact Support</strong> (purple outline).</div>
+</div>
+<div class="anno">
+<div class="anno__label">Shipped (Current View)</div>
+<div class="anno__text"><span class="tag tag-tap">Tap</span><strong>Track Package</strong> (primary purple fill) opens carrier tracking in in-app browser. <strong>Contact Support</strong> remains. Cancel Order hidden.</div>
+</div>
+<div class="anno">
+<div class="anno__label">Delivered</div>
+<div class="anno__text"><span class="tag tag-state">State</span><strong>Buy Again</strong> (primary) + <strong>Request Refund</strong> (outline) + <strong>Contact Support</strong>.</div>
+</div>
+<div class="anno">
+<div class="anno__label">Cancelled</div>
+<div class="anno__text"><span class="tag tag-state">State</span><strong>Buy Again</strong> (primary). Refund status banner at top. Cancel/Track hidden.</div>
+</div>
+</div>
+</div>
+
+<!-- Module 7: Edge Cases -->
+<div class="module">
+<div class="module__header" onclick="toggleModule(this)">
+<span class="module__num">7</span>
+<span class="module__title">Edge Cases &amp; Navigation</span>
+<span class="module__toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span>
+</div>
+<div class="module__body">
+<div class="anno">
+<div class="anno__label">Entry Points</div>
+<div class="anno__text"><span class="tag tag-tap">Tap</span>3 paths: My Orders list, Order Success page, push notification.</div>
+</div>
+<div class="anno">
+<div class="anno__label">Pull to Refresh</div>
+<div class="anno__text"><span class="tag tag-gesture">Gesture</span>Pull-down refreshes order status + tracking events.</div>
+</div>
+<div class="anno">
+<div class="anno__label">Network Error</div>
+<div class="anno__text"><span class="tag tag-edge">Edge Case</span>Shows retry screen with cached data fallback if available.</div>
+</div>
+<div class="anno">
+<div class="anno__label">Multi-package Orders</div>
+<div class="anno__text"><span class="tag tag-edge">Edge Case</span>If order splits into multiple shipments, tracking card shows tabs per package (Package 1 of 2, Package 2 of 2), each with independent tracking info.</div>
+</div>
+</div>
+</div>
+
+<!-- Legend -->
+<div class="legend">
+<div class="legend-item"><div class="legend-dot tap"></div>Tap</div>
+<div class="legend-item"><div class="legend-dot gesture"></div>Gesture</div>
+<div class="legend-item"><div class="legend-dot state"></div>State</div>
+<div class="legend-item"><div class="legend-dot edge"></div>Edge Case</div>
+</div>
+</div>
+
+<script>
+function toggleModule(header) {
+  header.closest('.module').classList.toggle('open');
+}
+</script>
+
+</body>
+</html>

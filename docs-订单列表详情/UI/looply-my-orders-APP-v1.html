@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>looply APP My Orders</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0f172a;color:#e2e8f0;line-height:1.6}
+
+/* Page header */
+.page-header{padding:32px 40px 24px;max-width:1200px;margin:0 auto}
+.page-header h1{font-size:22px;font-weight:700;color:#fff;margin-bottom:4px}
+.page-header .meta{font-size:13px;color:#94a3b8}
+
+/* Layout */
+.layout{display:flex;gap:32px;max-width:1200px;margin:0 auto;padding:0 40px 60px;align-items:flex-start}
+
+/* Phone column */
+.phone-col{flex-shrink:0;position:sticky;top:24px}
+.phone{width:375px;background:#fff;border-radius:32px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.5);border:8px solid #1e293b;position:relative}
+.phone-screen{height:780px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;scrollbar-width:thin}
+.phone-screen::-webkit-scrollbar{width:4px}
+.phone-screen::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px}
+
+/* Annotation column */
+.anno-col{flex:1;min-width:0;padding:0 0 60px}
+
+/* Module card */
+.module{background:#1e293b;border:1px solid #334155;border-radius:12px;margin-bottom:16px;overflow:hidden;transition:all .2s}
+.module:hover{border-color:#6432FC}
+.module-header{display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;user-select:none}
+.module-num{width:28px;height:28px;border-radius:8px;background:#6432FC;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.module-title{font-size:14px;font-weight:700;color:#f1f5f9;flex:1}
+.module-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px}
+.badge-core{background:#dcfce7;color:#166534}
+.badge-info{background:#e0e7ff;color:#3730a3}
+.badge-nav{background:#f1f5f9;color:#475569}
+.badge-action{background:#fef3c7;color:#92400e}
+.module-chevron{color:#64748b;font-size:14px;transition:transform .2s}
+.module.open .module-chevron{transform:rotate(180deg)}
+.module-body{display:none;border-top:1px solid #293548;padding:16px 18px}
+.module.open .module-body{display:block}
+
+/* Interaction row */
+.ix{margin-bottom:14px}
+.ix:last-child{margin-bottom:0}
+.ix-label{font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.ix-label .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.dot-tap{background:#3b82f6}
+.dot-state{background:#f59e0b}
+.dot-gesture{background:#6432FC}
+.dot-edge{background:#ef4444}
+.ix-content{font-size:13px;color:#cbd5e1;line-height:1.7}
+.ix-content strong{color:#f1f5f9;font-weight:600}
+.ix-content code{background:#293548;padding:1px 5px;border-radius:3px;font-size:11px;color:#94a3b8;font-family:"SF Mono","Fira Code",monospace}
+
+/* Legend */
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:20px;padding:12px 16px;background:#1e293b;border-radius:8px;border:1px solid #334155}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:#94a3b8;font-weight:500}
+
+/* ===== Phone inner styles ===== */
+.ph-statusbar{height:50px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#1a1a1a;background:#fff;position:sticky;top:0;z-index:50}
+.ph-header{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 4px;background:#fff;border-bottom:1px solid #e5e7eb;position:sticky;top:50px;z-index:50}
+.ph-header .back{width:38px;height:38px;display:flex;align-items:center;justify-content:center}
+.ph-header .back svg{width:20px;height:20px;color:#1a1a1a;fill:none;stroke:currentColor;stroke-width:1.5}
+.ph-header .title{font-size:16px;font-weight:700;color:#1a1a1a}
+.ph-header .icons{display:flex;gap:2px}
+.ph-icon{width:38px;height:38px;display:flex;align-items:center;justify-content:center}
+.ph-icon svg{width:20px;height:20px;color:#1a1a1a;fill:none;stroke:currentColor;stroke-width:1.5}
+
+/* Search bar */
+.ph-search{padding:10px 16px;background:#fff}
+.ph-search-box{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#f3f4f6;border-radius:8px}
+.ph-search-box svg{width:16px;height:16px;color:#9ca3af;flex-shrink:0}
+.ph-search-box input{border:none;outline:none;background:transparent;font-size:13px;color:#1a1a1a;width:100%;font-family:inherit}
+.ph-search-box input::placeholder{color:#9ca3af}
+
+/* Tabs */
+.ph-tabs{display:flex;gap:0;padding:0 16px;background:#fff;border-bottom:1px solid #e5e7eb;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.ph-tabs::-webkit-scrollbar{display:none}
+.ph-tab{padding:10px 14px;font-size:12px;font-weight:600;color:#6b7280;white-space:nowrap;border-bottom:2px solid transparent;cursor:pointer;transition:all .15s;flex-shrink:0}
+.ph-tab.active{color:#6432FC;border-bottom-color:#6432FC}
+.ph-tab .cnt{font-size:10px;font-weight:700;background:#e5e7eb;color:#6b7280;padding:0 5px;border-radius:6px;margin-left:3px}
+.ph-tab.active .cnt{background:#ede9fe;color:#6432FC}
+
+/* Order card */
+.ph-order{background:#fff;border-bottom:8px solid #f8f9fb}
+.ph-order-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #f3f4f6}
+.ph-order-id{font-size:12px;font-weight:700;color:#1a1a1a}
+.ph-order-date{font-size:11px;color:#9ca3af;margin-top:1px}
+.ph-status{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:16px;font-size:11px;font-weight:600}
+.st-processing{background:#eff6ff;color:#2563eb}
+.st-shipped{background:#fff7ed;color:#ea580c}
+.st-cancelled{background:#fef2f2;color:#dc2626}
+.st-dot{width:5px;height:5px;border-radius:50%}
+.st-processing .st-dot{background:#2563eb}
+.st-shipped .st-dot{background:#ea580c}
+.st-cancelled .st-dot{background:#dc2626}
+
+.ph-order-item{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid #f3f4f6}
+.ph-order-item:last-child{border-bottom:none}
+.ph-oi-img{width:56px;height:56px;background:#f8f9fb;border-radius:6px;overflow:hidden;flex-shrink:0}
+.ph-oi-img img{width:100%;height:100%;object-fit:cover}
+.ph-oi-info{flex:1;min-width:0}
+.ph-oi-brand{font-size:9px;font-weight:700;color:#6b7280;letter-spacing:.6px;text-transform:uppercase}
+.ph-oi-name{font-size:12px;font-weight:500;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ph-oi-cond{display:inline-flex;padding:1px 6px;border-radius:10px;font-size:9px;font-weight:600;margin-top:2px}
+.cond-likenew{background:#ecfdf5;color:#059669}
+.cond-verygood{background:#eff6ff;color:#2563eb}
+.cond-good{background:#fff7ed;color:#ea580c}
+.ph-oi-price{font-size:13px;font-weight:700;color:#1a1a1a;flex-shrink:0}
+
+.ph-order-footer{display:flex;align-items:center;justify-content:space-between;padding:10px 16px}
+.ph-order-total{font-size:12px;color:#6b7280}
+.ph-order-total strong{font-size:14px;color:#1a1a1a;margin-left:4px}
+.ph-order-actions{display:flex;gap:6px}
+.ph-btn-sm{padding:6px 14px;font-size:11px;font-weight:600;border-radius:6px;border:1.5px solid #e5e7eb;color:#1a1a1a;background:#fff;font-family:inherit;cursor:pointer}
+.ph-btn-sm-primary{padding:6px 14px;font-size:11px;font-weight:600;border-radius:6px;border:1.5px solid #6432FC;color:#6432FC;background:#fff;font-family:inherit;cursor:pointer}
+
+/* Home indicator */
+.ph-home-indicator{height:34px;background:#fff;display:flex;align-items:center;justify-content:center}
+.ph-home-indicator div{width:134px;height:5px;background:#1a1a1a;border-radius:3px;opacity:.2}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+<h1>My Orders — APP</h1>
+<div class="meta">looply mobile order list &middot; v1.0</div>
+</div>
+
+<div class="layout">
+<!-- Phone -->
+<div class="phone-col">
+<div class="phone">
+<div class="phone-screen" id="phoneScreen">
+
+<!-- Status Bar -->
+<div class="ph-statusbar">9:41</div>
+
+<!-- Header -->
+<div class="ph-header">
+<div class="back"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></div>
+<div class="title">My Orders</div>
+<div class="icons">
+<div class="ph-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
+</div>
+</div>
+
+<!-- Tabs -->
+<div class="ph-tabs">
+<div class="ph-tab active" onclick="mSwitchTab(this)">All <span class="cnt">3</span></div>
+<div class="ph-tab" onclick="mSwitchTab(this)">Confirmed <span class="cnt">1</span></div>
+<div class="ph-tab" onclick="mSwitchTab(this)">On its way <span class="cnt">1</span></div>
+<div class="ph-tab" onclick="mSwitchTab(this)">Cancelled <span class="cnt">1</span></div>
+</div>
+
+<!-- Order 1: Confirmed -->
+<div class="ph-order">
+<div class="ph-order-header">
+<div>
+<div class="ph-order-id">#LPY-20260604-0847</div>
+<div class="ph-order-date">Jun 4, 2026</div>
+</div>
+<div class="ph-status st-processing"><span class="st-dot"></span>Confirmed</div>
+</div>
+<div class="ph-order-item">
+<div class="ph-oi-img"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/001_cd443847-229b-45ca-bf86-122d7b8af10e.png?v=1778472154&width=200" alt=""></div>
+<div class="ph-oi-info">
+<div class="ph-oi-brand">LOUIS VUITTON</div>
+<div class="ph-oi-name">Silver Tone Metal Silver Necklace</div>
+<div class="ph-oi-cond cond-verygood">Very Good</div>
+</div>
+<div class="ph-oi-price">$652.00</div>
+</div>
+<div class="ph-order-item">
+<div class="ph-oi-img"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/002_695d5fdf-4436-4f02-9788-f23ac7a8f904.png?v=1778472157&width=200" alt=""></div>
+<div class="ph-oi-info">
+<div class="ph-oi-brand">CHANEL</div>
+<div class="ph-oi-name">Classic Flap Medium Lambskin Black...</div>
+<div class="ph-oi-cond cond-likenew">Like New</div>
+</div>
+<div class="ph-oi-price">$976.00</div>
+</div>
+<div class="ph-order-footer">
+<div class="ph-order-total">Total: <strong>$1,693.12</strong></div>
+<div class="ph-order-actions">
+<button class="ph-btn-sm-primary">View Details</button>
+</div>
+</div>
+</div>
+
+<!-- Order 2: On its way -->
+<div class="ph-order">
+<div class="ph-order-header">
+<div>
+<div class="ph-order-id">#LPY-20260601-0523</div>
+<div class="ph-order-date">Jun 1, 2026</div>
+</div>
+<div class="ph-status st-shipped"><span class="st-dot"></span>On its way</div>
+</div>
+<div class="ph-order-item">
+<div class="ph-oi-img"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/003_e1e89a6f-d30f-4d72-a261-ef7e61ae556d.png?v=1778472161&width=200" alt=""></div>
+<div class="ph-oi-info">
+<div class="ph-oi-brand">DIOR</div>
+<div class="ph-oi-name">J'Adior Bracelet Aged Gold-Tone Metal</div>
+<div class="ph-oi-cond cond-good">Good</div>
+</div>
+<div class="ph-oi-price">$403.00</div>
+</div>
+<div class="ph-order-footer">
+<div class="ph-order-total">Total: <strong>$419.12</strong></div>
+<div class="ph-order-actions">
+<button class="ph-btn-sm">Track</button>
+<button class="ph-btn-sm-primary">View Details</button>
+</div>
+</div>
+</div>
+
+<!-- Order 3: Cancelled -->
+<div class="ph-order">
+<div class="ph-order-header">
+<div>
+<div class="ph-order-id">#LPY-20260510-0076</div>
+<div class="ph-order-date">May 10, 2026</div>
+</div>
+<div class="ph-status st-cancelled"><span class="st-dot"></span>Cancelled</div>
+</div>
+<div class="ph-order-item">
+<div class="ph-oi-img"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/003_e1e89a6f-d30f-4d72-a261-ef7e61ae556d.png?v=1778472161&width=200" alt=""></div>
+<div class="ph-oi-info">
+<div class="ph-oi-brand">PRADA</div>
+<div class="ph-oi-name">Galleria Saffiano Leather Mini Bag</div>
+<div class="ph-oi-cond cond-verygood">Very Good</div>
+</div>
+<div class="ph-oi-price">$817.00</div>
+</div>
+<div class="ph-order-footer">
+<div class="ph-order-total">Total: <strong>$849.68</strong> <span style="font-size:10px;color:#dc2626;margin-left:4px">Refunded</span></div>
+<div class="ph-order-actions">
+<button class="ph-btn-sm-primary">View Details</button>
+</div>
+</div>
+</div>
+
+<!-- Home indicator -->
+<div class="ph-home-indicator"><div></div></div>
+
+</div>
+</div>
+</div>
+
+<!-- Annotations -->
+<div class="anno-col">
+
+<div class="legend">
+<div class="legend-item"><div class="dot dot-tap"></div> Tap</div>
+<div class="legend-item"><div class="dot dot-gesture"></div> Gesture</div>
+<div class="legend-item"><div class="dot dot-state"></div> State</div>
+<div class="legend-item"><div class="dot dot-edge"></div> Edge Case</div>
+</div>
+
+<!-- Module 1: Header -->
+<div class="module open">
+<div class="module-header" onclick="toggleModule(this)">
+<div class="module-num">1</div>
+<div class="module-title">Header & Search</div>
+<span class="module-badge badge-nav">Nav</span>
+<span class="module-chevron">&#9660;</span>
+</div>
+<div class="module-body">
+<div class="ix">
+<div class="ix-label"><div class="dot dot-tap"></div> Back Button</div>
+<div class="ix-content">Tap <strong>&lt; back</strong> returns to My Account page. Entry from tab bar: back goes to previous tab.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-tap"></div> Search Icon</div>
+<div class="ix-content">Tap search icon expands inline search bar below header. Searches by <strong>order number</strong> or <strong>item name</strong>. Results filter order list in real-time.</div>
+</div>
+</div>
+</div>
+
+<!-- Module 2: Tabs -->
+<div class="module open">
+<div class="module-header" onclick="toggleModule(this)">
+<div class="module-num">2</div>
+<div class="module-title">Status Tabs</div>
+<span class="module-badge badge-core">Core</span>
+<span class="module-chevron">&#9660;</span>
+</div>
+<div class="module-body">
+<div class="ix">
+<div class="ix-label"><div class="dot dot-tap"></div> Tab Switch</div>
+<div class="ix-content">Horizontal scrollable tabs: <strong>All</strong>, <strong>Confirmed</strong>, <strong>On its way</strong>, <strong>Cancelled</strong>. Active tab shows purple underline. Each tab shows count badge.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-state"></div> Filter Behavior</div>
+<div class="ix-content">Switching tab filters order list instantly. Count badges update when orders change status. "All" shows all orders in reverse chronological order.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-gesture"></div> Horizontal Scroll</div>
+<div class="ix-content">When tabs overflow screen width, user can scroll horizontally. Active tab auto-scrolls into view on page load.</div>
+</div>
+</div>
+</div>
+
+<!-- Module 3: Order Cards -->
+<div class="module open">
+<div class="module-header" onclick="toggleModule(this)">
+<div class="module-num">3</div>
+<div class="module-title">Order Cards</div>
+<span class="module-badge badge-core">Core</span>
+<span class="module-chevron">&#9660;</span>
+</div>
+<div class="module-body">
+<div class="ix">
+<div class="ix-label"><div class="dot dot-state"></div> Card Structure</div>
+<div class="ix-content">Each card: <strong>Header</strong> (order ID + date + status badge) → <strong>Items</strong> (image/brand/name/condition/price) → <strong>Footer</strong> (total + actions). Cards separated by 8px gray gap.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-state"></div> Status Badges</div>
+<div class="ix-content">Color-coded: <strong>Confirmed</strong> (blue), <strong>On its way</strong> (orange), <strong>Cancelled</strong> (red). Each with matching dot indicator.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-state"></div> Multi-Item Orders</div>
+<div class="ix-content">Orders with multiple items show each item stacked vertically. Max 3 items displayed inline; if more, shows "+N more items" link.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-tap"></div> Item Tap</div>
+<div class="ix-content">Tapping an item image or name navigates to <strong>PDP</strong> (product detail page). Tapping anywhere else on the card navigates to <strong>Order Detail</strong> page.</div>
+</div>
+</div>
+</div>
+
+<!-- Module 4: Actions -->
+<div class="module open">
+<div class="module-header" onclick="toggleModule(this)">
+<div class="module-num">4</div>
+<div class="module-title">Order Actions</div>
+<span class="module-badge badge-action">Action</span>
+<span class="module-chevron">&#9660;</span>
+</div>
+<div class="module-body">
+<div class="ix">
+<div class="ix-label"><div class="dot dot-tap"></div> View Details</div>
+<div class="ix-content">Primary action on every order. Navigates to <strong>Order Detail</strong> page with full timeline, items, tracking info, and support options.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-tap"></div> Track Package</div>
+<div class="ix-content">Shown only for <strong>On its way</strong> orders. Opens tracking page with carrier info (USPS/FedEx/UPS) and real-time tracking updates.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-tap"></div> Buy Again</div>
+<div class="ix-content">Shown for completed orders. For secondhand items: if still available, adds to cart. If sold, shows "Item no longer available" toast with "Similar Items" link.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-state"></div> Cancelled Orders</div>
+<div class="ix-content">Shows <strong>"Refunded"</strong> label next to total. Only "View Details" action available. Detail page shows cancellation reason and refund status.</div>
+</div>
+</div>
+</div>
+
+<!-- Module 5: Empty & Loading -->
+<div class="module">
+<div class="module-header" onclick="toggleModule(this)">
+<div class="module-num">5</div>
+<div class="module-title">Empty & Loading States</div>
+<span class="module-badge badge-info">Edge</span>
+<span class="module-chevron">&#9660;</span>
+</div>
+<div class="module-body">
+<div class="ix">
+<div class="ix-label"><div class="dot dot-edge"></div> Empty State</div>
+<div class="ix-content">When no orders exist (or filtered tab is empty): shows shopping bag icon + <strong>"No orders yet"</strong> / <strong>"No [status] orders"</strong> + "Start Shopping" CTA button.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-state"></div> Pull to Refresh</div>
+<div class="ix-content">Pull-to-refresh gesture reloads order list from server. Spinner shows during loading. Skeleton cards shown on initial page load.</div>
+</div>
+<div class="ix">
+<div class="ix-label"><div class="dot dot-gesture"></div> Infinite Scroll</div>
+<div class="ix-content">Orders load in pages of 10. Reaching bottom triggers next page load with spinner. No explicit pagination controls on mobile.</div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<script>
+function toggleModule(el) {
+  el.closest('.module').classList.toggle('open');
+}
+function mSwitchTab(el) {
+  document.querySelectorAll('.ph-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+</script>
+
+</body>
+</html>

@@ -507,6 +507,23 @@ MODULES = {
             },
         },
     },
+    'order_list': {
+        'name': '订单列表详情',
+        'default_source': '$HOME/Desktop/海外业务/订单列表详情',
+        'target': 'docs-订单列表详情',
+        'keywords': ['订单列表', 'order_list', '订单详情'],
+        'config_key': None,
+        'artifacts': {
+            'prd': {
+                'subdir': 'PRD',
+                'pattern': r'looply-C端订单列表与详情页-PRD-v(.+?)\.md',
+            },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'订单列表详情-交付开发 V(.+?)\.zip',
+            },
+        },
+    },
 }
 
 # ─── 自动发现新模块 ────────────────────────────────────────────────────────────────
