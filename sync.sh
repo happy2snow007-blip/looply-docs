@@ -111,8 +111,12 @@ sync_files() {
             for f in "$SOURCE_DIR/PRD/"*.docx "$SOURCE_DIR/PRD/"*.md; do
                 [ -f "$f" ] && smart_cp "$f" "$REPO_DIR/$TARGET/PRD/"
             done
-            # 自动将最新版 md 复制为 latest.md（供在线阅读页使用）
-            LATEST_MD=$(ls -t "$SOURCE_DIR/PRD/"*.md 2>/dev/null | head -1)
+            # 自动将最新版 PRD md 复制为 latest.md（供在线阅读页使用）
+            # 优先匹配文件名含 "PRD" 的文件（排除对接文档等非 PRD 文件），按版本号降序
+            LATEST_MD=$(ls -t "$SOURCE_DIR/PRD/"*PRD*.md 2>/dev/null | head -1)
+            if [ -z "$LATEST_MD" ]; then
+                LATEST_MD=$(ls -t "$SOURCE_DIR/PRD/"*.md 2>/dev/null | head -1)
+            fi
             if [ -n "$LATEST_MD" ]; then
                 smart_cp "$LATEST_MD" "$REPO_DIR/$TARGET/PRD/latest.md"
             fi

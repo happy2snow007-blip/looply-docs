@@ -1,1048 +1,2064 @@
-# Looply 支付渠道对接集成说明文档 V1.0
+# looply 订单与支付模块 PRD v1.0
 
-> PayPal + Airwallex (Credit Card / Klarna / Apple Pay) 全渠道支付 & 退款技术方案
->
-> Version 1.0 · 2026-06-26 · 面向：前端 / 后端开发
+## 一、概述
 
-## 1. 支付架构总览
+### 1.1 背景与目标
 
+looply 是一个面向美国市场的二手电商平台，采用 B2C 模式（三方商家 + 自营商家入驻）。本 PRD 覆盖买家从结算到支付、以及后台订单与支付管理的完整交易闭环。
 
-### 1.1 支付渠道矩阵
+**核心目标：**
 
+- 实现买家结算下单 → 在线支付 → 订单创建的完整购买流程
+- 支持 4 种支付方式（Credit Card / PayPal / Klarna / Apple Pay）
+- 支持未登录用户直接结算，通过静默注册降低转化流失
+- 提供后台订单管理、支付管理、退款管理、对账管理能力
+- 覆盖交易核心节点的买家邮件通知
 
-Looply Checkout 页面提供 4 种支付方式，分别通过 PayPal 和 Airwallex 两个支付渠道完成：
+### 1.2 不做什么
 
+| 排除项 | 说明 |
+|--------|------|
+| C 端购物车页面 | 单独出 PRD |
+| C 端订单列表页 | 单独出 PRD |
+| C 端订单详情页 | 单独出 PRD |
+| C 端退款申请页 | 本期不提供买家自助退款入口，退款由运营在后台发起 |
+| Discount Code / 优惠券 | 后续迭代，结算页不展示优惠码输入框 |
+| 弃单管理详细规则 | 弃单超时判定时间、恢复邮件发送策略（频次/间隔）后续定义 |
+| 多卖家拆单展示 | 当前自营阶段，数据结构已预留多商家拆单，展示层暂不区分 |
 
-| 支付方式 | 对接渠道 | 前端组件 | 用户体验 | 支持币种 |
-| --- | --- | --- | --- | --- |
-| **PayPal** | PayPal | PayPal JS SDK Button | 弹窗/跳转到 PayPal 登录并支付 | USD |
-| **Credit Card** | Airwallex | Airwallex Drop-in Element | 页面内嵌卡号输入框，无跳转 | USD |
-| **Klarna** | Airwallex | Airwallex Drop-in Element | 跳转到 Klarna 完成支付 | USD |
-| **Apple Pay** | Airwallex | Airwallex Drop-in Element | 系统级 Apple Pay 弹窗（仅 Safari/iOS） | USD |
+### 1.3 用户角色
 
+| 角色 | 说明 |
+|------|------|
+| 买家（C 端） | 浏览商品 → 结算 → 支付 → 收货，可能已登录或未登录 |
+| 运营人员（后台） | 管理订单（发货/取消）、审批退款、查看支付信息、对账 |
 
->
-> **为什么 Credit Card 走 Airwallex 而不走 PayPal？**
->
-> PayPal 的信用卡通道（ACDC）需要 PayPal 商家账号审核且费率较高。Airwallex 作为独立收单渠道，费率更优、支持 3DS 验证、且可同时接入 Klarna 和 Apple Pay，一个 Drop-in 组件覆盖三种支付方式。
+### 1.4 核心场景
 
+1. **买家结算下单**：从商品详情页（Buy Now）或购物车进入结算页，填写收货地址、选择支付方式，完成支付
+2. **未登录用户结算**：未登录用户进入结算页，填写邮箱。若邮箱已注册则弹窗验证码登录；若未注册则直接结算，支付成功后静默创建账户
+3. **支付成功**：支付渠道回调确认 → 创建订单 → 展示订单成功页 → 发送确认邮件（含静默注册通知）
+4. **运营发货**：后台填写物流单号确认发货 → 更新订单状态 → 发送发货通知邮件
+5. **退款处理**：运营在后台发起退款申请 → 审批通过 → 创建退款单 → 渠道退款 → 发送退款成功邮件
+6. **弃单恢复**：用户进入结算但未完成支付 → 系统发送弃单恢复邮件引导用户回来
 
-### 1.2 系统架构图
+### 1.5 全局页面流转
 
-
-### 1.3 核心设计原则
-
-1. **以 Webhook 为准**：前端回调仅用于页面跳转提示，订单状态变更必须以 Webhook 通知为最终依据
-2. **幂等处理**：所有 Webhook handler 和支付回调都必须支持幂等，防止重复处理
-3. **统一抽象**：Looply 后端 Payment Service 统一封装 PayPal / Airwallex 的差异，Order Service 只关心 payment_order 的最终状态（succeeded / failed）
-4. **支付成功即创建订单**：用户点击支付按钮时，Looply 先创建 payment_order（status = pending），支付成功后（payment_order.status = succeeded）才创建 parent_order + order（order_status = paid）
-
-
-## 2. PayPal 支付集成
-
-
-### 2.1 PayPal 支付时序图
-
-
-用户选择 PayPal 支付后，点击 "Pay with PayPal" 按钮，完整流程如下：
-
-
->
-> **异步补偿机制**：如果步骤 ⑨ Capture 返回 `status: "PENDING"`（如 eCheck），payment_order 保持 pending，不能创建订单。需等待 Webhook 最终确认（时序图中"异步补偿"部分）。
-
-
-### 2.2 前端集成（PayPal JS SDK）
-
-
-#### 加载 SDK
-
+**C 端（买家侧）：**
 
 ```
-<!-- 在 Checkout 页面 head 或 body 末尾加载 -->
-<script src="https://www.paypal.com/sdk/js?client-id={PAYPAL_CLIENT_ID}¤cy=USD"></script>
+商品详情页 ──Buy Now──→ 结算页 ──支付成功──→ 订单成功页
+                            ↑
+购物车 ──────Checkout────────┘
 ```
 
-
->
-> `client-id` 从 PayPal Developer 后台的 REST APP 获取。Sandbox 和 Live 环境使用不同的 client-id。
->
-> `currency=USD` 指定币种，与 Create Order 时传入的 currency 保持一致。
-
-
-#### 渲染按钮 & 处理回调
-
+**后台（运营侧）：**
 
 ```
-// 当用户选择 PayPal 支付方式时，渲染 PayPal 按钮
-paypal.Buttons({
-  // 步骤 1-5：创建 PayPal 订单
-  createOrder: async () => {
-    const res = await fetch('/api/payment/paypal/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        cart_id: cartId,          // Looply 购物车 ID
-        shipping_address: addr,   // 用户已填的收货地址
-      }),
-    });
-    const data = await res.json();
-    return data.paypal_order_id;  // 返回给 PayPal SDK
-  },
+订单中心
+├── 订单管理（列表 → 详情）
+└── 弃单管理（列表 → 详情）
 
-  // 步骤 7-12：用户在 PayPal 确认支付后
-  onApprove: async (data, actions) => {
-    const res = await fetch('/api/payment/paypal/capture', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        paypal_order_id: data.orderID,
-      }),
-    });
-    const result = await res.json();
-
-    if (result.status === 'COMPLETED') {
-      // 跳转到支付成功页
-      window.location.href = `/order/${result.looply_order_id}/confirmation`;
-    } else if (result.status === 'PENDING') {
-      // eCheck 等异步支付，显示"支付处理中"
-      window.location.href = `/order/${result.looply_order_id}/pending`;
-    }
-  },
-
-  // 用户在 PayPal 弹窗中取消
-  onCancel: () => {
-    showToast('Payment cancelled. You can try again.');
-  },
-
-  // SDK 级错误（网络异常等）
-  onError: (err) => {
-    console.error('PayPal error:', err);
-    showToast('Something went wrong. Please try again.');
-  },
-}).render('#paypal-button-container');
+支付中心
+├── 支付单管理
+├── 支付流水
+├── 对账管理
+└── 退款单管理
 ```
 
+### 1.6 术语说明
+
+| 术语 | 说明 |
+|------|------|
+| 结算会话 | 用户进入结算页时创建的会话，记录结算过程中的商品、地址、金额等信息 |
+| 父订单 | 买家一次下单的整体订单，支付维度的最小单元。按商家拆分为多个子订单 |
+| 订单（子订单） | 按商家维度拆分的订单，发货和退款的最小订单单元 |
+| 支付单 | 一次支付行为的记录，与父订单一一对应 |
+| 支付流水 | 每笔资金流动（收款或退款）的记录，对账的最小粒度 |
+| 退款申请单 | 业务层面的退款审批记录，管理退款决策（通过/驳回） |
+| 退款单 | 支付层面的资金退回记录，管理退款执行（成功/失败） |
+| 支付通道 | 底层支付渠道提供商，如 Airwallex、PayPal |
+| 支付方式 | 用户可选的付款方式，如 Credit Card、PayPal、Klarna、Apple Pay |
+| 静默注册 | 未注册用户下单时，系统用结算邮箱自动创建账户，无需用户主动注册 |
+| 成色等级 | 二手商品的品相评级，如 Like New、Very Good、Good |
+| 弃单 | 用户进入结算页但未完成支付的会话 |
+
+### 1.7 多语言 / 多国家策略
+
+- **目标市场**：前期针对美国
+- **支持语言**：英语（en）+ 西班牙语（es），用户可在前端切换语言
+- **源语言**：英语（en），所有内容以英文录入，西班牙语由翻译模块自动翻译或运营手动维护
+- **币种**：USD（ISO 4217 编码），所有金额以美元计价，不随语言变化
+- **税费**：按收货地址所在州的税率计算（美国各州税率不同），结算时由系统计算，订单记录结果
+- **后续扩展**：如开放欧洲市场，需增加多币种支持、GDPR 数据处理合规、增值税（VAT）处理
+
+#### 多语言接入方式
+
+本模块遵循多语言模块的 Localized Content 分离架构（详见《多语言模块 PRD v3.1》第三章），多语言内容统一由翻译模块存储和管理。
+
+**内容分类**：
+
+| 内容类型 | 多语言处理方式 | resource_type | 示例 |
+|---------|-------------|--------------|------|
+| C 端页面文案 | 前端语言包（i18n JSON），不经翻译模块 | — | 按钮文字、表单标签、提示语、错误提示 |
+| 邮件通知模板 | 翻译模块管理，key_type = static_content | notif-email | Subject、正文文案、CTA 按钮文案 |
+| 商品信息（结算页/邮件中引用） | 从翻译模块读取，已由商品模块写入 | product / listing | 商品名称、属性值、成色等级 |
+| 结构化数据 | 不翻译，存业务表 | — | 金额、订单号、物流单号、邮箱、时间戳 |
+| 运营后台界面 | 不做多语言，保持中文 | — | 后台所有页面标签、列名、按钮 |
+
+**C 端页面文案 — 语言包方案**：
+
+C 端页面静态文案（按钮文字、表单标签、提示语、错误提示等）采用前端语言包方式实现，不逐一注册 key 到翻译模块。前端维护各语言的 JSON 文件（如 `en.json`、`es.json`），按页面/组件命名空间组织，构建时打包。
+
+涉及本模块的语言包命名空间：
+
+| 命名空间 | 覆盖页面 | 包含内容 |
+|---------|---------|---------|
+| checkout | 结算页 | 区块标题（Contact / Delivery / Shipping / Review / Payment）、表单标签、下单按钮、校验错误提示、Newsletter 文案、Sign In 链接、支付方式名称、支付中 loading 提示、支付失败错误提示 |
+| orderSuccess | 订单成功页 | 页面标题、副标题、确认邮件提示、Continue Shopping / View Order Details 按钮 |
+
+语言包由前端开发维护，产品提供英文源文案和西班牙语译文（或由翻译服务商提供），开发写入对应 JSON 文件。新增或修改文案时同步更新所有语言的 JSON 文件。
+
+**邮件通知可翻译字段注册**：
+
+| resource_type | field_name | 说明 | 示例源文本 |
+|--------------|------------|------|-----------|
+| notif-email | order_confirm_subject | 支付成功邮件 Subject | Order confirmed! 🎉 #{{orderNo}} |
+| notif-email | order_confirm_greeting | 问候语 | Hi {{userName}}, |
+| notif-email | order_confirm_body | 正文说明 | Thank you for your purchase!... |
+| notif-email | order_confirm_cta | CTA 按钮 | View Order |
+| notif-email | order_confirm_footer | 底部提示 | We'll send you another email when your order ships. |
+| notif-email | ship_subject | 发货通知 Subject | Your order is on its way! 📦 #{{orderNo}} |
+| notif-email | ship_body | 发货正文 | Great news! Your order has been shipped... |
+| notif-email | ship_cta | CTA 按钮 | Track Package |
+| notif-email | refund_subject | 退款成功 Subject | Your refund has been processed ✓ #{{orderNo}} |
+| notif-email | refund_body | 退款正文 | Your refund has been processed... |
+| notif-email | refund_cta | CTA 按钮 | View Order |
+| notif-email | abandon_subject | 弃单恢复 Subject | You left something behind! 🛒 |
+| notif-email | abandon_body | 弃单正文 | You left some items in your checkout... |
+| notif-email | abandon_cta | CTA 按钮 | Complete Your Purchase |
+| notif-email | common_footer_reason | Footer 发送原因 | You're receiving this email because... |
+| notif-email | common_help_link | 帮助中心链接文案 | Help Center |
+| notif-email | common_contact_link | 联系客服链接文案 | Contact Us |
+| notif-email | silent_reg_title | 静默注册标题 | Your looply account is ready |
+| notif-email | silent_reg_body | 静默注册说明 | We've created a looply account for you... |
+| notif-email | silent_reg_cta | 设置密码按钮 | Set Your Password |
+
+**邮件发送语言判定**：
+
+邮件发送时，系统按以下优先级确定语言：
+1. 用户账户的 preferred_language 设置（如有）
+2. 用户最近一次访问的浏览器语言偏好（Accept-Language）
+3. 兜底：英语（en）
+
+**读取与渲染规则**：
+
+- C 端页面渲染时，前端根据用户当前语言设置加载对应语言包（JSON），静态文案直接从语言包读取；商品名称等动态内容按用户语言从翻译服务读取
+- 邮件渲染时，后端按语言判定结果从翻译服务读取模板文案，变量（{{orderNo}}、{{userName}} 等）在渲染时替换，不翻译
+- 翻译缺失时降级显示英文源文本，不阻塞页面渲染或邮件发送
+- 商品名称、属性值等引用内容已由商品模块写入翻译服务，订单模块直接按用户语言读取，无需重复注册
+
+---
+
+## 二、订单状态设计模型
+
+本章定义订单模块全部状态字段、枚举值、流转规则与跨层聚合关系。各业务模块的功能说明引用本章定义的状态和规则。
+
+### 2.1 分层状态模型
+
+订单模块采用**分层状态模型**：订单级只管生命周期（order_status），发货和退款维度下沉到商品级（order_item），订单级需要展示时实时聚合，不落库、不同步、零不一致风险。
 
-### 2.3 后端 API 对接
+| 维度 | 所属层级 | 状态字段 | 说明 |
+|------|---------|---------|------|
+| 生命周期 | 订单级（order） | order_status | 订单在哪个阶段 |
+| 发货 | 商品级（order_item） | fulfillment_status | 这件商品发了没（唯一事实源） |
+| 退款 | 商品级（order_item） | refund_status | 这件商品退了没（唯一事实源） |
 
+**核心设计决策：**
 
-#### 2.3.1 获取 Access Token
+- **订单从 Paid 开始，无 Pending Payment**：欧美用户心智中 My Orders 里全是已付款的真实订单。支付前的状态由结算会话（checkout_session）承载，支付成功那一刻才创建订单。这也避免了二手一物一件场景下的库存锁定问题
+- **发货/退款不存在订单表**：order_item 是发货和退款维度的唯一事实源。订单列表需要「部分发货」筛选时，用 `GROUP BY order_id + HAVING` 从 order_item 实时聚合。0-1 阶段订单量小，聚合代价几乎为零；后续量大时可加物化视图或缓存字段，不改数据模型
+- **发货和退款用两个独立字段**：二者是独立维度，各自流转互不耦合。拆成两个字段后 fulfillment_status = shipped + refund_status = refunding 可以自然组合，单字段无法表达
 
+### 2.2 全部状态字段定义
 
-所有 PayPal API 调用前需获取 Bearer Token（有效期约 9 小时，建议缓存复用）：
+#### 2.2.1 结算会话层
 
-
-```
-# Sandbox
-POST https://api-m.sandbox.paypal.com/v1/oauth2/token
-Authorization: Basic {Base64(CLIENT_ID:SECRET)}
-Content-Type: application/x-www-form-urlencoded
-
-grant_type=client_credentials
-
-# Live
-POST https://api-m.paypal.com/v1/oauth2/token
-```
-
-
-#### 2.3.2 创建 PayPal 订单
-
-
-```
-POST https://api-m.sandbox.paypal.com/v2/checkout/orders
-Authorization: Bearer {ACCESS_TOKEN}
-Content-Type: application/json
-
-{
-  "intent": "CAPTURE",
-  "purchase_units": [{
-    "reference_id": "LOOPLY-ORD-20260626001",
-    "amount": {
-      "currency_code": "USD",
-      "value": "129.99",
-      "breakdown": {
-        "item_total":    { "currency_code": "USD", "value": "109.99" },
-        "shipping":      { "currency_code": "USD", "value": "15.00" },
-        "tax_total":     { "currency_code": "USD", "value": "5.00" }
-      }
-    },
-    "items": [{
-      "name": "Pre-owned Gucci Bag",
-      "quantity": "1",
-      "unit_amount": { "currency_code": "USD", "value": "109.99" },
-      "category": "PHYSICAL_GOODS"
-    }],
-    "shipping": {
-      "name": { "full_name": "John Doe" },
-      "address": {
-        "address_line_1": "123 Main St",
-        "admin_area_2": "San Francisco",
-        "admin_area_1": "CA",
-        "postal_code": "94105",
-        "country_code": "US"
-      }
-    }
-  }],
-  "payment_source": {
-    "paypal": {
-      "experience_context": {
-        "shipping_preference": "SET_PROVIDED_ADDRESS",
-        "return_url": "https://looply.com/checkout/return",
-        "cancel_url": "https://looply.com/checkout/cancel"
-      }
-    }
-  }
-}
-```
-
-
->
-> **Looply 二手商品均为实物**：`category` 固定传 `PHYSICAL_GOODS`，`shipping_preference` 传 `SET_PROVIDED_ADDRESS`（使用用户在 Looply 已填的地址，PayPal 页面不允许修改地址）。
-
-
-#### 2.3.3 捕获支付（Capture）
-
-
-```
-POST https://api-m.sandbox.paypal.com/v2/checkout/orders/{paypal_order_id}/capture
-Authorization: Bearer {ACCESS_TOKEN}
-Content-Type: application/json
-
-// 请求体为空 {}
-// 成功响应关键字段：
-{
-  "id": "PAY-xxx",
-  "status": "COMPLETED",
-  "purchase_units": [{
-    "payments": {
-      "captures": [{
-        "id": "CAP-xxx",          // capture_id，退款时需要
-        "status": "COMPLETED",
-        "amount": { "currency_code": "USD", "value": "129.99" }
-      }]
-    }
-  }]
-}
-```
-
-
-| Capture 状态 | 含义 | Looply 处理 |
-| --- | --- | --- |
-| `COMPLETED` | 支付成功 | payment_order → succeeded，创建订单 (paid) |
-| `PENDING` | 支付处理中（eCheck 等） | payment_order 保持 pending，等 Webhook 确认后再创建订单 |
-| `DECLINED` | 支付被拒 | 提示用户更换支付方式 |
-
-
-#### 2.3.4 错误处理：INSTRUMENT_DECLINED
-
-
-```
-// 在 onApprove 中，如果 Capture 返回 INSTRUMENT_DECLINED
-if (result.error === 'INSTRUMENT_DECLINED') {
-  // 调用 actions.restart() 让用户在 PayPal 中选择其他支付方式
-  return actions.restart();
-}
-```
-
-
-### 2.4 PayPal Webhook 处理
-
-
-#### 需要监听的事件
-
-
-| 事件名 | 触发时机 | Looply 处理 |
-| --- | --- | --- |
-| `PAYMENT.CAPTURE.COMPLETED` | Capture 成功（含异步成功） | payment_order.status → succeeded，创建订单（幂等：已 succeeded 则忽略） |
-| `PAYMENT.CAPTURE.DENIED` | Capture 被拒（异步场景） | payment_order.status → failed，通知用户 |
-| `PAYMENT.CAPTURE.PENDING` | Capture 进入待处理 | 记录日志，payment_order 保持 pending |
-| `PAYMENT.CAPTURE.REFUNDED` | 退款完成 | refund_order.status → succeeded，更新 order_item.refund_status = refunded（见第 5 章退款流程） |
-
-
-#### Webhook 端点实现
-
-
-```
-// POST /api/webhook/paypal
-// 1. 验证 Webhook 签名（调用 PayPal Verify Webhook Signature API）
-// 2. 解析事件
-
-async function handlePayPalWebhook(event) {
-  const eventType = event.event_type;
-  const resource = event.resource;
-
-  switch (eventType) {
-    case 'PAYMENT.CAPTURE.COMPLETED':
-      const captureId = resource.id;
-      const paypalOrderId = resource.supplementary_data
-        ?.related_ids?.order_id;
-      // 通过 paypalOrderId 找到 Looply 订单，更新为 PAID
-      await orderService.markAsPaid(paypalOrderId, {
-        capture_id: captureId,
-        channel: 'PAYPAL',
-      });
-      break;
-
-    case 'PAYMENT.CAPTURE.DENIED':
-      await orderService.markAsPaymentFailed(paypalOrderId);
-      break;
-  }
-}
-```
-
-
->
-> **Webhook 签名验证必做**：使用 PayPal 的 `POST /v1/notifications/verify-webhook-signature` API 验证 Webhook 真实性，防止伪造通知。生产环境必须开启。
-
-
-## 3. Airwallex 支付集成
-
-
-Airwallex 使用 **PaymentIntent** 模型：后端创建 PaymentIntent，前端使用 Drop-in Element 收集支付信息并完成支付。Credit Card、Klarna、Apple Pay 共用同一个 Drop-in 组件。
-
-
-### 3.1 Airwallex 支付时序图
-
-
->
-> **Airwallex 与 PayPal 的关键差异**：Airwallex 的 Drop-in Element 自行处理支付确认（步骤 ⑦），不需要像 PayPal 那样由后端调用 Capture API。后端只需在收到 success 回调后，通过 Retrieve API 二次确认状态即可。
-
-
-### 3.2 前端集成（Airwallex Drop-in Element）
-
-
-#### 安装 SDK
-
-
-```
-# 方式一：npm 安装
-npm install @airwallex/components-sdk
-
-# 方式二：CDN 引入
-<script src="https://static.airwallex.com/components/sdk/v1/index.js"></script>
-```
-
-
-#### 初始化 & 挂载 Drop-in
-
-
-```
-import { init, createElement } from '@airwallex/components-sdk';
-
-// 用户点击 "Pay now" 后执行
-async function handleAirwallexPayment(cartId, shippingAddr) {
-  // 1. 请求后端创建 PaymentIntent
-  const res = await fetch('/api/payment/airwallex/create', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ cart_id: cartId, shipping_address: shippingAddr }),
-  });
-  const { intent_id, client_secret, currency } = await res.json();
-
-  // 2. 初始化 Airwallex SDK
-  await init({
-    env: 'demo',   // 生产环境改为 'prod'
-    enabledElements: ['payments'],
-  });
-
-  // 3. 创建 Drop-in Element
-  const element = await createElement('dropIn', {
-    intent_id,
-    client_secret,
-    currency,
-    // 可选：指定只展示特定支付方式
-    // methods: ['card', 'klarna', 'applepay'],
-  });
-
-  // 4. 挂载到 DOM
-  element.mount('airwallex-dropin-container');
-
-  // 5. 事件监听
-  element.on('ready', () => {
-    // Drop-in 加载完成，隐藏 loading 态
-    hideLoadingSpinner();
-  });
-
-  element.on('success', async () => {
-    // 支付成功 - 通知后端确认并跳转
-    const confirmRes = await fetch('/api/payment/airwallex/confirm', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ intent_id }),
-    });
-    const result = await confirmRes.json();
-    window.location.href = `/order/${result.looply_order_id}/confirmation`;
-  });
-
-  element.on('error', (event) => {
-    // 支付失败 - 展示错误信息，用户可重试
-    showToast(event.detail?.message || 'Payment failed. Please try again.');
-  });
-}
-```
-
-
-#### HTML 容器
-
-
-```
-<!-- Checkout 页面中，当用户选择 Credit Card / Klarna / Apple Pay 时展示 -->
-<div id="airwallex-dropin-container"></div>
-```
-
-
-### 3.3 后端 API 对接
-
-
-#### 3.3.1 获取 Access Token
-
-
-```
-# Sandbox
-POST https://api-demo.airwallex.com/api/v1/authentication/login
-Content-Type: application/json
-x-api-key: {YOUR_SANDBOX_API_KEY}
-x-client-id: {YOUR_SANDBOX_CLIENT_ID}
-
-# 响应
-{
-  "token": "eyJhbGciOi...",
-  "expires_at": "2026-06-26T12:00:00Z"
-}
-
-# Live
-POST https://api.airwallex.com/api/v1/authentication/login
-```
-
-
->
-> **安全要求**：`x-api-key` 和 `x-client-id` 仅在服务端使用，绝不能暴露到前端代码或客户端。
-
-
-#### 3.3.2 创建 PaymentIntent
-
-
-```
-POST https://api-demo.airwallex.com/api/v1/pa/payment_intents/create
-Authorization: Bearer {ACCESS_TOKEN}
-Content-Type: application/json
-
-{
-  "request_id": "looply-pay-20260626-001",    // 幂等键，建议用 UUID
-  "amount": 129.99,                        // 注意：Airwallex 用实际金额，不是分
-  "currency": "USD",
-  "merchant_order_id": "LOOPLY-ORD-20260626001",
-  "return_url": "https://looply.com/order/LOOPLY-ORD-20260626001/result",
-  "metadata": {
-    "looply_order_id": "LOOPLY-ORD-20260626001",
-    "user_id": "USR-12345"
-  }
-}
-
-// 响应
-{
-  "id": "int_hkdm1234567890",
-  "request_id": "looply-pay-20260626-001",
-  "amount": 129.99,
-  "currency": "USD",
-  "merchant_order_id": "LOOPLY-ORD-20260626001",
-  "status": "REQUIRES_PAYMENT_METHOD",
-  "client_secret": "int_hkdm1234567890_abcdefg",  // 传给前端
-  "created_at": "2026-06-26T10:00:00+0000"
-}
-```
-
-
->
-> **金额单位**：Airwallex 金额使用主货币单位（如 10.99 = $10.99），与 Stripe 的分单位（1099）不同。
->
-> **return_url**：Klarna 等需要跳转的支付方式会在完成后重定向到此 URL。
-
-
-#### 3.3.3 查询 PaymentIntent 状态
-
-
-```
-GET https://api-demo.airwallex.com/api/v1/pa/payment_intents/{intent_id}
-Authorization: Bearer {ACCESS_TOKEN}
-
-// 检查 status 字段
-{
-  "id": "int_hkdm1234567890",
-  "status": "SUCCEEDED",         // 支付成功
-  "latest_payment_attempt": {
-    "payment_method": "card",    // 实际使用的支付方式
-    "id": "att_xxx"               // payment_attempt_id，退款时可能需要
-  }
-}
-```
-
-
-| PaymentIntent 状态 | 含义 | Looply 处理 |
-| --- | --- | --- |
-| `REQUIRES_PAYMENT_METHOD` | 等待用户输入支付信息 | 前端展示 Drop-in |
-| `REQUIRES_CUSTOMER_ACTION` | 需要 3DS 验证 / Klarna 跳转 | SDK 自动处理 |
-| `SUCCEEDED` | 支付成功 | payment_order → succeeded，创建订单 (paid) |
-| `REQUIRES_CAPTURE` | 预授权成功，待捕获 | Looply 当前不使用预授权 |
-| `CANCELLED` | 已取消 | payment_order → closed |
-
-
-### 3.4 Airwallex Webhook 处理
-
-
-#### 需要监听的事件
-
-
-| 事件名 | 触发时机 | Looply 处理 |
-| --- | --- | --- |
-| `payment_intent.succeeded` | PaymentIntent 支付成功 | payment_order.status → succeeded，创建订单（幂等） |
-| `payment_attempt.authorized` | 支付授权成功 | 记录日志（Looply 用自动捕获模式，后续会收到 succeeded） |
-| `payment_attempt.payment_failed` | 支付失败 | payment_order.status → failed |
-| `refund.succeeded` | 退款成功 | refund_order.status → succeeded，更新 order_item.refund_status = refunded（见第 5 章） |
-| `refund.failed` | 退款失败 | 退款单标记失败，通知运营人员 |
-
-
-#### Webhook 签名验证
-
-
-```
-// POST /api/webhook/airwallex
-// Airwallex Webhook 签名验证
-
-function verifyAirwallexWebhook(req) {
-  const timestamp = req.headers['x-timestamp'];   // Unix 毫秒时间戳
-  const signature = req.headers['x-signature'];   // HMAC-SHA256 签名
-  const rawBody = req.rawBody;                     // 原始请求体（未解析）
-
-  // 拼接待签名字符串：timestamp + rawBody
-  const valueToDigest = timestamp + rawBody;
-
-  // 使用 Webhook Secret 计算 HMAC-SHA256
-  const hmac = crypto.createHmac('sha256', AIRWALLEX_WEBHOOK_SECRET);
-  const computedSignature = hmac.update(valueToDigest).digest('hex');
-
-  return computedSignature === signature;
-}
-
-// 事件处理
-async function handleAirwallexWebhook(event) {
-  const { name, data } = event;
-
-  switch (name) {
-    case 'payment_intent.succeeded':
-      const intentId = data.object.id;
-      const merchantOrderId = data.object.merchant_order_id;
-      await orderService.markAsPaid(merchantOrderId, {
-        intent_id: intentId,
-        channel: 'AIRWALLEX',
-        payment_method: data.object.latest_payment_attempt?.payment_method,
-      });
-      break;
-
-    case 'payment_attempt.payment_failed':
-      await orderService.markAsPaymentFailed(merchantOrderId);
-      break;
-
-    case 'refund.succeeded':
-      await refundService.markRefundSucceeded(data.object.id);
-      break;
-  }
-}
-```
-
-
->
-> **关键**：验证签名时必须使用**原始请求体**（raw body），不能重新序列化 JSON。Express 中需配置 `express.raw()` 或 `bodyParser.raw()` 来获取 raw body。
-
-
-### 3.5 Apple Pay 额外配置
-
-
-Apple Pay 需要完成以下前置配置才能在 Drop-in 中展示：
-
-
-| 步骤 | 说明 | 负责方 |
-| --- | --- | --- |
-| 1. 注册 Apple Developer | 需要 Apple Developer 账号（$99/年） | 运营 / 管理员 |
-| 2. 创建 Merchant ID | 在 Apple Developer 后台创建 Merchant Identifier | 后端开发 |
-| 3. 域名验证 | 在 Airwallex Dashboard 上传 Apple 域名验证文件到 `/.well-known/apple-developer-merchantid-domain-association` | 后端开发 / 运维 |
-| 4. Airwallex 配置 | 在 Airwallex Dashboard → Payment Methods 中启用 Apple Pay 并配置证书 | 运营 / 后端开发 |
-
-
->
-> **展示条件**：Apple Pay 按钮仅在支持 Apple Pay 的设备（Safari / iOS）上展示，Drop-in Element 会自动检测并隐藏不支持的支付方式。无需前端额外判断。
-
-
-## 4. Checkout 页面前端组件
-
-
-### 4.1 支付方式选择器
-
-
-根据用户提供的 UI 设计稿，Checkout 页面的 Payment 区域展示 4 种支付方式（Radio 单选），选中后展示对应的支付组件：
-
-
-| Radio 选项 | 选中后展示 | 按钮文案 | 组件来源 |
-| --- | --- | --- | --- |
-| Credit card (VISA / MC / AMEX + 5) | Airwallex Drop-in（Card 输入框：Card number / Expiration / Security code / Name on card） | **Pay now** | Airwallex Drop-in Element |
-| PayPal PayPal | 提示文案："You'll be redirected to PayPal to complete your purchase" | **Pay with PayPal** | PayPal JS SDK Button |
-| Klarna Klarna | Airwallex Drop-in（Klarna 支付区域） | **Pay now** | Airwallex Drop-in Element |
-| Apple Pay  Pay | Airwallex Drop-in（Apple Pay 按钮） | **Pay now** | Airwallex Drop-in Element |
-
-
-### 4.2 按钮状态 & 文案映射
-
-
-| 选中的支付方式 | 按钮文案 | 按钮颜色 | 点击行为 |
-| --- | --- | --- | --- |
-| Credit Card | Pay now | 品牌紫 #6C5CE7 | 触发 Airwallex Drop-in 提交 |
-| PayPal | Pay with PayPal | PayPal 蓝 #003087 | 触发 PayPal JS SDK createOrder |
-| Klarna | Pay now | 品牌紫 #6C5CE7 | 触发 Airwallex Drop-in 提交 |
-| Apple Pay | Pay now | 品牌紫 #6C5CE7 | 触发 Airwallex Drop-in 提交 |
-
-
-### 4.3 组件挂载逻辑
-
-
-```
-// Checkout 页面支付方式切换逻辑
-
-const PAYMENT_METHOD = {
-  CREDIT_CARD: 'credit_card',
-  PAYPAL: 'paypal',
-  KLARNA: 'klarna',
-  APPLE_PAY: 'apple_pay',
-};
-
-// Airwallex 类型的支付方式共用一个 Drop-in，PayPal 使用独立 SDK
-const AIRWALLEX_METHODS = [
-  PAYMENT_METHOD.CREDIT_CARD,
-  PAYMENT_METHOD.KLARNA,
-  PAYMENT_METHOD.APPLE_PAY,
-];
-
-let currentMethod = null;
-let airwallexElement = null;
-let paypalButtonRendered = false;
-
-function onPaymentMethodChange(method) {
-  currentMethod = method;
-
-  // 切换 UI 显隐
-  document.getElementById('paypal-button-container').style.display =
-    method === PAYMENT_METHOD.PAYPAL ? 'block' : 'none';
-  document.getElementById('airwallex-dropin-container').style.display =
-    AIRWALLEX_METHODS.includes(method) ? 'block' : 'none';
-
-  // 更新按钮文案
-  const payBtn = document.getElementById('pay-button');
-  if (method === PAYMENT_METHOD.PAYPAL) {
-    payBtn.textContent = 'Pay with PayPal';
-    payBtn.style.background = '#003087';
-    payBtn.style.display = 'none'; // PayPal 用自己的按钮
-  } else {
-    payBtn.textContent = 'Pay now';
-    payBtn.style.background = '#6C5CE7';
-    payBtn.style.display = 'block';
-  }
-
-  // 延迟初始化 PayPal 按钮（只渲染一次）
-  if (method === PAYMENT_METHOD.PAYPAL && !paypalButtonRendered) {
-    renderPayPalButton();
-    paypalButtonRendered = true;
-  }
-}
-
-// 点击 "Pay now" 按钮
-async function onPayNowClick() {
-  if (AIRWALLEX_METHODS.includes(currentMethod)) {
-    await handleAirwallexPayment(cartId, shippingAddr);
-  }
-  // PayPal 有自己的按钮，不走这里
-}
-```
-
-
-## 5. 退款流程
-
-
-### 5.1 退款系统流程
-
-
-按照 v8.0 状态设计，退款分为两个阶段：**业务审批**（refund_request）和**资金退回**（refund_order），两者通过单号松耦合。
-
-
-### 5.2 PayPal 退款 API
-
-
-```
-# 对已捕获的交易发起退款（capture_id 在 Capture 响应中获取）
-POST https://api-m.sandbox.paypal.com/v2/payments/captures/{capture_id}/refund
-Authorization: Bearer {ACCESS_TOKEN}
-Content-Type: application/json
-
-// 全额退款：body 为空 {}
-
-// 部分退款：
-{
-  "amount": {
-    "value": "50.00",
-    "currency_code": "USD"
-  },
-  "note_to_payer": "Refund for returned item"
-}
-
-// 响应
-{
-  "id": "REFUND-xxx",
-  "status": "COMPLETED",     // 或 "PENDING"
-  "amount": {
-    "value": "50.00",
-    "currency_code": "USD"
-  }
-}
-```
-
-
-| 退款状态 | 含义 | Looply 处理 |
-| --- | --- | --- |
-| `COMPLETED` | 退款即时成功 | refund_order.status → succeeded，更新 order_item.refund_status = refunded |
-| `PENDING` | 退款处理中（eCheck 等） | refund_order 保持 pending，等待 Webhook `PAYMENT.CAPTURE.REFUNDED` |
-| `CANCELLED` | 退款被取消 | 退款记录标记 FAILED，通知运营 |
-
-
-### 5.3 Airwallex 退款 API
-
-
-```
-# 对 PaymentIntent 发起退款
-POST https://api-demo.airwallex.com/api/v1/pa/refunds/create
-Authorization: Bearer {ACCESS_TOKEN}
-Content-Type: application/json
-
-{
-  "request_id": "looply-refund-20260626-001",   // 幂等键
-  "payment_intent_id": "int_hkdm1234567890",
-  "amount": 50.00,                            // 部分退款金额
-  "reason": "Buyer requested return",
-  "metadata": {
-    "looply_refund_id": "RFD-20260626001"
-  }
-}
-
-// 全额退款：amount 不传或传原金额
-
-// 响应
-{
-  "id": "ref_hkdm9876543210",
-  "request_id": "looply-refund-20260626-001",
-  "payment_intent_id": "int_hkdm1234567890",
-  "amount": 50.00,
-  "currency": "USD",
-  "status": "SUCCEEDED"           // 或 "CREATED" / "PENDING"
-}
-```
-
-
-| 退款状态 | 含义 | Looply 处理 |
-| --- | --- | --- |
-| `SUCCEEDED` | 退款即时成功 | 退款记录标记 SUCCESS |
-| `CREATED` | 退款已创建，处理中 | 等待 Webhook `refund.succeeded` |
-| `PENDING` | 退款处理中 | 等待 Webhook |
-| `FAILED` | 退款失败 | 退款记录标记 FAILED，通知运营 |
-
-
-### 5.4 退款 Webhook 事件
-
-
-| 渠道 | 事件 | 触发时机 | Looply 处理 |
-| --- | --- | --- | --- |
-| PayPal | `PAYMENT.CAPTURE.REFUNDED` | 退款完成 | refund_order.status → succeeded，更新 order_item.refund_status = refunded |
-| Airwallex | `refund.succeeded` | 退款成功 | refund_order.status → succeeded，更新 order_item.refund_status = refunded |
-| Airwallex | `refund.failed` | 退款失败 | 更新退款记录为 FAILED，通知运营 |
-
-
->
-> **退款到账时间参考**：PayPal 余额退款一般即时到账；信用卡退款 5-10 个工作日；Klarna 退款 5-7 个工作日。退款时间由支付渠道和用户银行共同决定，Looply 无法控制。
-
-
-## 6. 订单状态映射
-
-
-以下状态设计严格参照《looply 订单模块状态设计说明 v8.0》，采用分层状态模型。支付对接只涉及其中两层：**支付层**（payment_order / refund_order）和**订单核心层**（order 创建触发）。
-
-
-### 6.1 Looply 分层状态模型（支付相关）
-
-
-#### 支付层：payment_order.status（4 个值）
-
-
-用户点击「去支付」时创建 payment_order，跳转支付网关。支付前的状态由 checkout_session 承载。
-
+**checkout_session.checkout_status**（2 个值）：
 
 | 枚举值 | 中文 | 说明 |
-| --- | --- | --- |
-| `pending` | 待支付 | 已跳转支付网关，等待支付结果 |
-| `succeeded` | 成功 | 支付回调确认成功，触发创建 parent_order + order |
-| `failed` | 失败 | 支付网关返回失败（余额不足、风控拒绝等） |
-| `closed` | 超时关闭 | 超过 expired_at 未完成支付 |
+|--------|------|------|
+| pending | 待转化 | 用户在结算流程中（选地址、选配送、确认订单） |
+| converted | 已转化 | 支付成功，已创建订单 |
 
+状态流转：pending → converted（支付成功）
 
-#### 订单层：order.order_status（4 个值）
+弃单判定：不设独立 expired 状态。checkout_status = pending 且 expired_at < now() 即为弃单。弃单恢复通过 recovery_token 生成恢复链接，用户点击后新建会话（不复用原会话，因二手商品可能已售出）。
 
+#### 2.2.2 订单核心层
 
-订单在 payment_order succeeded 后才创建，起始状态即 `paid`，**无 pending_payment 状态**。
+**parent_order — 无状态字段**
 
+父订单是「一次支付」的聚合层：买家一次结算、一笔支付，按商家拆分为多个子订单。不设 payment_status 字段——父订单在支付成功后才创建，出生即已支付；退款进度从 refund 表实时聚合，无需冗余状态。
 
-#### 退款层：refund_order.status（3 个值）
-
-
-退款审批通过（refund_request.approval_status = approved）后，在支付域创建 refund_order 执行资金退回。
-
+**order.order_status**（4 个值）— 生命周期维度：
 
 | 枚举值 | 中文 | 说明 |
-| --- | --- | --- |
-| `pending` | 退款中 | 已发起退款，等待渠道确认 |
-| `succeeded` | 退款成功 | 渠道确认退款到账，累加 payment_order.refunded_amount |
-| `failed` | 退款失败 | 渠道返回失败，需人工介入或重试 |
+|--------|------|------|
+| paid | 已付款 | 支付成功，订单创建，待发货（起始状态） |
+| shipped | 已发货 | 至少一个包裹已发出 |
+| completed | 交易完成 | 所有包裹签收，交易结清 |
+| cancelled | 已取消 | 发货前取消（伴随退款） |
 
+状态流转：paid → shipped → completed；paid → cancelled（发货前取消）
 
->
-> **退款不改订单生命周期**：退款进度在商品级跟踪（order_item.refund_status: none → refunding → refunded），不影响 order.order_status。订单级无 REFUNDED / PARTIALLY_REFUNDED 状态，退款维度从 order_item 实时聚合。
+无 Delivered 状态：签收即完成。所有包裹签收直接触发 completed，签收记录保留在包裹层。
 
+**order_item.fulfillment_status**（3 个值）— 发货维度（唯一事实源）：
 
-### 6.2 支付渠道状态 → Looply 状态映射表
+| 枚举值 | 中文 | 说明 |
+|--------|------|------|
+| pending | 待发货 | 等待商家发货 |
+| shipped | 已发货 | 已随包裹发出 |
+| received | 已签收 | 买家已签收 |
 
+状态流转：pending → shipped → received
 
-#### PayPal → payment_order.status
+**order_item.refund_status**（3 个值）— 退款维度（唯一事实源）：
 
+| 枚举值 | 中文 | 说明 |
+|--------|------|------|
+| none | 无退款 | 未发生退款 |
+| refunding | 退款中 | 退款审批通过，该商品不得发货 |
+| refunded | 已退款 | 退款到账 |
 
-| PayPal 状态 / 事件 | payment_order.status | 后续动作 |
-| --- | --- | --- |
-| Order Created（createOrder 返回） | `pending` | 等待用户在 PayPal 弹窗中确认 |
-| Capture: COMPLETED | `succeeded` | 创建 parent_order + order（order_status = paid） |
-| Capture: PENDING | `pending` | 保持待支付，等 Webhook 最终确认 |
-| Capture: DECLINED | `failed` | 提示用户支付失败，可重试（创建新 payment_order） |
-| Webhook: PAYMENT.CAPTURE.COMPLETED | `succeeded` | 幂等：已 succeeded 则忽略，未处理则创建订单 |
-| Webhook: PAYMENT.CAPTURE.DENIED | `failed` | 更新状态，通知用户 |
+状态流转：none → refunding → refunded
 
+#### 2.2.3 包裹层
 
-#### PayPal → refund_order.status
+**order_package.package_status**（3 个值）：
 
+| 枚举值 | 中文 | 说明 |
+|--------|------|------|
+| pending | 待发货 | 包裹已创建，未发出 |
+| shipped | 已发货 | 已交付承运商 |
+| received | 已签收 | 买家已签收 |
 
-| PayPal 状态 / 事件 | refund_order.status | 后续动作 |
-| --- | --- | --- |
-| Refund API: COMPLETED | `succeeded` | 累加 payment_order.refunded_amount，更新 order_item.refund_status = refunded |
-| Refund API: PENDING | `pending` | 等 Webhook 最终确认 |
-| Webhook: PAYMENT.CAPTURE.REFUNDED | `succeeded` | 幂等确认退款到账 |
+状态流转：pending → shipped → received
 
+聚合规则：包裹发货时同步更新对应 order_item.fulfillment_status（shipped）；签收时同步更新为 received。所有商品 received 触发 order_status = completed。
 
-#### Airwallex → payment_order.status
+#### 2.2.4 优惠层
 
+**order_discount.discount_type**（3 个值）：
 
-| Airwallex 状态 / 事件 | payment_order.status | 后续动作 |
-| --- | --- | --- |
-| PaymentIntent 创建 | `pending` | 等待前端 Drop-in 组件完成支付 |
-| PaymentIntent: REQUIRES_PAYMENT_METHOD | `pending` | 等待用户输入支付信息 |
-| PaymentIntent: REQUIRES_CUSTOMER_ACTION | `pending` | 3DS 验证中 / Klarna 跳转中 |
-| PaymentIntent: SUCCEEDED | `succeeded` | 创建 parent_order + order（order_status = paid） |
-| PaymentIntent: CANCELLED | `closed` | 支付取消，checkout_session 保持 pending 可重试 |
-| Webhook: payment_intent.succeeded | `succeeded` | 幂等：已 succeeded 则忽略，未处理则创建订单 |
-| Webhook: payment_attempt.payment_failed | `failed` | 更新状态，通知用户 |
+| 枚举值 | 中文 | 说明 |
+|--------|------|------|
+| threshold | 满减 | 满 X 减 Y，按商品金额比例分摊折扣 |
+| coupon | 优惠券 | 固定金额或百分比折扣，按适用商品比例分摊 |
+| buy_gift | 买赠 | 买 A 赠 B，赠品作为正常商品行（unit_price=原价, discount_amount=原价, item_total=0） |
 
+**order_discount_item.role**（2 个值）：
 
-#### Airwallex → refund_order.status
+| 枚举值 | 中文 | 说明 |
+|--------|------|------|
+| qualify | 触发商品 | 该商品触发了此优惠 |
+| benefit | 受益商品 | 该商品享受了折扣 |
 
+#### 2.2.5 退款申请层（业务域）
 
-| Airwallex 状态 / 事件 | refund_order.status | 后续动作 |
-| --- | --- | --- |
-| Refund API: RECEIVED / PENDING | `pending` | 退款已受理，等待渠道处理 |
-| Refund API: SUCCEEDED | `succeeded` | 累加 payment_order.refunded_amount，更新 order_item.refund_status = refunded |
-| Webhook: refund.succeeded | `succeeded` | 幂等确认退款到账 |
-| Webhook: refund.failed | `failed` | 需人工介入或重试 |
+**refund_request.approval_status**（3 个值）：
 
+| 枚举值 | 中文 | 说明 |
+|--------|------|------|
+| pending | 待审批 | 退款申请已提交，等待运营审核 |
+| approved | 已通过 | 审批通过，触发支付域创建退款单 |
+| rejected | 已驳回 | 退款被拒绝，附驳回原因 |
 
->
-> **支付成功 = 创建订单**：payment_order.status 变为 succeeded 时，同步完成：checkout_session.checkout_status → converted + 创建 parent_order + order（order_status = paid）。支付失败时 checkout_session 保持 pending，用户可重试（创建新的 payment_order）。
->
-> **超额退款防护**：创建 refund_order 前校验 payment_order.refunded_amount + 本次退款 ≤ payment_order.amount。
+状态流转：pending → approved 或 rejected
 
+approval_status 只管审批决策：approved 不代表钱已退，只代表「同意退」。资金是否到账由退款单的 status 跟踪。
 
-## 7. 错误处理 & 异常场景
+**refund_request.refund_type**（1 个值，预留扩展）：
 
+| 枚举值 | 中文 | 说明 |
+|--------|------|------|
+| pre_shipment | 发货前退款 | 前期仅支持此类型 |
 
-| 异常场景 | 触发条件 | 处理策略 |
-| --- | --- | --- |
-| **用户关闭支付弹窗** | PayPal 弹窗关闭 / 页面刷新 | payment_order 保持 pending，超时后自动关闭（payment_order.status → closed） |
-| **支付成功但前端回调未执行** | 网络中断、用户关闭页面 | Webhook 兜底更新 payment_order 状态并创建订单，不依赖前端回调 |
-| **重复支付** | 用户多次点击支付按钮 | 前端：点击后禁用按钮。后端：PayPal 同一 order_id 只能 Capture 一次；Airwallex 使用 request_id 幂等 |
-| **3DS 验证失败** | 信用卡 3DS 挑战未通过 | Airwallex Drop-in 自动处理 3DS 流程，失败会触发 error 事件，提示用户重试 |
-| **Webhook 重复投递** | 支付渠道重试 | 所有 handler 幂等处理：通过 event_id 或 capture_id/intent_id 去重 |
-| **Webhook 签名验证失败** | 伪造请求 / Secret 配置错误 | 返回 400，记录告警日志，不处理 |
-| **退款超出可退金额** | 运营输入退款金额 > 已付金额 - 已退金额 | 后端校验并拒绝，提示最大可退金额 |
-| **PayPal INSTRUMENT_DECLINED** | 用户 PayPal 绑定的支付方式余额不足 / 被拒 | 前端调用 `actions.restart()` 让用户在 PayPal 中选择其他支付方式 |
-| **Airwallex Token 过期** | Access Token 超过有效期 | 后端实现 Token 刷新机制，过期前自动重新获取 |
-| **Klarna 跳转后未完成** | 用户在 Klarna 页面放弃 | Klarna 超时后自动取消，Webhook 通知 payment_failed |
+后续扩展：return_refund（退货退款）。
 
+**refund_request.request_channel**（1 个值，预留扩展）：
 
-## 8. 前置准备清单
+| 枚举值 | 中文 | 说明 |
+|--------|------|------|
+| email | 邮件 | 买家通过邮件申请 |
 
+后续扩展：app / web（自助申请）。
 
-### 8.1 PayPal
+**refund_request.operator_type**（2 个值）：
 
+| 枚举值 | 中文 | 说明 |
+|--------|------|------|
+| admin | 运营人员 | 后台人工操作 |
+| system | 系统自动 | 系统自动处理（如订单取消自动退款） |
 
-| 事项 | 说明 | 负责人 | 状态 |
-| --- | --- | --- | --- |
-| 注册 PayPal Business 账号 | 在 PayPal.cn 注册跨境收付款商家账号 | 运营 | 待完成 |
-| 创建 REST APP | 在 PayPal Developer 后台创建 APP，获取 Client ID 和 Secret | 后端开发 | 待完成 |
-| 创建 Sandbox 测试账号 | 创建 Business（商家）和 Personal（买家）测试账号 | 后端开发 | 待完成 |
-| 配置 Webhook | 在 Developer 后台配置 Webhook URL 和事件订阅 | 后端开发 | 待完成 |
+#### 2.2.6 支付层
 
+**payment_order.status**（4 个值）：
 
-### 8.2 Airwallex
+| 枚举值 | 中文 | 说明 |
+|--------|------|------|
+| pending | 待支付 | 用户跳转支付网关，等待支付结果 |
+| succeeded | 成功 | 支付回调确认成功，触发创建订单 |
+| failed | 失败 | 支付网关返回失败（余额不足、风控拒绝等） |
+| closed | 超时关闭 | 超过 expired_at 未完成支付 |
 
+状态流转：pending → succeeded / failed / closed
 
-| 事项 | 说明 | 负责人 | 状态 |
-| --- | --- | --- | --- |
-| 注册 Airwallex 商家账号 | 在 airwallex.com 注册商家账号并完成 KYC 审核 | 运营 | 待完成 |
-| 获取 API Key | 在 Airwallex Dashboard → API Keys 获取 Client ID 和 API Key | 后端开发 | 待完成 |
-| 开通支付方式 | 在 Dashboard → Payment Methods 中启用 Card、Klarna、Apple Pay | 运营 | 待完成 |
-| 配置 Webhook | 在 Dashboard → Webhooks 配置通知 URL 和事件订阅 | 后端开发 | 待完成 |
-| Apple Pay 域名验证 | 上传 Apple 域名验证文件到网站根目录 | 后端 / 运维 | 待完成 |
-| Apple Developer 账号 | 注册 Apple Developer Program（$99/年） | 运营 | 待完成 |
+与结算会话的关系：用户点击「去支付」→ 创建支付单(pending) + 跳转支付网关。支付成功 → 支付单(succeeded) + 结算会话(converted) + 创建订单。支付失败 → 支付单(failed)，结算会话保持 pending，用户可重试（创建新的支付单）。
 
+**refund_order.status**（3 个值）：
 
-## 9. 环境配置 & 测试
+| 枚举值 | 中文 | 说明 |
+|--------|------|------|
+| pending | 退款中 | 已发起退款，等待渠道确认 |
+| succeeded | 退款成功 | 渠道确认退款到账 |
+| failed | 退款失败 | 渠道返回失败，需人工介入或重试 |
 
+状态流转：pending → succeeded / failed
 
-### 9.1 环境变量
+退款单是支付域实体，不知道退款原因和审批流程，只知道「从哪笔支付退多少钱」。超额退款防护：创建退款单前校验已退金额 + 本次退款 ≤ 原支付金额。
 
+**payment_transaction.transaction_type**（2 个值）：
 
-```
-# === PayPal ===
-PAYPAL_CLIENT_ID=<sandbox-client-id>
-PAYPAL_SECRET=<sandbox-secret>
-PAYPAL_API_BASE=https://api-m.sandbox.paypal.com   # 生产: https://api-m.paypal.com
-PAYPAL_WEBHOOK_ID=<webhook-id>
+| 枚举值 | 中文 | 说明 |
+|--------|------|------|
+| payment | 收款 | 买家付款，资金流入 |
+| refund | 退款 | 退款给买家，资金流出 |
 
-# === Airwallex ===
-AIRWALLEX_CLIENT_ID=<sandbox-client-id>
-AIRWALLEX_API_KEY=<sandbox-api-key>
-AIRWALLEX_API_BASE=https://api-demo.airwallex.com  # 生产: https://api.airwallex.com
-AIRWALLEX_WEBHOOK_SECRET=<webhook-secret>
-AIRWALLEX_ENV=demo                                  # 生产: prod
-```
+**payment_transaction.status**（3 个值）：
 
+| 枚举值 | 中文 | 说明 |
+|--------|------|------|
+| pending | 处理中 | 已发起，等待渠道确认 |
+| succeeded | 成功 | 渠道确认资金到账/退出 |
+| failed | 失败 | 渠道返回失败 |
 
-### 9.2 测试卡号
+状态流转：pending → succeeded / failed
 
+**payment_transaction.reconciliation_status**（3 个值）：
 
-#### PayPal Sandbox
+| 枚举值 | 中文 | 说明 |
+|--------|------|------|
+| unreconciled | 未对账 | 等待与渠道结算报告匹配 |
+| reconciled | 已对账 | 金额、手续费全部匹配 |
+| discrepant | 差异待处理 | 金额或手续费有差异，需人工处理 |
 
+状态流转：unreconciled → reconciled；unreconciled → discrepant → reconciled（人工处理后）
 
-使用 PayPal Developer 后台创建的 Personal Sandbox 账号登录测试。
+### 2.3 场景组合矩阵
 
+以下展示典型业务场景下三个维度的状态组合。order_status 为订单持久化字段，商品发货/退款状态从 order_item 实时聚合（「聚合」列展示查询结果，非落库字段）：
 
-#### Airwallex Sandbox 测试卡
+| 业务场景 | order_status | 商品 fulfillment 聚合 | 商品 refund 聚合 |
+|---------|-------------|---------------------|-----------------|
+| 刚付款，待发货 | paid | 全部 pending | 全部 none |
+| 发了一个包裹，还有没发的 | shipped | 部分 shipped / 部分 pending | 全部 none |
+| 全部发出，等待签收 | shipped | 全部 shipped | 全部 none |
+| 全部签收，交易完成 | completed | 全部 received | 全部 none |
+| 交易完成后，退了一件 | completed | 全部 received | 部分 refunded / 部分 none |
+| 交易完成后，全部退款 | completed | 全部 received | 全部 refunded |
+| 发货前取消 | cancelled | 全部 pending | 全部 refunded |
+| 部分发货 + 未发的退了 | shipped | 部分 shipped / 无 pending | 部分 refunded / 部分 none |
+| 含赠品订单，退主商品 | completed | 全部 received | qualify 商品 refunded / benefit 赠品视业务决定 |
 
+### 2.4 状态流转规则与约束
 
-| 场景 | 卡号 | 有效期 | CVV |
-| --- | --- | --- | --- |
-| 支付成功 | `4242 4242 4242 4242` | 任意未来日期 | 任意 3 位 |
-| 支付成功（需 3DS） | `4000 0000 0000 3220` | 任意未来日期 | 任意 3 位 |
-| 支付拒绝 | `4000 0000 0000 0002` | 任意未来日期 | 任意 3 位 |
+#### 状态流转规则
 
+| 规则 | 说明 |
+|------|------|
+| 订单起始状态 | 订单在支付成功后创建，起始 order_status = paid；所有 order_item 初始 fulfillment_status = pending，refund_status = none |
+| shipped 触发条件 | 首个 order_item.fulfillment_status 变为 shipped 时，order_status 从 paid 变为 shipped |
+| completed 触发条件 | 所有 order_item.fulfillment_status 变为 received 时，order_status 变为 completed |
+| cancelled 约束 | 仅 order_status = paid 且所有 order_item.fulfillment_status = pending 时可取消。已发货不可取消 |
+| 退款不改生命周期 | order_item.refund_status 变化不影响 order_status。completed 订单的所有商品 refunded 表示「完成后全退」 |
+| 退款阻断发货 | 退款审批通过后 order_item.refund_status 变为 refunding，该商品不得发货（发货时校验 refund_status = none） |
 
-### 9.3 Webhook 本地调试
+#### 聚合关系
 
+发货/退款维度不存储在 order 表，以下聚合仅影响 order_status：
 
-本地开发时无法接收外部 Webhook，推荐使用 ngrok 或 Airwallex CLI 进行调试：
+| 商品级状态变化 | 触发的 order_status 变化 |
+|--------------|------------------------|
+| 首个 order_item.fulfillment_status → shipped | order_status → shipped |
+| 所有 order_item.fulfillment_status → received | order_status → completed |
 
+发货/退款维度无需聚合写入：订单列表页需要「部分发货」「有退款」等筛选时，直接查询 order_item 聚合，不再有「子层变化 → 写入订单层」的同步链路。
 
-```
-# 使用 ngrok 暴露本地端口
-ngrok http 3000
+#### 优惠与金额规则
 
-# 将 ngrok 生成的 URL 配置到 PayPal / Airwallex Webhook 设置中
-# 例如: https://abc123.ngrok.io/api/webhook/paypal
-```
+| 规则 | 说明 |
+|------|------|
+| 金额公式 | 订单实收 = subtotal_amount + shipping_fee - discount_amount + tax_amount |
+| 商品行公式 | order_item.item_total = unit_price × quantity - discount_amount |
+| 退款按实付金额 | 退单件商品退 item_total（已扣优惠），不退 unit_price × quantity（优惠前原价） |
+| 买赠赠品表示 | 赠品作为正常商品行：unit_price=原价, discount_amount=原价, item_total=0。退主商品时通过 role=qualify/benefit 找关联赠品 |
+| 优惠快照原则 | 订单只存结果（promotion_name + 金额 + 分摊），不存规则。规则变更不影响历史订单 |
 
+#### 退款状态分布
 
-### 9.4 Airwallex Webhook IP 白名单（生产环境）
+退款相关状态分布在三个实体、两个域，各司其职不互相同步：
 
+| 字段 | 所属域 | 说明 |
+|------|--------|------|
+| order_item.refund_status | 订单域（商品级） | 这件商品退没退：none / refunding / refunded |
+| refund_request.approval_status | 订单域（退款申请） | 审批决策：pending / approved / rejected |
+| refund_order.status | 支付域（退款单） | 资金操作：pending / succeeded / failed |
 
-生产环境建议在防火墙/网关层配置 Airwallex Webhook IP 白名单，仅允许以下 IP 发起请求：
 
+---
 
-```
-# Airwallex Production IPs
-35.240.218.67, 35.198.197.83, 35.197.128.86, 35.240.219.218,
-35.198.239.51, 35.198.250.210, 35.197.165.40, 35.240.221.15,
-35.198.227.200, 34.87.130.213, 34.87.175.82, 35.198.207.246,
-34.87.67.183, 35.198.234.237, 35.198.197.137, 35.198.236.255,
-34.87.7.233, 34.87.155.193, 34.87.38.65, 34.87.54.142,
-35.197.135.105, 35.240.235.109, 34.87.141.165, 34.87.26.83,
-34.85.218.163
-```
+## 三、C端需求详细描述
 
+### 3.1 结算页（Checkout Page）
 
-## 附：后端服务接口清单
+**功能类型**：页面型
 
+#### 功能描述
 
-Looply 后端需要实现以下接口：
+结算页是买家完成购买的核心页面。用户从商品详情页（Buy Now）或购物车（Checkout）进入，在单页内完成收货信息填写、配送方式选择、支付方式选择，点击下单按钮发起支付。
 
+#### 前置条件
 
-| 接口 | Method | 说明 | 调用方 |
-| --- | --- | --- | --- |
-| `/api/payment/paypal/create` | POST | 创建 Looply 订单 + 调用 PayPal Create Order API | 前端 |
-| `/api/payment/paypal/capture` | POST | 调用 PayPal Capture API，支付成功后创建订单 | 前端 |
-| `/api/payment/airwallex/create` | POST | 创建 Looply 订单 + 调用 Airwallex Create PaymentIntent | 前端 |
-| `/api/payment/airwallex/confirm` | POST | 调用 Airwallex Retrieve PaymentIntent 确认状态 + 更新订单 | 前端 |
-| `/api/webhook/paypal` | POST | 接收 PayPal Webhook 通知 | PayPal |
-| `/api/webhook/airwallex` | POST | 接收 Airwallex Webhook 通知 | Airwallex |
-| `/api/refund/create` | POST | 创建退款请求，调用对应渠道退款 API | 运营后台 |
+- 用户已通过商品详情页的 Buy Now 或购物车的 Checkout 按钮进入
+- Buy Now：携带单件商品（数量 = 1）
+- Cart Checkout：携带购物车中已勾选的商品
+- 用户可以是已登录状态或未登录状态
 
+#### 页面布局
 
-## 附：数据库关键字段
+| 端 | 布局方式 |
+|----|---------|
+| PC 端 | 左右分栏：左侧为信息填写区（Contact → Delivery → Shipping → Payment），右侧为商品清单和价格汇总（Review Items + Summary） |
+| APP 端 | 垂直堆叠：Contact → Delivery → Shipping → Review Items → Payment → Summary，底部固定下单按钮 |
 
+#### 页面元素
 
-支付相关信息需要存储在订单表和支付流水表中：
+##### 3.1.1 Contact 区块
 
+用户邮箱信息，用于订单确认邮件发送和账户关联。
 
-### 支付流水表 (payment_transaction)
+**已登录状态：**
 
+| 元素 | 说明 |
+|------|------|
+| 邮箱 | 显示当前登录账户的邮箱，不可编辑 |
+| Newsletter 勾选 | "Email me with news and offers"，默认勾选，勾选后订阅营销邮件 |
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `id` | BIGINT PK | 主键 |
-| `order_id` | VARCHAR | Looply 订单号 |
-| `channel` | ENUM | PAYPAL / AIRWALLEX |
-| `payment_method` | VARCHAR | paypal / card / klarna / applepay |
-| `channel_order_id` | VARCHAR | PayPal Order ID / Airwallex Intent ID |
-| `channel_capture_id` | VARCHAR | PayPal Capture ID（退款用） |
-| `amount` | DECIMAL(10,2) | 支付金额 |
-| `currency` | VARCHAR(3) | 币种（USD） |
-| `status` | ENUM | PENDING / SUCCEEDED / FAILED |
-| `channel_status` | VARCHAR | 渠道原始状态 |
-| `created_at` | TIMESTAMP | 创建时间 |
-| `updated_at` | TIMESTAMP | 最后更新时间 |
+**未登录状态：**
 
+| 元素 | 说明 |
+|------|------|
+| 邮箱输入框 | placeholder "Email"，必填 |
+| Sign In 链接 | 右上角显示 "Sign In"，点击触发登录弹窗（见 3.1.7 结算页内登录验证） |
+| Newsletter 勾选 | "Email me with news and offers"，默认勾选 |
 
-### 退款流水表 (refund_transaction)
+**邮箱识别规则**：未登录用户填写邮箱后，系统检查该邮箱是否已注册：
+- 已注册 → 自动弹出 Sign In 弹窗，引导用户验证码登录
+- 未注册 → 不弹窗，用户继续填写地址等信息，以游客身份结算
 
+##### 3.1.2 Delivery 区块
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `id` | BIGINT PK | 主键 |
-| `order_id` | VARCHAR | Looply 订单号 |
-| `payment_transaction_id` | BIGINT | 关联支付流水 |
-| `channel` | ENUM | PAYPAL / AIRWALLEX |
-| `channel_refund_id` | VARCHAR | 渠道退款 ID |
-| `amount` | DECIMAL(10,2) | 退款金额 |
-| `currency` | VARCHAR(3) | 币种 |
-| `reason` | VARCHAR | 退款原因 |
-| `status` | ENUM | PROCESSING / SUCCEEDED / FAILED |
-| `operator_id` | VARCHAR | 操作人 ID |
-| `created_at` | TIMESTAMP | 创建时间 |
-| `completed_at` | TIMESTAMP | 完成时间 |
+收货地址信息。
+
+**已登录状态：**
+
+| 元素 | 说明 |
+|------|------|
+| 地址卡片 | 显示默认收货地址：收件人姓名、详细地址、电话号码 |
+| Change 链接 | 打开地址选择弹窗，可切换已保存地址或新建地址 |
+
+**未登录状态：**
+
+| 元素 | 说明 |
+|------|------|
+| First Name | 必填 |
+| Last Name | 必填 |
+| Address | 街道地址，必填，支持地址自动联想填写 |
+| Apartment, suite, etc. | 选填 |
+| City | 必填 |
+| State | 下拉选择，美国各州，必填 |
+| ZIP Code | 必填 |
+| Phone | 带国家区号选择器（默认 +1），必填，用于配送联系 |
+
+**地址编辑弹窗**（已登录用户点击 Change 或 + Add New Address 时打开）：
+
+弹窗内表单与未登录状态的地址字段一致。弹窗支持滚动（地址列表过长时中间区域滚动）。
+
+##### 3.1.3 Shipping 区块
+
+配送方式选择。
+
+| 场景 | 显示 |
+|------|------|
+| 未填写地址 | 灰色提示 "Enter your shipping address to view available shipping methods" |
+| 已填写地址 | 显示可用配送方式列表，当前仅 Standard FedEx Shipping（Est. 5–10 business days），运费 Free |
+
+##### 3.1.4 Review Items 区块
+
+只读展示本次结算的商品信息，不可在此页修改（需返回购物车）。
+
+每件商品展示：
+
+| 元素 | 说明 |
+|------|------|
+| 商品图片 | 主图缩略图 |
+| 品牌名 | 如 LOUIS VUITTON |
+| 商品名称 | 如 Silver Tone Metal Silver Necklace |
+| 成色标签 | 如 Condition: Very Good |
+| 价格 | 当前售价（加粗）+ 原价（划线）+ 优惠金额标签（如 Save $1） |
+
+标题显示 "Review Items (N)"，N 为商品件数。
+
+##### 3.1.5 Payment 区块
+
+支付方式选择，4 种方式以单选列表展示：
+
+| 支付方式 | 展示 | 选中后交互 |
+|---------|------|-----------|
+| Credit Card (Payment Card) | VISA/Mastercard/AMEX 等卡组织 logo | 展开内联表单：Card Number、Expiration date (MM/YY)、Security code（带提示图标）、Name on Card |
+| PayPal | PayPal logo | 显示跳转提示，下单后跳转至 PayPal 页面完成授权 |
+| Klarna (Pay later) | Klarna logo | 显示跳转提示，下单后跳转至 Klarna 页面选择分期计划 |
+| Apple Pay | Apple Pay logo | 调起 Apple Pay 原生支付面板 |
+
+**"Use shipping address as billing address" 勾选框**：
+- 默认勾选（已登录状态）
+- 取消勾选后，展开 Billing Address 表单（字段与 Delivery 地址表单一致）
+
+##### 3.1.6 价格汇总与下单按钮
+
+| 元素 | 说明 |
+|------|------|
+| Subtotal (N items) | 商品小计金额 |
+| Shipping | 运费金额，当前显示 Free |
+| Tax | 税费（按收货州税率计算，填写地址后显示） |
+| **Total** | 订单总金额（加粗） |
+| 下单按钮 | "Buy Now at $XXX.XX"（金额动态更新），PC 端在左侧表单区底部，APP 端固定在页面底部 |
+
+#### 页面状态变体
+
+| 状态 | 说明 | PC 设计稿 | APP 设计稿 |
+|------|------|----------|-----------|
+| 已登录默认态 | 显示已保存地址和已绑定支付方式 | looply PC Checkout — 登录状态 | checkout-首屏 |
+| 未登录默认态 | 展示完整表单，Contact 右上角有 Sign In 链接 | looply PC Checkout — 未登录状态 | checkout-首次未登录进入 |
+| 地址编辑弹窗 | 选择/新建收货地址 | looply PC Checkout — 地址编辑弹窗 | checkout-地址修改 |
+| 地址自动联想 | 输入地址时的下拉联想 | looply PC Checkout — 自动联想填写 | — |
+| 地址表单报错 | 必填字段为空或格式错误 | looply PC Checkout — 地址编辑弹窗报错 | — |
+| 区号选择器 | Phone 字段的国家区号下拉 | looply PC Checkout — 手机区号选择器 | — |
+| State 选择器 | 州/省下拉选择 | looply PC Checkout — state选择器 | — |
+| 支付方式展开 | Credit Card 表单展开状态 | looply PC Checkout — 未登录状态 | checkout-支付方式展开 |
+| 安全码提示 | Security code 字段的 hover 提示图 | looply PC Checkout — 安全码提示鼠标hover状态 | checkout-安全码提示 |
+| Phone 提示 | Phone 字段的 hover 提示 | looply PC Checkout — phone提示鼠标hover状态 | — |
+| PayPal/Klarna/Apple Pay 跳转说明 | 选中后显示跳转提示文案 | looply PC Checkout — 选择器 | checkout-paypal/klarna/apple pay跳转说明 |
+
+#### 操作流程
+
+**主流程（已登录用户）：**
+
+1. 用户从商品详情页（Buy Now）或购物车（Checkout）进入结算页
+2. Contact 区块自动显示登录账户邮箱
+3. Delivery 区块显示默认收货地址，用户可点击 "Change" 切换地址
+4. Shipping 区块显示可用配送方式，用户确认选择
+5. Payment 区块选择支付方式，如选 Credit Card 则填写卡信息
+6. 确认价格汇总，点击 "Buy Now at $XXX.XX"
+7. 进入支付处理流程（见 3.2）
+
+**分支流程（未登录用户）：**
+
+1. 用户进入结算页，页面展示完整表单
+2. 用户在 Contact 填写邮箱
+3. 系统检查邮箱是否已注册：
+   - 已注册 → 弹出 Sign In 弹窗（见 3.1.7），验证通过后页面切换为已登录状态
+   - 未注册 → 继续以游客身份填写
+4. 填写收货地址（完整表单）
+5. 地址填写完成后，Shipping 区块从灰色提示变为可选配送方式
+6. 选择支付方式并填写支付信息
+7. 点击 "Buy Now at $XXX.XX"
+8. 进入支付处理流程（见 3.2），支付成功后触发静默注册（见 3.3）
+
+#### 3.1.7 结算页内登录验证
+
+**功能类型**：流程型
+
+当未登录用户在 Contact 区块输入的邮箱已被注册，或用户主动点击 "Sign In" 链接时，触发页面内弹窗登录流程。
+
+**Sign In 弹窗：**
+
+| 元素 | 说明 |
+|------|------|
+| 标题 | "Welcome" |
+| 副标题 | "Sign in to your Looply account" |
+| Email 输入框 | 自动带入 Contact 已填写的邮箱 |
+| Sign in 按钮 | 点击后发送 6 位验证码到该邮箱，跳转 Verify Code 弹窗 |
+| 法律声明 | "By signing in, you agree to our Terms and Privacy Policy"（Terms 和 Privacy Policy 为链接） |
+| 关闭按钮 | 右上角 ×，关闭弹窗返回结算页 |
+
+**Verify Code 弹窗：**
+
+| 元素 | 说明 |
+|------|------|
+| 邮件图标 | 信封图标 |
+| 标题 | "Check your email" |
+| 提示文案 | "We sent a 6-digit code to {email}" + "Change" 链接（返回 Sign In 弹窗修改邮箱） |
+| 验证码输入 | 6 位数字，每位独立输入框 |
+| Verify code 按钮 | 验证输入的验证码 |
+| 重发提示 | "Didn't receive the code? Resend after 59s"（60 秒倒计时，倒计时结束后 "Resend" 变为可点击链接） |
+| 返回链接 | "Back to sign in"，返回 Sign In 弹窗 |
+
+**验证码规则：**
+
+| 规则 | 说明 |
+|------|------|
+| 位数 | 6 位纯数字 |
+| 有效期 | 发送后 10 分钟内有效 |
+| 重发间隔 | 60 秒冷却 |
+| 错误限制 | 连续 5 次输入错误后锁定 15 分钟 |
+
+**验证成功后**：弹窗关闭，结算页切换为已登录状态（Contact 显示邮箱不可编辑，Delivery 显示已保存地址卡片）。
+
+**地址覆盖规则**：
+
+| 场景 | 处理方式 |
+|------|---------|
+| 已登录用户进入结算页 | 自动带入默认收货地址 |
+| 未登录用户已填写地址后登录 | 不覆盖用户已填写的地址内容 |
+| 未登录用户填了一半地址后登录 | 不覆盖已填内容，保留用户输入的部分 |
+
+**对应设计稿：**
+
+| 状态 | PC 设计稿 | APP 设计稿 |
+|------|----------|-----------|
+| Sign In 弹窗 | looply PC Checkout — 未登录状态-登录 | 弹窗-sign in |
+| 验证码-未输入 | looply PC Checkout — 验证-未输入 | 弹窗-verify code |
+| 验证码-已输入 | looply PC Checkout — 验证-输入 | — |
+| 验证码-报错 | looply PC Checkout — 验证-报错 | — |
+
+#### 校验规则
+
+| 字段 | 规则 | 校验时机 |
+|------|------|---------|
+| Email | 必填，标准邮箱格式 | 失焦时 |
+| First Name | 必填，1–50 字符 | 失焦时 |
+| Last Name | 必填，1–50 字符 | 失焦时 |
+| Address | 必填 | 失焦时 |
+| City | 必填 | 失焦时 |
+| State | 必填，从下拉选择 | 选择时 |
+| ZIP Code | 必填，美国 ZIP 格式（5 位或 5+4 位） | 失焦时 |
+| Phone | 必填，含国家区号，数字格式 | 失焦时 |
+| Card Number | 必填，Luhn 校验，支持 Visa/Mastercard/AMEX/JCB/Discover/Diners/UnionPay | 失焦时 |
+| Expiration date | 必填，MM/YY 格式，不能早于当前月份 | 失焦时 |
+| Security code | 必填，3–4 位数字 | 失焦时 |
+| Name on Card | 必填 | 失焦时 |
+
+#### 交互说明
+
+1. **Newsletter 勾选**：默认勾选，不区分登录状态。勾选状态随订单提交保存
+2. **地址自动联想**：Address 字段支持输入时下拉联想（接入地址服务），用户选择后自动填充 City / State / ZIP Code
+3. **Shipping 联动**：地址填写完整后，Shipping 区块自动更新可用配送方式和运费
+4. **Tax 联动**：州选择后，系统按该州税率计算税费并更新 Total
+5. **支付方式切换**：单选互斥，选中 Credit Card 时展开卡信息表单，切换到其他方式时收起
+6. **Billing Address 联动**："Use shipping address as billing address" 取消勾选时展开 Billing Address 表单，重新勾选时收起
+7. **下单按钮金额**：随 Total 金额实时更新
+8. **PC 端右侧 sticky**：Review Items 和 Summary 区域在页面滚动时保持固定位置
+
+#### 异常处理
+
+| 异常场景 | 处理方式 |
+|---------|---------|
+| 网络异常 | 下单按钮点击后如遇网络错误，显示 toast 提示 "Network error, please try again"，按钮恢复可点击 |
+| 商品已售罄 | 进入结算页时检查库存，已售罄的商品标记不可购买并提示 "This item is no longer available"，从结算商品中移除 |
+| 价格变动 | 进入结算页时与最新价格比对，如有变动则更新显示价格并 toast 提示 "Price has been updated" |
+| 地址校验失败 | 提交时如地址格式不合法，在对应字段下方显示红色错误提示 |
+| 并发库存冲突 | 点击下单时如库存已被其他用户抢购，显示提示并引导用户返回 |
+
+#### UI 关联
+
+| 页面/状态 | PC 端设计稿 | APP 端设计稿 |
+|----------|-----------|------------|
+| 结算页-已登录 | Figma: looply PC Checkout — 登录状态 | Figma: checkout-首屏 |
+| 结算页-未登录 | Figma: looply PC Checkout — 未登录状态 | Figma: checkout-首次未登录进入 |
+| 地址编辑弹窗 | Figma: looply PC Checkout — 地址编辑弹窗（多个变体） | Figma: checkout-地址修改 |
+| 地址自动联想 | Figma: looply PC Checkout — 自动联想填写 | — |
+| 地址表单报错 | Figma: looply PC Checkout — 地址编辑弹窗报错 | — |
+| Sign In 弹窗 | Figma: looply PC Checkout — 未登录状态-登录 | Figma: 弹窗-sign in |
+| 验证码弹窗 | Figma: looply PC Checkout — 验证-未输入/输入/报错 | Figma: 弹窗-verify code |
+| 订单成功 | Figma: looply PC Checkout — 结算完成 | Figma: order confirmed-首屏/full |
+| 支付方式展开 | Figma: looply PC Checkout — 未登录状态 | Figma: checkout-支付方式展开 |
+
+---
+
+### 3.2 支付处理
+
+**功能类型**：流程型
+
+#### 功能描述
+
+用户在结算页点击 "Buy Now" 后触发支付处理。系统根据用户选择的支付方式与对应支付通道交互，完成收款。支付成功后创建订单。
+
+> 本章节仅概述用户侧支付需求，详细支付与三方对接方案见：[looply-支付渠道对接集成说明文档-v1.0.html](/looply-支付渠道对接集成说明文档-v1.0.html)
+
+#### 前置条件
+
+- 用户已在结算页完成所有必填信息（地址、支付方式）
+- 系统已创建结算会话，记录商品和价格快照
+
+#### 操作流程
+
+**主流程：**
+
+1. 用户点击 "Buy Now at $XXX.XX"
+2. 按钮变为 loading 状态，禁止重复点击
+3. 系统创建支付单（状态：待支付），向支付通道发起支付请求
+4. 根据支付方式进入不同处理分支：
+
+**Credit Card（通过 Airwallex）：**
+
+1. 在结算页内直接提交卡信息
+2. 页面显示 processing spinner
+3. 等待 Airwallex 返回支付结果
+4. 成功 → 跳转订单成功页；失败 → 返回结算页显示错误提示
+
+**PayPal：**
+
+1. 跳转至 PayPal 授权页面
+2. 用户在 PayPal 登录并确认支付
+3. PayPal 回调返回 looply
+4. 成功 → 跳转订单成功页；失败 → 返回结算页显示错误提示
+
+**Klarna（通过 Airwallex）：**
+
+1. 跳转至 Klarna 分期选择页面
+2. 用户选择分期计划并确认
+3. Klarna 回调返回 looply
+4. 成功 → 跳转订单成功页；失败 → 返回结算页显示错误提示
+
+**Apple Pay（通过 Airwallex）：**
+
+1. 调起系统原生 Apple Pay 支付面板
+2. 用户通过 Face ID / Touch ID / 密码验证
+3. Airwallex 处理支付并返回结果
+4. 成功 → 跳转订单成功页；失败 → 返回结算页显示错误提示
+
+**支付成功后处理：**
+
+1. 支付通道通过 Webhook 回调通知支付成功
+2. 系统更新支付单状态为"成功"
+3. 创建父订单和子订单（按商家维度拆分）
+4. 创建订单商品明细（快照商品信息和价格）
+5. 快照收货地址到订单
+6. 更新结算会话状态为"已转化"
+7. 如用户未注册，触发静默注册（见 3.3）
+8. 发送支付成功确认邮件（见 5.2）
+9. 页面跳转至订单成功页（见 3.4）
+
+#### 支付通道矩阵
+
+| 支付方式 | 支付通道 | 交互方式 |
+|---------|---------|---------|
+| Credit Card | Airwallex | 页面内嵌表单提交 |
+| PayPal | PayPal | 跳转至 PayPal 页面授权 |
+| Klarna (Pay later) | Airwallex | 跳转至 Klarna 页面 |
+| Apple Pay | Airwallex | 系统原生支付面板 |
+
+#### 支付单状态
+
+| 状态 | 说明 | 触发时机 |
+|------|------|---------|
+| 待支付 | 用户跳转支付网关，等待支付结果 | 点击下单按钮，创建支付单 |
+| 成功 | 支付回调确认成功 | 收到渠道支付成功 Webhook |
+| 失败 | 支付网关返回失败 | 收到渠道支付失败 Webhook（余额不足、风控拒绝等） |
+| 超时关闭 | 超过时限未完成支付 | 支付单超过有效期自动关闭 |
+
+**状态流转**：待支付 → 成功 / 失败 / 超时关闭
+
+**支付失败后**：结算会话保持未转化状态，用户可在结算页重试（重新选择支付方式或更换卡信息），系统会创建新的支付单。
+
+#### 校验规则
+
+| 规则 | 说明 |
+|------|------|
+| 幂等处理 | 同一支付单的 Webhook 可能重复回调，系统需做幂等校验，已处理的回调直接返回成功 |
+| 金额校验 | Webhook 回调中的支付金额必须与支付单金额一致，不一致则标记异常 |
+| 超额退款防护 | 累计退款金额不得超过支付金额 |
+
+#### 异常处理
+
+| 异常场景 | 处理方式 |
+|---------|---------|
+| 支付超时 | 返回结算页，显示提示 "Payment processing..." 并引导用户查看订单状态 |
+| 支付失败 | 返回结算页，顶部显示错误 banner（如 "Payment declined. Please try another payment method."），用户可重试或切换支付方式 |
+| Webhook 回调延迟 | 页面轮询支付结果，超时后提示用户稍后查看订单状态 |
+| Webhook 回调签名校验失败 | 拒绝处理，记录异常日志 |
+| 用户中途关闭页面（PayPal/Klarna 跳转后） | 依赖 Webhook 回调更新支付状态，用户重新打开时按支付结果展示 |
+
+#### 技术说明
+
+- 以 Webhook 回调作为支付结果的唯一信任源，不依赖前端回调
+- 支付单号（paymentNo）作为与支付通道对接的商户订单号（merchant_order_id），是跨系统对账的主键
+- 支付通道返回的交易号（channelTxnId）作为辅助核验字段
+
+#### UI 关联
+
+支付处理无独立页面，交互发生在结算页内（loading 状态 / 错误提示 banner）和外部支付页面（PayPal / Klarna）。
+
+---
+
+### 3.3 静默注册
+
+**功能类型**：机制型
+
+#### 功能描述
+
+未注册用户以游客身份完成结算并支付成功后，系统使用结算邮箱自动创建 looply 账户，无需用户主动填写注册信息。用户通过支付成功确认邮件中的"设置密码"链接完成账户激活。
+
+#### 触发条件
+
+- 用户在结算页 Contact 区块填写的邮箱未关联任何 looply 账户
+- 支付成功（收到支付通道支付成功 Webhook）
+
+#### 处理流程
+
+1. 支付成功回调到达
+2. 系统检查结算邮箱是否已注册
+3. 未注册 → 使用该邮箱创建新账户
+4. 生成"设置密码"一次性 Token（72 小时有效）
+5. 将 Token 嵌入支付成功确认邮件的设置密码链接中
+6. 在确认邮件中增加账户创建通知区块（见 5.2 场景 B）
+
+#### 规则说明
+
+| 规则 | 说明 |
+|------|------|
+| Token 有效期 | 72 小时 |
+| Token 一次性 | 使用后即失效 |
+| Token 过期处理 | 过期后用户可通过登录页 "Forgot Password" 流程重新设置密码 |
+| 不发额外提醒 | Token 过期不触发任何额外邮件 |
+| 账户初始状态 | 账户可用，但未设置密码。用户可通过设置密码链接或忘记密码流程设置密码后登录 |
+
+#### 异常处理
+
+| 异常场景 | 处理方式 |
+|---------|---------|
+| 账户创建失败 | 不影响订单创建（订单已成功），记录异常日志，后续人工处理 |
+| 邮箱在支付过程中被其他流程注册 | 检测到冲突后跳过创建，邮件按已注册用户场景发送 |
+
+---
+
+### 3.4 订单成功页（Order Confirmed）
+
+**功能类型**：页面型
+
+#### 功能描述
+
+支付成功后展示的确认页面，告知用户订单已创建，展示订单摘要信息。
+
+#### 前置条件
+
+- 支付处理完成且支付成功
+- 订单已创建
+
+#### 页面布局
+
+| 端 | 布局方式 |
+|----|---------|
+| PC 端 | 左右分栏：左侧为订单确认信息和订单详情，右侧为商品清单和价格汇总 |
+| APP 端 | 垂直堆叠 |
+
+#### 页面元素
+
+**确认区域：**
+
+| 元素 | 说明 |
+|------|------|
+| 成功图标 | 蓝色圆形勾选图标 |
+| 感谢语 | "Thank you for your purchase." |
+| 确认标题 | "Order Confirmed" |
+| 订单号 | 系统自动生成的唯一订单号，旁边有复制按钮 |
+
+**配送预估：**
+
+| 元素 | 说明 |
+|------|------|
+| 配送图标 | 快递卡车图标 |
+| 提示文案 | "Your order is being prepared." |
+| 预估时间 | "Estimated delivery: Shipped within **1–3 business days** after payment, with delivery in **3–7 business days** after shipment." |
+
+**Order Details 区域：**
+
+| 字段 | 说明 |
+|------|------|
+| Contact information | 下单邮箱 |
+| Payment method | 支付方式（如 Visa •••• 6324） |
+| Shipping address | 收货地址（完整展示） |
+| Shipping method | 配送方式（如 Standard FedEx Shipping） |
+
+**商品清单和价格汇总**（右侧/下方）：
+
+与结算页 Review Items 和 Summary 一致。
+
+**操作按钮：**
+
+| 按钮 | 说明 |
+|------|------|
+| Continue Shopping | 主按钮，点击返回商城首页 |
+
+#### 交互说明
+
+1. 订单号旁的复制按钮，点击后复制订单号到剪贴板，toast 提示 "Copied"
+2. 页面不可通过浏览器后退按钮返回结算页（防止重复支付）
+
+#### 异常处理
+
+| 异常场景 | 处理方式 |
+|---------|---------|
+| 页面加载失败 | 显示通用错误页，引导用户去"我的订单"查看 |
+| 用户刷新页面 | 基于订单数据重新渲染，不会创建重复订单 |
+
+#### UI 关联
+
+| 页面 | PC 端设计稿 | APP 端设计稿 |
+|------|-----------|------------|
+| 订单成功页 | Figma: looply PC Checkout — 结算完成 | Figma: order confirmed-首屏 / order confirmed-full |
+
+---
+
+## 四、运营端需求详细描述
+
+### 4.1 订单管理（后台）
+
+**功能类型**：页面型
+
+#### 模块概述
+
+运营人员在后台管理所有订单，包括查看订单列表、查看订单详情、执行发货和取消操作。
+
+#### 4.1.1 订单列表
+
+**功能描述**
+
+以表格形式展示所有订单，支持按条件筛选和搜索。
+
+**KPI 统计卡片（页面顶部）：**
+
+| 指标 | 说明 |
+|------|------|
+| 今日新订单 | 当日新创建的订单数量 |
+| 待发货 | 当前处于待发货状态的订单数量 |
+| 退款处理中 | 当前有退款正在处理的订单数量 |
+| 今日已完成 | 当日完成的订单数量 |
+
+**工具栏操作：**
+
+- 右上角"导出"按钮
+
+**筛选/搜索字段：**
+
+| 字段 | 控件类型 | 说明 |
+|------|---------|------|
+| 订单号 | 文本输入 | 模糊搜索 |
+| 买家邮箱 | 文本输入 | 模糊搜索 |
+| 商家 | 下拉选择 | 全部 / Looply Official / 其他入驻商家 |
+| 下单时间 | 日期范围选择 | 起止日期 |
+
+**状态 Tab 筛选：**
+
+| Tab | 说明 |
+|-----|------|
+| 全部 | 显示所有状态的订单，括号内显示总数 |
+| 已付款·待发货 | 仅显示已付款待发货订单 |
+| 已发货 | 仅显示已发货订单 |
+| 已完成 | 仅显示交易完成的订单 |
+| 已取消 | 仅显示已取消的订单 |
+
+**列表字段：**
+
+| 列名 | 说明 |
+|------|------|
+| 订单号 | 点击跳转订单详情，等宽字体灰色背景药丸样式 |
+| 买家 | 下单用户邮箱 |
+| 商家 | 所属商家名称 |
+| 商品数 | 订单包含的商品件数 |
+| 订单金额 | 订单总金额（含运费、税费） |
+| 优惠 | 优惠金额（红色负数显示，无优惠不显示） |
+| 订单状态 | 状态标签（已付款-蓝色 / 已发货-橙色 / 已完成-绿色 / 已取消-灰色） |
+| 付款时间 | 支付成功时间 |
+| 操作 | 查看详情；已付款状态下额外显示"发货"（主按钮）和"发起退款"（危险按钮） |
+
+**订单状态枚举：**
+
+| 状态 | 含义 | 触发时机 |
+|------|------|---------|
+| 已付款 (paid) | 支付成功，订单创建，待发货 | 收到支付成功 Webhook，创建订单（起始状态） |
+| 已发货 (shipped) | 至少一个包裹已发出 | 运营确认发货，首个商品状态变为已发货 |
+| 交易完成 (completed) | 所有包裹签收 | 所有商品签收确认 |
+| 已取消 (cancelled) | 发货前取消 | 运营在订单详情中执行取消操作 |
+
+**状态流转**：已付款 → 已发货 → 交易完成；已付款 → 已取消
+
+#### 4.1.2 订单详情
+
+**功能描述**
+
+展示单个订单的完整信息，支持发货和取消操作。
+
+**信息区域（三列布局）：**
+
+| 列 | 字段 |
+|----|------|
+| 第一列 | 订单号、父订单号、买家（邮箱）、商家、下单时间 |
+| 第二列 | 订单状态（标签）、支付状态（标签）、付款时间、完成时间、取消时间 |
+| 第三列 | 商品小计、优惠金额（红色负数）、运费、税费（显示税率如 "CA 9.5%"）、订单总额（加粗紫色） |
+
+**页面顶部操作按钮**：发货（主按钮）、发起退款、添加备注
+
+**订单商品列表：**
+
+| 列名 | 说明 |
+|------|------|
+| 商品图片 | 缩略图（快照） |
+| 商品名称 | 快照 |
+| 成色等级 | 快照 |
+| 单价 | 成交单价（快照） |
+| 数量 | 二手默认 1 |
+| 优惠分摊 | 该商品承担的优惠金额 |
+| 实付小计 | 单价 × 数量 − 优惠分摊 |
+| 发货状态 | 待发货 / 已发货 / 已签收 |
+| 退款状态 | 无退款 / 退款中 / 已退款 |
+
+**商品发货状态枚举：**
+
+| 状态 | 含义 | 触发时机 |
+|------|------|---------|
+| 待发货 (pending) | 等待商家发货 | 订单创建（初始状态） |
+| 已发货 (shipped) | 已随包裹发出 | 运营确认发货时 |
+| 已签收 (received) | 买家已签收 | 物流信息更新为签收 |
+
+**商品退款状态枚举：**
+
+| 状态 | 含义 | 触发时机 |
+|------|------|---------|
+| 无退款 (none) | 未发生退款 | 初始状态 |
+| 退款中 (refunding) | 退款审批通过，资金退回中 | 退款申请审批通过 |
+| 已退款 (refunded) | 退款到账 | 收到渠道退款成功 Webhook |
+
+**包裹信息：**
+
+| 字段 | 说明 |
+|------|------|
+| 物流单号 | 承运商追踪号 |
+| 承运商 | 如 FedEx、UPS |
+| 包裹状态 | 待发货 / 已发货 / 已签收 |
+| 发货时间 | 确认发货的时间 |
+| 签收时间 | 买家签收时间 |
+
+**操作按钮：**
+
+| 操作 | 前置条件 | 说明 |
+|------|---------|------|
+| 确认发货 | 订单状态 = 已付款，且存在待发货商品 | 弹窗填写物流单号和承运商，确认后更新商品发货状态，发送发货通知邮件 |
+| 取消订单 | 订单状态 = 已付款，且所有商品发货状态 = 待发货 | 弹窗确认取消原因，确认后订单状态变为已取消，自动创建全额退款 |
+
+**收货地址区域（两列布局）：**
+
+| 列 | 字段 |
+|----|------|
+| 第一列 | 收件人、电话、地址行 1、地址行 2 |
+| 第二列 | 城市、州、邮编、国家 |
+
+**账单地址区域**：与收货地址相同的两列布局（当收货地址与账单地址不同时展示）。
+
+**优惠信息表格：**
+
+| 列名 | 说明 |
+|------|------|
+| 优惠类型 | 如"满减" |
+| 优惠名称 | 如"满 $200 减 $30（跨店）" |
+| 优惠金额 | 红色负数显示 |
+| 分摊明细 | 各商品分摊金额说明 |
+
+**支付信息区域（两列布局）：**
+
+| 列 | 字段 |
+|----|------|
+| 第一列 | 支付单号（可点击跳转支付单管理）、支付通道、支付方式、支付账户（如 Visa **** 4242） |
+| 第二列 | 支付金额（加粗）、支付状态（标签）、支付时间 |
+
+**包裹物流区域**（卡片式展示，每个包裹一张卡片）：
+
+卡片头部：包裹编号 + 状态标签 + 承运商 + 物流单号（等宽字体）
+
+卡片内容：
+- 包裹商品列表
+- 信息网格：发货时间、签收时间、承运商、追踪号
+- 物流轨迹时间线：按时间倒序展示每个物流节点（已签收-绿色、运输中-灰色）
+
+**退款记录表格：**
+
+| 列名 | 说明 |
+|------|------|
+| 退款申请单号 | 等宽字体灰色背景 |
+| 退款商品 | 退款商品名称和数量 |
+| 退款类型 | 如"发货前退款" |
+| 退款金额 | 红色加粗 |
+| 退款原因 | 如"买家申请" |
+| 退款状态 | 已完成-绿色 / 退款失败-红色 |
+| 退款单号 | 可点击跳转退款单管理（未关联时显示"—"） |
+| 申请时间 | — |
+
+**订单备注表格：**
+
+| 列名 | 说明 |
+|------|------|
+| 备注内容 | 运营填写的备注文本 |
+| 操作人 | 填写备注的运营人员 |
+| 添加时间 | — |
+
+**操作日志表格：**
+
+| 列名 | 说明 |
+|------|------|
+| 操作时间 | — |
+| 操作人 | 系统 / 买家邮箱 / 运营人员 |
+| 操作类型 | 创建订单、提交订单等（标签样式） |
+| 操作内容 | 操作详情描述 |
+
+**确认发货弹窗：**
+
+| 字段 | 控件 | 说明 |
+|------|------|------|
+| 发货商品 | 复选框表格 | 显示所有待发货商品（商品名称、成色等级、单价、数量），支持多选。已发货/退款中的商品不显示 |
+| 承运商 | 下拉选择 | FedEx / UPS / USPS / DHL |
+| 快递单号 | 文本输入 | 必填 |
+
+按钮文案："确认发货(N件)"，未选商品时按钮置灰。
+
+提示："选择本次发货的商品，未选中的商品可在后续批次中发货"
+
+**发起退款弹窗：**
+
+| 字段 | 控件 | 说明 |
+|------|------|------|
+| 退款商品 | 复选框表格 | 显示所有待发货且无退款的商品（商品名称、成色等级、单价、数量），支持多选 |
+| 退款金额 | 数字输入 | 默认按选中商品实付小计计算，支持手动修改，前缀"$" |
+| 退款原因 | 下拉选择 | 买家申请 / 商品问题 / 缺货 / 其他 |
+| 备注 | 多行文本 | 选填 |
+
+按钮文案："确认提交(N件)"，未选商品时按钮置灰。
+
+提示："退款金额基于商品实付金额（已扣除优惠），非商品原价"
+
+**添加备注弹窗：**
+
+| 字段 | 控件 | 说明 |
+|------|------|------|
+| 备注内容 | 多行文本 | 必填 |
+
+**发货阻断规则**：退款状态 = 退款中 的商品不得发货（发货时校验，不满足条件时按钮置灰或弹窗提示）。
+
+**订单级状态聚合规则**：
+- 首个商品发货状态变为"已发货" → 订单状态变为"已发货"
+- 所有商品发货状态变为"已签收" → 订单状态变为"交易完成"
+
+#### 异常处理
+
+| 异常场景 | 处理方式 |
+|---------|---------|
+| 发货后物流单号填写错误 | 暂不支持修改，需联系技术处理（后续迭代支持修改物流信息） |
+| 取消订单时退款失败 | 订单状态仍变为已取消，退款单状态为失败，运营在退款单管理中跟进处理 |
+
+#### UI 关联
+
+| 页面 | 设计稿 |
+|------|--------|
+| 订单列表 | 后台原型: looply-订单管理后台原型-v5.html — OrderListPage |
+| 订单详情 | 后台原型: looply-订单管理后台原型-v5.html — OrderDetailPage |
+
+---
+
+### 4.2 弃单管理（后台）
+
+**功能类型**：页面型
+
+#### 模块概述
+
+运营人员查看和管理未完成支付的结算会话（弃单），了解弃单转化情况，支持手动及自动发送恢复链接。
+
+#### 4.2.1 弃单列表
+
+**KPI 统计卡片（页面顶部）：**
+
+| 指标 | 说明 |
+|------|------|
+| 今日弃单数 | 当日新增弃单数量 |
+| 弃单率 | 弃单数 / 结算会话总数 |
+| 已恢复数 | 通过恢复链接完成支付的数量 |
+| 恢复率 | 已恢复数 / 弃单总数 |
+
+**工具栏操作：**
+
+- 右上角"恢复策略设置"按钮（见下方弹窗说明）
+
+**筛选/搜索字段：**
+
+| 字段 | 控件类型 | 说明 |
+|------|---------|------|
+| 买家邮箱 | 文本输入 | 模糊搜索 |
+| 状态 | 下拉选择 | 全部状态 / 待转化 / 已转化 |
+| 创建时间 | 日期范围选择 | 起止日期 |
+
+**列表字段：**
+
+| 列名 | 说明 |
+|------|------|
+| 会话编号 | 结算会话标识，等宽字体展示 |
+| 买家 | 结算时填写的邮箱 |
+| 商品数 | 会话中的商品件数（如"2件"） |
+| 预估金额 | 结算时的预估总金额 |
+| 状态 | 待转化-橙色 / 已转化-绿色 |
+| 创建时间 | 进入结算页的时间 |
+| 操作 | 查看详情；状态为"待转化"时显示"发送恢复链接"按钮 |
+
+**弃单状态枚举：**
+
+| 状态 | 含义 | 触发时机 |
+|------|------|---------|
+| 待转化 (pending) | 弃单未恢复 | 结算会话超时或用户离开时标记 |
+| 已转化 (converted) | 买家已完成支付 | 买家通过恢复链接回到结算页完成支付 |
+
+**发送恢复链接确认弹窗：**
+
+点击"发送恢复链接"按钮后弹出确认弹窗：
+
+- 提示文案："将向 {买家邮箱} 发送弃单恢复邮件，邮件中包含恢复链接，买家点击后可回到结算页继续购买。"
+- 展示字段：会话编号、预估金额、创建时间
+- 操作按钮：取消 / 确认发送
+
+**恢复策略设置弹窗：**
+
+点击"恢复策略设置"按钮后弹出配置弹窗：
+
+| 字段 | 控件 | 说明 |
+|------|------|------|
+| 自动发送 | 单选 | 开启 / 关闭 |
+| 发送时机 | 数字输入 + 单位选择 | {N} 小时后 / 天后（弃单后自动发送恢复邮件） |
+
+#### 4.2.2 弃单详情
+
+**页头信息：**
+
+返回按钮 + "弃单详情" + 会话编号（等宽字体）+ 状态标签 + 创建时间
+
+操作按钮：状态为"待转化"时显示"发送恢复链接"按钮（弹窗同列表页）。
+
+**基本信息（3列布局）：**
+
+| 第1列 | 第2列 | 第3列 |
+|--------|--------|--------|
+| 会话编号 | 状态 | 创建时间 |
+| 买家邮箱 | 商品数 | 设备（UA 信息） |
+| 注册时间 | 预估金额 | IP 地址（脱敏） |
+
+**收货地址（Shipping Address）— 2列布局：**
+
+| 第1列 | 第2列 |
+|--------|--------|
+| 收件人 | 城市 |
+| 电话 | 州 |
+| 地址行1 | 邮编 |
+| 地址行2 | 国家 |
+
+如用户未填写收货地址，整个区域不显示。
+
+**账单地址（Billing Address）— 2列布局：**
+
+| 第1列 | 第2列 |
+|--------|--------|
+| 姓名 | 城市 |
+| 电话 | 州 |
+| 地址行1 | 邮编 |
+| 地址行2 | 国家 |
+
+如用户未填写账单地址，整个区域不显示。
+
+**结算商品列表：**
+
+| 列名 | 说明 |
+|------|------|
+| 商品主图 | 缩略图 |
+| 商品名称 | — |
+| 成色等级 | 商品质检等级 |
+| 单价 | 快照价格 |
+| 数量 | — |
+| 币种 | USD |
+
+**事件时间线：**
+
+以 Timeline 组件展示结算会话中的关键事件，每条包含：
+
+- 事件描述（加粗）
+- 事件详情（灰色小字）
+- 事件时间（右侧灰色）
+- 颜色区分：普通事件-灰色、警告事件（用户离开）-橙色、错误事件（支付失败）-红色
+
+事件类型包含但不限于：创建会话、填写地址、选择配送、支付失败、支付重试失败、用户离开、发送恢复邮件、用户回访、支付成功。
+
+**恢复邮件记录：**
+
+| 列名 | 说明 |
+|------|------|
+| 发送时间 | — |
+| 触发方式 | 自动-绿色标签 / 手动-橙色标签 |
+| 发送状态 | 已发送-绿色标签 / 发送失败-红色标签 |
+
+底部显示"累计发送 N 次"汇总。
+
+#### 异常处理
+
+| 异常场景 | 处理方式 |
+|---------|---------|
+| 结算会话对应的商品已售出 | 详情页中标记该商品为"已售出" |
+| 发送恢复邮件失败 | 记录发送状态为"发送失败"，允许手动重试 |
+
+#### UI 关联
+
+| 页面 | 设计稿 |
+|------|--------|
+| 弃单列表 | 后台原型: looply-订单管理后台原型-v5.html — AbandonedCartPage |
+| 弃单详情 | 后台原型: looply-订单管理后台原型-v5.html — AbandonedDetailPage |
+
+---
+
+### 4.3 支付单管理（后台）
+
+**功能类型**：页面型
+
+#### 功能描述
+
+运营人员查看所有支付单信息，了解支付状态和金额，可通过详情弹窗查看支付账户和关联流水。
+
+#### KPI 统计卡片（页面顶部）
+
+| 指标 | 说明 |
+|------|------|
+| 支付单总数 | 所有支付单数量 |
+| 待支付 | 当前处于待支付状态的数量 |
+| 已成功 | 支付成功的数量 |
+| 已失败 | 支付失败的数量 |
+
+#### 筛选/搜索字段
+
+| 字段 | 控件类型 | 说明 |
+|------|---------|------|
+| 支付单号 | 文本输入 | 模糊搜索 |
+| 关联订单号 | 文本输入 | 模糊搜索 |
+| 支付通道 | 下拉选择 | 全部通道 / Airwallex / PayPal |
+| 支付状态 | 下拉选择 | 全部状态 / 待支付 / 成功 / 失败 / 超时关闭 |
+| 创建时间 | 日期范围选择 | 起止日期 |
+
+#### 列表字段
+
+| 列名 | 说明 |
+|------|------|
+| 支付单号 | 等宽字体展示 |
+| 关联父订单 | 可点击跳转订单详情 |
+| 买家 | 买家邮箱 |
+| 支付通道 | Airwallex / PayPal |
+| 支付方式 | Credit Card / PayPal / Klarna / Apple Pay |
+| 支付账户 | 如"Visa **** 4242"或"paypal@email.com" |
+| 金额 | 加粗显示 |
+| 状态 | 待支付-橙色 / 成功-绿色 / 失败-红色 / 超时关闭-灰色 |
+| 支付时间 | 支付成功时间（未成功显示"—"） |
+| 创建时间 | 支付单创建时间 |
+| 操作 | 详情按钮 |
+
+#### 支付单详情弹窗
+
+点击"详情"按钮后弹出详情弹窗（宽 600px，底部"关闭"按钮）。
+
+**基本信息（2列布局）：**
+
+| 第1列 | 第2列 |
+|--------|--------|
+| 支付单号（等宽字体） | 支付方式 |
+| 关联父订单 | 支付账户 |
+| 买家 | 金额 + 币种（加粗） |
+| 支付通道 | 状态（标签） |
+| — | 支付时间 |
+
+**关联流水（表格）：**
+
+| 列名 | 说明 |
+|------|------|
+| 流水号 | 等宽字体 |
+| 类型 | 收款-绿色标签 / 退款-红色标签 |
+| 金额 | — |
+| 手续费 | — |
+| 状态 | 处理中-橙色 / 成功-绿色 / 失败-红色 |
+
+#### 支付单状态枚举
+
+| 状态 | 含义 | 触发时机 |
+|------|------|---------|
+| 待支付 (pending) | 用户已发起支付，等待结果 | 用户点击下单，创建支付单 |
+| 成功 (succeeded) | 支付确认成功 | 收到渠道支付成功 Webhook |
+| 失败 (failed) | 支付被拒绝 | 收到渠道支付失败 Webhook（余额不足、风控拒绝等） |
+| 超时关闭 (closed) | 超时未完成 | 支付单超过有效期，系统自动关闭 |
+
+#### UI 关联
+
+| 页面 | 设计稿 |
+|------|--------|
+| 支付单列表 | 后台原型: looply-订单管理后台原型-v5.html — PaymentOrderListPage |
+
+
+---
+
+### 4.4 退款单管理（后台）
+
+**功能类型**：页面型
+
+#### 功能描述
+
+运营人员管理所有退款单，跟踪退款资金状态。退款单由退款请求审批通过后自动创建，记录资金退回的执行过程。
+
+#### KPI 统计卡片（页面顶部）
+
+| 指标 | 说明 |
+|------|------|
+| 退款单总数 | 所有退款单数量 |
+| 退款中 | 当前处于退款中的数量 |
+| 退款成功 | 退款已到账的数量 |
+| 退款失败 | 退款执行失败的数量 |
+
+#### 筛选/搜索字段
+
+| 字段 | 控件类型 | 说明 |
+|------|---------|------|
+| 退款单号 | 文本输入 | 模糊搜索 |
+| 原支付单号 | 文本输入 | 模糊搜索 |
+| 退款通道 | 下拉选择 | 全部通道 / Airwallex / PayPal |
+| 退款状态 | 下拉选择 | 全部状态 / 退款中 / 退款成功 / 退款失败 |
+| 创建时间 | 日期范围选择 | 起止日期 |
+
+#### 列表字段
+
+| 列名 | 说明 |
+|------|------|
+| 退款单号 | 等宽字体展示 |
+| 原支付单号 | 可点击跳转支付单管理 |
+| 买家 | 买家邮箱 |
+| 退款通道 | Airwallex / PayPal |
+| 退款方式 | Credit Card / PayPal（原路退回） |
+| 退款金额 | 红色加粗显示 |
+| 状态 | 退款中-橙色 / 退款成功-绿色 / 退款失败-红色 |
+| 到账时间 | 退款到账时间（未到账显示"—"） |
+| 创建时间 | 退款单创建时间 |
+| 操作 | 详情按钮 |
+
+#### 退款单详情弹窗
+
+点击"详情"按钮后弹出详情弹窗（宽 600px，底部"关闭"按钮）。
+
+**基本信息（2列布局）：**
+
+| 第1列 | 第2列 |
+|--------|--------|
+| 退款单号（等宽字体） | 退款金额 + 币种（红色加粗） |
+| 原支付单号 | 退款状态（标签） |
+| 买家 | 到账时间 |
+| 退款通道 | 创建时间 |
+| 退款方式 | — |
+
+**关联退款流水（表格）：**
+
+| 列名 | 说明 |
+|------|------|
+| 流水号 | 等宽字体 |
+| 类型 | 退款-红色标签 |
+| 金额 | — |
+| 手续费 | — |
+| 状态 | 处理中-橙色 / 成功-绿色 / 失败-红色 |
+
+#### 退款单状态枚举
+
+| 状态 | 含义 | 触发时机 |
+|------|------|---------|
+| 退款中 (pending) | 已发起退款，等待渠道处理 | 退款请求审批通过后创建退款单 |
+| 退款成功 (succeeded) | 资金已退回买家账户 | 收到渠道退款成功 Webhook |
+| 退款失败 (failed) | 渠道退款失败 | 收到渠道退款失败 Webhook |
+
+#### UI 关联
+
+| 页面 | 设计稿 |
+|------|--------|
+| 退款单列表 | 后台原型: looply-订单管理后台原型-v5.html — RefundOrderListPage |
+
+
+---
+
+### 4.5 支付流水（后台）
+
+**功能类型**：页面型
+
+#### 功能描述
+
+运营人员查看所有支付交易流水（包括收款和退款），跟踪资金流转。支持导出和查看详情。
+
+#### KPI 统计卡片（页面顶部）
+
+| 指标 | 说明 |
+|------|------|
+| 流水总数 | 所有流水记录数量 |
+| 收款笔数 | 类型为"收款"的流水数量 |
+| 退款笔数 | 类型为"退款"的流水数量 |
+
+#### 工具栏操作
+
+- 右上角"导出"按钮
+
+#### 筛选/搜索字段
+
+| 字段 | 控件类型 | 说明 |
+|------|---------|------|
+| 流水号 | 文本输入 | 模糊搜索 |
+| 渠道流水号 | 文本输入 | 模糊搜索 |
+| 类型 | 下拉选择 | 全部类型 / 收款 / 退款 |
+| 状态 | 下拉选择 | 全部状态 / 处理中 / 成功 / 失败 |
+| 创建时间 | 日期范围选择 | 起止日期 |
+
+#### 列表字段
+
+| 列名 | 说明 |
+|------|------|
+| 流水号 | 等宽字体展示 |
+| 支付/退款单号 | 可点击跳转对应管理页面 |
+| 类型 | 收款-绿色标签 / 退款-红色标签 |
+| 渠道流水号 | 三方支付渠道返回的交易标识（Tooltip："用于对账匹配"），等宽字体 |
+| 金额 | 加粗显示 |
+| 手续费 | 渠道对该笔交易收取的处理费（Tooltip："来源：渠道回调"） |
+| 状态 | 处理中-橙色 / 成功-绿色 / 失败-红色 |
+| 创建时间 | 流水创建时间 |
+| 操作 | 详情按钮 |
+
+#### 流水详情弹窗
+
+点击"详情"按钮后弹出详情弹窗（宽 600px，底部"关闭"按钮）。
+
+**交易信息（2列布局）：**
+
+| 第1列 | 第2列 |
+|--------|--------|
+| 流水号（等宽字体） | 交易金额 + 币种（加粗） |
+| 支付单号 | 渠道手续费 |
+| 交易类型（标签） | 交易状态（标签） |
+| 渠道流水号（等宽字体） | 创建时间 |
+
+#### 交易类型枚举
+
+| 类型 | 含义 | 适用场景 |
+|------|------|---------|
+| 收款 (payment) | 买家付款，资金流入 | 支付成功时生成 |
+| 退款 (refund) | 退款给买家，资金流出 | 退款成功时生成，关联退款单 |
+
+#### 流水状态枚举
+
+| 状态 | 含义 | 触发时机 |
+|------|------|---------|
+| 处理中 (pending) | 已发起，等待渠道确认 | 创建流水记录 |
+| 成功 (succeeded) | 渠道确认资金到账/退出 | 收到渠道成功 Webhook |
+| 失败 (failed) | 渠道返回失败 | 收到渠道失败 Webhook |
+
+#### UI 关联
+
+| 页面 | 设计稿 |
+|------|--------|
+| 支付流水列表 | 后台原型: looply-订单管理后台原型-v5.html — PaymentTransactionListPage |
+
+---
+
+### 4.6 对账管理（后台）
+
+**功能类型**：页面型
+
+#### 功能描述
+
+按订单维度核对收款、手续费、退款，确保资金准确到账。支持拉取渠道结算报告自动匹配，导出对账数据线下处理。
+
+#### KPI 统计卡片（页面顶部）
+
+| 指标 | 说明 |
+|------|------|
+| 订单总数 | 参与对账的订单数量 |
+| 待结算 | 未收到渠道结算报告的订单数量 |
+| 已结算 | 已与渠道报告匹配的订单数量 |
+| 有差异 | 已结算中存在金额差异的订单数量（红色数字） |
+
+#### 筛选/搜索字段
+
+| 字段 | 控件类型 | 说明 |
+|------|---------|------|
+| 订单号 | 文本输入 | 模糊搜索 |
+| 买家邮箱 | 文本输入 | 模糊搜索 |
+| 商家 | 下拉选择 | 全部商家 / 各商家名称 |
+| 支付通道 | 下拉选择 | 全部通道 / Airwallex / PayPal |
+| 结算状态 | 下拉选择 | 结算状态 / 待结算 / 已结算 |
+| 差异状态 | 下拉选择 | 差异状态 / 有差异 / 无差异 |
+| 付款时间 | 日期范围选择 | 付款开始～付款结束 |
+
+#### 列表字段
+
+对账表格采用**分组对比列**结构，将系统记录与渠道报告并列展示，差异自动标红。
+
+| 列名 | 说明 |
+|------|------|
+| 订单号 | 可点击跳转订单详情 |
+| 支付单号 | 可点击跳转支付单管理 |
+| 买家 | 买家邮箱 |
+| 商家 | 所属商家 |
+| 通道 | PayPal / Airwallex |
+| 订单金额 | 加粗显示 |
+| **收款对比（分组列）** | |
+| — 系统 | 系统记录的收款金额，与渠道不一致时标红 |
+| — 渠道 | 渠道结算报告的收款金额，未拉取时显示"—" |
+| **手续费对比（分组列）** | |
+| — 系统 | 系统记录的手续费 |
+| — 渠道 | 渠道报告的手续费 |
+| **退款对比（分组列）** | |
+| — 系统 | 系统记录的累计退款金额 |
+| — 渠道 | 渠道报告的退款金额 |
+| 结算状态 | 待结算-灰色 / 已结算-绿色 |
+
+**差异检测逻辑**：仅对"已结算"状态的订单检测差异。系统金额与渠道金额逐项比对（收款、手续费、退款），任一项不一致则该单元格标红。渠道数据为"—"（未拉取）时不参与比对。
+
+**可展开行**：每行可展开查看该订单关联的支付流水明细（流水号、类型、渠道流水号、金额、手续费、状态）。
+
+#### 结算状态枚举
+
+| 状态 | 含义 | 触发时机 |
+|------|------|---------|
+| 待结算 (unsettled) | 未收到渠道结算报告 | 初始状态 |
+| 已结算 (settled) | 已与渠道结算报告匹配 | 拉取结算报告并匹配成功 |
+
+#### 工具栏操作
+
+**拉取结算报告按钮**：
+
+弹窗配置：
+
+| 字段 | 控件 | 说明 |
+|------|------|------|
+| 支付通道 | 下拉选择 | Airwallex / PayPal |
+| 时间范围 | 日期范围选择 | 起止日期 |
+
+提示："从支付渠道拉取结算报告，系统将自动按订单匹配并比对收款、手续费、退款金额"
+
+**自动拉取机制**：系统按天自动拉取各支付通道前一日的结算报告并匹配，运营无需手动操作。手动拉取按钮保留，用于补拉历史数据或重试失败场景。
+
+**导出按钮**：
+
+弹窗配置：
+
+| 字段 | 控件 | 说明 |
+|------|------|------|
+| 导出范围 | 单选 | 当前筛选结果（N 条）/ 全部数据（N 条） |
+| 支付通道 | 下拉选择 | 全部 / Airwallex / PayPal |
+| 付款时间 | 日期范围选择 | 起止日期 |
+| 文件格式 | 单选 | Excel (.xlsx) / CSV (.csv) |
+
+导出成功后弹窗显示成功状态：勾选图标 + "导出成功" + 文件名 + "完成"按钮。
+
+#### UI 关联
+
+| 页面 | 设计稿 |
+|------|--------|
+| 对账管理列表 | 后台原型: looply-订单管理后台原型-v5.html — ReconciliationPage |
+
+---
+
+### 4.7 退款处理
+
+**功能类型**：流程型
+
+#### 功能描述
+
+退款分为两个阶段：退款申请（业务审批）和退款执行（资金退回）。本期退款由运营在后台发起，不提供买家自助退款入口。
+
+#### 前置条件
+
+- 订单已支付成功
+- 退款商品的退款状态为"无退款"
+
+#### 操作流程
+
+**主流程：**
+
+1. 运营在订单详情页或退款单管理中发起退款申请
+2. 选择退款商品和退款金额
+3. 退款申请状态为"待审批"
+4. 审批人审核退款申请：
+   - 通过 → 系统创建退款单，向支付通道发起退款请求；对应商品退款状态变为"退款中"
+   - 驳回 → 填写驳回原因，退款申请结束
+5. 支付通道处理退款：
+   - 成功 → 退款单状态变为"成功"，商品退款状态变为"已退款"，累加支付单已退金额，发送退款成功邮件
+   - 失败 → 退款单状态变为"失败"，需人工介入处理
+
+**取消订单触发的退款**：运营取消订单时，系统自动创建全额退款申请（审批状态自动通过，操作人类型为"系统自动"）。
+
+#### 退款金额规则
+
+| 规则 | 说明 |
+|------|------|
+| 退款基准 | 基于商品实付小计（单价 × 数量 − 优惠分摊），不是原价 |
+| 退款粒度 | 针对单个商品只能整单退（退该商品的全部实付金额），不支持部分金额退款 |
+| 超额退款防护 | 创建退款单前校验：支付单已退金额 + 本次退款金额 ≤ 支付金额 |
+| 退款方式 | 原路退回（退回到原支付方式） |
+
+#### 退款申请状态枚举
+
+| 状态 | 含义 | 触发时机 |
+|------|------|---------|
+| 待审批 (pending) | 退款申请已提交 | 运营发起退款申请 |
+| 已通过 (approved) | 审批通过 | 审批人通过退款申请 |
+| 已驳回 (rejected) | 退款被拒绝 | 审批人驳回退款申请 |
+
+#### 退款类型枚举
+
+| 类型 | 含义 | 适用场景 |
+|------|------|---------|
+| 发货前退款 (pre_shipment) | 商品未发货时的退款 | 前期仅支持此类型 |
+
+后续扩展：退货退款（return_refund）等。
+
+#### 退款单状态枚举
+
+| 状态 | 含义 | 触发时机 |
+|------|------|---------|
+| 退款中 (pending) | 已向支付通道发起退款请求 | 退款申请审批通过，创建退款单 |
+| 退款成功 (succeeded) | 渠道确认退款到账 | 收到渠道退款成功 Webhook |
+| 退款失败 (failed) | 渠道返回失败 | 收到渠道退款失败 Webhook |
+
+#### 异常处理
+
+| 异常场景 | 处理方式 |
+|---------|---------|
+| 退款渠道请求超时 | 退款单保持"退款中"，等待 Webhook 回调更新 |
+| 退款渠道返回失败 | 退款单状态变为"失败"，运营可在退款单管理中查看并联系渠道处理 |
+| 退款金额超过支付金额 | 创建退款单时校验拦截，提示"退款金额超过可退金额" |
+
+## 五、消息通知
+
+**功能类型**：机制型
+
+#### 功能描述
+
+覆盖订单交易流程中 4 个节点的买家邮件通知。全部为 Transactional Email（交易类邮件），由系统事件自动触发，不受 CAN-SPAM 退订限制，但需在 Footer 标注发送原因。
+
+### 5.1 通用结构
+
+所有邮件共用以下结构：
+
+| 区域 | 内容 |
+|------|------|
+| Header | 品牌紫色（#7C3AED）背景 + looply logo |
+| 标题区 | 邮件标题 + 问候语 |
+| 核心内容 | 按邮件类型变化 |
+| CTA 按钮 | 主操作按钮 |
+| Footer | 帮助中心链接 + 联系客服链接 + 发送原因说明 + 公司地址（© 2026 looply Inc. · 123 Commerce St, San Francisco, CA 94105） |
+
+**邮件适配**：600px 定宽，适配 Gmail、Outlook、Apple Mail。
+
+**发件信息**：
+- From: `looply <orders@looply.com>`
+- Reply-to: `support@looply.com`
+
+### 5.2 支付成功确认邮件
+
+**触发时机**：收到支付通道支付成功 Webhook
+
+**Subject**：`Order confirmed! 🎉 #{{orderNo}}`
+
+**Preheader**：`Thank you for your purchase. Your order #{{orderNo}} has been confirmed.`
+
+**场景 A：已注册用户**
+
+邮件内容：
+1. 标题："Order Confirmed! 🎉"
+2. 问候语："Hi {{userName}},"
+3. 说明："Thank you for your purchase! Your order has been confirmed and is being prepared for shipment."
+4. Order Details 区块：订单号、下单日期、支付方式
+5. Items Ordered 区块：商品列表（图片 + 名称 + 属性 + 价格）
+6. 费用汇总：Subtotal / Shipping / Tax / Total
+7. Shipping Address 区块
+8. CTA 按钮："View Order"
+9. 提示："We'll send you another email when your order ships."
+
+**场景 B：静默注册用户**
+
+在 Order Details 区块上方增加「账户创建通知」区块：
+- 图标：🔑
+- 标题："Your looply account is ready"
+- 描述："We've created a looply account for you so you can track your order, manage returns, and shop again easily. Set your password to get started."
+- 账户邮箱：显示 "Account Email: {{userEmail}}"
+- 内嵌 CTA："Set Your Password"（链接含一次性 Token，72h 有效）
+- 过期提示："This link expires in 72 hours. After that, use 'Forgot Password' to set up your account."
+
+问候语改为 "Hi there,"（无用户名）。
+
+主 CTA 按钮改为 "Set Password & View Order"。
+
+其余订单信息与场景 A 完全相同。
+
+### 5.3 订单发货通知邮件
+
+**触发时机**：商家填写物流单号并确认发货
+
+**Subject**：`Your order is on its way! 📦 #{{orderNo}}`
+
+**Preheader**：`Your order #{{orderNo}} has been shipped. Track your package here.`
+
+邮件内容：
+1. 标题："Your Order Has Shipped! 📦"
+2. 问候语："Hi {{userName}},"
+3. 说明："Great news! Your order has been shipped and is on its way to you."
+4. Tracking Information 区块（绿色背景）：承运商、物流单号（等宽字体）、预计送达日期、内嵌 "Track Package" 按钮（绿色）
+5. Order Summary：订单号、下单日期
+6. Items Shipped：本次发货的商品列表
+7. Shipping To：收货地址
+8. CTA 按钮："View Order"
+
+**部分发货场景**：一个订单分多个包裹时，每次发货各发一封。Subject 末尾加包裹序号（如 `(Package 1 of 2)`），Items Shipped 仅展示本次发货商品。
+
+### 5.4 退款成功通知邮件
+
+**触发时机**：收到支付通道退款成功 Webhook
+
+**Subject**：`Your refund has been processed ✓ #{{orderNo}}`
+
+**Preheader**：`Your refund of {{refundAmount}} for order #{{orderNo}} has been processed.`
+
+邮件内容：
+1. 标题："Refund Processed ✓"
+2. 问候语："Hi {{userName}},"
+3. 说明："Your refund has been processed and the funds are on their way back to you."
+4. Refund Details 区块（蓝色背景）：退款金额（大号蓝色字体）、退款方式（原支付方式）、预计到账时间（5–10 business days）、退款单号（等宽字体）
+5. Original Order：订单号、下单日期
+6. Refunded Items：退款商品列表（价格为红色负数显示）
+7. 金额汇总：原订单总额 / 本次退款金额（红色）/ 剩余收款金额（加粗）
+8. 到账时间说明（小字灰色）
+9. CTA 按钮："View Order"
+
+**部分退款场景**：每笔退款成功各发一封。Refunded Items 仅展示本次退款商品，底部金额汇总反映累计退款后的剩余。
+
+### 5.5 弃单恢复邮件
+
+**触发时机**：用户进入结算页但未完成支付，满足弃单判定条件后触发（具体超时时间和发送策略后续定义）
+
+**Subject**：`You left something behind! 🛒`
+
+**Preheader**：`Your items are still waiting for you. Complete your purchase before they're gone.`
+
+邮件内容：
+1. 标题："Still interested?"
+2. 问候语："Hi {{userName}},"（未注册用户用 "Hi there,"）
+3. 说明："You left some items in your checkout. They're still available — complete your purchase before someone else grabs them."
+4. Items 区块：结算会话中的商品列表（图片 + 名称 + 成色 + 价格）
+5. 费用汇总：Subtotal / Shipping
+6. CTA 按钮："Complete Your Purchase"（链接携带 recovery_token，指向结算页恢复会话）
+7. 提示："These items are subject to availability and may sell out."
+
+**恢复链接规则**：
+- 链接携带 recovery_token，打开后恢复用户的结算会话
+- 有效期和发送频次后续定义（见 1.2 不做什么）
+
+### 5.6 模板变量清单
+
+**通用变量（所有邮件）：**
+
+| 变量 | 类型 | 说明 | 示例 |
+|------|------|------|------|
+| {{userName}} | String | 用户昵称，未设置用 "there" | Sarah |
+| {{userEmail}} | String | 用户邮箱 | sarah@email.com |
+| {{orderNo}} | String | 订单编号 | ORD20260615001 |
+| {{orderDate}} | Date | 下单日期，MMM DD, YYYY | June 15, 2026 |
+| {{orderUrl}} | URL | 订单详情页链接 | — |
+
+**支付成功专属：**
+
+| 变量 | 类型 | 说明 |
+|------|------|------|
+| {{paymentMethod}} | String | 支付方式（卡类型 + 尾号，如 Visa •••• 4242） |
+| {{items[]}} | Array | 商品列表（名称、图片、属性、价格） |
+| {{subtotal}} | Currency | 商品小计 |
+| {{shipping}} | Currency | 运费 |
+| {{tax}} | Currency | 税费 |
+| {{total}} | Currency | 订单总额 |
+| {{shippingAddress}} | Object | 收货地址 |
+| {{isSilentReg}} | Boolean | 是否为静默注册用户 |
+| {{setPasswordUrl}} | URL | 设置密码链接（含一次性 Token） |
+
+**发货通知专属：**
+
+| 变量 | 类型 | 说明 |
+|------|------|------|
+| {{carrier}} | String | 物流公司 |
+| {{trackingNo}} | String | 物流单号 |
+| {{trackingUrl}} | URL | 物流查件链接 |
+| {{estimatedDelivery}} | String | 预计送达日期范围 |
+
+**退款成功专属：**
+
+| 变量 | 类型 | 说明 |
+|------|------|------|
+| {{refundId}} | String | 退款单号 |
+| {{refundAmount}} | Currency | 退款金额 |
+| {{refundMethod}} | String | 退款方式说明 |
+| {{refundEta}} | String | 预计到账时间 |
+| {{refundedItems[]}} | Array | 退款商品列表 |
+| {{remainingCharged}} | Currency | 剩余收款金额 |
+
+**弃单恢复专属：**
+
+| 变量 | 类型 | 说明 |
+|------|------|------|
+| {{recoveryUrl}} | URL | 恢复链接（含 recovery_token） |
+| {{checkoutItems[]}} | Array | 结算会话中的商品列表 |
+| {{checkoutSubtotal}} | Currency | 商品小计 |
+
+### 5.7 异常处理
+
+| 异常场景 | 处理方式 |
+|---------|---------|
+| 邮件发送失败 | 记录失败日志，自动重试最多 3 次（间隔 1 分钟、5 分钟、30 分钟） |
+| 用户邮箱无效（退信） | 记录退信日志，不再重试 |
+
+### 5.8 UI 关联
+
+邮件模板设计详见：`looply-交易核心节点邮件通知方案-v1.0.html`
+
+---
+
+---
+
+---
+
+## 六、依赖与风险
+
+### 外部依赖
+
+| 依赖方 | 依赖内容 | 关键要求 |
+|--------|---------|---------|
+| 登录注册模块 | 用户账户体系、验证码发送、Token 生成 | 需提供静默注册能力（仅用邮箱创建账户）；需提供结算页内验证码登录能力（非跳转，弹窗内完成） |
+| 商品模块 | 商品信息、价格、库存、成色等级 | 需提供库存预占能力（防并发超卖）；结算时锁定商品，支付失败释放 |
+| 地址模块 | 收货地址管理 | 需提供地址 CRUD 和默认地址查询；订单创建时地址快照到订单，地址后续修改不影响已有订单 |
+| PayPal | 支付收款、退款 | 商户账户已注册，API 凭证已获取，Webhook 已配置 |
+| Airwallex | Credit Card / Klarna / Apple Pay 支付收款、退款 | 商户账户已注册，API 凭证已获取，Webhook 已配置，KYC 已完成 |
+| 邮件服务 | 交易邮件发送 | 需支持模板渲染和变量替换；需配置 SPF/DKIM/DMARC 保证投递率 |
+| 地址联想服务 | 结算页地址自动填充 | 需提供美国地址联想 API |
+| 物流模块 | 物流追踪信息 | 需提供物流查件链接和状态更新（发货后） |
+| 税费计算服务 | 按州计算销售税 | 需提供按收货地址实时计算税率的能力 |
+
+### 风险项
+
+| 风险 | 影响 | 应对措施 |
+|------|------|---------|
+| PayPal / Airwallex 审核周期 | 影响支付功能上线时间 | 尽早提交商户资料，并行推进开发 |
+| 支付渠道 Webhook 延迟 | 用户支付后页面无响应 | 前端轮询 + 超时提示 + 后端以 Webhook 为准 |
+| 二手商品库存唯一性 | 并发抢购同一件商品 | 结算时锁定商品，支付失败释放，超时自动释放 |
+
+---
+
+## 七、版本规划
+
+### MVP（当前版本）
+
+- 结算页（已登录 / 未登录 / 游客结算 + 静默注册）
+- 4 种支付方式（Credit Card / PayPal / Klarna / Apple Pay）
+- 订单成功页
+- 邮件通知（支付成功 / 发货 / 退款成功 / 弃单恢复）
+- 后台订单管理（列表 + 详情 + 发货 + 取消）
+- 后台弃单管理（列表 + 详情）
+- 后台支付管理（支付单 / 支付流水 / 对账管理）
+- 后台退款管理（退款申请 + 退款单）
+
+### 后续迭代
+
+| 功能 | 说明 |
+|------|------|
+| Discount Code / 优惠券 | 结算页增加优惠码输入框，对接促销模块 |
+| C 端退款申请 | 买家在订单详情页自助发起退款申请 |
+| 退货退款 | 支持收货后退货退款流程 |
+| 弃单管理规则 | 定义弃单超时时间、恢复邮件发送策略 |
+| 多卖家拆单展示 | 结算页和订单成功页按卖家分组展示 |
+| 修改物流信息 | 后台支持修改已填写的物流单号 |
+| 多币种支持 | 扩展欧洲市场时增加 EUR 等币种 |
+
+---
+
+## 八、附录
+
+### 设计稿索引
+
+#### C 端设计稿（Figma）
+
+**PC 端**（Figma 文件: Looply-v1.0，Section: 6.25-PC checkout全流程）：
+
+| 页面名称 | 说明 |
+|---------|------|
+| looply PC Checkout — 登录状态 | 已登录用户结算页 |
+| looply PC Checkout — 未登录状态 | 未登录用户结算页（完整表单） |
+| looply PC Checkout — 地址编辑弹窗 | 地址选择/新建弹窗（多个变体） |
+| looply PC Checkout — 自动联想填写 | 地址输入联想 |
+| looply PC Checkout — 地址编辑弹窗报错 | 地址表单校验报错 |
+| looply PC Checkout — 手机区号选择器 | Phone 区号下拉 |
+| looply PC Checkout — state选择器 | 州选择下拉 |
+| looply PC Checkout — 地址编辑弹窗-最大，中间滑动 | 地址列表长时滚动 |
+| looply PC Checkout — 未登录状态-登录 | Sign In 弹窗 |
+| looply PC Checkout — 验证-未输入 | 验证码弹窗-空 |
+| looply PC Checkout — 验证-输入 | 验证码弹窗-已输入 |
+| looply PC Checkout — 验证-报错 | 验证码弹窗-错误 |
+| looply PC Checkout — phone提示鼠标hover状态 | Phone 字段 hover 提示 |
+| looply PC Checkout — 安全码提示鼠标hover状态 | Security code hover 提示 |
+| looply PC Checkout — 选择器 | 支付方式展开状态 |
+| looply PC Checkout — 结算完成 | 订单成功页 |
+
+**APP 端**（Figma 文件: Looply-v1.0，Section: -- checkout）：
+
+| 页面名称 | 说明 |
+|---------|------|
+| checkout-首屏 | 已登录用户结算页 |
+| checkout-首次未登录进入 | 未登录用户结算页 |
+| checkout-地址修改 | 地址编辑 |
+| checkout-支付方式展开 | 支付方式展开状态 |
+| checkout-安全码提示 | Security code 提示 |
+| checkout-paypal/klarna/apple pay跳转说明 | 三方支付跳转说明 |
+| order confirmed-首屏 | 订单成功页（首屏） |
+| order confirmed-full | 订单成功页（完整） |
+| 弹窗-sign in | Sign In 弹窗 |
+| 弹窗-verify code | 验证码弹窗 |
+
+#### 后台原型
+
+| 文件 | 说明 |
+|------|------|
+| looply-订单管理后台原型-v5.html | 后台 8 个页面（订单管理、弃单管理、支付单管理、支付流水、对账管理、退款单管理） |
+
+#### 其他文档
+
+| 文件 | 说明 |
+|------|------|
+| looply-支付渠道对接集成说明文档-v1.0.html | 支付通道对接技术方案 |
+| looply-交易核心节点邮件通知方案-v1.0.html | 邮件模板设计和变量定义 |
+| looply-订单模块实体关系图-v8.0.svg | 数据模型设计（15 张表） |
+| looply-订单模块状态设计说明-v8.0.html | 状态枚举和流转规则 |
+| looply-下单流程-页面流程图-v1.0.html | C 端下单流程（6 个页面） |
