@@ -1396,9 +1396,11 @@ def update_prd_index_topbar():
         version = None
         with open(latest_md, 'r', encoding='utf-8') as f:
             for line in f.readlines()[:10]:
-                m = re.search(r'[版本]\s*[:：]\s*[vV]?([\d.]+)', line)
+                m = re.search(r'[版本]\*{0,2}\s*[:：]\s*[vV]?([\d.]+)', line)
                 if not m:
                     m = re.search(r'PRD\s+[vV]([\d.]+)', line)
+                if not m:
+                    m = re.search(r'[*]*版本[*]*\s*[:：]\s*[vV]?([\d.]+)', line)
                 if m:
                     version = m.group(1)
                     break
