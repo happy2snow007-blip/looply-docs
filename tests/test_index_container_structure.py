@@ -3,26 +3,37 @@ from pathlib import Path
 import unittest
 
 
+INDEX_PATH = Path(__file__).resolve().parents[1] / "index.html"
+
+
 class IndexStructureParser(HTMLParser):
     def __init__(self):
         super().__init__()
         self.stack = []
+        self.content_container_count = 0
         self.modules = []
-        self.footer_in_content = None
+        self.footers = []
 
     def handle_starttag(self, tag, attrs):
         attributes = dict(attrs)
         classes = set(attributes.get("class", "").split())
         in_content = any(
-            node["id"] == "content" and "container" in node["classes"]
+            node["is_content_container"]
             for node in self.stack
         )
+        is_content_container = (
+            tag == "div"
+            and attributes.get("id") == "content"
+            and "container" in classes
+        )
+        if is_content_container:
+            self.content_container_count += 1
         if tag == "div" and "module-section" in classes:
             self.modules.append((attributes.get("data-module"), in_content))
         if tag == "div" and "footer" in classes:
-            self.footer_in_content = in_content
+            self.footers.append(in_content)
         self.stack.append(
-            {"tag": tag, "id": attributes.get("id"), "classes": classes}
+            {"tag": tag, "is_content_container": is_content_container}
         )
 
     def handle_endtag(self, tag):
@@ -35,14 +46,17 @@ class IndexStructureParser(HTMLParser):
 class IndexContainerStructureTest(unittest.TestCase):
     def test_all_modules_share_the_content_container(self):
         parser = IndexStructureParser()
-        parser.feed(Path("index.html").read_text(encoding="utf-8"))
+        parser.feed(INDEX_PATH.read_text(encoding="utf-8"))
 
+        module_names = [name for name, _ in parser.modules]
         outside = [name for name, in_content in parser.modules if not in_content]
+        self.assertEqual(1, parser.content_container_count)
         self.assertEqual(
             [], outside, f"modules outside #content.container: {outside}"
         )
         self.assertEqual(20, len(parser.modules))
-        self.assertFalse(parser.footer_in_content)
+        self.assertEqual(20, len(set(module_names)))
+        self.assertEqual([False], parser.footers)
 
 
 if __name__ == "__main__":
