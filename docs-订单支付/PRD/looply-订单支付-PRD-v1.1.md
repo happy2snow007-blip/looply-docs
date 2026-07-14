@@ -1,4 +1,4 @@
-# looply 订单与支付模块 PRD v1.2
+# looply 订单与支付模块 PRD v1.1
 
 ## 一、概述
 
@@ -38,7 +38,7 @@ looply 是一个面向美国市场的二手电商平台，采用 B2C 模式（�
 
 1. **买家结算下单**：从商品详情页（Buy Now）或购物车进入结算页，填写收货地址、选择支付方式，完成支付
 2. **未登录用户结算**：未登录用户进入结算页，填写邮箱。若邮箱已注册则弹窗验证码登录；若未注册则直接结算，提交支付、下单时静默创建账户
-3. **下单与支付**：提交支付即创建整体订单 parent_order（pending_payment，暂不拆单）→ 展示结果页 → 支付到账后 parent_order 转 paid 并按商家拆子订单、发送确认邮件（含静默注册通知）
+3. **下单与支付**：提交支付即创建订单（pending_payment）→ 展示结果页 → 支付到账后转 paid、发送确认邮件（含静默注册通知）
 4. **运营发货**：后台填写物流单号确认发货 → 更新订单状态 → 发送发货通知邮件
 5. **退款处理**：运营在后台发起退款申请 → 审批通过 → 创建退款单 → 渠道退款 → 发送退款成功邮件
 6. **弃单恢复**：用户进入结算但未完成支付 → 系统发送弃单恢复邮件引导用户回来
@@ -72,7 +72,7 @@ looply 是一个面向美国市场的二手电商平台，采用 B2C 模式（�
 | 术语 | 说明 |
 |------|------|
 | 结算会话 | 用户进入结算页时创建的会话，记录结算过程中的商品、地址、金额等信息 |
-| 父订单 | 买家一次下单的整体订单，支付维度的最小单元，承载待付款状态。支付到账后按商家拆分为多个子订单 |
+| 父订单 | 买家一次下单的整体订单，支付维度的最小单元。按商家拆分为多个子订单 |
 | 订单（子订单） | 按商家维度拆分的订单，发货和退款的最小订单单元 |
 | 支付单 | 一次支付行为的记录，与父订单一一对应 |
 | 支付流水 | 每笔资金流动（收款或退款）的记录，对账的最小粒度 |
@@ -177,7 +177,7 @@ C 端页面静态文案（按钮文字、表单标签、提示语、错误提示
 
 **核心设计决策：**
 
-- **待付款在父订单层 · 支付后拆单**：为支持卡风控审核等异步到账场景，下单即创建整体订单 parent_order（起始 pending_payment）。**待付款期间只有父订单、不拆子订单**——买家一次下单在列表里只显一条、只需付一次款。支付到账后 parent_order 转 paid，此时才按商家拆出子订单 order（起始即 paid）。若下单即拆单，未支付时买家回列表会看到多条待付款、需付多次，体验割裂，故改为支付后拆单。进入结算页但未提交支付的阶段仍由结算会话（checkout_session）承载。一物一件商品在提交支付时锁定，超时（下单 + 1 自然日）未到账则关单释放
+- **订单从 Pending Payment 开始**：为支持卡风控审核等异步到账场景，提交支付即创建订单（起始 pending_payment），支付到账后转 paid。进入结算页但未提交支付的阶段仍由结算会话（checkout_session）承载。一物一件商品在提交支付时锁定，超时（下单 + 1 自然日）未到账则关单释放
 - **发货/退款不存在订单表**：order_item 是发货和退款维度的唯一事实源。订单列表需要「部分发货」筛选时，用 `GROUP BY order_id + HAVING` 从 order_item 实时聚合。0-1 阶段订单量小，聚合代价几乎为零；后续量大时可加物化视图或缓存字段，不改数据模型
 - **发货和退款用两个独立字段**：二者是独立维度，各自流转互不耦合。拆成两个字段后 fulfillment_status = shipped + refund_status = refunding 可以自然组合，单字段无法表达
 
@@ -190,7 +190,7 @@ C 端页面静态文案（按钮文字、表单标签、提示语、错误提示
 | 枚举值 | 中文 | 说明 |
 |--------|------|------|
 | pending | 待转化 | 用户在结算流程中（选地址、选配送、确认订单） |
-| converted | 已转化 | 已提交支付，已创建父订单 parent_order（pending_payment，子订单待到账后拆） |
+| converted | 已转化 | 已提交支付，已创建订单（pending_payment） |
 
 状态流转：pending → converted（提交支付）
 
@@ -198,28 +198,21 @@ C 端页面静态文案（按钮文字、表单标签、提示语、错误提示
 
 #### 2.2.2 订单核心层
 
-**parent_order.parent_status**（3 个值）— 父订单状态，承载待付款态：
+**parent_order — 无状态字段**
 
-父订单是「一次支付」的聚合层，也是待付款态的归属层：下单即创建父订单（起始 pending_payment），待付款期间只有父订单，支付到账后转 paid 并按商家拆子订单。v1.2 起父订单承载 parent_status（原设计无状态字段）。payment_deadline、paid_at、cancelled_at 均在父订单层；退款进度从 refund 表实时聚合。
+父订单是「一次支付」的聚合层：买家一次结算、一笔支付，按商家拆分为多个子订单。不设 payment_status 字段——父订单在提交支付时创建（此时订单为 pending_payment，到账后转 paid）；退款进度从 refund 表实时聚合，无需冗余状态。
 
-| 枚举值 | 中文 | 说明 |
-|--------|------|------|
-| pending_payment | 待付款 | 下单即创建父订单，等待支付到账（起始状态，尚未拆子订单） |
-| paid | 已支付 | 支付到账，转 paid 并按商家拆出子订单 order |
-| cancelled | 已取消 | 待付款失败/超时未到账取消（此时无子订单，无退款） |
-
-父订单流转：pending_payment → paid（到账拆单）；pending_payment → cancelled（失败/超时）
-
-**order.order_status**（4 个值）— 子订单生命周期维度（支付到账拆单后创建，起始即 paid）：
+**order.order_status**（4 个值）— 生命周期维度：
 
 | 枚举值 | 中文 | 说明 |
 |--------|------|------|
-| paid | 已付款 | 支付到账拆单后创建，订单待发货（起始状态） |
+| pending_payment | 待付款 | 提交支付即创建，等待支付到账（起始状态，卡风控审核场景） |
+| paid | 已付款 | 支付到账，订单待发货 |
 | shipped | 已发货 | 至少一个包裹已发出 |
 | completed | 交易完成 | 所有包裹签收，交易结清 |
-| cancelled | 已取消 | 已付款发货前取消（退款成功后才置） |
+| cancelled | 已取消 | 待付款失败/超时，或已付款发货前取消（伴随退款） |
 
-状态流转：paid → shipped → completed；paid → cancelled（发货前取消，退款成功后置）
+状态流转：pending_payment → paid → shipped → completed；pending_payment / paid → cancelled
 
 无 Delivered 状态：签收即完成。所有包裹签收直接触发 completed，签收记录保留在包裹层。
 
@@ -325,7 +318,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 状态流转：pending → processing → succeeded / failed；pending / processing → closed
 
-交互链路（渠道 → 支付单 → 订单）：用户点击「去支付」→ 创建支付单(pending) + parent_order(pending_payment) + 结算会话(converted)。提交付款 → 支付单(processing)。渠道回调成功 → 支付单(succeeded) → 联动 parent_order 转 paid 并按商家拆子订单 order(paid)。回调失败/超时 → 支付单(failed/closed) → 联动 parent_order 转 cancelled、释放库存（此时无子订单）。订单不直接与渠道交互。
+交互链路（渠道 → 支付单 → 订单）：用户点击「去支付」→ 创建支付单(pending) + order(pending_payment) + 结算会话(converted)。提交付款 → 支付单(processing)。渠道回调成功 → 支付单(succeeded) → 联动 order 转 paid。回调失败/超时 → 支付单(failed/closed) → 联动 order 转 cancelled、释放库存。订单不直接与渠道交互。
 
 **refund_order.status**（3 个值）：
 
@@ -372,7 +365,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 | 业务场景 | order_status | 商品 fulfillment 聚合 | 商品 refund 聚合 |
 |---------|-------------|---------------------|-----------------|
-| 提交支付，等待到账（风控审核中，仅父订单未拆单） | pending_payment (parent_status) | —（无子订单） | —（无子订单） |
+| 提交支付，等待到账（风控审核中） | pending_payment | 全部 pending | 全部 none |
 | 刚付款，待发货 | paid | 全部 pending | 全部 none |
 | 发了一个包裹，还有没发的 | shipped | 部分 shipped / 部分 pending | 全部 none |
 | 全部发出，等待签收 | shipped | 全部 shipped | 全部 none |
@@ -389,14 +382,13 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 | 规则 | 说明 |
 |------|------|
-| 父订单起始状态 | 下单即创建 parent_order，起始 parent_status = pending_payment（不拆子订单）；支付到账后转 paid | 
-| 支付后拆单 + 子订单起始 | parent_order 转 paid 时才按商家拆出子订单 order（起始 order_status = paid）；所有 order_item 初始 fulfillment_status = pending，refund_status = none |
-| paid 触发条件 | 渠道回调到账 → payment_order 转 succeeded → 联动 parent_order 从 pending_payment 转 paid 并拆子订单（订单不直接感知渠道） |
+| 订单起始状态 | 订单在提交支付时创建，起始 order_status = pending_payment；支付到账（payment_order = succeeded）后转 paid；所有 order_item 初始 fulfillment_status = pending，refund_status = none |
+| paid 触发条件 | 渠道回调到账 → payment_order 转 succeeded → 联动 order 从 pending_payment 转 paid（订单不直接感知渠道） |
 | 待付款超时/失败 | 超过 payment_deadline（下单 + 1 自然日，连续计时、周末不延后）未到账，或支付失败 → order 转 cancelled，同时关闭支付单为 closed，释放锁定库存 |
-| 库存锁定 | 提交支付即锁定一物一件商品（锁在父订单），pending_payment 期间不可被他人购买，转 cancelled 时释放 |
+| 库存锁定 | 提交支付即锁定一物一件商品，pending_payment 期间不可被他人购买，转 cancelled 时释放 |
 | shipped 触发条件 | 首个 order_item.fulfillment_status 变为 shipped 时，order_status 从 paid 变为 shipped |
 | completed 触发条件 | 所有 order_item.fulfillment_status 变为 received 时，order_status 变为 completed |
-| cancelled 约束 | 父订单 pending_payment 可因支付失败/超时取消；子订单 paid 且所有 order_item.fulfillment_status = pending 时可发货前取消（退款成功后才置 cancelled）。已发货不可取消 |
+| cancelled 约束 | pending_payment 可因支付失败/超时取消；paid 且所有 order_item.fulfillment_status = pending 时可发货前取消。已发货不可取消 |
 | 退款不改生命周期 | order_item.refund_status 变化不影响 order_status。completed 订单的所有商品 refunded 表示「完成后全退」 |
 | 退款阻断发货 | 退款审批通过后 order_item.refund_status 变为 refunding，该商品不得发货（发货时校验 refund_status = none） |
 
@@ -719,7 +711,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 #### 功能描述
 
-用户在结算页点击 "Buy Now" 后触发下单与支付处理：提交即创建整体订单 parent_order（pending_payment）并向支付通道发起收款，支付到账后 parent_order 转 paid 并按商家拆子订单。
+用户在结算页点击 "Buy Now" 后触发下单与支付处理：提交即创建订单（pending_payment）并向支付通道发起收款，支付到账后订单转 paid。
 
 > 本章节仅概述用户侧支付需求，详细支付与三方对接方案见：[looply-支付渠道对接集成说明文档-v1.0.html](/looply-支付渠道对接集成说明文档-v1.0.html)
 
@@ -767,8 +759,8 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 **下单处理（点击 Buy Now 时）：**
 
-1. 先锁定库存（一物一件），锁定成功才继续；锁定失败提示不可购买
-2. 创建整体订单 parent_order（起始 parent_status = pending_payment），**暂不拆子订单**；在父订单层快照商品明细和收货地址
+1. 创建父订单和子订单（按商家维度拆分），起始 order_status = pending_payment
+2. 创建订单商品明细（快照商品信息和价格）、快照收货地址、锁定库存
 3. 创建支付单(pending)，更新结算会话状态为"已转化"
 4. 如用户未注册，触发静默注册（见 3.3）
 5. 向支付通道发起支付
@@ -776,9 +768,9 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 **支付到账处理（Webhook 回调，渠道 → 支付单 → 订单）：**
 
 1. 支付通道通过 Webhook 回调通知支付结果
-2. 成功：支付单转"成功" → 联动 parent_order 从 pending_payment 转 paid → **此时才按商家拆出子订单 order（起始 paid）并生成子订单商品明细** → 发送支付成功确认邮件（见 5.2）
-3. 失败/超时：支付单转"失败/关闭" → 联动 parent_order 转 cancelled、释放库存（此时无子订单，无退款）→ 发送取消通知
-4. 同步渠道（卡未命中风控）到账极快，用户等结果后跳订单成功页；异步（风控审核中）parent_order 停在 pending_payment，跳「订单已提交」页（见 3.4）
+2. 成功：支付单转"成功" → 联动 order 从 pending_payment 转 paid → 发送支付成功确认邮件（见 5.2）
+3. 失败/超时：支付单转"失败/关闭" → 联动 order 转 cancelled、释放库存 → 发送取消通知
+4. 同步渠道（卡未命中风控）到账极快，用户等结果后跳订单成功页；异步（风控审核中）订单停在 pending_payment，跳「订单已提交」页（见 3.4）
 
 #### 支付通道矩阵
 
@@ -839,16 +831,16 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 #### 功能描述
 
-未注册用户以游客身份提交支付、下单创建父订单（pending_payment）时，系统使用结算邮箱自动创建 looply 账户，无需用户主动填写注册信息。账户在下单时创建以归属订单；用户通过邮件中的"设置密码"链接完成账户激活。
+未注册用户以游客身份提交支付、下单创建订单（pending_payment）时，系统使用结算邮箱自动创建 looply 账户，无需用户主动填写注册信息。账户在下单时创建以归属订单；用户通过邮件中的"设置密码"链接完成账户激活。
 
 #### 触发条件
 
 - 用户在结算页 Contact 区块填写的邮箱未关联任何 looply 账户
-- 提交支付、下单创建父订单（pending_payment）时触发
+- 提交支付、下单创建订单（pending_payment）时触发
 
 #### 处理流程
 
-1. 用户提交支付、创建父订单（pending_payment）
+1. 用户提交支付、创建订单（pending_payment）
 2. 系统检查结算邮箱是否已注册
 3. 未注册 → 使用该邮箱创建新账户
 4. 生成"设置密码"一次性 Token（72 小时有效）
@@ -880,14 +872,14 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 #### 功能描述
 
-下单后展示的结果页面。同步到账展示"Order Confirmed"；异步（卡风控审核中，parent_order = pending_payment）展示"Order Placed / We're processing your payment"变体，说明等待付款确认与预计结果时间，引导查看 My Orders。
+下单后展示的结果页面。同步到账展示"Order Confirmed"；异步（卡风控审核中，order = pending_payment）展示"Order Placed / We're processing your payment"变体，说明等待付款确认与预计结果时间，引导查看 My Orders。
 
 #### 前置条件
 
 - 订单已创建（下单成功）
 - 同步渠道到账 → 展示 "Order Confirmed"；异步（风控审核中）→ 展示 "Order Placed / Payment Processing" 变体
 
-> **待付款变体（parent_order = pending_payment）**：成功图标改为处理中样式，标题 "Order Placed"，主文案 "We're processing your payment. We'll confirm within 1 day."，展示订单号与订单摘要，CTA "View Order"；不显示 "Thank you for your purchase"。
+> **待付款变体（order = pending_payment）**：成功图标改为处理中样式，标题 "Order Placed"，主文案 "We're processing your payment. We'll confirm within 1 day."，展示订单号与订单摘要，CTA "View Order"；不显示 "Thank you for your purchase"。
 
 #### 页面布局
 
@@ -997,7 +989,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 | Tab | 说明 |
 |-----|------|
 | 全部 | 显示所有状态的订单，括号内显示总数 |
-| 待付款 | 仅显示待付款的父订单（parent_status = pending_payment，卡风控审核中，尚未拆子订单） |
+| 待付款 | 仅显示待付款订单（pending_payment，卡风控审核中） |
 | 已付款·待发货 | 仅显示已付款待发货订单 |
 | 已发货 | 仅显示已发货订单 |
 | 已完成 | 仅显示交易完成的订单 |
@@ -1021,7 +1013,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 | 状态 | 含义 | 触发时机 |
 |------|------|---------|
-| 待付款 (pending_payment) | 下单即创建父订单，等待到账（卡风控审核中，父订单层状态） | 下单（起始状态） |
+| 待付款 (pending_payment) | 提交支付即创建，等待到账（卡风控审核中） | 下单（起始状态） |
 | 已付款 (paid) | 支付到账，待发货 | 收到支付到账 Webhook，order 转 paid |
 | 已发货 (shipped) | 至少一个包裹已发出 | 运营确认发货，首个商品状态变为已发货 |
 | 交易完成 (completed) | 所有包裹签收 | 所有商品签收确认 |
@@ -1090,7 +1082,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 | 操作 | 前置条件 | 说明 |
 |------|---------|------|
 | 确认发货 | 订单状态 = 已付款，且存在待发货商品 | 弹窗填写物流单号和承运商，确认后更新商品发货状态，发送发货通知邮件 |
-| 取消订单 | 订单状态 = 已付款，且所有商品发货状态 = 待发货 | 弹窗确认取消原因，确认后自动创建全额退款申请（系统审批通过）→ 走退款流程 → **退款成功后订单状态才变为已取消**、释放库存 |
+| 取消订单 | 订单状态 = 已付款，且所有商品发货状态 = 待发货 | 弹窗确认取消原因，确认后订单状态变为已取消，自动创建全额退款 |
 
 **收货地址区域（两列布局）：**
 
@@ -1198,7 +1190,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 | 异常场景 | 处理方式 |
 |---------|---------|
 | 发货后物流单号填写错误 | 暂不支持修改，需联系技术处理（后续迭代支持修改物流信息） |
-| 取消订单时退款失败 | **订单不置为已取消**（保持已付款），退款单状态为失败并挂起人工处理，避免「已取消但未退款」的不一致；运营在退款单管理中跟进重试，退款成功后订单才转已取消 |
+| 取消订单时退款失败 | 订单状态仍变为已取消，退款单状态为失败，运营在退款单管理中跟进处理 |
 
 #### UI 关联
 
@@ -1386,7 +1378,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 | 支付单号 | 文本输入 | 模糊搜索 |
 | 关联订单号 | 文本输入 | 模糊搜索 |
 | 支付通道 | 下拉选择 | 全部通道 / Airwallex / PayPal |
-| 支付状态 | 下拉选择 | 全部状态 / 待支付 / 处理中 / 成功 / 失败 / 超时关闭 |
+| 支付状态 | 下拉选择 | 全部状态 / 待支付 / 成功 / 失败 / 超时关闭 |
 | 创建时间 | 日期范围选择 | 起止日期 |
 
 #### 列表字段
@@ -1433,11 +1425,10 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 | 状态 | 含义 | 触发时机 |
 |------|------|---------|
-| 待支付 (pending) | 用户在支付网关，尚未提交付款 | 用户点击下单，创建支付单 |
-| 处理中 (processing) | 已提交付款，等待异步结果（卡风控审核中） | 用户提交付款 |
+| 待支付 (pending) | 用户已发起支付，等待结果 | 用户点击下单，创建支付单 |
 | 成功 (succeeded) | 支付确认成功 | 收到渠道支付成功 Webhook |
 | 失败 (failed) | 支付被拒绝 | 收到渠道支付失败 Webhook（余额不足、风控拒绝等） |
-| 超时关闭 (closed) | 超时未完成或订单取消 | 支付单超过有效期系统自动关闭，或订单取消时关闭未完成支付单 |
+| 超时关闭 (closed) | 超时未完成 | 支付单超过有效期，系统自动关闭 |
 
 #### UI 关联
 
@@ -1786,7 +1777,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 #### 功能描述
 
-覆盖订单交易流程中的买家邮件通知，共 5 类：支付成功确认、订单已接收（仅异步场景）、订单发货通知、退款成功通知、弃单恢复。全部为 Transactional Email（交易类邮件），由系统事件自动触发，不受 CAN-SPAM 退订限制，但需在 Footer 标注发送原因。
+覆盖订单交易流程中 4 个节点的买家邮件通知。全部为 Transactional Email（交易类邮件），由系统事件自动触发，不受 CAN-SPAM 退订限制，但需在 Footer 标注发送原因。
 
 ### 5.1 通用结构
 
@@ -1847,7 +1838,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 ### 5.2b 订单已接收邮件（仅异步场景）
 
-**触发时机**：下单创建 parent_order(pending_payment) 且支付进入风控审核（异步）时。即时到账场景不发此邮件。
+**触发时机**：下单创建 order(pending_payment) 且支付进入风控审核（异步）时。即时到账场景不发此邮件。
 
 **Subject**：`We've received your order #{{orderNo}}`
 
@@ -2083,9 +2074,8 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 | checkout-支付方式展开 | 支付方式展开状态 |
 | checkout-安全码提示 | Security code 提示 |
 | checkout-paypal/klarna/apple pay跳转说明 | 三方支付跳转说明 |
-| order confirmed-首屏 | 订单成功页（首屏，同步到账 Order Confirmed） |
+| order confirmed-首屏 | 订单成功页（首屏） |
 | order confirmed-full | 订单成功页（完整） |
-| 订单已提交页（待付款变体）| ⚠️ 待补：异步风控场景 Order Placed / Payment Processing 变体（见 3.4），设计稿待补 |
 | 弹窗-sign in | Sign In 弹窗 |
 | 弹窗-verify code | 验证码弹窗 |
 
@@ -2104,11 +2094,3 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 | looply-订单模块实体关系图-v8.0.svg | 数据模型设计（15 张表） |
 | looply-订单模块状态设计说明-v8.0.html | 状态枚举和流转规则 |
 | looply-下单流程-页面流程图-v1.0.html | C 端下单流程（6 个页面） |
-
-## 九、版本记录
-
-| 版本 | 日期 | 主要变更 |
-|------|------|---------|
-| v1.0 | 2026-06 | 初版：订单与支付模块完整 PRD |
-| v1.1 | 2026-07-13 | 新增 pending_payment 待付款态、payment_order processing 中间态、待付款超时（1 自然日）、支付成功邮件即时/异步策略 |
-| v1.2 | 2026-07-14 | **支付后拆单**：待付款态上移到 parent_order 层（parent_status），下单只建父订单不拆单，支付到账后才按商家拆子订单 order（起始 paid），子订单移除 pending_payment；C 端待付款只显一条、付一次款。**取消时序修复**：已付款取消改为退款成功后才置 cancelled，退款失败订单保持已付款并挂人工，避免「已取消但未退款」 |
