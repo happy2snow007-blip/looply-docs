@@ -10,6 +10,7 @@ import os
 import re
 import sys
 from datetime import datetime
+from urllib.parse import quote
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -168,6 +169,35 @@ MODULES = {
             },
         },
     },
+    'order': {
+        'dir': 'docs-订单支付',
+        'config_key': 'order',
+        'artifacts': {
+            'prototype': {
+                'subdir': '原型',
+                'pattern': r'looply-订单管理后台原型-v(.+?)\.html',
+                'exclude': r'(backup|对比)',
+            },
+            'prd': {
+                'subdir': 'PRD',
+                # 精确匹配订单支付 PRD，避免误匹配"支付渠道对接集成说明文档"
+                'pattern': r'looply-订单支付-PRD-v(.+?)\.md',
+            },
+            'er': {
+                'subdir': '实体关系图',
+                # 只认 SVG 实体关系图，排除"状态设计说明"HTML
+                'pattern': r'looply-订单模块实体关系图-v(.+?)\.svg',
+            },
+            'flowchart': {
+                'subdir': '系统流程图',
+                'pattern': r'looply-订单支付系统流程图-v(.+?)\.svg',
+            },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'订单支付-交付开发 V(.+?)\.zip',
+            },
+        },
+    },
     'login': {
         'dir': 'docs',
         'config_key': None,
@@ -275,14 +305,16 @@ def update_prototype_config(latest_prototypes):
         if path:
             current[key] = path
 
-    # 固定顺序输出
-    key_order = ['product', 'market', 'inventory', 'translation', 'exchange', 'user', 'pdp']
+    # 输出顺序：优先按已知模块排序，其余 key 追加在后（避免丢失 config 中已有条目）
+    preferred_order = ['product', 'market', 'inventory', 'translation', 'exchange',
+                       'user', 'pdp', 'order']
+    ordered_keys = [k for k in preferred_order if k in current]
+    ordered_keys += [k for k in current if k not in preferred_order]
     lines = []
-    max_key_len = max(len(k) for k in key_order if k in current)
-    for key in key_order:
-        if key in current:
-            padding = ' ' * (max_key_len - len(key) + 1)
-            lines.append(f"  '{key}':{padding}'{current[key]}'")
+    max_key_len = max(len(k) for k in current)
+    for key in ordered_keys:
+        padding = ' ' * (max_key_len - len(key) + 1)
+        lines.append(f"  '{key}':{padding}'{current[key]}'")
 
     output = """/**
  * Looply 后台原型路径配置（单一数据源）
@@ -472,10 +504,11 @@ def update_index_html(updates, all_versions, all_history=None):
                         mod_dir = hist_info['dir']
                         subdir = hist_info['subdir']
                         file_pattern = hist_info.get('file_pattern', '')
+                        enc_dir = quote(mod_dir)
                         if subdir == '.':
-                            href_prefix = f'{mod_dir}/'
+                            href_prefix = f'{enc_dir}/'
                         else:
-                            href_prefix = f'{mod_dir}/{subdir}/'
+                            href_prefix = f'{enc_dir}/{subdir}/'
                         if href_prefix not in lookback:
                             continue
                         if subdir == '.':
@@ -495,10 +528,11 @@ def update_index_html(updates, all_versions, all_history=None):
                 subdir = hist_info['subdir']
                 history = hist_info['history']
                 art_type = hist_info['art_type']
+                enc_dir = quote(mod_dir)
                 if subdir == '.':
-                    href_prefix = f'{mod_dir}/'
+                    href_prefix = f'{enc_dir}/'
                 else:
-                    href_prefix = f'{mod_dir}/{subdir}/'
+                    href_prefix = f'{enc_dir}/{subdir}/'
 
                 ver_prefix, link_attr, link_label = HISTORY_ITEM_FMT.get(art_type, ('v', 'download', '下载'))
 
@@ -623,10 +657,13 @@ def main():
                 latest_prototypes[config_key] = rel_path
 
             # 构建 index.html 更新规则
+            # index.html 中 href 的目录名部分是 URL 编码的（如 docs-%E8%AE%A2...），
+            # 子目录与文件名部分未编码。这里对目录名做同样编码以保证匹配成功。
+            enc_dir = quote(module_dir)
             if subdir == '.':
-                href_dir = f'{module_dir}/'
+                href_dir = f'{enc_dir}/'
             else:
-                href_dir = f'{module_dir}/{subdir}/'
+                href_dir = f'{enc_dir}/{subdir}/'
 
             index_updates.append({
                 'href_dir': href_dir,
