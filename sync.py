@@ -473,6 +473,28 @@ MODULES = {
             },
         },
     },
+    'favourites_history': {
+        'name': '收藏与浏览历史',
+        'default_source': '$HOME/Desktop/个人中心',
+        'target': 'docs-收藏与浏览历史',
+        'keywords': ['收藏与浏览历史', '收藏', '浏览历史', 'wishlist', 'recently viewed'],
+        # 当前前端原型以 Figma 为单一最新入口，不从本地 HTML 自动选版。
+        'config_key': None,
+        'artifacts': {
+            'prd': {
+                'subdir': 'PRD',
+                'pattern': r'looply-收藏与浏览历史-PRD-v(.+?)\.md',
+            },
+            'er': {
+                'subdir': '实体关系图',
+                'pattern': r'looply-收藏与浏览历史实体关系图-v(.+?)\.svg',
+            },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'收藏与浏览历史-交付开发 V(.+?)\.zip',
+            },
+        },
+    },
     'collection': {
         'name': 'Collection管理',
         'default_source': '$HOME/Desktop/Collection管理',

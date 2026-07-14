@@ -1,0 +1,886 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2218pt" height="1577pt" viewBox="0.00 0.00 2218.00 1577.00">
+<metadata><er-schema format="json" version="1.0">
+{
+  "title": "looply · 收藏与浏览历史 实体关系图",
+  "version": "v1.3 · 2026-07-13",
+  "tables": [
+    {
+      "name": "anonymous_identity",
+      "comment": "匿名身份生命周期",
+      "columns": [
+        {
+          "name": "anonymous_id",
+          "comment": "匿名身份ID",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "platform",
+          "comment": "载体(web/ios/android)",
+          "constraint": ""
+        },
+        {
+          "name": "issued_at",
+          "comment": "首次签发时间",
+          "constraint": ""
+        },
+        {
+          "name": "expires_at",
+          "comment": "固定到期时间(issued_at+12个月)",
+          "constraint": ""
+        },
+        {
+          "name": "last_seen_at",
+          "comment": "最近有效请求时间(仅观察,不续期)",
+          "constraint": ""
+        },
+        {
+          "name": "status",
+          "comment": "状态(active/expired/revoked)",
+          "constraint": ""
+        },
+        {
+          "name": "revoked_at",
+          "comment": "全局隐私删除/后台撤销时间(可空)",
+          "constraint": ""
+        }
+      ],
+      "note": "设备/浏览器级假名标识 · Web/APP首次生成后固定12个月 · 所有访问和操作不续期 · 不做设备指纹或跨卸载恢复"
+    },
+    {
+      "name": "favorite",
+      "comment": "收藏",
+      "columns": [
+        {
+          "name": "favorite_id",
+          "comment": "收藏ID",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "user_id",
+          "comment": "账户ID(用户行,可空)",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "anonymous_id",
+          "comment": "设备/浏览器假名ID(匿名行,可空)",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "listing_id",
+          "comment": "渠道商品(收藏对象)",
+          "constraint": "FOREIGN KEY, UNIQUE"
+        },
+        {
+          "name": "price_at_save",
+          "comment": "收藏时价格快照(降价基准)",
+          "constraint": ""
+        },
+        {
+          "name": "is_active",
+          "comment": "是否有效(取消收藏=false软删)",
+          "constraint": ""
+        },
+        {
+          "name": "created_at",
+          "comment": "收藏时间(排序用)",
+          "constraint": ""
+        },
+        {
+          "name": "merged_from_anonymous_id",
+          "comment": "溯源:由哪台匿名设备复制上移而来(原生登录态创建=NULL,可空)",
+          "constraint": ""
+        },
+        {
+          "name": "merged_at",
+          "comment": "溯源:复制上移时间(原生创建=NULL,可空)",
+          "constraint": ""
+        }
+      ],
+      "note": "双行分离:匿名行(anonymous_id)/用户行(user_id)各一,XOR单主体 · 登录复制上移(不删匿名原件) · 分域唯一(user_id+listing / anonymous_id+listing,含软删行) · 软删除"
+    },
+    {
+      "name": "browsing_history",
+      "comment": "浏览历史",
+      "columns": [
+        {
+          "name": "history_id",
+          "comment": "浏览记录ID",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "user_id",
+          "comment": "账户ID(用户行,可空)",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "anonymous_id",
+          "comment": "设备/浏览器假名ID(匿名行,可空)",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "listing_id",
+          "comment": "渠道商品(浏览对象)",
+          "constraint": "FOREIGN KEY, UNIQUE"
+        },
+        {
+          "name": "price_at_first_view",
+          "comment": "首次浏览价格快照(降价基准,再次浏览不更新)",
+          "constraint": ""
+        },
+        {
+          "name": "viewed_at",
+          "comment": "最近浏览时间(再次浏览即更新)",
+          "constraint": ""
+        },
+        {
+          "name": "merged_from_anonymous_id",
+          "comment": "溯源:由哪台匿名设备复制上移而来(原生登录态创建=NULL,可空)",
+          "constraint": ""
+        },
+        {
+          "name": "merged_at",
+          "comment": "溯源:复制上移时间(原生创建=NULL,可空)",
+          "constraint": ""
+        }
+      ],
+      "note": "双行分离:匿名行/用户行各一,XOR单主体 · 登录复制上移 · 分域唯一(主体+listing)去重,同件只留最近 · 首次浏览记价格快照(降价基准),再次浏览只更viewed_at不改快照 · 本期不限容量(二期再评估淘汰)"
+    },
+    {
+      "name": "anonymous_merge_log",
+      "comment": "匿名记录合并日志",
+      "columns": [
+        {
+          "name": "merge_id",
+          "comment": "合并日志ID",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "anonymous_id",
+          "comment": "被合并的设备/浏览器假名ID(来源)",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "user_id",
+          "comment": "合并目标账户ID",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "trigger_type",
+          "comment": "触发时机(login/register/oauth)",
+          "constraint": ""
+        },
+        {
+          "name": "favorite_merged_count",
+          "comment": "本次实际复制收藏条数(跳过重复不计)",
+          "constraint": ""
+        },
+        {
+          "name": "history_merged_count",
+          "comment": "本次实际复制浏览记录条数",
+          "constraint": ""
+        },
+        {
+          "name": "merged_at",
+          "comment": "合并发生时间戳",
+          "constraint": ""
+        }
+      ],
+      "note": "登录复制上移时记录一条:何时/把哪个anonymous_id的哪些数据/合并到哪个user_id · append-only只增不改,不入业务读写路径 · _merged_count仅计实际新增(ON CONFLICT跳过的不计) · 同(anon,user)可多次合并各记一条 · 供审计/幂等排查/转化分析,DSAR随user_id处理"
+    },
+    {
+      "name": "user",
+      "comment": "账户(用户中心)",
+      "columns": [
+        {
+          "name": "user_id",
+          "comment": "账户ID",
+          "constraint": "PRIMARY KEY"
+        }
+      ],
+      "note": "用户中心拥有 · 本模块只读引用主键"
+    },
+    {
+      "name": "listing",
+      "comment": "渠道商品(商品系统)",
+      "columns": [
+        {
+          "name": "listing_id",
+          "comment": "渠道商品ID",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "product_id",
+          "comment": "实物商品(一物一码)",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "price",
+          "comment": "现价(降价比对用,实时读)",
+          "constraint": ""
+        },
+        {
+          "name": "listing_status",
+          "comment": "渠道状态(在售/下架/售出)",
+          "constraint": ""
+        }
+      ],
+      "note": "商品系统拥有(ER v1.9) · 收藏/浏览锚定在listing渠道层,非实物product · 现价/状态实时读"
+    }
+  ],
+  "relations": [
+    {
+      "from": "favorite",
+      "to": "anonymous_identity",
+      "type": "N:1",
+      "label": "anonymous_id 可空(未登录态)",
+      "color": "#546E7A",
+      "penwidth": 1.4
+    },
+    {
+      "from": "browsing_history",
+      "to": "anonymous_identity",
+      "type": "N:1",
+      "label": "anonymous_id 可空(未登录态)",
+      "color": "#546E7A",
+      "penwidth": 1.4
+    },
+    {
+      "from": "anonymous_merge_log",
+      "to": "anonymous_identity",
+      "type": "N:1",
+      "label": "合并来源匿名身份",
+      "color": "#546E7A",
+      "penwidth": 1.4
+    },
+    {
+      "from": "favorite",
+      "to": "user",
+      "type": "N:1",
+      "label": "user_id 可空(登录态)",
+      "color": "#1565C0",
+      "penwidth": 1.4
+    },
+    {
+      "from": "favorite",
+      "to": "listing",
+      "type": "N:1",
+      "label": "收藏对象",
+      "color": "#1565C0",
+      "penwidth": 1.4
+    },
+    {
+      "from": "browsing_history",
+      "to": "user",
+      "type": "N:1",
+      "label": "user_id 可空(登录态)",
+      "color": "#1565C0",
+      "penwidth": 1.4
+    },
+    {
+      "from": "browsing_history",
+      "to": "listing",
+      "type": "N:1",
+      "label": "浏览对象",
+      "color": "#1565C0",
+      "penwidth": 1.4
+    },
+    {
+      "from": "anonymous_merge_log",
+      "to": "user",
+      "type": "N:1",
+      "label": "合并目标账户",
+      "color": "#546E7A",
+      "penwidth": 1.4
+    }
+  ],
+  "design_rules": {
+    "anonymous_id生命周期": "anonymous_identity 管理设备/浏览器级假名标识。首次需要匿名收藏或浏览历史能力时生成，issued_at为首次签发时间，expires_at固定为issued_at+12个月。普通访问、商品浏览、收藏、打开列表、登录/注册/授权及登录复制均不更新expires_at。ID缺失、不存在、expired或revoked时生成新ID，旧匿名收藏/浏览历史不自动继承，不通过设备指纹或客户端备份找回。",
+    "anonymous_identity状态机": "status完整枚举：active=首次生成且当前时间早于expires_at；达到expires_at进入expired终态；全局隐私删除编排或后台安全机制撤销该ID时进入revoked终态并记录revoked_at。expired/revoked均不复活，后续使用匿名能力时生成新ID。last_seen_at仅供数据观察，不参与续期。",
+    "分端存储": "Web由服务端设置第一方Cookie(Max-Age=31536000,Secure,HttpOnly,SameSite=Lax,Path=/)，前端JS不读写，不用localStorage双写恢复；浏览器可能提前清理。iOS/Android使用安装级高随机ID和APP私有存储，服务端同样校验固定12个月；卸载或清APP数据后换新，不用IDFA/广告ID/硬件标识/Keychain跨卸载恢复。",
+    "双行分离模型": "favorite / browsing_history 每行主体二选一：user_id 与 anonymous_id 必须且只能一个非空（保留 XOR CHECK）。匿名行(anonymous_id非空)与用户行(user_id非空)物理分离，同一 listing 可同时存在两条（复制上移产生），互不污染。登录态按 user_id 读写用户行，登出态按 anonymous_id 读写匿名行。",
+    "分域唯一约束": "替代原单一(主体,listing_id)唯一，改为两个分域唯一索引：UNIQUE(user_id,listing_id) WHERE user_id IS NOT NULL；UNIQUE(anonymous_id,listing_id) WHERE anonymous_id IS NOT NULL。唯一约束覆盖软删行(含is_active=false)，是防“取消后复制复活”的关键。",
+    "登录后复制上移": "首次获得登录态(登录/注册/第三方授权,任一拿到user_id)且当前anonymous_id存在、status=active、未到期时触发：取该ID匿名记录，复制一份到user_id名下，匿名原件保留不删。过期、撤销、不存在的ID不复制。复制用 INSERT...ON CONFLICT(user_id,listing_id) DO NOTHING 防复活(用户域已存在该listing则不再复制)。首次复制撞取舍：收藏保留较早price_at_save，浏览取较晚viewed_at但price_at_first_view保留较早。复制不更新expires_at，用户域数据不因来源ID后续失效而删除。不建anonymous_id↔user_id持久映射，登录后读取纯按user_id与anon解耦。",
+    "跨设备与登出可见": "①跨设备可见：匿名数据被复制进用户域后跟user_id走，换设备登录(按user_id读)可见——前提是数据所在设备登录过一次。②登出仍可见：匿名原件不删，登出态按anonymous_id读仍在。③共享设备隔离存在残留：同设备下一个登出态用户按anonymous_id会读到上一用户的匿名行，本期接受(个人设备为主)，二期可加“登出轮换anonymous_id”治理。纯匿名且从未登录的数据不可跨设备找回(无设备指纹方案)。",
+    "取消与删除语义": "favorite：登录态按user_id+listing_id软删用户行，登出态按anonymous_id+listing_id软删匿名行。browsing_history：单条删除与Clear All均物理删除；未登录Clear All删除当前anonymous_id域，登录Clear All同时删除当前user_id域与当前设备anonymous_id域，避免登出后已清除历史重新出现。",
+    "容量策略": "美国MVP的browsing_history暂不限制条数与行级留存时长，列表靠分页加载承载长度；该规则不代表永久无限留存。观察主体条数分位数、日增量、存储增长、查询延迟和Clear All删除性能，进入其他市场或首批anonymous_id到期前重新评估容量/留存与孤儿数据清理。",
+    "全局隐私删除": "本模块MVP不新增“本设备数据重置”前台入口。全局隐私删除编排明确传入anonymous_id或后台安全机制撤销该ID时，将anonymous_identity置为revoked并记录revoked_at；该ID后续不再接受，匿名业务数据按全局删除策略处理。",
+    "删除语义(软删/物删分治)": "favorite 取消收藏=is_active置false软删,不物删,保留DSAR追溯与复制幂等;唯一约束覆盖软删行以防复活(登录态取消再登录不复制回来)。browsing_history 单条删除与Clear All=物理删除,与收藏软删相反:①浏览历史写入去重同靠分域唯一约束,若软删+约束覆盖软删行则清除过的商品再浏览也写不回,反直觉;物删后无残留行可正常重新累积。②隐私清除物删更彻底(CCPA/CPRA与DSAR交代更干净)。物理清理留存期由全局数据合规策略统一约束。",
+    "降价判定不落库": "收藏列表「降价高亮」实时比对 price_at_save 与 listing.price；浏览历史「降价高亮」实时比对 price_at_first_view 与 listing.price。均为打开列表时的展示态计算，不落库、不轮询。主动降价提醒的事件源在商品/促销模块（价格 owner），订阅模块消费，本模块本期不产生对外事件。",
+    "浏览历史价格快照": "browsing_history 首次写入时记录 price_at_first_view(首次浏览价);再次浏览同一 listing 只更新 viewed_at 至最近时间,price_at_first_view 保持首次不变(区别于 viewed_at 每次刷新)。作为浏览历史「相对第一次浏览价」的降价判断基准,口径与收藏 price_at_save 对称。",
+    "合并日志": "anonymous_merge_log 记录每次登录复制上移:anonymous_id(来源)/user_id(目标)/trigger_type(login/register/oauth)/favorite_merged_count/history_merged_count/merged_at。同一请求内尽力写入,_merged_count仅计实际新增(ON CONFLICT DO NOTHING跳过的重复项不计,0表示无新数据或已全部认领过)。append-only只增不改,不参与业务读写路径。同(anonymous_id,user_id)可多次合并各记一条,靠merged_at区分。用途:审计追溯/幂等排查/转化分析。复制是登录主流程；日志失败不回滚复制结果、不阻断登录，但必须告警并进入重试/补偿。",
+    "商品级溯源": "合并日志只记事件与条数(搬了几条),不存被搬商品的id列表(避免冗余/单行膨胀/职责错位)。要精确到\"某一件收藏/浏览记录从哪台设备哪次合并而来\",溯源信息跟随业务行:favorite/browsing_history 各加 merged_from_anonymous_id(来源匿名设备)+merged_at(复制时间),二者随复制上移写入用户行;原生登录态直接创建的行两列均为NULL。溯源信息随行走,天然一物一码,不与日志重复。DSAR删user_id时随用户行一并删除。与日志分工:日志答\"这个账户被合并过几次、每次几条\",行级溯源答\"这一件具体从哪来\"。",
+    "DSAR边界": "删除 user_id 时删用户域记录；匿名域记录因物理分离不被连带删除(除非按设备anonymous_id单独清理)。隐私合规说明须写明用户域与匿名域分别删除。合并日志anonymous_merge_log含user_id与anonymous_id关联,DSAR删除user_id时该用户相关日志一并处理(删除或匿名化,按全局DSAR策略)。",
+    "锚定层级": "收藏/浏览锚定渠道商品 listing（listing_id，用户前台可见可下单单元），非实物 product、非 SPU/SKU。一物一码下卖掉即永久消失，失效态(已售出/已下架)是常态，前台统一展示为 Sold Out。"
+  }
+}
+</er-schema><er-tech-spec format="yaml"><![CDATA[
+title: looply · 收藏与浏览历史 实体关系图
+version: v1.3 · 2026-07-13
+tables:
+- name: anonymous_identity
+  comment: 匿名身份生命周期
+  note: 设备/浏览器级假名标识 · Web/APP首次生成后固定12个月 · 所有访问和操作不续期 · 不做设备指纹或跨卸载恢复
+  columns:
+  - name: anonymous_id
+    comment: 匿名身份ID
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: platform
+    comment: 载体(web/ios/android)
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: issued_at
+    comment: 首次签发时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: expires_at
+    comment: 固定到期时间(issued_at+12个月)
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: last_seen_at
+    comment: 最近有效请求时间(仅观察,不续期)
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: status
+    comment: 状态(active/expired/revoked)
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: revoked_at
+    comment: 全局隐私删除/后台撤销时间(可空)
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: favorite
+  comment: 收藏
+  note: 双行分离:匿名行(anonymous_id)/用户行(user_id)各一,XOR单主体 · 登录复制上移(不删匿名原件) · 分域唯一(user_id+listing / anonymous_id+listing,含软删行)
+    · 软删除
+  columns:
+  - name: favorite_id
+    comment: 收藏ID
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: user_id
+    comment: 账户ID(用户行,可空)
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: anonymous_id
+    comment: 设备/浏览器假名ID(匿名行,可空)
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: listing_id
+    comment: 渠道商品(收藏对象)
+    constraint: FOREIGN KEY, UNIQUE
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: price_at_save
+    comment: 收藏时价格快照(降价基准)
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: is_active
+    comment: 是否有效(取消收藏=false软删)
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: created_at
+    comment: 收藏时间(排序用)
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: merged_from_anonymous_id
+    comment: 溯源:由哪台匿名设备复制上移而来(原生登录态创建=NULL,可空)
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: merged_at
+    comment: 溯源:复制上移时间(原生创建=NULL,可空)
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: browsing_history
+  comment: 浏览历史
+  note: 双行分离:匿名行/用户行各一,XOR单主体 · 登录复制上移 · 分域唯一(主体+listing)去重,同件只留最近 · 首次浏览记价格快照(降价基准),再次浏览只更viewed_at不改快照 · 本期不限容量(二期再评估淘汰)
+  columns:
+  - name: history_id
+    comment: 浏览记录ID
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: user_id
+    comment: 账户ID(用户行,可空)
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: anonymous_id
+    comment: 设备/浏览器假名ID(匿名行,可空)
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: listing_id
+    comment: 渠道商品(浏览对象)
+    constraint: FOREIGN KEY, UNIQUE
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: price_at_first_view
+    comment: 首次浏览价格快照(降价基准,再次浏览不更新)
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: viewed_at
+    comment: 最近浏览时间(再次浏览即更新)
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: merged_from_anonymous_id
+    comment: 溯源:由哪台匿名设备复制上移而来(原生登录态创建=NULL,可空)
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: merged_at
+    comment: 溯源:复制上移时间(原生创建=NULL,可空)
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: anonymous_merge_log
+  comment: 匿名记录合并日志
+  note: 登录复制上移时记录一条:何时/把哪个anonymous_id的哪些数据/合并到哪个user_id · append-only只增不改,不入业务读写路径 · _merged_count仅计实际新增(ON CONFLICT跳过的不计)
+    · 同(anon,user)可多次合并各记一条 · 供审计/幂等排查/转化分析,DSAR随user_id处理
+  columns:
+  - name: merge_id
+    comment: 合并日志ID
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: anonymous_id
+    comment: 被合并的设备/浏览器假名ID(来源)
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: user_id
+    comment: 合并目标账户ID
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: trigger_type
+    comment: 触发时机(login/register/oauth)
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: favorite_merged_count
+    comment: 本次实际复制收藏条数(跳过重复不计)
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: history_merged_count
+    comment: 本次实际复制浏览记录条数
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: merged_at
+    comment: 合并发生时间戳
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: user
+  comment: 账户(用户中心)
+  note: 用户中心拥有 · 本模块只读引用主键
+  columns:
+  - name: user_id
+    comment: 账户ID
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: listing
+  comment: 渠道商品(商品系统)
+  note: 商品系统拥有(ER v1.9) · 收藏/浏览锚定在listing渠道层,非实物product · 现价/状态实时读
+  columns:
+  - name: listing_id
+    comment: 渠道商品ID
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: product_id
+    comment: 实物商品(一物一码)
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: price
+    comment: 现价(降价比对用,实时读)
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: listing_status
+    comment: 渠道状态(在售/下架/售出)
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+relations:
+- from: favorite
+  to: anonymous_identity
+  type: N:1
+  label: anonymous_id 可空(未登录态)
+  color: '#546E7A'
+  penwidth: 1.4
+- from: browsing_history
+  to: anonymous_identity
+  type: N:1
+  label: anonymous_id 可空(未登录态)
+  color: '#546E7A'
+  penwidth: 1.4
+- from: anonymous_merge_log
+  to: anonymous_identity
+  type: N:1
+  label: 合并来源匿名身份
+  color: '#546E7A'
+  penwidth: 1.4
+- from: favorite
+  to: user
+  type: N:1
+  label: user_id 可空(登录态)
+  color: '#1565C0'
+  penwidth: 1.4
+- from: favorite
+  to: listing
+  type: N:1
+  label: 收藏对象
+  color: '#1565C0'
+  penwidth: 1.4
+- from: browsing_history
+  to: user
+  type: N:1
+  label: user_id 可空(登录态)
+  color: '#1565C0'
+  penwidth: 1.4
+- from: browsing_history
+  to: listing
+  type: N:1
+  label: 浏览对象
+  color: '#1565C0'
+  penwidth: 1.4
+- from: anonymous_merge_log
+  to: user
+  type: N:1
+  label: 合并目标账户
+  color: '#546E7A'
+  penwidth: 1.4
+design_rules:
+  anonymous_id生命周期: anonymous_identity 管理设备/浏览器级假名标识。首次需要匿名收藏或浏览历史能力时生成，issued_at为首次签发时间，expires_at固定为issued_at+12个月。普通访问、商品浏览、收藏、打开列表、登录/注册/授权及登录复制均不更新expires_at。ID缺失、不存在、expired或revoked时生成新ID，旧匿名收藏/浏览历史不自动继承，不通过设备指纹或客户端备份找回。
+  anonymous_identity状态机: status完整枚举：active=首次生成且当前时间早于expires_at；达到expires_at进入expired终态；全局隐私删除编排或后台安全机制撤销该ID时进入revoked终态并记录revoked_at。expired/revoked均不复活，后续使用匿名能力时生成新ID。last_seen_at仅供数据观察，不参与续期。
+  分端存储: Web由服务端设置第一方Cookie(Max-Age=31536000,Secure,HttpOnly,SameSite=Lax,Path=/)，前端JS不读写，不用localStorage双写恢复；浏览器可能提前清理。iOS/Android使用安装级高随机ID和APP私有存储，服务端同样校验固定12个月；卸载或清APP数据后换新，不用IDFA/广告ID/硬件标识/Keychain跨卸载恢复。
+  双行分离模型: favorite / browsing_history 每行主体二选一：user_id 与 anonymous_id 必须且只能一个非空（保留 XOR CHECK）。匿名行(anonymous_id非空)与用户行(user_id非空)物理分离，同一
+    listing 可同时存在两条（复制上移产生），互不污染。登录态按 user_id 读写用户行，登出态按 anonymous_id 读写匿名行。
+  分域唯一约束: 替代原单一(主体,listing_id)唯一，改为两个分域唯一索引：UNIQUE(user_id,listing_id) WHERE user_id IS NOT NULL；UNIQUE(anonymous_id,listing_id)
+    WHERE anonymous_id IS NOT NULL。唯一约束覆盖软删行(含is_active=false)，是防“取消后复制复活”的关键。
+  登录后复制上移: 首次获得登录态(登录/注册/第三方授权,任一拿到user_id)且当前anonymous_id存在、status=active、未到期时触发：取该ID匿名记录，复制一份到user_id名下，匿名原件保留不删。过期、撤销、不存在的ID不复制。复制用
+    INSERT...ON CONFLICT(user_id,listing_id) DO NOTHING 防复活(用户域已存在该listing则不再复制)。首次复制撞取舍：收藏保留较早price_at_save，浏览取较晚viewed_at但price_at_first_view保留较早。复制不更新expires_at，用户域数据不因来源ID后续失效而删除。不建anonymous_id↔user_id持久映射，登录后读取纯按user_id与anon解耦。
+  跨设备与登出可见: ①跨设备可见：匿名数据被复制进用户域后跟user_id走，换设备登录(按user_id读)可见——前提是数据所在设备登录过一次。②登出仍可见：匿名原件不删，登出态按anonymous_id读仍在。③共享设备隔离存在残留：同设备下一个登出态用户按anonymous_id会读到上一用户的匿名行，本期接受(个人设备为主)，二期可加“登出轮换anonymous_id”治理。纯匿名且从未登录的数据不可跨设备找回(无设备指纹方案)。
+  取消与删除语义: favorite：登录态按user_id+listing_id软删用户行，登出态按anonymous_id+listing_id软删匿名行。browsing_history：单条删除与Clear All均物理删除；未登录Clear
+    All删除当前anonymous_id域，登录Clear All同时删除当前user_id域与当前设备anonymous_id域，避免登出后已清除历史重新出现。
+  容量策略: 美国MVP的browsing_history暂不限制条数与行级留存时长，列表靠分页加载承载长度；该规则不代表永久无限留存。观察主体条数分位数、日增量、存储增长、查询延迟和Clear All删除性能，进入其他市场或首批anonymous_id到期前重新评估容量/留存与孤儿数据清理。
+  全局隐私删除: 本模块MVP不新增“本设备数据重置”前台入口。全局隐私删除编排明确传入anonymous_id或后台安全机制撤销该ID时，将anonymous_identity置为revoked并记录revoked_at；该ID后续不再接受，匿名业务数据按全局删除策略处理。
+  删除语义(软删/物删分治): favorite 取消收藏=is_active置false软删,不物删,保留DSAR追溯与复制幂等;唯一约束覆盖软删行以防复活(登录态取消再登录不复制回来)。browsing_history 单条删除与Clear
+    All=物理删除,与收藏软删相反:①浏览历史写入去重同靠分域唯一约束,若软删+约束覆盖软删行则清除过的商品再浏览也写不回,反直觉;物删后无残留行可正常重新累积。②隐私清除物删更彻底(CCPA/CPRA与DSAR交代更干净)。物理清理留存期由全局数据合规策略统一约束。
+  降价判定不落库: 收藏列表「降价高亮」实时比对 price_at_save 与 listing.price；浏览历史「降价高亮」实时比对 price_at_first_view 与 listing.price。均为打开列表时的展示态计算，不落库、不轮询。主动降价提醒的事件源在商品/促销模块（价格
+    owner），订阅模块消费，本模块本期不产生对外事件。
+  浏览历史价格快照: browsing_history 首次写入时记录 price_at_first_view(首次浏览价);再次浏览同一 listing 只更新 viewed_at 至最近时间,price_at_first_view 保持首次不变(区别于
+    viewed_at 每次刷新)。作为浏览历史「相对第一次浏览价」的降价判断基准,口径与收藏 price_at_save 对称。
+  合并日志: anonymous_merge_log 记录每次登录复制上移:anonymous_id(来源)/user_id(目标)/trigger_type(login/register/oauth)/favorite_merged_count/history_merged_count/merged_at。同一请求内尽力写入,_merged_count仅计实际新增(ON
+    CONFLICT DO NOTHING跳过的重复项不计,0表示无新数据或已全部认领过)。append-only只增不改,不参与业务读写路径。同(anonymous_id,user_id)可多次合并各记一条,靠merged_at区分。用途:审计追溯/幂等排查/转化分析。复制是登录主流程；日志失败不回滚复制结果、不阻断登录，但必须告警并进入重试/补偿。
+  商品级溯源: 合并日志只记事件与条数(搬了几条),不存被搬商品的id列表(避免冗余/单行膨胀/职责错位)。要精确到"某一件收藏/浏览记录从哪台设备哪次合并而来",溯源信息跟随业务行:favorite/browsing_history 各加
+    merged_from_anonymous_id(来源匿名设备)+merged_at(复制时间),二者随复制上移写入用户行;原生登录态直接创建的行两列均为NULL。溯源信息随行走,天然一物一码,不与日志重复。DSAR删user_id时随用户行一并删除。与日志分工:日志答"这个账户被合并过几次、每次几条",行级溯源答"这一件具体从哪来"。
+  DSAR边界: 删除 user_id 时删用户域记录；匿名域记录因物理分离不被连带删除(除非按设备anonymous_id单独清理)。隐私合规说明须写明用户域与匿名域分别删除。合并日志anonymous_merge_log含user_id与anonymous_id关联,DSAR删除user_id时该用户相关日志一并处理(删除或匿名化,按全局DSAR策略)。
+  锚定层级: 收藏/浏览锚定渠道商品 listing（listing_id，用户前台可见可下单单元），非实物 product、非 SPU/SKU。一物一码下卖掉即永久消失，失效态(已售出/已下架)是常态，前台统一展示为 Sold Out。
+]]></er-tech-spec></metadata><g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(57.6 1519.6)">
+<title>ER</title>
+<polygon fill="#f8f9fc" stroke="none" points="-57.6,57.6 -57.6,-1519.6 2160.85,-1519.6 2160.85,57.6 -57.6,57.6" />
+<g id="clust1" class="cluster">
+<title>cluster_owned</title>
+<path fill="#ebf3fb" stroke="#a3c4e9" stroke-width="2.5" d="M20,-386C20,-386 2083.25,-386 2083.25,-386 2089.25,-386 2095.25,-392 2095.25,-398 2095.25,-398 2095.25,-1442 2095.25,-1442 2095.25,-1448 2089.25,-1454 2083.25,-1454 2083.25,-1454 20,-1454 20,-1454 14,-1454 8,-1448 8,-1442 8,-1442 8,-398 8,-398 8,-392 14,-386 20,-386" />
+<text xml:space="preserve" text-anchor="start" x="973.25" y="-1437.7" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="#4a90d9">收藏与浏览历史自有实体</text>
+</g>
+<g id="clust2" class="cluster">
+<title>cluster_external</title>
+<path fill="#f4f5f7" stroke="#c4c9d1" stroke-width="2.5" d="M1582.25,-8C1582.25,-8 2028.5,-8 2028.5,-8 2034.5,-8 2040.5,-14 2040.5,-20 2040.5,-20 2040.5,-366 2040.5,-366 2040.5,-372 2034.5,-378 2028.5,-378 2028.5,-378 1582.25,-378 1582.25,-378 1576.25,-378 1570.25,-372 1570.25,-366 1570.25,-366 1570.25,-20 1570.25,-20 1570.25,-14 1576.25,-8 1582.25,-8" />
+<text xml:space="preserve" text-anchor="start" x="1705.62" y="-361.7" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="#8893a3">外部模块实体（引用，不拥有）</text>
+</g>
+
+<g id="node1" class="node">
+<title>anonymous_identity</title>
+<polygon fill="#546e7a" stroke="none" points="1533.5,-1032.25 1533.5,-1064.5 1943,-1064.5 1943,-1032.25 1533.5,-1032.25" />
+<text xml:space="preserve" text-anchor="start" x="1609.25" y="-1046.2" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">匿名身份生命周期 anonymous_identity</text>
+<text xml:space="preserve" text-anchor="start" x="1539.5" y="-1011.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">anonymous_id 匿名身份ID</text>
+<text xml:space="preserve" text-anchor="start" x="1996.25" y="-1011.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="1539.5" y="-979" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">platform 载体(web/ios/android)</text>
+<text xml:space="preserve" text-anchor="start" x="1539.5" y="-946.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">issued_at 首次签发时间</text>
+<text xml:space="preserve" text-anchor="start" x="1539.5" y="-914.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">expires_at 固定到期时间(issued_at+12个月)</text>
+<text xml:space="preserve" text-anchor="start" x="1539.5" y="-882.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">last_seen_at 最近有效请求时间(仅观察,不续期)</text>
+<text xml:space="preserve" text-anchor="start" x="1539.5" y="-850" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">status 状态(active/expired/revoked)</text>
+<text xml:space="preserve" text-anchor="start" x="1539.5" y="-817.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">revoked_at 全局隐私删除/后台撤销时间(可空)</text>
+<polygon fill="#e3f2fd" stroke="none" points="1533.5,-779.5 1533.5,-806.5 2077.25,-806.5 2077.25,-779.5 1533.5,-779.5" />
+<text xml:space="preserve" text-anchor="start" x="1539.5" y="-792" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">设备/浏览器级假名标识 · Web/APP首次生成后固定12个月 · 所有访问和操作不续期 · 不做设备指纹或跨卸载恢复</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="1532.5,-778.5 1532.5,-1065.5 2078.25,-1065.5 2078.25,-778.5 1532.5,-778.5" />
+</g>
+
+<g id="node2" class="node">
+<title>favorite</title>
+<polygon fill="#4a90d9" stroke="none" points="270.5,-1064.5 270.5,-1096.75 950,-1096.75 950,-1064.5 270.5,-1064.5" />
+<text xml:space="preserve" text-anchor="start" x="566" y="-1078.45" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">收藏 favorite</text>
+<text xml:space="preserve" text-anchor="start" x="276.5" y="-1043.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">favorite_id 收藏ID</text>
+<text xml:space="preserve" text-anchor="start" x="1000.25" y="-1043.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="276.5" y="-1011.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">user_id 账户ID(用户行,可空)</text>
+<text xml:space="preserve" text-anchor="start" x="1000.62" y="-1011.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="276.5" y="-979" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">anonymous_id 设备/浏览器假名ID(匿名行,可空)</text>
+<text xml:space="preserve" text-anchor="start" x="1000.62" y="-979" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="276.5" y="-946.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">listing_id 渠道商品(收藏对象)</text>
+<text xml:space="preserve" text-anchor="start" x="988.62" y="-946.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK,UK]</text>
+<text xml:space="preserve" text-anchor="start" x="276.5" y="-914.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">price_at_save 收藏时价格快照(降价基准)</text>
+<text xml:space="preserve" text-anchor="start" x="276.5" y="-882.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">is_active 是否有效(取消收藏=false软删)</text>
+<text xml:space="preserve" text-anchor="start" x="276.5" y="-850" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">created_at 收藏时间(排序用)</text>
+<text xml:space="preserve" text-anchor="start" x="276.5" y="-817.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">merged_from_anonymous_id 溯源:由哪台匿名设备复制上移而来(原生登录态创建=NULL,可空)</text>
+<text xml:space="preserve" text-anchor="start" x="276.5" y="-785.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">merged_at 溯源:复制上移时间(原生创建=NULL,可空)</text>
+<polygon fill="#e3f2fd" stroke="none" points="270.5,-747.25 270.5,-774.25 1078.25,-774.25 1078.25,-747.25 270.5,-747.25" />
+<text xml:space="preserve" text-anchor="start" x="276.5" y="-759.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">双行分离:匿名行(anonymous_id)/用户行(user_id)各一,XOR单主体 · 登录复制上移(不删匿名原件) · 分域唯一(user_id+listing / anonymous_id+listing,含软删行) · 软删除</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="269.5,-746.25 269.5,-1097.75 1079.25,-1097.75 1079.25,-746.25 269.5,-746.25" />
+</g>
+
+<g id="edge1" class="edge">
+<title>favorite-&gt;anonymous_identity</title>
+<path fill="none" stroke="#546e7a" stroke-width="1.4" d="M1080.18,-922C1226.88,-922 1389.26,-922 1523.02,-922" />
+<polygon fill="#546e7a" stroke="#546e7a" stroke-width="1.4" points="1522.67,-924.45 1529.67,-922 1522.67,-919.55 1522.67,-924.45" />
+<text xml:space="preserve" text-anchor="middle" x="1428.12" y="-927.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#546e7a">N:1 anonymous_id 可空(未登录态)</text>
+</g>
+
+<g id="node5" class="node">
+<title>user</title>
+<polygon fill="#8893a3" stroke="none" points="1713.88,-299.5 1713.88,-331.75 1857.12,-331.75 1857.12,-299.5 1713.88,-299.5" />
+<text xml:space="preserve" text-anchor="start" x="1719.88" y="-313.45" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">账户(用户中心) user</text>
+<text xml:space="preserve" text-anchor="start" x="1719.88" y="-278.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">user_id 账户ID</text>
+<text xml:space="preserve" text-anchor="start" x="1863.12" y="-278.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<polygon fill="#e3f2fd" stroke="none" points="1713.88,-240.25 1713.88,-267.25 1896.88,-267.25 1896.88,-240.25 1713.88,-240.25" />
+<text xml:space="preserve" text-anchor="start" x="1720.25" y="-252.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">用户中心拥有 · 本模块只读引用主键</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="1712.88,-239.25 1712.88,-332.75 1897.88,-332.75 1897.88,-239.25 1712.88,-239.25" />
+</g>
+
+<g id="edge4" class="edge">
+<title>favorite-&gt;user</title>
+<path fill="none" stroke="#1565c0" stroke-width="1.4" d="M1080.24,-884.4C1173.48,-856.43 1263.23,-810.29 1324.75,-735 1363.54,-687.53 1310.24,-509.25 1346.75,-460 1393.04,-397.56 1440.79,-432.34 1509.5,-396 1519.96,-390.47 1520.93,-386.32 1531.5,-381 1586.14,-353.47 1650.65,-330.61 1703.22,-314.22" />
+<polygon fill="#1565c0" stroke="#1565c0" stroke-width="1.4" points="1703.9,-316.57 1709.86,-312.17 1702.45,-311.89 1703.9,-316.57" />
+<text xml:space="preserve" text-anchor="middle" x="1428.12" y="-465.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#1565c0">N:1 user_id 可空(登录态)</text>
+</g>
+
+<g id="node6" class="node">
+<title>listing</title>
+<polygon fill="#8893a3" stroke="none" points="1588.25,-181.88 1588.25,-214.12 1921.62,-214.12 1921.62,-181.88 1588.25,-181.88" />
+<text xml:space="preserve" text-anchor="start" x="1668.69" y="-195.82" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">渠道商品(商品系统) listing</text>
+<text xml:space="preserve" text-anchor="start" x="1594.25" y="-160.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">listing_id 渠道商品ID</text>
+<text xml:space="preserve" text-anchor="start" x="1958.19" y="-160.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="1594.25" y="-128.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">product_id 实物商品(一物一码)</text>
+<text xml:space="preserve" text-anchor="start" x="1958.56" y="-128.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="1594.25" y="-96.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">price 现价(降价比对用,实时读)</text>
+<text xml:space="preserve" text-anchor="start" x="1594.25" y="-64.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">listing_status 渠道状态(在售/下架/售出)</text>
+<polygon fill="#e3f2fd" stroke="none" points="1588.25,-25.88 1588.25,-52.88 2022.5,-52.88 2022.5,-25.88 1588.25,-25.88" />
+<text xml:space="preserve" text-anchor="start" x="1594.25" y="-38.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">商品系统拥有(ER v1.9) · 收藏/浏览锚定在listing渠道层,非实物product · 现价/状态实时读</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="1587.25,-24.88 1587.25,-215.12 2023.5,-215.12 2023.5,-24.88 1587.25,-24.88" />
+</g>
+
+<g id="edge5" class="edge">
+<title>favorite-&gt;listing</title>
+<path fill="none" stroke="#1565c0" stroke-width="1.4" d="M1079.9,-886C1173.74,-858.06 1263.85,-811.54 1324.75,-735 1381.42,-663.77 1297.92,-402.81 1346.75,-326 1374.8,-281.88 1477.11,-233.86 1577.89,-195.29" />
+<polygon fill="#1565c0" stroke="#1565c0" stroke-width="1.4" points="1578.73,-197.59 1584.4,-192.81 1576.99,-193.01 1578.73,-197.59" />
+<text xml:space="preserve" text-anchor="middle" x="1428.12" y="-331.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#1565c0">N:1 收藏对象</text>
+</g>
+
+<g id="node3" class="node">
+<title>browsing_history</title>
+<polygon fill="#4a90d9" stroke="none" points="197.75,-689.38 197.75,-721.62 950,-721.62 950,-689.38 197.75,-689.38" />
+<text xml:space="preserve" text-anchor="start" x="482.75" y="-703.33" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">浏览历史 browsing_history</text>
+<text xml:space="preserve" text-anchor="start" x="203.75" y="-668.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">history_id 浏览记录ID</text>
+<text xml:space="preserve" text-anchor="start" x="1036.62" y="-668.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="203.75" y="-636.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">user_id 账户ID(用户行,可空)</text>
+<text xml:space="preserve" text-anchor="start" x="1037" y="-636.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="203.75" y="-603.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">anonymous_id 设备/浏览器假名ID(匿名行,可空)</text>
+<text xml:space="preserve" text-anchor="start" x="1037" y="-603.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="203.75" y="-571.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">listing_id 渠道商品(浏览对象)</text>
+<text xml:space="preserve" text-anchor="start" x="1025" y="-571.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK,UK]</text>
+<text xml:space="preserve" text-anchor="start" x="203.75" y="-539.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">price_at_first_view 首次浏览价格快照(降价基准,再次浏览不更新)</text>
+<text xml:space="preserve" text-anchor="start" x="203.75" y="-507.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">viewed_at 最近浏览时间(再次浏览即更新)</text>
+<text xml:space="preserve" text-anchor="start" x="203.75" y="-474.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">merged_from_anonymous_id 溯源:由哪台匿名设备复制上移而来(原生登录态创建=NULL,可空)</text>
+<text xml:space="preserve" text-anchor="start" x="203.75" y="-442.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">merged_at 溯源:复制上移时间(原生创建=NULL,可空)</text>
+<polygon fill="#e3f2fd" stroke="none" points="197.75,-404.38 197.75,-431.38 1151,-431.38 1151,-404.38 197.75,-404.38" />
+<text xml:space="preserve" text-anchor="start" x="203.75" y="-416.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">双行分离:匿名行/用户行各一,XOR单主体 · 登录复制上移 · 分域唯一(主体+listing)去重,同件只留最近 · 首次浏览记价格快照(降价基准),再次浏览只更viewed_at不改快照 · 本期不限容量(二期再评估淘汰)</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="196.75,-403.38 196.75,-722.62 1152,-722.62 1152,-403.38 196.75,-403.38" />
+</g>
+
+<g id="edge2" class="edge">
+<title>browsing_history-&gt;anonymous_identity</title>
+<path fill="none" stroke="#546e7a" stroke-width="1.4" d="M1152.9,-681.96C1211.09,-698.45 1269.48,-715.96 1324.75,-734 1389.77,-755.23 1458.75,-780.55 1523.52,-805.63" />
+<polygon fill="#546e7a" stroke="#546e7a" stroke-width="1.4" points="1522.42,-807.83 1529.83,-808.07 1524.19,-803.26 1522.42,-807.83" />
+<text xml:space="preserve" text-anchor="middle" x="1428.12" y="-801.36" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#546e7a">N:1 anonymous_id 可空(未登录态)</text>
+</g>
+
+<g id="edge6" class="edge">
+<title>browsing_history-&gt;user</title>
+<path fill="none" stroke="#1565c0" stroke-width="1.4" d="M1152.58,-428.93C1217.66,-411.81 1283.74,-395.04 1346.75,-380 1468.65,-350.9 1610.11,-322.68 1703.11,-304.88" />
+<polygon fill="#1565c0" stroke="#1565c0" stroke-width="1.4" points="1703.46,-307.31 1709.88,-303.59 1702.54,-302.5 1703.46,-307.31" />
+<text xml:space="preserve" text-anchor="middle" x="1428.12" y="-385.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#1565c0">N:1 user_id 可空(登录态)</text>
+</g>
+
+<g id="edge7" class="edge">
+<title>browsing_history-&gt;listing</title>
+<path fill="none" stroke="#1565c0" stroke-width="1.4" d="M926.78,-402.6C1049.24,-331.05 1201.2,-251.64 1346.75,-201 1420.03,-175.5 1502.84,-157.73 1577.67,-145.48" />
+<polygon fill="#1565c0" stroke="#1565c0" stroke-width="1.4" points="1577.67,-147.96 1584.19,-144.42 1576.89,-143.12 1577.67,-147.96" />
+<text xml:space="preserve" text-anchor="middle" x="1428.12" y="-206.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#1565c0">N:1 浏览对象</text>
+</g>
+
+<g id="node4" class="node">
+<title>anonymous_merge_log</title>
+<polygon fill="#546e7a" stroke="none" points="26,-1375.25 26,-1407.5 858.88,-1407.5 858.88,-1375.25 26,-1375.25" />
+<text xml:space="preserve" text-anchor="start" x="302.94" y="-1389.2" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">匿名记录合并日志 anonymous_merge_log</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-1354.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">merge_id 合并日志ID</text>
+<text xml:space="preserve" text-anchor="start" x="1076.94" y="-1354.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-1322" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">anonymous_id 被合并的设备/浏览器假名ID(来源)</text>
+<text xml:space="preserve" text-anchor="start" x="1077.31" y="-1322" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-1289.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">user_id 合并目标账户ID</text>
+<text xml:space="preserve" text-anchor="start" x="1077.31" y="-1289.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-1257.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">trigger_type 触发时机(login/register/oauth)</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-1225.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">favorite_merged_count 本次实际复制收藏条数(跳过重复不计)</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-1193" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">history_merged_count 本次实际复制浏览记录条数</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-1160.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">merged_at 合并发生时间戳</text>
+<polygon fill="#e3f2fd" stroke="none" points="26,-1122.5 26,-1149.5 1322.75,-1149.5 1322.75,-1122.5 26,-1122.5" />
+<text xml:space="preserve" text-anchor="start" x="32" y="-1135" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">登录复制上移时记录一条:何时/把哪个anonymous_id的哪些数据/合并到哪个user_id · append-only只增不改,不入业务读写路径 · _merged_count仅计实际新增(ON CONFLICT跳过的不计) · 同(anon,user)可多次合并各记一条 · 供审计/幂等排查/转化分析,DSAR随user_id处理</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="25,-1121.5 25,-1408.5 1323.75,-1408.5 1323.75,-1121.5 25,-1121.5" />
+</g>
+
+<g id="edge3" class="edge">
+<title>anonymous_merge_log-&gt;anonymous_identity</title>
+<path fill="none" stroke="#546e7a" stroke-width="1.4" d="M1290.37,-1120.56C1301.95,-1117.07 1313.41,-1113.56 1324.75,-1110 1389.81,-1089.59 1458.66,-1064.67 1523.27,-1039.72" />
+<polygon fill="#546e7a" stroke="#546e7a" stroke-width="1.4" points="1523.91,-1042.1 1529.56,-1037.29 1522.14,-1037.53 1523.91,-1042.1" />
+<text xml:space="preserve" text-anchor="middle" x="1428.12" y="-1107.04" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#546e7a">N:1 合并来源匿名身份</text>
+</g>
+
+<g id="edge8" class="edge">
+<title>anonymous_merge_log-&gt;user</title>
+<path fill="none" stroke="#546e7a" stroke-width="1.4" d="M1315.34,-1120.77C1318.54,-1117.26 1321.68,-1113.67 1324.75,-1110 1352.39,-1076.97 1333.21,-763.89 1346.75,-723 1388.07,-598.2 1457.69,-596.83 1509.5,-476 1526.58,-436.17 1502.54,-413.25 1531.5,-381 1575.17,-332.36 1645.09,-308.63 1703.21,-297.04" />
+<polygon fill="#546e7a" stroke="#546e7a" stroke-width="1.4" points="1703.57,-299.47 1709.99,-295.75 1702.65,-294.65 1703.57,-299.47" />
+<text xml:space="preserve" text-anchor="middle" x="1428.12" y="-728.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#546e7a">N:1 合并目标账户</text>
+</g>
+</g>
+</svg>
