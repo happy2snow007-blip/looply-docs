@@ -248,19 +248,48 @@
 </div>
 
 <script>
+var AUTH_STORAGE_KEY='looply_auth_until';
+var AUTH_TTL_MS=30*24*60*60*1000;
+
+function rememberAuth(){
+  try{
+    localStorage.setItem(AUTH_STORAGE_KEY,String(Date.now()+AUTH_TTL_MS));
+    sessionStorage.removeItem('looply_auth');
+  }catch(e){
+    sessionStorage.setItem('looply_auth','1');
+  }
+}
+
+function hasValidAuth(){
+  try{
+    var authUntil=Number(localStorage.getItem(AUTH_STORAGE_KEY));
+    if(Number.isFinite(authUntil)&&authUntil>Date.now()) return true;
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+
+    // 兼容旧版会话：已在当前会话验证过的浏览器自动升级为 30 天免验证。
+    if(sessionStorage.getItem('looply_auth')==='1'){
+      rememberAuth();
+      return true;
+    }
+  }catch(e){
+    return sessionStorage.getItem('looply_auth')==='1';
+  }
+  return false;
+}
+
 async function checkPwd(){
   var pwd=document.getElementById('auth-pwd').value;
   var _b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pwd));
   var _h=Array.from(new Uint8Array(_b)).map(x=>x.toString(16).padStart(2,'0')).join('');
   if(_h==='d364a827d56bec6be0099f90c9a18446b3bda44e72d4bb0061d8901139a51d2a'){
     document.getElementById('auth-wall').classList.add('hidden');
-    sessionStorage.setItem('looply_auth','1');
+    rememberAuth();
   }else{
     document.getElementById('auth-err').style.display='block';
     document.getElementById('auth-pwd').value='';
   }
 }
-if(sessionStorage.getItem('looply_auth')==='1'){
+if(hasValidAuth()){
   document.getElementById('auth-wall').classList.add('hidden');
 }
 </script>
