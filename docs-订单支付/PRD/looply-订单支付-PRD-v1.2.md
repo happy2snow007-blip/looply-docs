@@ -177,7 +177,7 @@ C 端页面静态文案（按钮文字、表单标签、提示语、错误提示
 
 **核心设计决策：**
 
-- **待付款在父订单层 · 支付后拆单**：为支持卡风控审核等异步到账场景，下单即创建整体订单 parent_order（起始 pending_payment）。**待付款期间只有父订单、不拆子订单**——买家一次下单在列表里只显一条、只需付一次款。支付到账后 parent_order 转 paid，此时才按商家拆出子订单 order（起始即 paid）。若下单即拆单，未支付时买家回列表会看到多条待付款、需付多次，体验割裂，故改为支付后拆单。进入结算页但未提交支付的阶段仍由结算会话（checkout_session）承载。一物一件商品在提交支付时锁定，超时（下单 + 1 自然日）未到账则关单释放
+- **待付款在父订单层 · 支付后拆单**：为支持卡风控审核等异步到账场景，下单即创建整体订单 parent_order（起始 pending_payment）。**待付款期间只有父订单、不拆子订单**——买家一次下单在列表里只显一条、只需付一次款。支付到账后 parent_order 转 paid，此时才按商家拆出子订单 order（起始即 paid）。若下单即拆单，未支付时买家回列表会看到多条待付款、需付多次，体验割裂，故改为支付后拆单。进入结算页但未提交支付的阶段仍由结算会话（checkout_session）承载。一物一件商品在提交支付时锁定，未提交付款超时（30 分钟）自动关单释放；已提交付款进入渠道审核（payment_order = processing）的不受此超时影响，等渠道回调决定结果
 - **发货/退款不存在订单表**：order_item 是发货和退款维度的唯一事实源。订单列表需要「部分发货」筛选时，用 `GROUP BY order_id + HAVING` 从 order_item 实时聚合。0-1 阶段订单量小，聚合代价几乎为零；后续量大时可加物化视图或缓存字段，不改数据模型
 - **发货和退款用两个独立字段**：二者是独立维度，各自流转互不耦合。拆成两个字段后 fulfillment_status = shipped + refund_status = refunding 可以自然组合，单字段无法表达
 
@@ -323,9 +323,9 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 | failed | 失败 | 支付网关返回失败（余额不足、风控拒绝等） |
 | closed | 关闭 | 超时未完成，或订单取消时关闭未完成的支付单 |
 
-状态流转：pending → processing → succeeded / failed；pending / processing → closed
+状态流转：pending → processing → succeeded / failed；pending → closed（30 分钟未提交付款超时）。processing 不因超时关闭，等渠道回调（succeeded / failed），仅订单取消时可关闭
 
-交互链路（渠道 → 支付单 → 订单）：用户点击「去支付」→ 创建支付单(pending) + parent_order(pending_payment) + 结算会话(converted)。提交付款 → 支付单(processing)。渠道回调成功 → 支付单(succeeded) → 联动 parent_order 转 paid 并按商家拆子订单 order(paid)。回调失败/超时 → 支付单(failed/closed) → 联动 parent_order 转 cancelled、释放库存（此时无子订单）。订单不直接与渠道交互。
+交互链路（渠道 → 支付单 → 订单）：用户点击「去支付」→ 创建支付单(pending) + parent_order(pending_payment) + 结算会话(converted)。提交付款 → 支付单(processing)。渠道回调成功 → 支付单(succeeded) → 联动 parent_order 转 paid 并按商家拆子订单 order(paid)。回调失败 → 支付单(failed)；pending 状态 30 分钟超时 → 支付单(closed)。两者均联动 parent_order 转 cancelled、释放库存（此时无子订单）。processing 状态不因超时关闭，等渠道回调。订单不直接与渠道交互。
 
 **refund_order.status**（3 个值）：
 
@@ -392,7 +392,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 | 父订单起始状态 | 下单即创建 parent_order，起始 parent_status = pending_payment（不拆子订单）；支付到账后转 paid | 
 | 支付后拆单 + 子订单起始 | parent_order 转 paid 时才按商家拆出子订单 order（起始 order_status = paid）；所有 order_item 初始 fulfillment_status = pending，refund_status = none |
 | paid 触发条件 | 渠道回调到账 → payment_order 转 succeeded → 联动 parent_order 从 pending_payment 转 paid 并拆子订单（订单不直接感知渠道） |
-| 待付款超时/失败 | 超过 payment_deadline（下单 + 1 自然日，连续计时、周末不延后）未到账，或支付失败 → order 转 cancelled，同时关闭支付单为 closed，释放锁定库存 |
+| 待付款超时/失败 | payment_deadline = 下单 + 30 分钟。超时规则按支付单状态区分：① pending（未提交付款）超过 30 分钟 → 支付单转 closed → parent_order 转 cancelled，释放库存；② processing（已提交付款、渠道审核中）不受 30 分钟超时影响，等渠道回调决定 succeeded/failed，回调失败 → 支付单转 failed → parent_order 转 cancelled，释放库存 |
 | 库存锁定 | 提交支付即锁定一物一件商品（锁在父订单），pending_payment 期间不可被他人购买，转 cancelled 时释放 |
 | shipped 触发条件 | 首个 order_item.fulfillment_status 变为 shipped 时，order_status 从 paid 变为 shipped |
 | completed 触发条件 | 所有 order_item.fulfillment_status 变为 received 时，order_status 变为 completed |
@@ -777,8 +777,9 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 1. 支付通道通过 Webhook 回调通知支付结果
 2. 成功：支付单转"成功" → 联动 parent_order 从 pending_payment 转 paid → **此时才按商家拆出子订单 order（起始 paid）并生成子订单商品明细** → 发送支付成功确认邮件（见 5.2）
-3. 失败/超时：支付单转"失败/关闭" → 联动 parent_order 转 cancelled、释放库存（此时无子订单，无退款）→ 发送取消通知
-4. 同步渠道（卡未命中风控）到账极快，用户等结果后跳订单成功页；异步（风控审核中）parent_order 停在 pending_payment，跳「订单已提交」页（见 3.4）
+3. 失败：渠道回调失败 → 支付单转"失败" → 联动 parent_order 转 cancelled、释放库存（此时无子订单，无退款）→ 发送取消通知
+4. 未提交付款超时：支付单仍为 pending（用户未提交付款）且超过 30 分钟 → 支付单转"关闭" → 联动 parent_order 转 cancelled、释放库存 → 发送取消通知。已进入 processing（渠道审核中）的支付单不受此超时影响，等渠道回调
+5. 同步渠道（卡未命中风控）到账极快，用户等结果后跳订单成功页；异步（风控审核中）parent_order 停在 pending_payment，跳「订单已提交」页（见 3.4）
 
 #### 支付通道矩阵
 
@@ -797,11 +798,11 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 | 处理中 | 已提交付款，等待异步结果（卡风控审核中） | 用户提交付款 |
 | 成功 | 支付回调确认成功 | 收到渠道支付成功 Webhook |
 | 失败 | 支付网关返回失败 | 收到渠道支付失败 Webhook（余额不足、风控拒绝等） |
-| 关闭 | 超时未完成或订单取消 | 超时未到账，或订单取消时关闭未完成支付单 |
+| 关闭 | 未提交付款超时或订单取消 | 支付单为 pending 状态超过 30 分钟未提交付款，系统自动关闭；或订单取消时关闭未完成支付单。processing 状态不因超时关闭 |
 
-**状态流转**：待支付 → 处理中 → 成功 / 失败；待支付 / 处理中 → 关闭
+**状态流转**：待支付 → 处理中 → 成功 / 失败；待支付 → 关闭（30 分钟未提交付款超时）。处理中不因超时关闭，等渠道回调
 
-**支付失败/超时后**：对应 order 转 cancelled、释放锁定库存。用户如需重新购买须重新下单（一物一件商品可能已释放/售出）。
+**支付失败/超时后**：对应 parent_order 转 cancelled、释放锁定库存。用户如需重新购买须重新下单（一物一件商品可能已释放/售出）。
 
 #### 校验规则
 
@@ -887,7 +888,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 - 订单已创建（下单成功）
 - 同步渠道到账 → 展示 "Order Confirmed"；异步（风控审核中）→ 展示 "Order Placed / Payment Processing" 变体
 
-> **待付款变体（parent_order = pending_payment）**：成功图标改为处理中样式，标题 "Order Placed"，主文案 "We're processing your payment. We'll confirm within 1 day."，展示订单号与订单摘要，CTA "View Order"；不显示 "Thank you for your purchase"。
+> **待付款变体（parent_order = pending_payment）**：成功图标改为处理中样式，标题 "Order Placed"，主文案 "We're processing your payment. We'll notify you as soon as it's verified."，展示订单号与订单摘要，CTA "View Order"；不显示 "Thank you for your purchase"。
 
 #### 页面布局
 
@@ -1437,7 +1438,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 | 处理中 (processing) | 已提交付款，等待异步结果（卡风控审核中） | 用户提交付款 |
 | 成功 (succeeded) | 支付确认成功 | 收到渠道支付成功 Webhook |
 | 失败 (failed) | 支付被拒绝 | 收到渠道支付失败 Webhook（余额不足、风控拒绝等） |
-| 超时关闭 (closed) | 超时未完成或订单取消 | 支付单超过有效期系统自动关闭，或订单取消时关闭未完成支付单 |
+| 超时关闭 (closed) | 未提交付款超时或订单取消 | 支付单为 pending 状态超过 30 分钟系统自动关闭，或订单取消时关闭未完成支付单。processing 状态不因超时关闭 |
 
 #### UI 关联
 
@@ -1855,7 +1856,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 邮件内容：
 1. 标题："Order Received"
-2. 说明："Thanks! We've received your order and are processing your payment. We'll email you again once it's confirmed (usually within 1 day)."
+2. 说明："Thanks! We've received your order and are processing your payment. We'll email you again as soon as your payment is verified."
 3. Order Details + Items Ordered + 费用汇总 + Shipping Address（同 5.2 场景 A）
 4. 静默注册用户：同样嵌入「账户创建通知」区块与 "Set Your Password"（见 5.2 场景 B），设置密码链接挂本封
 5. CTA 按钮："View Order"
@@ -2110,5 +2111,5 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 | 版本 | 日期 | 主要变更 |
 |------|------|---------|
 | v1.0 | 2026-06 | 初版：订单与支付模块完整 PRD |
-| v1.1 | 2026-07-13 | 新增 pending_payment 待付款态、payment_order processing 中间态、待付款超时（1 自然日）、支付成功邮件即时/异步策略 |
-| v1.2 | 2026-07-14 | **支付后拆单**：待付款态上移到 parent_order 层（parent_status），下单只建父订单不拆单，支付到账后才按商家拆子订单 order（起始 paid），子订单移除 pending_payment；C 端待付款只显一条、付一次款。**取消时序修复**：已付款取消改为退款成功后才置 cancelled，退款失败订单保持已付款并挂人工，避免「已取消但未退款」 |
+| v1.1 | 2026-07-13 | 新增 pending_payment 待付款态、payment_order processing 中间态、待付款超时机制、支付成功邮件即时/异步策略 |
+| v1.2 | 2026-07-16 | **支付后拆单**：待付款态上移到 parent_order 层（parent_status），下单只建父订单不拆单，支付到账后才按商家拆子订单 order（起始 paid），子订单移除 pending_payment；C 端待付款只显一条、付一次款。**取消时序修复**：已付款取消改为退款成功后才置 cancelled，退款失败订单保持已付款并挂人工，避免「已取消但未退款」。**待付款超时规则细化**：payment_deadline 从 1 自然日改为 30 分钟，仅对 pending（未提交付款）状态生效；processing（已提交付款、渠道审核中）不受超时关闭，等渠道回调决定结果。C 端文案和邮件去掉具体时限承诺，改为模糊表述 |

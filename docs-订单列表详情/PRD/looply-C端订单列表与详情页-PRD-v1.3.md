@@ -1,4 +1,4 @@
-# Looply C 端订单列表页 & 订单详情页 PRD v1.4
+# Looply C 端订单列表页 & 订单详情页 PRD v1.3
 
 > 买家侧"我的订单"列表页 + 订单详情页完整需求定义
 >
@@ -24,7 +24,7 @@
 
 | 依赖模块 | 说明 |
 |---------|------|
-| 订单状态模型 | 引用《looply 订单支付 PRD v1.2》第二章分层状态模型（待付款态在 parent_order.parent_status，支付后拆子订单） |
+| 订单状态模型 | 引用《looply 订单支付 PRD v1.1》第二章分层状态模型（含 pending_payment 待付款态） |
 | 支付渠道 | 引用《支付渠道对接集成说明文档 v1.0》 |
 | 物流管理 | 物流轨迹数据由物流模块提供 |
 | 用户管理 | 登录态、地址管理 |
@@ -97,8 +97,7 @@
 - 切换 Tab 不刷新页面，前端筛选（数据量小于 50 时）或接口重新请求
 - APP 端 Tab 栏支持水平滑动（当 Tab 数量多时）
 - Tab 角标仅在数量 > 0 时显示
-- 待付款订单（parent_status = pending_payment，卡风控审核中，少量场景）不单独设 Tab，仅在 All 列表展示
-- **待付款一条、支付后按商家多条**（v1.4）：待付款期间订单尚未拆单，列表展示 1 条整体订单 parent_order（买家一次下单只显一条、只需付一次款）；支付到账后按商家拆成多条子订单 order，列表按子订单分别展示（与已有「每卖家独立发货/跟踪」一致）。即待付款 parent_order 与已支付后的 order 在同一列表按各自维度展示
+- 待付款订单（order_status = pending_payment，卡风控审核中，少量场景）不单独设 Tab，仅在 All 列表展示
 
 #### 2.3.4 订单卡片
 
@@ -173,7 +172,7 @@
 
 | order_status | 标签文案 | 标签样式 |
 |-------------|---------|---------|
-| pending_payment（父订单待付款） | "Payment Processing" | 以 Figma 设计稿为准 |
+| pending_payment | "Payment Processing" | 以 Figma 设计稿为准 |
 | paid | "Confirmed" | 以 Figma 设计稿为准 |
 | shipped | "On its way" | 以 Figma 设计稿为准 |
 | completed | "Completed" | 以 Figma 设计稿为准 |
@@ -494,14 +493,13 @@ PC 端为左右两列布局，APP 端为上下堆叠。
 
 以下列出不同 order_status 下详情页的关键差异。状态标签样式统一以 Figma 设计稿为准，PRD 不单独定义颜色。
 
-### 6.1 Payment Processing 状态（parent_status = pending_payment，父订单维度）
+### 6.1 Payment Processing 状态（order_status = pending_payment）
 
 | 区域 | 展示内容 |
 |------|---------|
-| 展示维度 | 整体订单 parent_order（尚未拆单，一次下单的全部商品都在这一条内展示，跨商家商品一并列出） |
 | 状态标签 | "Payment Processing" |
 | 说明文案 | "We're processing your payment. We'll confirm within 1 day."（卡风控审核中） |
-| 商品分组 | 全部商品归入待发货组（尚未发货、尚未按商家拆单） |
+| 商品分组 | 全部商品归入待发货组（尚未发货） |
 | 物流 | 无物流信息 |
 | 操作按钮 | 无额外操作（本期不提供买家侧取消） |
 
@@ -606,7 +604,6 @@ PC 端为左右两列布局，APP 端为上下堆叠。
 | v1.1 | 2026-07-09 | Figma 设计稿比对修正：删除不存在的"View Order Details"入口；加 Cancelled Tab；搜索范围扩展为订单号+商品名；PC 卡片结构重写；订单号格式统一；Shipping Method 补充；客服支持区块补充；商品区域重写为按组平铺；状态标签色值改为引用 Figma | — |
 | v1.2 | 2026-07-09 | 14 项问题修正，详见下方 | — |
 | v1.3 | 2026-07-13 | 支持订单支付「待付款」状态扩展：pending_payment 订单进 All 列表（不加 Tab）；新增状态标签 "Payment Processing"；详情页新增 Payment Processing 状态变体（§6.1）；前置依赖升级至订单支付 PRD v1.1 | — |
-| v1.4 | 2026-07-14 | 支付后拆单模型：待付款态改为 parent_order.parent_status；列表「待付款一条、支付后按商家多条」——待付款展示整体订单 parent_order（买家一次下单只显一条、付一次款），支付到账后按商家拆子订单分别展示；详情页 §6.1 待付款按整体订单展示（跨商家商品一并列出）；前置依赖升级至订单支付 PRD v1.2 | — |
 
 **v1.2 修改明细：**
 

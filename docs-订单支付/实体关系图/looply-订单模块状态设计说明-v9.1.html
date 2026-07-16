@@ -199,7 +199,7 @@ tr:last-child td { border-bottom: none; }
     <div class="principle-title">待付款在父订单层 · 支付后拆单（v9.1 变更）</div>
     <div class="principle-body">
       为支持卡支付命中渠道风控审核（pending review）等异步到账场景，下单即创建<strong>整体订单 parent_order</strong>，起始 <code>parent_status = pending_payment</code>。<strong>待付款期间只有父订单、不拆子订单</strong>——买家一次下单在列表里只显示一条、只需完成一次支付。支付到账后 parent_order 转 <code>paid</code>，此时才按商家拆出子订单 <code>order</code>（起始即 <code>paid</code>）。<br>
-      <strong>v9.1 变更原因：</strong>若下单即拆单，未支付时买家回到订单列表会看到多条待付款订单、需付多次款，体验割裂。改为支付后拆单后，待付款态归属父订单，子订单 order 不再有 pending_payment。一物一件商品在提交支付时锁定，超时（下单 + 1 自然日）未到账则关单释放。
+      <strong>v9.1 变更原因：</strong>若下单即拆单，未支付时买家回到订单列表会看到多条待付款订单、需付多次款，体验割裂。改为支付后拆单后，待付款态归属父订单，子订单 order 不再有 pending_payment。一物一件商品在提交支付时锁定，未提交付款超时（30 分钟）自动关单释放；已提交付款进入渠道审核（payment_order = processing）的不受此超时影响，等渠道回调决定结果。
     </div>
   </div>
 
@@ -572,15 +572,15 @@ tr:last-child td { border-bottom: none; }
     <div class="flow-node n-failed">failed</div>
   </div>
   <div class="flow">
-    <div class="flow-node n-pending">pending / processing</div>
+    <div class="flow-node n-pending">pending</div>
     <div class="flow-arrow">&rarr;</div>
-    <div class="flow-branch">超时 / 订单取消</div>
+    <div class="flow-branch">30 分钟未提交付款超时</div>
     <div class="flow-arrow">&rarr;</div>
     <div class="flow-node n-closed">closed</div>
   </div>
 
   <div class="callout">
-    <strong>渠道 → 支付单 → 订单</strong>：用户点击「去支付」→ 创建 payment_order(pending) + parent_order(pending_payment) + checkout_session(converted)。提交付款 → payment_order(processing)。渠道回调成功 → payment_order(succeeded) → 联动 parent_order 转 paid 并按商家拆子订单 order(paid)。回调失败/超时 → payment_order(failed/closed) → 联动 parent_order 转 cancelled、释放库存（此时无子订单）。订单不直接与渠道交互。
+    <strong>渠道 → 支付单 → 订单</strong>：用户点击「去支付」→ 创建 payment_order(pending) + parent_order(pending_payment) + checkout_session(converted)。提交付款 → payment_order(processing)。渠道回调成功 → payment_order(succeeded) → 联动 parent_order 转 paid 并按商家拆子订单 order(paid)。回调失败 → payment_order(failed)；pending 状态 30 分钟超时 → payment_order(closed)。两者均联动 parent_order 转 cancelled、释放库存（此时无子订单）。processing 状态不因超时关闭，等渠道回调。订单不直接与渠道交互。
   </div>
 
   <h3 style="margin-top: 32px"><span class="field-badge">payment_transaction.transaction_type</span> 2 个值</h3>
@@ -728,7 +728,7 @@ tr:last-child td { border-bottom: none; }
     <tr><th style="min-width:160px">规则</th><th>说明</th></tr>
     <tr><td>父订单起始状态</td><td>下单即创建 parent_order，起始 parent_status = pending_payment（此时不拆子订单）；支付到账后转 paid</td></tr>
     <tr><td>支付后拆单 + 子订单起始</td><td>parent_order 转 paid 时才按商家拆出子订单 order，子订单起始 order_status = paid；所有 order_item 初始 fulfillment_status = pending，refund_status = none</td></tr>
-    <tr><td>待付款超时/失败</td><td>超过 payment_deadline（下单 + 1 自然日，连续计时、周末不延后）未到账，或支付失败 → parent_order 转 cancelled，同时关闭支付单为 closed，释放锁定库存（此时无子订单，无退款）</td></tr>
+    <tr><td>待付款超时/失败</td><td>payment_deadline = 下单 + 30 分钟。超时规则按支付单状态区分：① pending（未提交付款）超过 30 分钟 → 支付单转 closed → parent_order 转 cancelled，释放库存；② processing（已提交付款、渠道审核中）不受 30 分钟超时影响，等渠道回调决定 succeeded/failed，回调失败 → 支付单转 failed → parent_order 转 cancelled，释放库存（此时无子订单，无退款）</td></tr>
     <tr><td>库存锁定</td><td>提交支付即锁定一物一件商品（锁在父订单），pending_payment 期间不可被他人购买，转 cancelled 时释放</td></tr>
     <tr><td>shipped 触发条件</td><td>首个 order_item.fulfillment_status 变为 shipped 时，order_status 从 paid 变为 shipped</td></tr>
     <tr><td>completed 触发条件</td><td>所有 order_item.fulfillment_status 变为 received 时，order_status 变为 completed</td></tr>
