@@ -1159,12 +1159,7 @@ def build_delivery_desc(zip_path):
 
     parts.sort(key=lambda x: x[0])
 
-    date_m = re.search(r'(\d{8})', os.path.basename(zip_path))
-    if date_m:
-        d = date_m.group(1)
-        date_str = f'{d[:4]}-{d[4:6]}-{d[6:]}'
-    else:
-        date_str = datetime.now().strftime('%Y-%m-%d')
+    date_str = datetime.fromtimestamp(os.path.getmtime(zip_path)).strftime('%Y-%m-%d')
 
     return ' + '.join(p[1] for p in parts) + f' &middot; {date_str}'
 
