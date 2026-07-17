@@ -1217,6 +1217,17 @@ def update_index_html(updates, all_versions, all_history=None):
                         rel_path = url_unquote(os.path.join(href_dir, new_file))
                         if rel_path in _updated_files:
                             changed_items.add(current_item_start)
+                        else:
+                            # 文件内容已同步但日期可能过时：用源文件 mtime 对比页面日期
+                            dst_file = os.path.join(REPO_DIR, rel_path)
+                            if os.path.isfile(dst_file):
+                                file_date = datetime.fromtimestamp(os.path.getmtime(dst_file)).strftime('%Y-%m-%d')
+                                # 检查页面上的日期是否早于文件日期
+                                for scan_j in range(current_item_start, min(current_item_start + 10, len(lines))):
+                                    m = re.search(r'更新于 (\d{4}-\d{2}-\d{2})', lines[scan_j])
+                                    if m and m.group(1) < file_date:
+                                        changed_items.add(current_item_start)
+                                        break
 
     # 第二遍：更新版本号和日期
     in_history = False
