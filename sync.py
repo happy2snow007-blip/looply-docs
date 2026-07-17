@@ -1201,6 +1201,12 @@ def update_index_html(updates, all_versions, all_history=None):
             href_variants = [re.escape(href_dir)]
             if href_dir_encoded != href_dir:
                 href_variants.append(re.escape(href_dir_encoded))
+            # 部分编码变体：仅模块目录名编码，子目录保持原文
+            parts = href_dir.rstrip('/').split('/')
+            if len(parts) >= 1:
+                partial = url_quote(parts[0], safe='-') + '/' + '/'.join(parts[1:]) + '/'
+                if partial not in (href_dir, href_dir_encoded):
+                    href_variants.append(re.escape(partial))
             regex = re.compile(r'(href="(?:' + '|'.join(href_variants) + r'))([^"]+)(")')
             match = regex.search(lines[i])
             if match:
@@ -1336,11 +1342,16 @@ def update_index_html(updates, all_versions, all_history=None):
                         else:
                             href_prefix = f'{mod_dir}/{subdir}/'
                         href_prefix_encoded = url_quote(href_prefix, safe='/')
-                        if href_prefix not in lookback and href_prefix_encoded not in lookback:
+                        # 部分编码变体
+                        hp_parts = href_prefix.rstrip('/').split('/')
+                        href_prefix_partial = url_quote(hp_parts[0], safe='-') + '/' + '/'.join(hp_parts[1:]) + '/' if len(hp_parts) >= 1 else ''
+                        if href_prefix not in lookback and href_prefix_encoded not in lookback and (not href_prefix_partial or href_prefix_partial not in lookback):
                             continue
                         prefix_alts = [re.escape(href_prefix)]
                         if href_prefix_encoded != href_prefix:
                             prefix_alts.append(re.escape(href_prefix_encoded))
+                        if href_prefix_partial and href_prefix_partial not in (href_prefix, href_prefix_encoded):
+                            prefix_alts.append(re.escape(href_prefix_partial))
                         href_m = re.search(r'href="(?:' + '|'.join(prefix_alts) + r')([^"]+)"', lookback)
                         if href_m and re.match(file_pattern, href_m.group(1)):
                             matched_key = (mk, art_type)
