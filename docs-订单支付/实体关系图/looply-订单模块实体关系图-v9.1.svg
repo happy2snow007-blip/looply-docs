@@ -1106,7 +1106,7 @@
     "item_refund_status_enum": "order_item.refund_status 枚举：none(无退款) / refunding(退款中) / refunded(已退款)。这是退款维度的唯一事实源，订单级退款状态从此字段实时聚合",
     "package_status_enum": "package_status 枚举：pending(待发货) / shipped(已发货) / received(已签收)",
     "payment_ref_no_rule": "parent_order.payment_ref_no = payment_order.payment_no，是订单系统与支付系统的收款桥梁。退款桥梁：refund_request.refund_ref_no = refund_order.refund_no。两个方向均由业务域持有单号引用支付域，支付域不反向引用业务域",
-    "payment_order_status_enum": "payment_order.status 枚举：pending(待支付) / processing(处理中，已提交等风控审核) / succeeded(成功) / failed(失败) / closed(关闭)。下单即创建支付单(pending)与 parent_order(pending_payment)；用户提交后进入 processing；渠道回调成功(succeeded)联动 parent_order 转 paid 并拆子订单；closed = pending 状态 30 分钟未提交付款超时关闭，或订单取消时关闭未完成的支付单。processing 状态不因超时关闭，等渠道回调。processing 72h 兜底：超 72h 无回调 → 系统主动查询渠道，非成功 → failed + remark 写入\"渠道处理超72小时未成功\"，通知运营",
+    "payment_order_status_enum": "payment_order.status 枚举：pending(待支付) / processing(处理中，已提交等风控审核) / succeeded(成功) / failed(失败) / closed(关闭)。下单即创建支付单(pending)与 parent_order(pending_payment)；用户提交后进入 processing；渠道回调成功(succeeded)联动 parent_order 转 paid 并拆子订单；closed = pending 状态 30 分钟未提交付款超时关闭，或订单取消时关闭未完成的支付单。processing 状态不因超时关闭，等渠道回调。processing 72h 兜底：超 72h 无回调 → 系统主动查询渠道：成功 → 正常到账；失败 → failed（同正常回调失败）；仍处理中或查询异常 → 保持 processing + remark 写入\"渠道处理超72小时未成功\"，通知运营人工介入",
     "payment_transaction_type_enum": "transaction_type 枚举：payment(收款) / refund(退款)。每笔和支付渠道的资金流动记录一条，对账最小粒度",
     "payment_transaction_status_enum": "payment_transaction.status 枚举：pending(处理中) / succeeded(成功) / failed(失败)",
     "reconciliation_status_enum": "reconciliation_status 枚举：unreconciled(未对账) / reconciled(已对账) / discrepant(差异待处理)。对账流程：拉取渠道结算报告 → 按 channel_transaction_id 匹配 → 比对 amount/channel_fee/net_amount → 标记结果",
@@ -2647,8 +2647,8 @@ design_rules:
     = refund_order.refund_no。两个方向均由业务域持有单号引用支付域，支付域不反向引用业务域
   payment_order_status_enum: payment_order.status 枚举：pending(待支付) / processing(处理中，已提交等风控审核) / succeeded(成功) / failed(失败)
     / closed(关闭)。下单即创建支付单(pending)与 parent_order(pending_payment)；用户提交后进入 processing；渠道回调成功(succeeded)联动 parent_order 转 paid
-    并拆子订单；closed = pending 状态 30 分钟未提交付款超时关闭，或订单取消时关闭未完成的支付单。processing 状态不因超时关闭，等渠道回调。processing 72h 兜底：超 72h 无回调 → 系统主动查询渠道，非成功
-    → failed + remark 写入"渠道处理超72小时未成功"，通知运营
+    并拆子订单；closed = pending 状态 30 分钟未提交付款超时关闭，或订单取消时关闭未完成的支付单。processing 状态不因超时关闭，等渠道回调。processing 72h 兜底：超 72h 无回调 → 系统主动查询渠道：成功
+    → 正常到账；失败 → failed（同正常回调失败）；仍处理中或查询异常 → 保持 processing + remark 写入"渠道处理超72小时未成功"，通知运营人工介入
   payment_transaction_type_enum: transaction_type 枚举：payment(收款) / refund(退款)。每笔和支付渠道的资金流动记录一条，对账最小粒度
   payment_transaction_status_enum: payment_transaction.status 枚举：pending(处理中) / succeeded(成功) / failed(失败)
   reconciliation_status_enum: reconciliation_status 枚举：unreconciled(未对账) / reconciled(已对账) / discrepant(差异待处理)。对账流程：拉取渠道结算报告

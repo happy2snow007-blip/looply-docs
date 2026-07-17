@@ -325,9 +325,16 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 状态流转：pending → processing → succeeded / failed；pending → closed（30 分钟未提交付款超时）。processing 不因超时关闭，等渠道回调（succeeded / failed），仅订单取消时可关闭
 
-**processing 72h 兜底机制**：支付单进入 processing 后超过 72 小时仍未收到渠道回调，系统主动调用渠道查询接口查询支付结果。① 查询结果为成功 → 按正常到账流程处理（succeeded → 拆单）；② 查询结果非成功（失败、仍处理中、查询异常）→ 支付单转 failed，remark 写入"渠道处理超72小时未成功"，联动 parent_order 转 cancelled、释放库存，通知运营
+**processing 72h 兜底机制**：支付单进入 processing 后超过 72 小时仍未收到渠道回调，系统主动调用渠道查询接口查询支付结果：
 
-**payment_order.remark**：支付单备注字段，系统写入异常说明。72h 兜底超时且渠道查询非成功时写入"渠道处理超72小时未成功"。后台支付单列表和详情页展示
+- ① 查询结果为成功 → 按正常到账流程处理（succeeded → 拆单 → 确认邮件）
+- ② 查询结果为失败 → 支付单转 failed（同正常回调失败流程），联动 parent_order 转 cancelled、释放库存，发送 #5 取消通知邮件。不写 remark
+- ③ 查询结果仍处理中 → 支付单保持 processing 不变，remark 写入"渠道处理超72小时未成功"，订单和库存不变，运营通过后台支付单列表筛选发现并人工介入
+- ④ 查询异常（接口报错/超时）→ 同 ③ 处理：支付单保持 processing，remark 写入"渠道处理超72小时未成功"，运营通过后台发现并人工介入
+
+系统不再对 ③④ 自动轮询，由运营在后台支付单列表筛选"处理中 + 有备注"发现异常单，联系渠道确认后手动操作支付单状态。
+
+**payment_order.remark**：支付单备注字段，系统写入异常说明。72h 兜底查询后渠道仍处理中或查询异常时写入"渠道处理超72小时未成功"。后台支付单列表和详情页展示
 
 交互链路（渠道 → 支付单 → 订单）：用户点击「去支付」→ 创建支付单(pending) + parent_order(pending_payment) + 结算会话(converted)。提交付款 → 支付单(processing)。渠道回调成功 → 支付单(succeeded) → 联动 parent_order 转 paid 并按商家拆子订单 order(paid)。回调失败 → 支付单(failed)；pending 状态 30 分钟超时 → 支付单(closed)。两者均联动 parent_order 转 cancelled、释放库存（此时无子订单）。processing 状态不因超时关闭，等渠道回调。订单不直接与渠道交互。
 
@@ -397,7 +404,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 | 支付后拆单 + 子订单起始 | parent_order 转 paid 时才按商家拆出子订单 order（起始 order_status = paid）；所有 order_item 初始 fulfillment_status = pending，refund_status = none |
 | paid 触发条件 | 渠道回调到账 → payment_order 转 succeeded → 联动 parent_order 从 pending_payment 转 paid 并拆子订单（订单不直接感知渠道） |
 | 待付款超时/失败 | payment_deadline = 下单 + 30 分钟。超时规则按支付单状态区分：① pending（未提交付款）超过 30 分钟 → 支付单转 closed → parent_order 转 cancelled，释放库存；② processing（已提交付款、渠道审核中）不受 30 分钟超时影响，等渠道回调决定 succeeded/failed，回调失败 → 支付单转 failed → parent_order 转 cancelled，释放库存 |
-| processing 72h 兜底 | processing 超过 72h 无回调 → 系统主动查询渠道：成功则正常到账流程；非成功 → 支付单转 failed + remark 写入"渠道处理超72小时未成功" → parent_order 转 cancelled、释放库存，通知运营 |
+| processing 72h 兜底 | processing 超过 72h 无回调 → 系统主动查询渠道：① 成功 → 正常到账流程；② 失败 → 支付单转 failed，同正常回调失败（取消订单、释放库存、发取消邮件）；③ 仍处理中或查询异常 → 支付单保持 processing + remark 写入"渠道处理超72小时未成功"，订单和库存不变，运营通过后台筛选发现并人工介入。系统不再自动轮询 |
 | 库存锁定 | 提交支付即锁定一物一件商品（锁在父订单），pending_payment 期间不可被他人购买，转 cancelled 时释放 |
 | shipped 触发条件 | 首个 order_item.fulfillment_status 变为 shipped 时，order_status 从 paid 变为 shipped |
 | completed 触发条件 | 所有 order_item.fulfillment_status 变为 received 时，order_status 变为 completed |
@@ -785,6 +792,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 3. 失败：渠道回调失败 → 支付单转"失败" → 联动 parent_order 转 cancelled、释放库存（此时无子订单，无退款）→ 发送取消通知
 4. 未提交付款超时：支付单仍为 pending（用户未提交付款）且超过 30 分钟 → 支付单转"关闭" → 联动 parent_order 转 cancelled、释放库存 → 发送取消通知。已进入 processing（渠道审核中）的支付单不受此超时影响，等渠道回调
 5. 同步渠道（卡未命中风控）到账极快，用户等结果后跳订单成功页；异步（风控审核中）parent_order 停在 pending_payment，跳「订单已提交」页（见 3.4）
+6. processing 72h 兜底：支付单 processing 超过 72 小时未收到回调 → 系统主动查询渠道：① 成功 → 按第 2 条处理；② 失败 → 按第 3 条处理；③ 仍处理中或查询异常 → 支付单保持 processing + remark 写入"渠道处理超72小时未成功"，订单和库存不变，运营通过后台筛选发现并人工介入（详见 §2.2.6）
 
 #### 支付通道矩阵
 
@@ -1210,8 +1218,8 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 | 页面 | 设计稿 |
 |------|--------|
-| 订单列表 | 后台原型: looply-订单管理后台原型-v5.html — OrderListPage |
-| 订单详情 | 后台原型: looply-订单管理后台原型-v5.html — OrderDetailPage |
+| 订单列表 | 后台原型: looply-订单管理后台原型-v7.html — OrderListPage |
+| 订单详情 | 后台原型: looply-订单管理后台原型-v7.html — OrderDetailPage |
 
 ---
 
@@ -1363,8 +1371,8 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 | 页面 | 设计稿 |
 |------|--------|
-| 弃单列表 | 后台原型: looply-订单管理后台原型-v5.html — AbandonedCartPage |
-| 弃单详情 | 后台原型: looply-订单管理后台原型-v5.html — AbandonedDetailPage |
+| 弃单列表 | 后台原型: looply-订单管理后台原型-v7.html — AbandonedCartPage |
+| 弃单详情 | 后台原型: looply-订单管理后台原型-v7.html — AbandonedDetailPage |
 
 ---
 
@@ -1409,6 +1417,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 | 状态 | 待支付-橙色 / 成功-绿色 / 失败-红色 / 超时关闭-灰色 |
 | 支付时间 | 支付成功时间（未成功显示"—"） |
 | 创建时间 | 支付单创建时间 |
+| 备注 | 有值时红色文字展示（如"渠道处理超72小时未成功"），无值显示"—" |
 | 操作 | 详情按钮 |
 
 #### 支付单详情弹窗
@@ -1424,6 +1433,8 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 | 买家 | 金额 + 币种（加粗） |
 | 支付通道 | 状态（标签） |
 | — | 支付时间 |
+
+**备注展示**：remark 有值时，在基本信息下方以红底色块展示（背景 #FEF2F2、文字 #DC2626）。无值时不展示。
 
 **关联流水（表格）：**
 
@@ -1449,7 +1460,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 | 页面 | 设计稿 |
 |------|--------|
-| 支付单列表 | 后台原型: looply-订单管理后台原型-v5.html — PaymentOrderListPage |
+| 支付单列表 | 后台原型: looply-订单管理后台原型-v7.html — PaymentOrderListPage |
 
 
 ---
@@ -1532,7 +1543,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 | 页面 | 设计稿 |
 |------|--------|
-| 退款单列表 | 后台原型: looply-订单管理后台原型-v5.html — RefundOrderListPage |
+| 退款单列表 | 后台原型: looply-订单管理后台原型-v7.html — RefundOrderListPage |
 
 
 ---
@@ -1613,7 +1624,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 | 页面 | 设计稿 |
 |------|--------|
-| 支付流水列表 | 后台原型: looply-订单管理后台原型-v5.html — PaymentTransactionListPage |
+| 支付流水列表 | 后台原型: looply-订单管理后台原型-v7.html — PaymentTransactionListPage |
 
 ---
 
@@ -1712,7 +1723,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 | 页面 | 设计稿 |
 |------|--------|
-| 对账管理列表 | 后台原型: looply-订单管理后台原型-v5.html — ReconciliationPage |
+| 对账管理列表 | 后台原型: looply-订单管理后台原型-v7.html — ReconciliationPage |
 
 ---
 
@@ -2099,16 +2110,16 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 | 文件 | 说明 |
 |------|------|
-| looply-订单管理后台原型-v5.html | 后台 8 个页面（订单管理、弃单管理、支付单管理、支付流水、对账管理、退款单管理） |
+| looply-订单管理后台原型-v7.html | 后台 8 个页面（订单管理、弃单管理、支付单管理、支付流水、对账管理、退款单管理） |
 
 #### 其他文档
 
 | 文件 | 说明 |
 |------|------|
 | looply-支付渠道对接集成说明文档-v1.0.html | 支付通道对接技术方案 |
-| looply-交易核心节点邮件通知方案-v1.0.html | 邮件模板设计和变量定义 |
-| looply-订单模块实体关系图-v8.0.svg | 数据模型设计（15 张表） |
-| looply-订单模块状态设计说明-v8.0.html | 状态枚举和流转规则 |
+| looply-交易核心节点邮件通知方案-v1.1.html | 邮件模板设计和变量定义 |
+| looply-订单模块实体关系图-v9.1.svg | 数据模型设计（17 张表） |
+| looply-订单模块状态设计说明-v9.1.html | 状态枚举和流转规则 |
 | looply-下单流程-页面流程图-v1.0.html | C 端下单流程（6 个页面） |
 
 ## 九、版本记录
@@ -2117,4 +2128,4 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 |------|------|---------|
 | v1.0 | 2026-06 | 初版：订单与支付模块完整 PRD |
 | v1.1 | 2026-07-13 | 新增 pending_payment 待付款态、payment_order processing 中间态、待付款超时机制、支付成功邮件即时/异步策略 |
-| v1.2 | 2026-07-16 | **支付后拆单**：待付款态上移到 parent_order 层（parent_status），下单只建父订单不拆单，支付到账后才按商家拆子订单 order（起始 paid），子订单移除 pending_payment；C 端待付款只显一条、付一次款。**取消时序修复**：已付款取消改为退款成功后才置 cancelled，退款失败订单保持已付款并挂人工，避免「已取消但未退款」。**待付款超时规则细化**：payment_deadline 从 1 自然日改为 30 分钟，仅对 pending（未提交付款）状态生效；processing（已提交付款、渠道审核中）不受超时关闭，等渠道回调决定结果。C 端文案和邮件去掉具体时限承诺，改为模糊表述 |
+| v1.2 | 2026-07-17 | **支付后拆单**：待付款态上移到 parent_order 层（parent_status），下单只建父订单不拆单，支付到账后才按商家拆子订单 order（起始 paid），子订单移除 pending_payment；C 端待付款只显一条、付一次款。**取消时序修复**：已付款取消改为退款成功后才置 cancelled，退款失败订单保持已付款并挂人工，避免「已取消但未退款」。**待付款超时规则细化**：payment_deadline 从 1 自然日改为 30 分钟，仅对 pending（未提交付款）状态生效；processing（已提交付款、渠道审核中）不受超时关闭，等渠道回调决定结果。**processing 72h 兜底**：processing 超 72h 无回调时系统主动查询渠道，按结果分三路处理（成功/失败/仍处理中或异常），仍处理中或异常时保持 processing + remark 标记，运营后台筛选发现。新增 payment_order.remark 字段。C 端文案和邮件去掉具体时限承诺，改为模糊表述 |

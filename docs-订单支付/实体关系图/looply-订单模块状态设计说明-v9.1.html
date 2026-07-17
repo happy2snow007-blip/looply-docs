@@ -581,15 +581,23 @@ tr:last-child td { border-bottom: none; }
   <div class="flow">
     <div class="flow-node n-processing">processing</div>
     <div class="flow-arrow">&rarr;</div>
-    <div class="flow-branch">72h 无回调 → 系统查询渠道 → 非成功</div>
+    <div class="flow-branch">72h 无回调 → 系统查询渠道 → 失败</div>
     <div class="flow-arrow">&rarr;</div>
     <div class="flow-node n-failed">failed</div>
-    <span style="font-size:12px;color:#DC2626;margin-left:8px">+ remark="渠道处理超72小时未成功"</span>
+    <span style="font-size:12px;color:#636e72;margin-left:8px">（同正常回调失败）</span>
+  </div>
+  <div class="flow">
+    <div class="flow-node n-processing">processing</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-branch">72h 无回调 → 系统查询渠道 → 仍处理中/查询异常</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node n-processing">processing（不变）</div>
+    <span style="font-size:12px;color:#DC2626;margin-left:8px">+ remark="渠道处理超72小时未成功"，通知运营</span>
   </div>
 
   <div class="callout">
     <strong>渠道 → 支付单 → 订单</strong>：用户点击「去支付」→ 创建 payment_order(pending) + parent_order(pending_payment) + checkout_session(converted)。提交付款 → payment_order(processing)。渠道回调成功 → payment_order(succeeded) → 联动 parent_order 转 paid 并按商家拆子订单 order(paid)。回调失败 → payment_order(failed)；pending 状态 30 分钟超时 → payment_order(closed)。两者均联动 parent_order 转 cancelled、释放库存（此时无子订单）。processing 状态不因超时关闭，等渠道回调。<br><br>
-    <strong>processing 72h 兜底</strong>：processing 超过 72h 仍未收到回调 → 系统主动查询渠道：① 查询结果成功 → 按正常到账流程处理（succeeded → 拆单）；② 非成功 → 支付单转 failed + remark 写入"渠道处理超72小时未成功" → parent_order 转 cancelled、释放库存，通知运营。订单不直接与渠道交互。
+    <strong>processing 72h 兜底</strong>：processing 超过 72h 仍未收到回调 → 系统主动查询渠道：① 成功 → 按正常到账流程处理（succeeded → 拆单）；② 失败 → 支付单转 failed，同正常回调失败（取消订单、释放库存、发取消邮件）；③ 仍处理中或查询异常 → 支付单保持 processing + remark 写入"渠道处理超72小时未成功"，订单和库存不变，运营通过后台筛选发现并人工介入。系统不再自动轮询。订单不直接与渠道交互。
   </div>
 
   <h3 style="margin-top: 32px"><span class="field-badge">payment_transaction.transaction_type</span> 2 个值</h3>
@@ -738,7 +746,7 @@ tr:last-child td { border-bottom: none; }
     <tr><td>父订单起始状态</td><td>下单即创建 parent_order，起始 parent_status = pending_payment（此时不拆子订单）；支付到账后转 paid</td></tr>
     <tr><td>支付后拆单 + 子订单起始</td><td>parent_order 转 paid 时才按商家拆出子订单 order，子订单起始 order_status = paid；所有 order_item 初始 fulfillment_status = pending，refund_status = none</td></tr>
     <tr><td>待付款超时/失败</td><td>payment_deadline = 下单 + 30 分钟。超时规则按支付单状态区分：① pending（未提交付款）超过 30 分钟 → 支付单转 closed → parent_order 转 cancelled，释放库存；② processing（已提交付款、渠道审核中）不受 30 分钟超时影响，等渠道回调决定 succeeded/failed，回调失败 → 支付单转 failed → parent_order 转 cancelled，释放库存（此时无子订单，无退款）</td></tr>
-    <tr><td>processing 72h 兜底</td><td>processing 超过 72h 无回调 → 系统主动查询渠道：成功则正常到账流程；非成功 → 支付单转 failed + remark 写入"渠道处理超72小时未成功" → parent_order 转 cancelled、释放库存，通知运营</td></tr>
+    <tr><td>processing 72h 兜底</td><td>processing 超过 72h 无回调 → 系统主动查询渠道：① 成功 → 正常到账流程；② 失败 → 支付单转 failed，同正常回调失败（取消订单、释放库存、发取消邮件）；③ 仍处理中或查询异常 → 支付单保持 processing + remark 写入"渠道处理超72小时未成功"，订单和库存不变，运营通过后台筛选发现并人工介入。系统不再自动轮询</td></tr>
     <tr><td>库存锁定</td><td>提交支付即锁定一物一件商品（锁在父订单），pending_payment 期间不可被他人购买，转 cancelled 时释放</td></tr>
     <tr><td>shipped 触发条件</td><td>首个 order_item.fulfillment_status 变为 shipped 时，order_status 从 paid 变为 shipped</td></tr>
     <tr><td>completed 触发条件</td><td>所有 order_item.fulfillment_status 变为 received 时，order_status 变为 completed</td></tr>
