@@ -970,7 +970,7 @@ def sync_module_files(source_dir, target_dir, mod_key):
             smart_cp(f, dst_root)
 
     # 核心差异汇总
-    for delivery_dir in globmod.glob(os.path.join(source_dir, '交付开发*')):
+    for delivery_dir in globmod.glob(os.path.join(source_dir, '*交付开发*')):
         if os.path.isdir(delivery_dir):
             for f in globmod.glob(os.path.join(delivery_dir, '*核心差异*.md')):
                 if os.path.isfile(f):
