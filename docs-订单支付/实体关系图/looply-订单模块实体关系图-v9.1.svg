@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<svg xmlns="http://www.w3.org/2000/svg" width="2797pt" height="3871pt" viewBox="0.00 0.00 2797.00 3871.00">
+<svg xmlns="http://www.w3.org/2000/svg" width="2797pt" height="3880pt" viewBox="0.00 0.00 2797.00 3880.00">
 <metadata><er-schema format="json" version="1.0">
 {
   "title": "looply · 订单模块 实体关系图",
@@ -150,7 +150,7 @@
         },
         {
           "name": "payment_deadline",
-          "comment": "待付款超时时间（下单+30分钟，仅对pending状态生效）",
+          "comment": "待付款超时时间（下单+1自然日）",
           "constraint": ""
         },
         {
@@ -777,6 +777,11 @@
           "constraint": ""
         },
         {
+          "name": "remark",
+          "comment": "备注（72h兜底等异常说明）",
+          "constraint": ""
+        },
+        {
           "name": "created_at",
           "comment": "创建时间",
           "constraint": ""
@@ -1101,7 +1106,7 @@
     "item_refund_status_enum": "order_item.refund_status 枚举：none(无退款) / refunding(退款中) / refunded(已退款)。这是退款维度的唯一事实源，订单级退款状态从此字段实时聚合",
     "package_status_enum": "package_status 枚举：pending(待发货) / shipped(已发货) / received(已签收)",
     "payment_ref_no_rule": "parent_order.payment_ref_no = payment_order.payment_no，是订单系统与支付系统的收款桥梁。退款桥梁：refund_request.refund_ref_no = refund_order.refund_no。两个方向均由业务域持有单号引用支付域，支付域不反向引用业务域",
-    "payment_order_status_enum": "payment_order.status 枚举：pending(待支付) / processing(处理中，已提交等风控审核) / succeeded(成功) / failed(失败) / closed(关闭)。下单即创建支付单(pending)与 parent_order(pending_payment)；用户提交后进入 processing；渠道回调成功(succeeded)联动 parent_order 转 paid 并拆子订单；closed = pending 状态 30 分钟未提交付款超时关闭，或订单取消时关闭。processing 状态不因超时关闭，等渠道回调",
+    "payment_order_status_enum": "payment_order.status 枚举：pending(待支付) / processing(处理中，已提交等风控审核) / succeeded(成功) / failed(失败) / closed(关闭)。下单即创建支付单(pending)与 parent_order(pending_payment)；用户提交后进入 processing；渠道回调成功(succeeded)联动 parent_order 转 paid 并拆子订单；closed = pending 状态 30 分钟未提交付款超时关闭，或订单取消时关闭未完成的支付单。processing 状态不因超时关闭，等渠道回调。processing 72h 兜底：超 72h 无回调 → 系统主动查询渠道，非成功 → failed + remark 写入\"渠道处理超72小时未成功\"，通知运营",
     "payment_transaction_type_enum": "transaction_type 枚举：payment(收款) / refund(退款)。每笔和支付渠道的资金流动记录一条，对账最小粒度",
     "payment_transaction_status_enum": "payment_transaction.status 枚举：pending(处理中) / succeeded(成功) / failed(失败)",
     "reconciliation_status_enum": "reconciliation_status 枚举：unreconciled(未对账) / reconciled(已对账) / discrepant(差异待处理)。对账流程：拉取渠道结算报告 → 按 channel_transaction_id 匹配 → 比对 amount/channel_fee/net_amount → 标记结果",
@@ -1356,7 +1361,7 @@ tables:
     enum_values:
     index:
   - name: payment_deadline
-    comment: 待付款超时时间（下单+30分钟，仅对pending状态生效）
+    comment: 待付款超时时间（下单+1自然日）
     constraint:
     type:
     nullable:
@@ -2295,6 +2300,14 @@ tables:
     default:
     enum_values:
     index:
+  - name: remark
+    comment: 备注（72h兜底等异常说明）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
   - name: created_at
     comment: 创建时间
     constraint:
@@ -2634,7 +2647,8 @@ design_rules:
     = refund_order.refund_no。两个方向均由业务域持有单号引用支付域，支付域不反向引用业务域
   payment_order_status_enum: payment_order.status 枚举：pending(待支付) / processing(处理中，已提交等风控审核) / succeeded(成功) / failed(失败)
     / closed(关闭)。下单即创建支付单(pending)与 parent_order(pending_payment)；用户提交后进入 processing；渠道回调成功(succeeded)联动 parent_order 转 paid
-    并拆子订单；closed = pending 状态 30 分钟未提交付款超时关闭，或订单取消时关闭。processing 状态不因超时关闭，等渠道回调
+    并拆子订单；closed = pending 状态 30 分钟未提交付款超时关闭，或订单取消时关闭未完成的支付单。processing 状态不因超时关闭，等渠道回调。processing 72h 兜底：超 72h 无回调 → 系统主动查询渠道，非成功
+    → failed + remark 写入"渠道处理超72小时未成功"，通知运营
   payment_transaction_type_enum: transaction_type 枚举：payment(收款) / refund(退款)。每笔和支付渠道的资金流动记录一条，对账最小粒度
   payment_transaction_status_enum: payment_transaction.status 枚举：pending(处理中) / succeeded(成功) / failed(失败)
   reconciliation_status_enum: reconciliation_status 枚举：unreconciled(未对账) / reconciled(已对账) / discrepant(差异待处理)。对账流程：拉取渠道结算报告
@@ -2692,9 +2706,9 @@ design_rules:
   buy_gift_in_order_item: 买赠的赠品作为正常 order_item 存在：unit_price=原价, discount_amount=原价, item_total=0。退主商品时通过 order_discount_item(role=qualify/benefit)
     找到关联赠品，决定是否收回
   promotion_snapshot_principle: 订单只存优惠结果快照（promotion_name + discount_amount + 分摊明细），不存促销规则。promotion_ref_id 引用促销模块规则 ID 供追溯，但规则变更不影响历史订单
-]]></er-tech-spec></metadata><g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(57.6 3813.32)">
+]]></er-tech-spec></metadata><g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(57.6 3822.33)">
 <title>ER</title>
-<polygon fill="#f8f9fc" stroke="none" points="-57.6,57.6 -57.6,-3813.32 2739.6,-3813.32 2739.6,57.6 -57.6,57.6" />
+<polygon fill="#f8f9fc" stroke="none" points="-57.6,57.6 -57.6,-3822.33 2739.6,-3822.33 2739.6,57.6 -57.6,57.6" />
 <g id="clust1" class="cluster">
 <title>cluster_checkout</title>
 <path fill="#e8f5e9" stroke="#81c784" stroke-width="2.5" d="M20,-8C20,-8 922.38,-8 922.38,-8 928.38,-8 934.38,-14 934.38,-20 934.38,-20 934.38,-506 934.38,-506 934.38,-512 928.38,-518 922.38,-518 922.38,-518 20,-518 20,-518 14,-518 8,-512 8,-506 8,-506 8,-20 8,-20 8,-14 14,-8 20,-8" />
@@ -2722,8 +2736,8 @@ design_rules:
 </g>
 <g id="clust6" class="cluster">
 <title>cluster_payment</title>
-<path fill="#ede7f6" stroke="#b39ddb" stroke-width="2.5" d="M1158.75,-3020C1158.75,-3020 2662,-3020 2662,-3020 2668,-3020 2674,-3026 2674,-3032 2674,-3032 2674,-3680 2674,-3680 2674,-3686 2668,-3692 2662,-3692 2662,-3692 1158.75,-3692 1158.75,-3692 1152.75,-3692 1146.75,-3686 1146.75,-3680 1146.75,-3680 1146.75,-3032 1146.75,-3032 1146.75,-3026 1152.75,-3020 1158.75,-3020" />
-<text xml:space="preserve" text-anchor="start" x="1889" y="-3675.7" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="#5e35b1">支付层</text>
+<path fill="#ede7f6" stroke="#b39ddb" stroke-width="2.5" d="M1158.75,-3020C1158.75,-3020 2662,-3020 2662,-3020 2668,-3020 2674,-3026 2674,-3032 2674,-3032 2674,-3689 2674,-3689 2674,-3695 2668,-3701 2662,-3701 2662,-3701 1158.75,-3701 1158.75,-3701 1152.75,-3701 1146.75,-3695 1146.75,-3689 1146.75,-3689 1146.75,-3032 1146.75,-3032 1146.75,-3026 1152.75,-3020 1158.75,-3020" />
+<text xml:space="preserve" text-anchor="start" x="1889" y="-3684.7" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="#5e35b1">支付层</text>
 </g>
 <g id="clust7" class="cluster">
 <title>cluster_external</title>
@@ -2796,7 +2810,7 @@ design_rules:
 <text xml:space="preserve" text-anchor="start" x="560.5" y="-1909.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">discount_amount 优惠总金额（汇总各子订单）</text>
 <text xml:space="preserve" text-anchor="start" x="560.5" y="-1877.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">currency_code 币种（ISO 4217）</text>
 <text xml:space="preserve" text-anchor="start" x="560.5" y="-1845.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">payment_ref_no 支付单号（→ 支付模块）</text>
-<text xml:space="preserve" text-anchor="start" x="560.5" y="-1813" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">payment_deadline 待付款超时时间（下单+30分钟，仅对pending状态生效）</text>
+<text xml:space="preserve" text-anchor="start" x="560.5" y="-1813" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">payment_deadline 待付款超时时间（下单+1自然日）</text>
 <text xml:space="preserve" text-anchor="start" x="560.5" y="-1780.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">paid_at 付款到账时间</text>
 <text xml:space="preserve" text-anchor="start" x="560.5" y="-1748.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">cancelled_at 取消时间（待付款取消）</text>
 <text xml:space="preserve" text-anchor="start" x="560.5" y="-1716.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">created_at 创建时间</text>
@@ -2826,9 +2840,9 @@ design_rules:
 
 <g id="edge17" class="edge">
 <title>checkout_session-&gt;user_account</title>
-<path fill="none" stroke="#90caf9" d="M224.23,-473.83C263.15,-1245.21 414.52,-3737 745.88,-3737 745.88,-3737 745.88,-3737 1909.5,-3737 2043.57,-3737 2118.02,-3797.7 2208.75,-3699 2234.57,-3670.92 2231.7,-3050.66 2237.75,-3013 2279.68,-2752.15 2382.45,-2452.38 2426.4,-2331.14" />
-<polygon fill="#90caf9" stroke="#90caf9" points="2428.6,-2332.25 2428.69,-2324.83 2423.99,-2330.57 2428.6,-2332.25" />
-<text xml:space="preserve" text-anchor="middle" x="1357.88" y="-3742.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#4a90d9">N:1 买家</text>
+<path fill="none" stroke="#90caf9" d="M224.16,-474.08C262.85,-1247.06 413.63,-3746 745.88,-3746 745.88,-3746 745.88,-3746 1909.5,-3746 2043.57,-3746 2118.04,-3806.72 2208.75,-3708 2234.9,-3679.54 2231.63,-3051.16 2237.75,-3013 2279.6,-2752.14 2382.41,-2452.37 2426.39,-2331.13" />
+<polygon fill="#90caf9" stroke="#90caf9" points="2428.59,-2332.25 2428.68,-2324.83 2423.98,-2330.57 2428.59,-2332.25" />
+<text xml:space="preserve" text-anchor="middle" x="1357.88" y="-3751.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#4a90d9">N:1 买家</text>
 </g>
 
 <g id="node17" class="node">
@@ -2926,36 +2940,37 @@ design_rules:
 
 <g id="node12" class="node">
 <title>payment_order</title>
-<polygon fill="#5e35b1" stroke="none" points="1695.5,-3613.12 1695.5,-3645.38 2081,-3645.38 2081,-3613.12 1695.5,-3613.12" />
-<text xml:space="preserve" text-anchor="start" x="1814.38" y="-3627.07" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">支付单 payment_order</text>
-<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3592.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 主键</text>
-<text xml:space="preserve" text-anchor="start" x="2087.38" y="-3592.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
-<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3559.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">payment_no 支付单号</text>
-<text xml:space="preserve" text-anchor="start" x="2087" y="-3559.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[UK]</text>
-<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3527.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">parent_order_id 关联父订单（→ parent_order）</text>
-<text xml:space="preserve" text-anchor="start" x="2087.75" y="-3527.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
-<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3495.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">user_id 买家（冗余，免 join）</text>
-<text xml:space="preserve" text-anchor="start" x="2087.75" y="-3495.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
-<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3463.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">channel 支付渠道（paypal / stripe）</text>
-<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3430.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">payment_method 支付方式（paypal_wallet / credit_card）</text>
-<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3398.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">amount 支付金额</text>
-<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3366.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">refunded_amount 累计已退金额（防超额退款）</text>
-<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3334.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">currency_code 币种（ISO 4217）</text>
-<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3301.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">status 支付单状态</text>
-<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3269.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">paid_at 支付成功时间</text>
-<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3237.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">expired_at 支付超时时间</text>
-<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3205.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">created_at 创建时间</text>
-<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3172.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">updated_at 更新时间</text>
-<polygon fill="#e3f2fd" stroke="none" points="1695.5,-3134.62 1695.5,-3161.62 2121.5,-3161.62 2121.5,-3134.62 1695.5,-3134.62" />
-<text xml:space="preserve" text-anchor="start" x="1741.62" y="-3147.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">一次结算对应一笔支付单，parent_order.payment_ref_no 引用 payment_no</text>
-<polygon fill="none" stroke="black" stroke-width="2" points="1694.5,-3133.62 1694.5,-3646.38 2122.5,-3646.38 2122.5,-3133.62 1694.5,-3133.62" />
+<polygon fill="#5e35b1" stroke="none" points="1695.5,-3622.25 1695.5,-3654.5 2081,-3654.5 2081,-3622.25 1695.5,-3622.25" />
+<text xml:space="preserve" text-anchor="start" x="1814.38" y="-3636.2" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">支付单 payment_order</text>
+<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3601.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 主键</text>
+<text xml:space="preserve" text-anchor="start" x="2087.38" y="-3601.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3569" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">payment_no 支付单号</text>
+<text xml:space="preserve" text-anchor="start" x="2087" y="-3569" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[UK]</text>
+<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3536.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">parent_order_id 关联父订单（→ parent_order）</text>
+<text xml:space="preserve" text-anchor="start" x="2087.75" y="-3536.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3504.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">user_id 买家（冗余，免 join）</text>
+<text xml:space="preserve" text-anchor="start" x="2087.75" y="-3504.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3472.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">channel 支付渠道（paypal / stripe）</text>
+<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3440" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">payment_method 支付方式（paypal_wallet / credit_card）</text>
+<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3407.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">amount 支付金额</text>
+<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3375.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">refunded_amount 累计已退金额（防超额退款）</text>
+<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3343.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">currency_code 币种（ISO 4217）</text>
+<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3311" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">status 支付单状态</text>
+<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3278.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">paid_at 支付成功时间</text>
+<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3246.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">expired_at 支付超时时间</text>
+<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3214.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">remark 备注（72h兜底等异常说明）</text>
+<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3182" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">created_at 创建时间</text>
+<text xml:space="preserve" text-anchor="start" x="1701.5" y="-3149.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">updated_at 更新时间</text>
+<polygon fill="#e3f2fd" stroke="none" points="1695.5,-3111.5 1695.5,-3138.5 2121.5,-3138.5 2121.5,-3111.5 1695.5,-3111.5" />
+<text xml:space="preserve" text-anchor="start" x="1741.62" y="-3124" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">一次结算对应一笔支付单，parent_order.payment_ref_no 引用 payment_no</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="1694.5,-3110.5 1694.5,-3655.5 2122.5,-3655.5 2122.5,-3110.5 1694.5,-3110.5" />
 </g>
 
 <g id="edge13" class="edge">
 <title>parent_order-&gt;payment_order</title>
-<path fill="none" stroke="#5e35b1" stroke-width="1.4" d="M772.85,-2126.23C819.94,-2527.68 936.5,-3305.13 1146.75,-3469 1297.76,-3586.7 1520.01,-3546.75 1685.33,-3489.4" />
-<polygon fill="#5e35b1" stroke="#5e35b1" stroke-width="1.4" points="1685.86,-3491.81 1691.65,-3487.18 1684.24,-3487.19 1685.86,-3491.81" />
-<text xml:space="preserve" text-anchor="middle" x="1357.88" y="-3550.55" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#5e35b1">1:1 支付单</text>
+<path fill="none" stroke="#5e35b1" stroke-width="1.4" d="M772.85,-2126.23C819.94,-2527.68 936.5,-3305.13 1146.75,-3469 1297.91,-3586.82 1520.14,-3544.63 1685.42,-3485.31" />
+<polygon fill="#5e35b1" stroke="#5e35b1" stroke-width="1.4" points="1686,-3487.7 1691.74,-3483.01 1684.33,-3483.09 1686,-3487.7" />
+<text xml:space="preserve" text-anchor="middle" x="1357.88" y="-3549.41" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#5e35b1">1:1 支付单</text>
 </g>
 
 <g id="node5" class="node">
@@ -3193,54 +3208,54 @@ design_rules:
 
 <g id="edge14" class="edge">
 <title>refund_order-&gt;payment_order</title>
-<path fill="none" stroke="#5e35b1" stroke-width="1.4" d="M1552.69,-3296.22C1595.47,-3307.53 1641.13,-3319.6 1684.95,-3331.18" />
-<polygon fill="#5e35b1" stroke="#5e35b1" stroke-width="1.4" points="1684.25,-3333.53 1691.64,-3332.95 1685.5,-3328.79 1684.25,-3333.53" />
-<text xml:space="preserve" text-anchor="middle" x="1626.62" y="-3327.35" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#5e35b1">N:1 原始支付单</text>
+<path fill="none" stroke="#5e35b1" stroke-width="1.4" d="M1552.69,-3293.75C1595.47,-3304.51 1641.13,-3316 1684.95,-3327.02" />
+<polygon fill="#5e35b1" stroke="#5e35b1" stroke-width="1.4" points="1684.25,-3329.37 1691.64,-3328.7 1685.44,-3324.62 1684.25,-3329.37" />
+<text xml:space="preserve" text-anchor="middle" x="1626.62" y="-3323.64" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#5e35b1">N:1 原始支付单</text>
 </g>
 
 <g id="node13" class="node">
 <title>payment_transaction</title>
-<polygon fill="#5e35b1" stroke="none" points="2239.75,-3613.5 2239.75,-3645.75 2615.5,-3645.75 2615.5,-3613.5 2239.75,-3613.5" />
-<text xml:space="preserve" text-anchor="start" x="2326.38" y="-3627.45" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">支付流水 payment_transaction</text>
-<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3592.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 主键</text>
-<text xml:space="preserve" text-anchor="start" x="2621.88" y="-3592.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
-<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3560.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">transaction_no 内部流水号</text>
-<text xml:space="preserve" text-anchor="start" x="2621.5" y="-3560.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[UK]</text>
-<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3528" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">payment_id 所属支付单（→ payment_order）</text>
-<text xml:space="preserve" text-anchor="start" x="2622.25" y="-3528" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
-<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3495.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">transaction_type 交易类型（payment / refund）</text>
-<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3463.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">channel_transaction_id 渠道交易号（对账匹配键）</text>
-<text xml:space="preserve" text-anchor="start" x="2621.5" y="-3463.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[UK]</text>
-<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3431.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">amount 交易金额</text>
-<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3399" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">currency_code 币种</text>
-<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3366.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">channel_fee 渠道手续费</text>
-<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3334.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">channel_fee_currency 手续费币种</text>
-<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3302.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">net_amount 实收/实退金额</text>
-<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3270" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">status 流水状态</text>
-<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3237.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">refund_order_id 关联退款单（→ refund_order，退款时）</text>
-<text xml:space="preserve" text-anchor="start" x="2622.25" y="-3237.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
-<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3205.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">channel_raw_data 渠道原始响应（JSON）</text>
-<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3173.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">reconciliation_status 对账状态</text>
-<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3141" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">reconciled_at 对账时间</text>
-<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3108.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">created_at 创建时间</text>
-<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3076.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">updated_at 更新时间</text>
-<polygon fill="#e3f2fd" stroke="none" points="2239.75,-3038.25 2239.75,-3065.25 2656,-3065.25 2656,-3038.25 2239.75,-3038.25" />
-<text xml:space="preserve" text-anchor="start" x="2333.12" y="-3050.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">每笔资金流动（收款/退款）一条记录，对账最小粒度</text>
-<polygon fill="none" stroke="black" stroke-width="2" points="2238.75,-3037.25 2238.75,-3646.75 2657,-3646.75 2657,-3037.25 2238.75,-3037.25" />
+<polygon fill="#5e35b1" stroke="none" points="2239.75,-3617.5 2239.75,-3649.75 2615.5,-3649.75 2615.5,-3617.5 2239.75,-3617.5" />
+<text xml:space="preserve" text-anchor="start" x="2326.38" y="-3631.45" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">支付流水 payment_transaction</text>
+<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3596.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 主键</text>
+<text xml:space="preserve" text-anchor="start" x="2621.88" y="-3596.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3564.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">transaction_no 内部流水号</text>
+<text xml:space="preserve" text-anchor="start" x="2621.5" y="-3564.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[UK]</text>
+<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3532" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">payment_id 所属支付单（→ payment_order）</text>
+<text xml:space="preserve" text-anchor="start" x="2622.25" y="-3532" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3499.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">transaction_type 交易类型（payment / refund）</text>
+<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3467.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">channel_transaction_id 渠道交易号（对账匹配键）</text>
+<text xml:space="preserve" text-anchor="start" x="2621.5" y="-3467.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[UK]</text>
+<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3435.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">amount 交易金额</text>
+<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3403" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">currency_code 币种</text>
+<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3370.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">channel_fee 渠道手续费</text>
+<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3338.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">channel_fee_currency 手续费币种</text>
+<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3306.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">net_amount 实收/实退金额</text>
+<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3274" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">status 流水状态</text>
+<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3241.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">refund_order_id 关联退款单（→ refund_order，退款时）</text>
+<text xml:space="preserve" text-anchor="start" x="2622.25" y="-3241.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3209.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">channel_raw_data 渠道原始响应（JSON）</text>
+<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3177.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">reconciliation_status 对账状态</text>
+<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3145" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">reconciled_at 对账时间</text>
+<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3112.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">created_at 创建时间</text>
+<text xml:space="preserve" text-anchor="start" x="2245.75" y="-3080.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">updated_at 更新时间</text>
+<polygon fill="#e3f2fd" stroke="none" points="2239.75,-3042.25 2239.75,-3069.25 2656,-3069.25 2656,-3042.25 2239.75,-3042.25" />
+<text xml:space="preserve" text-anchor="start" x="2333.12" y="-3054.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">每笔资金流动（收款/退款）一条记录，对账最小粒度</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="2238.75,-3041.25 2238.75,-3650.75 2657,-3650.75 2657,-3041.25 2238.75,-3041.25" />
 </g>
 
 <g id="edge16" class="edge">
 <title>refund_order-&gt;payment_transaction</title>
-<path fill="none" stroke="#5e35b1" stroke-width="1.4" d="M1552.83,-3147.29C1597.91,-3128.96 1646.5,-3112.56 1693.5,-3103 1880.78,-3064.91 1941.98,-3043.2 2123.5,-3103 2160.33,-3115.13 2196.41,-3133.25 2230.32,-3154.19" />
-<polygon fill="#5e35b1" stroke="#5e35b1" stroke-width="1.4" points="2228.94,-3156.22 2236.18,-3157.87 2231.55,-3152.07 2228.94,-3156.22" />
-<text xml:space="preserve" text-anchor="middle" x="1908.5" y="-3108.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#5e35b1">1:N 退款流水</text>
+<path fill="none" stroke="#5e35b1" stroke-width="1.4" d="M1552.77,-3130.94C1597.56,-3109.88 1646.03,-3091.07 1693.5,-3080 1879.62,-3036.61 1943.6,-3015.51 2123.5,-3080 2160.87,-3093.4 2197.02,-3113.18 2230.76,-3136.03" />
+<polygon fill="#5e35b1" stroke="#5e35b1" stroke-width="1.4" points="2229.02,-3137.8 2236.18,-3139.74 2231.79,-3133.76 2229.02,-3137.8" />
+<text xml:space="preserve" text-anchor="middle" x="1908.5" y="-3085.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#5e35b1">1:N 退款流水</text>
 </g>
 
 <g id="edge15" class="edge">
 <title>payment_order-&gt;payment_transaction</title>
-<path fill="none" stroke="#5e35b1" stroke-width="1.4" d="M2123.43,-3370.89C2158.24,-3367.78 2194.32,-3364.56 2229.22,-3361.44" />
-<polygon fill="#5e35b1" stroke="#5e35b1" stroke-width="1.4" points="2229.2,-3363.9 2235.95,-3360.84 2228.76,-3359.02 2229.2,-3363.9" />
-<text xml:space="preserve" text-anchor="middle" x="2180.62" y="-3372.94" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#5e35b1">1:N 收款流水</text>
+<path fill="none" stroke="#5e35b1" stroke-width="1.4" d="M2123.43,-3368.27C2158.24,-3365.87 2194.32,-3363.39 2229.22,-3360.99" />
+<polygon fill="#5e35b1" stroke="#5e35b1" stroke-width="1.4" points="2229.13,-3363.45 2235.95,-3360.52 2228.8,-3358.56 2229.13,-3363.45" />
+<text xml:space="preserve" text-anchor="middle" x="2180.62" y="-3371.11" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#5e35b1">1:N 收款流水</text>
 </g>
 </g>
 </svg>

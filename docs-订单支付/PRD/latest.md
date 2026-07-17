@@ -325,6 +325,10 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 状态流转：pending → processing → succeeded / failed；pending → closed（30 分钟未提交付款超时）。processing 不因超时关闭，等渠道回调（succeeded / failed），仅订单取消时可关闭
 
+**processing 72h 兜底机制**：支付单进入 processing 后超过 72 小时仍未收到渠道回调，系统主动调用渠道查询接口查询支付结果。① 查询结果为成功 → 按正常到账流程处理（succeeded → 拆单）；② 查询结果非成功（失败、仍处理中、查询异常）→ 支付单转 failed，remark 写入"渠道处理超72小时未成功"，联动 parent_order 转 cancelled、释放库存，通知运营
+
+**payment_order.remark**：支付单备注字段，系统写入异常说明。72h 兜底超时且渠道查询非成功时写入"渠道处理超72小时未成功"。后台支付单列表和详情页展示
+
 交互链路（渠道 → 支付单 → 订单）：用户点击「去支付」→ 创建支付单(pending) + parent_order(pending_payment) + 结算会话(converted)。提交付款 → 支付单(processing)。渠道回调成功 → 支付单(succeeded) → 联动 parent_order 转 paid 并按商家拆子订单 order(paid)。回调失败 → 支付单(failed)；pending 状态 30 分钟超时 → 支付单(closed)。两者均联动 parent_order 转 cancelled、释放库存（此时无子订单）。processing 状态不因超时关闭，等渠道回调。订单不直接与渠道交互。
 
 **refund_order.status**（3 个值）：
@@ -393,6 +397,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 | 支付后拆单 + 子订单起始 | parent_order 转 paid 时才按商家拆出子订单 order（起始 order_status = paid）；所有 order_item 初始 fulfillment_status = pending，refund_status = none |
 | paid 触发条件 | 渠道回调到账 → payment_order 转 succeeded → 联动 parent_order 从 pending_payment 转 paid 并拆子订单（订单不直接感知渠道） |
 | 待付款超时/失败 | payment_deadline = 下单 + 30 分钟。超时规则按支付单状态区分：① pending（未提交付款）超过 30 分钟 → 支付单转 closed → parent_order 转 cancelled，释放库存；② processing（已提交付款、渠道审核中）不受 30 分钟超时影响，等渠道回调决定 succeeded/failed，回调失败 → 支付单转 failed → parent_order 转 cancelled，释放库存 |
+| processing 72h 兜底 | processing 超过 72h 无回调 → 系统主动查询渠道：成功则正常到账流程；非成功 → 支付单转 failed + remark 写入"渠道处理超72小时未成功" → parent_order 转 cancelled、释放库存，通知运营 |
 | 库存锁定 | 提交支付即锁定一物一件商品（锁在父订单），pending_payment 期间不可被他人购买，转 cancelled 时释放 |
 | shipped 触发条件 | 首个 order_item.fulfillment_status 变为 shipped 时，order_status 从 paid 变为 shipped |
 | completed 触发条件 | 所有 order_item.fulfillment_status 变为 received 时，order_status 变为 completed |
