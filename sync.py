@@ -28,7 +28,7 @@ import glob as globmod
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import quote as url_quote
+from urllib.parse import quote as url_quote, unquote as url_unquote
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 _updated_files = set()
@@ -1214,7 +1214,7 @@ def update_index_html(updates, all_versions, all_history=None):
                         if current_item_start is not None:
                             changed_items.add(current_item_start)
                     elif current_item_start is not None:
-                        rel_path = os.path.join(href_dir, new_file)
+                        rel_path = url_unquote(os.path.join(href_dir, new_file))
                         if rel_path in _updated_files:
                             changed_items.add(current_item_start)
 
