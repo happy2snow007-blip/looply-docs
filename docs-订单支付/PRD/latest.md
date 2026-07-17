@@ -135,6 +135,11 @@ C 端页面静态文案（按钮文字、表单标签、提示语、错误提示
 | notif-email | refund_subject | 退款成功 Subject | Your refund has been processed ✓ #{{orderNo}} |
 | notif-email | refund_body | 退款正文 | Your refund has been processed... |
 | notif-email | refund_cta | CTA 按钮 | View Order |
+| notif-email | cancel_subject | 订单取消 Subject | Your order has been cancelled #{{orderNo}} |
+| notif-email | cancel_body | 订单取消正文 | We couldn't complete the payment for your order... |
+| notif-email | cancel_cta | CTA 按钮 | Shop Again |
+| notif-email | cancel_reason_unverified | 取消原因·支付未验证 | Payment could not be verified |
+| notif-email | cancel_reason_timeout | 取消原因·超时未付款 | Payment was not completed in time |
 | notif-email | abandon_subject | 弃单恢复 Subject | You left something behind! 🛒 |
 | notif-email | abandon_body | 弃单正文 | You left some items in your checkout... |
 | notif-email | abandon_cta | CTA 按钮 | Complete Your Purchase |
@@ -189,12 +194,16 @@ C 端页面静态文案（按钮文字、表单标签、提示语、错误提示
 
 | 枚举值 | 中文 | 说明 |
 |--------|------|------|
-| pending | 待转化 | 用户在结算流程中（选地址、选配送、确认订单） |
-| converted | 已转化 | 已提交支付，已创建父订单 parent_order（pending_payment，子订单待到账后拆） |
+| pending | 待转化 | 用户在结算流程中（选地址、选配送、确认订单），或已提交支付但付款尚未成功 |
+| converted | 已转化 | 支付成功（parent_order 转 paid）时置 |
 
-状态流转：pending → converted（提交支付）
+状态流转：pending → converted（支付成功）
+
+**转化时点说明**：会话的「转化」以**支付成功**为准，而非提交支付。提交支付后、付款成功前（含卡风控审核中的待付款阶段），会话保持 pending；只有 parent_order 转 paid 时会话才置 converted。此口径下，「提交支付但最终失败/超时取消」的会话仍为 pending，属结算漏斗中的真实流失。
 
 弃单判定：不设独立 expired 状态。checkout_status = pending 且 expired_at < now() 即为弃单。弃单恢复通过 recovery_token 生成恢复链接，用户点击后新建会话（不复用原会话，因二手商品可能已售出）。
+
+> **数据结构与召回策略解耦**：checkout_status 按会话本身的业务语义定义（支付成功才转化），不因「某类会话是否发召回邮件」而调整枚举。「不给已提交支付、正在风控审核的用户发召回邮件」属邮件触发策略，在 §5.5 发送策略中定义，与本枚举无关。同理，「提交支付但失败/超时取消」的会话算入弃单率（真实流失），但不一定进入召回邮件发送范围——统计口径与发送策略是两层。
 
 #### 2.2.2 订单核心层
 
@@ -328,15 +337,17 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 **processing 72h 兜底机制**：支付单进入 processing 后超过 72 小时仍未收到渠道回调，系统主动调用渠道查询接口查询支付结果：
 
 - ① 查询结果为成功 → 按正常到账流程处理（succeeded → 拆单 → 确认邮件）
-- ② 查询结果为失败 → 支付单转 failed（同正常回调失败流程），联动 parent_order 转 cancelled、释放库存，发送 #5 取消通知邮件。不写 remark
+- ② 查询结果为失败 → 支付单转 failed（同正常回调失败流程），联动 parent_order 转 cancelled、释放库存，发送订单取消通知邮件（见 5.4b）。不写 remark
 - ③ 查询结果仍处理中 → 支付单保持 processing 不变，remark 写入"渠道处理超72小时未成功"，订单和库存不变，运营通过后台支付单列表筛选发现并人工介入
 - ④ 查询异常（接口报错/超时）→ 同 ③ 处理：支付单保持 processing，remark 写入"渠道处理超72小时未成功"，运营通过后台发现并人工介入
 
-系统不再对 ③④ 自动轮询，由运营在后台支付单列表筛选"处理中 + 有备注"发现异常单，联系渠道确认后手动操作支付单状态。
+系统不再对 ③④ 自动轮询，由运营在后台支付单列表筛选"处理中 + 有备注"发现异常单，联系渠道确认后线下跟进。
+
+> **本期边界（人工核账仅只读）**：本期支付单管理页仅提供**只读展示**（列表 + 详情弹窗查看备注），不提供后台手动将支付单置为"成功/失败"的操作入口。异常单的最终处理由运营联系渠道确认后，通过线下或数据订正方式解决。该场景发生几率低、渠道侧原因尚未深入调研，后台受控操作（置成功/置失败 + 二次确认 + 操作日志）待后续迭代评估（见待优化清单）。
 
 **payment_order.remark**：支付单备注字段，系统写入异常说明。72h 兜底查询后渠道仍处理中或查询异常时写入"渠道处理超72小时未成功"。后台支付单列表和详情页展示
 
-交互链路（渠道 → 支付单 → 订单）：用户点击「去支付」→ 创建支付单(pending) + parent_order(pending_payment) + 结算会话(converted)。提交付款 → 支付单(processing)。渠道回调成功 → 支付单(succeeded) → 联动 parent_order 转 paid 并按商家拆子订单 order(paid)。回调失败 → 支付单(failed)；pending 状态 30 分钟超时 → 支付单(closed)。两者均联动 parent_order 转 cancelled、释放库存（此时无子订单）。processing 状态不因超时关闭，等渠道回调。订单不直接与渠道交互。
+交互链路（渠道 → 支付单 → 订单）：用户点击「去支付」→ 创建支付单(pending) + parent_order(pending_payment)，结算会话保持 pending（未转化）。提交付款 → 支付单(processing)。渠道回调成功 → 支付单(succeeded) → 联动 parent_order 转 paid 并按商家拆子订单 order(paid)，结算会话置 converted（已转化）。回调失败 → 支付单(failed)；pending 状态 30 分钟超时 → 支付单(closed)。两者均联动 parent_order 转 cancelled、释放库存（此时无子订单），结算会话保持 pending。processing 状态不因超时关闭，等渠道回调。订单不直接与渠道交互。
 
 **refund_order.status**（3 个值）：
 
@@ -781,18 +792,19 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 1. 先锁定库存（一物一件），锁定成功才继续；锁定失败提示不可购买
 2. 创建整体订单 parent_order（起始 parent_status = pending_payment），**暂不拆子订单**；在父订单层快照商品明细和收货地址
-3. 创建支付单(pending)，更新结算会话状态为"已转化"
+3. 创建支付单(pending)。结算会话保持 pending（未转化）——转化以支付成功为准，见 §2.2.1
 4. 如用户未注册，触发静默注册（见 3.3）
 5. 向支付通道发起支付
 
 **支付到账处理（Webhook 回调，渠道 → 支付单 → 订单）：**
 
 1. 支付通道通过 Webhook 回调通知支付结果
-2. 成功：支付单转"成功" → 联动 parent_order 从 pending_payment 转 paid → **此时才按商家拆出子订单 order（起始 paid）并生成子订单商品明细** → 发送支付成功确认邮件（见 5.2）
-3. 失败：渠道回调失败 → 支付单转"失败" → 联动 parent_order 转 cancelled、释放库存（此时无子订单，无退款）→ 发送取消通知
-4. 未提交付款超时：支付单仍为 pending（用户未提交付款）且超过 30 分钟 → 支付单转"关闭" → 联动 parent_order 转 cancelled、释放库存 → 发送取消通知。已进入 processing（渠道审核中）的支付单不受此超时影响，等渠道回调
+2. 成功：支付单转"成功" → 联动 parent_order 从 pending_payment 转 paid → 结算会话置 converted（已转化）→ **此时才按商家拆出子订单 order（起始 paid）并生成子订单商品明细** → 发送支付成功确认邮件（见 5.2）
+3. 失败：渠道回调失败 → 支付单转"失败" → 联动 parent_order 转 cancelled、释放库存（此时无子订单，无退款）→ 发送订单取消通知邮件（见 5.4b）
+4. 未提交付款超时：支付单仍为 pending（用户未提交付款）且超过 30 分钟 → 支付单转"关闭" → 联动 parent_order 转 cancelled、释放库存 → 发送订单取消通知邮件（见 5.4b）。已进入 processing（渠道审核中）的支付单不受此超时影响，等渠道回调
 5. 同步渠道（卡未命中风控）到账极快，用户等结果后跳订单成功页；异步（风控审核中）parent_order 停在 pending_payment，跳「订单已提交」页（见 3.4）
-6. processing 72h 兜底：支付单 processing 超过 72 小时未收到回调 → 系统主动查询渠道：① 成功 → 按第 2 条处理；② 失败 → 按第 3 条处理；③ 仍处理中或查询异常 → 支付单保持 processing + remark 写入"渠道处理超72小时未成功"，订单和库存不变，运营通过后台筛选发现并人工介入（详见 §2.2.6）
+6. 订单已接收邮件（#4）触发：提交付款后满 5 分钟、支付单仍为 processing → 判定为异步，发送订单已接收邮件（见 5.2b）；5 分钟内已 succeeded 则不发。该 5 分钟阈值仅决定 #4 邮件是否发送，独立于第 5 条的 C 端页面跳转判定，不影响支付流转/库存/超时
+7. processing 72h 兜底：支付单 processing 超过 72 小时未收到回调 → 系统主动查询渠道：① 成功 → 按第 2 条处理；② 失败 → 按第 3 条处理；③ 仍处理中或查询异常 → 支付单保持 processing + remark 写入"渠道处理超72小时未成功"，订单和库存不变，运营通过后台筛选发现并人工介入（详见 §2.2.6）
 
 #### 支付通道矩阵
 
@@ -866,8 +878,8 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 2. 系统检查结算邮箱是否已注册
 3. 未注册 → 使用该邮箱创建新账户
 4. 生成"设置密码"一次性 Token（72 小时有效）
-5. 将 Token 嵌入支付成功确认邮件的设置密码链接中
-6. 在确认邮件中增加账户创建通知区块（见 5.2 场景 B）
+5. 将 Token 嵌入该用户收到的**首封含订单信息的邮件**的设置密码链接中：同步（秒到账）挂支付成功确认邮件（#1，见 5.2 场景 B）；异步（提交付款满 5 分钟仍未成功）挂订单已接收邮件（#4，见 5.2b），此时后续到账的支付成功确认邮件（#1）不再重复嵌入设置密码链接（同一 Token 只挂首封，避免重复引导）
+6. 在承载设置密码链接的邮件中增加账户创建通知区块（见 5.2 场景 B）
 
 #### 规则说明
 
@@ -1270,8 +1282,8 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 | 状态 | 含义 | 触发时机 |
 |------|------|---------|
-| 待转化 (pending) | 弃单未恢复 | 结算会话超时或用户离开时标记 |
-| 已转化 (converted) | 买家已完成支付 | 买家通过恢复链接回到结算页完成支付 |
+| 待转化 (pending) | 会话未转化：结算流程中、或已提交支付但付款未成功（含失败/超时取消） | 会话创建即为 pending，直至支付成功 |
+| 已转化 (converted) | 买家已完成支付（parent_order 转 paid） | 支付成功时置（无论首次下单还是通过恢复链接回来完成支付） |
 
 **发送恢复链接确认弹窗：**
 
@@ -1803,7 +1815,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 #### 功能描述
 
-覆盖订单交易流程中的买家邮件通知，共 5 类：支付成功确认、订单已接收（仅异步场景）、订单发货通知、退款成功通知、弃单恢复。全部为 Transactional Email（交易类邮件），由系统事件自动触发，不受 CAN-SPAM 退订限制，但需在 Footer 标注发送原因。
+覆盖订单交易流程中的买家邮件通知，共 6 类：支付成功确认、订单已接收（仅异步场景）、订单发货通知、退款成功通知、订单取消通知（仅待付款取消场景）、弃单恢复。全部为 Transactional Email（交易类邮件），由系统事件自动触发，不受 CAN-SPAM 退订限制，但需在 Footer 标注发送原因。
 
 ### 5.1 通用结构
 
@@ -1827,7 +1839,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 **触发时机**：支付到账（收到支付通道支付成功 Webhook）→ order 转 paid
 
-> **发送策略（防打扰）**：即时到账（同步渠道，下单≈支付）仅发本封 1 封，不额外发"订单已接收"。异步场景（卡风控审核中）下单时先发"订单已接收，等待付款"（见 5.2b），到账后再发本封，共 2 封。
+> **发送策略（防打扰）**：以「提交付款后 5 分钟」为异步邮件触发阈值。提交付款后 5 分钟内支付单变 succeeded（秒到账/同步）→ 仅发本封 1 封，不发"订单已接收"。提交付款满 5 分钟仍为 processing（判定为异步）→ 先发"订单已接收，等待付款"（见 5.2b），之后到账再发本封，共 2 封。该 5 分钟阈值**仅用于判定是否发送"订单已接收"邮件**，不影响支付单状态流转、C 端页面跳转、库存、超时等其它逻辑。
 
 **Subject**：`Order confirmed! 🎉 #{{orderNo}}`
 
@@ -1864,7 +1876,7 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 ### 5.2b 订单已接收邮件（仅异步场景）
 
-**触发时机**：下单创建 parent_order(pending_payment) 且支付进入风控审核（异步）时。即时到账场景不发此邮件。
+**触发时机**：用户提交付款后满 5 分钟、支付单仍为 processing（未变 succeeded）时触发，即判定为异步（卡风控审核中）。由一个延迟 5 分钟的定时检查在到点时读取支付单状态：仍 processing → 发本封；已 succeeded → 不发本封（走同步，只发 5.2）。即时/秒到账场景（5 分钟内到账）不发此邮件。
 
 **Subject**：`We've received your order #{{orderNo}}`
 
@@ -1918,9 +1930,42 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 
 **部分退款场景**：每笔退款成功各发一封。Refunded Items 仅展示本次退款商品，底部金额汇总反映累计退款后的剩余。
 
+### 5.4b 订单取消通知邮件
+
+**触发时机**：父订单 pending_payment 转 cancelled 时触发（此时无子订单、无退款）。涵盖以下三条路径：
+- ① 渠道回调失败：支付单收到失败 Webhook → failed → parent_order 转 cancelled、释放库存（见 3.2）
+- ② 未提交付款超时：支付单 pending 超过 30 分钟未提交付款 → closed → parent_order 转 cancelled、释放库存
+- ③ 72h 兜底查询失败：processing 超 72h 系统主动查询渠道返回失败 → failed → parent_order 转 cancelled、释放库存（见 2.2.6 processing 72h 兜底机制分支②）
+
+> **发送边界**：仅待付款阶段（pending_payment）取消发本封。已付款后（paid）发货前取消属退款流程，走 5.4 退款成功邮件，不发本封。72h 兜底的"仍处理中/查询异常"（分支③④）保持 processing、转人工，不取消、不发本封。
+
+**Subject**：`Your order has been cancelled #{{orderNo}}`
+
+**Preheader**：`We couldn't process the payment for your order #{{orderNo}}.`
+
+邮件内容：
+1. 标题："Order Cancelled"
+2. 问候语："Hi {{userName}},"（未注册用户用 "Hi there,"）
+3. 说明："We're sorry — we couldn't complete the payment for your order, so it has been cancelled and the items have been released. No charge has been made to your payment method."
+4. Order Details 区块：订单号、下单日期、取消原因（文案见下）
+5. Items 区块：被取消的商品列表（图片 + 名称 + 属性 + 价格）
+6. CTA 按钮："Shop Again"（指向平台首页 / 原商品，引导重新下单）
+7. 提示："These items are one-of-a-kind and may no longer be available."（二手一物一件，不保证可再次购买）
+
+**取消原因文案（按触发路径）：**
+
+| 触发路径 | 取消原因展示文案 |
+|---------|-----------------|
+| ① 渠道回调失败 / ③ 兜底查询失败 | Payment could not be verified |
+| ② 未提交付款超时 | Payment was not completed in time |
+
+**说明**：本封仅告知取消结果、不含账户区块（静默注册账户随父订单创建而存在，但本期取消场景不在取消邮件中嵌入设置密码入口，避免引导已失败订单的用户激活账户）。
+
 ### 5.5 弃单恢复邮件
 
 **触发时机**：用户进入结算页但未完成支付，满足弃单判定条件后触发（具体超时时间和发送策略后续定义）
+
+> **发送范围排除（与弃单统计解耦）**：弃单率统计涵盖所有 pending 超时的会话（含「已提交支付但失败/超时取消」的会话，属真实流失），但召回邮件的**发送对象**不等于弃单全集。已提交过支付的会话（已创建 parent_order，包括风控审核中、失败、超时取消）不发弃单恢复邮件——审核中的用户已在等待结果，不应催回；已失败/取消的用户已收到订单取消邮件（见 5.4b），再发召回会重复打扰。召回仅面向「从未提交支付」的纯结算流失会话。统计口径（弃单率）与发送策略（召回对象）是两层，互不绑定。
 
 **Subject**：`You left something behind! 🛒`
 
@@ -1984,6 +2029,14 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 | {{refundEta}} | String | 预计到账时间 |
 | {{refundedItems[]}} | Array | 退款商品列表 |
 | {{remainingCharged}} | Currency | 剩余收款金额 |
+
+**订单取消专属：**
+
+| 变量 | 类型 | 说明 |
+|------|------|------|
+| {{cancelReason}} | String | 取消原因文案（按触发路径,见 5.4b） |
+| {{items[]}} | Array | 被取消的商品列表（复用支付成功结构） |
+| {{shopUrl}} | URL | 重新购买入口链接 |
 
 **弃单恢复专属：**
 
@@ -2060,6 +2113,8 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 | 多卖家拆单展示 | 结算页和订单成功页按卖家分组展示 |
 | 修改物流信息 | 后台支持修改已填写的物流单号 |
 | 多币种支持 | 扩展欧洲市场时增加 EUR 等币种 |
+| 支付单人工核账操作 | 72h 兜底异常单的后台受控操作（置成功/置失败 + 二次确认 + 操作日志），本期仅只读展示（见 §2.2.6） |
+| 弃单召回按钮收口 | §4.2 弃单列表「发送恢复链接」按钮显示条件与 §5.5 召回发送范围对齐（仅「从未提交支付」的会话显示），避免运营给审核中/已取消用户误发召回 |
 
 ---
 
@@ -2128,4 +2183,4 @@ approval_status 只管审批决策：approved 不代表钱已退，只代表「�
 |------|------|---------|
 | v1.0 | 2026-06 | 初版：订单与支付模块完整 PRD |
 | v1.1 | 2026-07-13 | 新增 pending_payment 待付款态、payment_order processing 中间态、待付款超时机制、支付成功邮件即时/异步策略 |
-| v1.2 | 2026-07-17 | **支付后拆单**：待付款态上移到 parent_order 层（parent_status），下单只建父订单不拆单，支付到账后才按商家拆子订单 order（起始 paid），子订单移除 pending_payment；C 端待付款只显一条、付一次款。**取消时序修复**：已付款取消改为退款成功后才置 cancelled，退款失败订单保持已付款并挂人工，避免「已取消但未退款」。**待付款超时规则细化**：payment_deadline 从 1 自然日改为 30 分钟，仅对 pending（未提交付款）状态生效；processing（已提交付款、渠道审核中）不受超时关闭，等渠道回调决定结果。**processing 72h 兜底**：processing 超 72h 无回调时系统主动查询渠道，按结果分三路处理（成功/失败/仍处理中或异常），仍处理中或异常时保持 processing + remark 标记，运营后台筛选发现。新增 payment_order.remark 字段。C 端文案和邮件去掉具体时限承诺，改为模糊表述 |
+| v1.2 | 2026-07-17 | **支付后拆单**：待付款态上移到 parent_order 层（parent_status），下单只建父订单不拆单，支付到账后才按商家拆子订单 order（起始 paid），子订单移除 pending_payment；C 端待付款只显一条、付一次款。**取消时序修复**：已付款取消改为退款成功后才置 cancelled，退款失败订单保持已付款并挂人工，避免「已取消但未退款」。**待付款超时规则细化**：payment_deadline 从 1 自然日改为 30 分钟，仅对 pending（未提交付款）状态生效；processing（已提交付款、渠道审核中）不受超时关闭，等渠道回调决定结果。**processing 72h 兜底**：processing 超 72h 无回调时系统主动查询渠道，按结果分三路处理（成功/失败/仍处理中或异常），仍处理中或异常时保持 processing + remark 标记，运营后台筛选发现。新增 payment_order.remark 字段。C 端文案和邮件去掉具体时限承诺，改为模糊表述。**【2026-07-17 交付后修订】**：① 补 §5.4b 订单取消通知邮件模板；② 弃单转化口径统一为「支付成功才转化」（与 V1.0 基线一致）；③ 72h 人工核账写明本期只读；④ **异步邮件触发规则落地**：以「提交付款后满 5 分钟支付单仍为 processing」作为发送「订单已接收」邮件(#4)的判定阈值，仅用于邮件触发，不影响支付流转/页面跳转/库存/超时（详见模块变更日志） |
