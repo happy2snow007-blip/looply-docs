@@ -672,6 +672,13 @@ def _gen_card(mod_name, target_dir, art_type, file_name, ver, today):
 
     dl_label = 'Markdown' if art_type == 'prd' or art_type == 'prd_md' else '下载'
 
+    # 日期用文件 mtime（文件最后更新时间），取不到退回传入的 today
+    _fpath = os.path.join(REPO_DIR, url_unquote(href))
+    if os.path.isfile(_fpath):
+        stamp = datetime.fromtimestamp(os.path.getmtime(_fpath)).strftime('%Y-%m-%d %H:%M')
+    else:
+        stamp = today
+
     return f"""
       <div class="card">
         <div class="card-title">{card_title}</div>
@@ -680,7 +687,7 @@ def _gen_card(mod_name, target_dir, art_type, file_name, ver, today):
             <div class="doc-icon {icon_cls}">{icon_letter}</div>
             <div class="doc-info">
               <div class="doc-name">{doc_label} <span class="badge">最新</span></div>
-              <div class="doc-desc">更新于 {today}</div>
+              <div class="doc-desc">更新于 {stamp}</div>
             </div>
             <div class="doc-actions">
               <a class="btn btn-view" href="{href}" target="_blank">查看</a>
@@ -1159,7 +1166,7 @@ def build_delivery_desc(zip_path):
 
     parts.sort(key=lambda x: x[0])
 
-    date_str = datetime.now().strftime('%Y-%m-%d %H:%M')
+    date_str = datetime.fromtimestamp(os.path.getmtime(zip_path)).strftime('%Y-%m-%d %H:%M')
 
     return ' + '.join(p[1] for p in parts) + f' &middot; {date_str}'
 
@@ -1261,8 +1268,15 @@ def update_index_html(updates, all_versions, all_history=None):
                         new_line = new_line[:ver_match.start()] + new_ver_text + new_line[ver_match.end():]
                         changed = True
         if current_item_start in changed_items and 'doc-desc' in new_line and '更新于' in new_line:
-            today = datetime.now().strftime('%Y-%m-%d %H:%M')
-            new_line = re.sub(r'更新于 \d{4}-\d{2}-\d{2}(\s+\d{2}:\d{2})?', f'更新于 {today}', new_line)
+            # 日期用文件 mtime（文件最后更新时间），非脚本运行时间；取不到再退回 now
+            file_dt = None
+            _upd = item_map.get(current_item_start)
+            if _upd and _upd.get('href_dir') and _upd.get('new_file'):
+                _fpath = os.path.join(REPO_DIR, url_unquote(_upd['href_dir'] + _upd['new_file']))
+                if os.path.isfile(_fpath):
+                    file_dt = datetime.fromtimestamp(os.path.getmtime(_fpath)).strftime('%Y-%m-%d %H:%M')
+            stamp = file_dt or datetime.now().strftime('%Y-%m-%d %H:%M')
+            new_line = re.sub(r'更新于 \d{4}-\d{2}-\d{2}(\s+\d{2}:\d{2})?', f'更新于 {stamp}', new_line)
             if new_line != line:
                 changed = True
         if current_item_start in changed_items and 'doc-desc' in new_line and ('含 PRD' in new_line or '含原型' in new_line):
