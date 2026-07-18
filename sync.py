@@ -741,7 +741,7 @@ def ensure_index_sections(new_modules_arts):
     """
     index_path = os.path.join(REPO_DIR, 'index.html')
     content = open(index_path, 'r', encoding='utf-8').read()
-    today = datetime.now().strftime('%Y-%m-%d')
+    today = datetime.now().strftime('%Y-%m-%d %H:%M')
     inserted = []
 
     for mod_key, arts in new_modules_arts.items():
@@ -1159,7 +1159,7 @@ def build_delivery_desc(zip_path):
 
     parts.sort(key=lambda x: x[0])
 
-    date_str = datetime.fromtimestamp(os.path.getmtime(zip_path)).strftime('%Y-%m-%d')
+    date_str = datetime.now().strftime('%Y-%m-%d %H:%M')
 
     return ' + '.join(p[1] for p in parts) + f' &middot; {date_str}'
 
@@ -1261,7 +1261,7 @@ def update_index_html(updates, all_versions, all_history=None):
                         new_line = new_line[:ver_match.start()] + new_ver_text + new_line[ver_match.end():]
                         changed = True
         if current_item_start in changed_items and 'doc-desc' in new_line and '更新于' in new_line:
-            today = datetime.now().strftime('%Y-%m-%d')
+            today = datetime.now().strftime('%Y-%m-%d %H:%M')
             new_line = re.sub(r'更新于 \d{4}-\d{2}-\d{2}(\s+\d{2}:\d{2})?', f'更新于 {today}', new_line)
             if new_line != line:
                 changed = True
