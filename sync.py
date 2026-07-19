@@ -802,6 +802,17 @@ def ensure_index_sections(new_modules_arts):
             print(f'  [警告] index.html 未找到插入锚点，{mod_name} 区块未生成')
 
     if inserted:
+        # 侧边导航 DOMAIN_GROUPS 是写死的 JS 数组，区块插了但导航没加 = 页面上点不到。
+        # 默认挂到「基础服务域」，需要换域时手工调整该数组即可。
+        for name in inserted:
+            if f"'{name}'" in content:
+                continue
+            m = re.search(r"(\{ name: '基础服务域', modules: \[)", content)
+            if m:
+                content = content[:m.end()] + f"'{name}', " + content[m.end():]
+                print(f'  [新增] index.html 侧边导航添加 {name}（基础服务域）')
+            else:
+                print(f'  [警告] 未找到侧边导航 DOMAIN_GROUPS，{name} 需手工加入导航')
         with open(index_path, 'w', encoding='utf-8') as f:
             f.write(content)
         for name in inserted:
