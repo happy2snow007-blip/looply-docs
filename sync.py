@@ -788,10 +788,18 @@ def ensure_index_sections(new_modules_arts):
             continue
         section = generate_index_section(mod_name, target_dir, arts, today)
         # 插入到 footer 之前
-        insert_before = '\n</div>\n\n<div class="footer">'
-        if insert_before in content:
-            content = content.replace(insert_before, section + insert_before)
-            inserted.append(mod_name)
+        # 容器收尾锚点（index.html 结构演进过，保留多个候选依次尝试）
+        candidates = [
+            '\n</div><!-- .container -->\n\n<div class="footer">',
+            '\n</div>\n\n<div class="footer">',
+        ]
+        for insert_before in candidates:
+            if insert_before in content:
+                content = content.replace(insert_before, section + insert_before)
+                inserted.append(mod_name)
+                break
+        else:
+            print(f'  [警告] index.html 未找到插入锚点，{mod_name} 区块未生成')
 
     if inserted:
         with open(index_path, 'w', encoding='utf-8') as f:
