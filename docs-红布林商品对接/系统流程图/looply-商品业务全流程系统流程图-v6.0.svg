@@ -1,0 +1,1462 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2228" height="10770" viewBox="0 0 2228 10770" font-family="'PingFang SC','Microsoft YaHei','Helvetica Neue',Arial,sans-serif">
+<metadata>
+<![CDATA[
+# looply 商品业务全流程系统流程图（红布林对接版 — 方案B） V6.0
+# 研发编码参考数据，从 SVG <metadata> 提取
+
+swimlanes:
+  - key: "E"
+    name: "红布林系统"
+  - key: "A"
+    name: "looply 商品业务层"
+  - key: "B"
+    name: "looply 商品系统"
+  - key: "C"
+    name: "looply 库存模块"
+
+sections:
+  - name: "① 商品数据同步"
+    steps:
+      - type: start_end
+        text: "开始：商品数据同步"
+      - type: process
+        lane: "E"
+        text: "红布林通过Webhook推送商品数据"
+      - type: cross_lane
+        from: "E"
+        to: "A"
+        text: "商品数据(品类/品牌/系列/成色/折扣价/图片URL)"
+      - type: process
+        lane: "A"
+        text: "Webhook接收：签名验证(HMAC)"
+      - type: process
+        lane: "A"
+        text: "幂等校验(Item ID + 事件ID去重)"
+      - type: process
+        lane: "A"
+        text: "主数据映射：品牌/类目/系列原始值→looply主数据ID"
+      - type: decision
+        lane: "A"
+        text: "映射全部成功?"
+        on_no: "映射失败字段记入source_data"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "下载商品原图→存储到looply对象存储"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "写入product表(source='plum')"
+      - type: condition_branch
+        lane: "B"
+        text: "映射结果?"
+        yes_label: "映射成功"
+        no_label: "有异常"
+        yes_branch:
+          - text: "product.status='待定价'"
+        no_branch:
+          - text: "product.status='映射异常'"
+      - type: process
+        lane: "B"
+        text: "红布林原始数据完整保留到source_data(JSON)"
+      - type: start_end
+        text: "数据同步完成"
+      - type: note
+        title: "V6.0变更(对比V5.0)"
+        lines:
+          - "同步方式确认为红布林Webhook推送"
+          - "新增主数据映射：红布林原始值→looply品牌/类目/系列ID"
+          - "映射失败→product.status='映射异常'，运营补映射后重新处理"
+          - "落库目标从独立暂存表改为product表(source='plum')"
+          - "红布林原始数据(折扣价CNY/养护/改色等)存入source_data JSON"
+  - name: "② 选品定价"
+    steps:
+      - type: start_end
+        text: "开始：选品定价(v2.10.3公式)"
+      - type: process
+        lane: "A"
+        text: "加载product(status='待定价', source='plum')"
+      - type: process
+        lane: "A"
+        text: "从source_data读取折扣价：A = 折扣价 / 6.86 (CNY→USD)"
+      - type: process
+        lane: "A"
+        text: "加载TRR参考价(top_series+avg_prices)"
+      - type: decision
+        lane: "A"
+        text: "通过排除检查?"
+        on_no: "排除(养护/改色/边油重做/折扣价无效)"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "品牌/系列/尺码/成色匹配"
+      - type: decision
+        lane: "A"
+        text: "属于可选品类目?"
+        on_no: "不选中(服饰/鞋靴/腕表等)"
+        yes_label: "是"
+        no_label: "否"
+      - type: multi_branch
+        lane: "A"
+        text: "类目+系列分流?"
+        branches:
+          - label: "包袋Top系列"
+            nodes:
+              - type: process
+                text: "公式3/1: B=ceil(1.46A+207)"
+              - type: process
+                text: "公式2/4: B=ceil(1.28A+181)"
+              - type: process
+                text: "公式5/7: B=ceil(1.22A+172)"
+          - label: "包袋非Top/无均价"
+            nodes:
+              - type: process
+                text: "公式6(自动选中)"
+              - type: process
+                text: "B=ceil(1.28A+181)"
+          - label: "非包袋固定公式"
+            nodes:
+              - type: process
+                text: "自动选中"
+              - type: process
+                text: "B=ceil(1.46A+207)"
+          - label: "其他未命中"
+            nodes:
+              - type: process
+                text: "不选中"
+      - type: process
+        lane: "A"
+        text: "低价修正(公式2/4/5/6/7/非Top):B≤500→ceil(1.46A+207)"
+      - type: process
+        lane: "A"
+        text: "生成选品预览(售价B/公式编号/选中/未选中原因)"
+      - type: decision
+        lane: "A"
+        text: "运营确认执行?"
+        on_no: "取消"
+        yes_label: "是"
+        no_label: "否"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "更新product定价结果"
+      - type: process
+        lane: "B"
+        text: "选中→product.price_usd=B, status='已定价'"
+      - type: process
+        lane: "B"
+        text: "不选中→product.status='已排除'"
+      - type: start_end
+        text: "选品定价完成"
+      - type: note
+        title: "定价特殊规则"
+        lines:
+          - "Speedy例外：B≤500时仍不选中(不做低价修正)"
+          - "公式优先级：排除→Top系列→非Top→无系列无均价→非包袋→其他"
+          - "Top系列公式判定顺序：3→1→2→4→5→7(按B与C的比值)"
+          - "V6.0：定价结果直接写入product.price_usd，不导出Excel中转"
+          - "V6.0：被排除商品显式标记status='已排除'"
+  - name: "③ 商品翻译"
+    steps:
+      - type: start_end
+        text: "开始：商品翻译"
+      - type: process
+        lane: "A"
+        text: "加载product(status='已定价', source='plum')"
+      - type: process
+        lane: "A"
+        text: "从source_data读取中文原始字段"
+      - type: process
+        lane: "A"
+        text: "加载4.3标准翻译数据(品牌/系列/颜色/尺码/材质/设计元素/附件/瑕疵/Category Suffix)"
+      - type: process
+        lane: "A"
+        text: "前置清洗：空值统一处理/只取第一个颜色+材质+设计元素/去重相邻词"
+      - type: process
+        lane: "A"
+        text: "逐字段中文→英文翻译(查4.3翻译表)"
+      - type: process
+        lane: "A"
+        text: "获取Category Suffix(先查4.3→再查翻译后Category L3)"
+      - type: multi_branch
+        lane: "A"
+        text: "按类目组装Product Name?"
+        branches:
+          - label: "Handbags"
+            nodes:
+              - type: process
+                text: "有系列非Wallet:系列+尺码+设计元素+材质+颜色"
+              - type: process
+                text: "有系列Wallet:同上+Category Suffix"
+              - type: process
+                text: "无系列:设计元素+材质+Suffix+尺码+颜色"
+          - label: "Accessories"
+            nodes:
+              - type: process
+                text: "有系列:系列+尺码+设计元素+材质+颜色+Suffix"
+              - type: process
+                text: "无系列:设计元素+材质+Suffix+尺码+颜色"
+          - label: "Jewelry"
+            nodes:
+              - type: process
+                text: "有系列:系列+设计元素+材质+颜色+Suffix+尺码"
+              - type: process
+                text: "无系列:设计元素+材质+颜色+Suffix+尺码"
+      - type: decision
+        lane: "A"
+        text: "中文残留审计通过?"
+        on_no: "标记warning"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "Cost Price转换：discount≤B保留原值,否则=discount/6.86"
+      - type: decision
+        lane: "A"
+        text: "运营确认执行?"
+        on_no: "取消"
+        yes_label: "是"
+        no_label: "否"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "更新product翻译结果"
+      - type: process
+        lane: "B"
+        text: "product.product_name_en=翻译结果, status='已翻译'"
+      - type: start_end
+        text: "商品翻译完成"
+      - type: note
+        title: "翻译特殊规则"
+        lines:
+          - "Wallet范围：Wallet/Passport Holder/Card Holder/Coin Purse/Key Pouch/Cosmetic Pouch"
+          - "Wristlet不算Wallet，按Jewelry规则处理"
+          - "Handbags有系列非Wallet时不追加Category Suffix"
+          - "V6.0：翻译结果直接写入product.product_name_en"
+  - name: "④ 商品上架"
+    steps:
+      - type: start_end
+        text: "开始：商品上架"
+      - type: process
+        lane: "A"
+        text: "加载product(status='已翻译', source='plum')"
+      - type: decision
+        lane: "A"
+        text: "关键字段校验通过?"
+        on_no: "标记invalid(价格无效/名称缺失)"
+        yes_label: "是"
+        no_label: "否"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "查询该product是否已有listing"
+      - type: condition_branch
+        lane: "B"
+        text: "已有listing?"
+        yes_label: "已有"
+        no_label: "没有"
+        yes_branch:
+          - text: "跳过(防止重复上架)"
+        no_branch:
+          - text: "标记ready,可上架"
+      - type: cross_lane
+        from: "B"
+        to: "A"
+        text: "返回校验结果"
+      - type: process
+        lane: "A"
+        text: "生成预览清单(ready/skip/invalid)"
+      - type: decision
+        lane: "A"
+        text: "确认上架?"
+        on_no: "取消"
+        yes_label: "是"
+        no_label: "否"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "① 匹配/创建标品SKU"
+      - type: condition_branch
+        lane: "B"
+        text: "SKU已存在?"
+        yes_label: "已存在"
+        no_label: "不存在"
+        yes_branch:
+          - text: "复用已有SPU"
+        no_branch:
+          - text: "创建标品SKU(brand+series+category+属性)"
+      - type: process
+        lane: "B"
+        text: "关联product.spu_id"
+      - type: cross_lane
+        from: "A"
+        to: "C"
+        text: "② 创建库存主体"
+      - type: process
+        lane: "C"
+        text: "创建inventory_item(qty=1,二手商品)"
+      - type: process
+        lane: "C"
+        text: "写入库存流水(INBOUND +1)"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "③ 创建渠道商品"
+      - type: process
+        lane: "B"
+        text: "创建listing(渠道+市场+挂牌价)"
+      - type: process
+        lane: "B"
+        text: "关联图片(商品图+成色图+瑕疵图,保持源顺序)"
+      - type: cross_lane
+        from: "A"
+        to: "C"
+        text: "创建渠道库存分配"
+      - type: process
+        lane: "C"
+        text: "创建channel_inventory_allocation"
+      - type: process
+        lane: "A"
+        text: "④ 审计验证(4维回查)"
+      - type: decision
+        lane: "A"
+        text: "验证通过?"
+        on_no: "标记失败,人工介入"
+        yes_label: "是"
+        no_label: "否"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "更新product状态"
+      - type: process
+        lane: "B"
+        text: "product.status='销售中'"
+      - type: start_end
+        text: "商品上架完成"
+      - type: note
+        title: "V6.0变更(对比V5.0)"
+        lines:
+          - "product在同步阶段已创建,上架不再创建实物商品"
+          - "链路从5步简化为4步:匹配SPU→创建库存→创建listing→审计"
+          - "冲突检测改为'是否已有listing'(external_item_id唯一性在同步时已保证)"
+          - "checkpoint: sku_matched→inventory_created→listing_created→audit_done"
+          - "审计4维: SPU关联+库存主体+渠道商品+库存分配(去掉'实物商品是否创建')"
+  - name: "⑤ 商品售出"
+    steps:
+      - type: start_end
+        text: "开始：红布林售出通知"
+      - type: process
+        lane: "E"
+        text: "红布林通知:商品已售出(商品ID)"
+      - type: cross_lane
+        from: "E"
+        to: "A"
+        text: "售出通知(商品ID)"
+      - type: process
+        lane: "A"
+        text: "Webhook接收：签名验证+幂等校验"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "查询product(external_item_id)"
+      - type: process
+        lane: "B"
+        text: "返回product信息(status/spu_id/关联listing)"
+      - type: cross_lane
+        from: "B"
+        to: "A"
+        text: "返回查询结果"
+      - type: decision
+        lane: "A"
+        text: "product存在且有效?"
+        on_no: "忽略(未同步/已售出)"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "product有关联listing?"
+        on_no: "仅更新product.status='已售出'"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "订单保护检查通过?"
+        on_no: "有活跃订单,转异常处理"
+        yes_label: "是"
+        no_label: "否"
+      - type: cross_lane
+        from: "A"
+        to: "C"
+        text: "执行库存清零"
+      - type: process
+        lane: "C"
+        text: "更新inventory_item(qty=0)"
+      - type: process
+        lane: "C"
+        text: "写入库存流水(SOLD -1)"
+      - type: cross_lane
+        from: "A"
+        to: "C"
+        text: "释放渠道库存分配"
+      - type: process
+        lane: "C"
+        text: "更新allocation(status=RELEASED)"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "下架渠道商品+更新product"
+      - type: process
+        lane: "B"
+        text: "listing.status='已下架'"
+      - type: process
+        lane: "B"
+        text: "product.status='已售出'"
+      - type: process
+        lane: "A"
+        text: "回查验证(多模块状态检查)"
+      - type: decision
+        lane: "A"
+        text: "验证通过?"
+        on_no: "标记异常,人工介入"
+        yes_label: "是"
+        no_label: "否"
+      - type: start_end
+        text: "商品售出处理完成"
+      - type: note
+        title: "V6.0变更"
+        lines:
+          - "直接查product表，根据product.status判断处理方式"
+          - "新增判断:product是否有关联listing(加工阶段的商品无listing，仅更新status)"
+          - "不再经过暂存表中转"
+  - name: "⑥ 商品状态变更"
+    steps:
+      - type: start_end
+        text: "开始：红布林状态变更通知"
+      - type: process
+        lane: "E"
+        text: "红布林通知:商品状态变更(商品ID+新状态)"
+      - type: cross_lane
+        from: "E"
+        to: "A"
+        text: "状态变更通知"
+      - type: process
+        lane: "A"
+        text: "Webhook接收：签名验证+幂等校验"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "查询product(external_item_id)"
+      - type: process
+        lane: "B"
+        text: "返回product信息(status/关联listing)"
+      - type: cross_lane
+        from: "B"
+        to: "A"
+        text: "返回查询结果"
+      - type: decision
+        lane: "A"
+        text: "product存在?"
+        on_no: "忽略(商品未同步)"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "product有关联listing?"
+        on_no: "仅更新product.status"
+        yes_label: "是"
+        no_label: "否"
+      - type: multi_branch
+        lane: "A"
+        text: "变更类型?"
+        branches:
+          - label: "红布林下架"
+            nodes:
+              - type: process
+                text: "下架渠道listing(status=已下架)"
+              - type: process
+                text: "库存标记不可售(保留数量)"
+              - type: process
+                text: "product.status='已下架'"
+          - label: "红布林重新上架"
+            nodes:
+              - type: process
+                text: "恢复渠道listing(status=Active)"
+              - type: process
+                text: "库存恢复可售"
+              - type: process
+                text: "product.status='销售中'"
+      - type: process
+        lane: "A"
+        text: "回查验证状态同步"
+      - type: decision
+        lane: "A"
+        text: "验证通过?"
+        on_no: "标记异常"
+        yes_label: "是"
+        no_label: "否"
+      - type: start_end
+        text: "状态变更处理完成"
+      - type: note
+        title: "V6.0变更"
+        lines:
+          - "直接更新product表，根据是否有listing决定是否联动"
+          - "加工阶段的商品(待定价/已定价/已翻译)无listing，仅更新product.status"
+          - "与售出区别:状态变更保留库存数量,售出则清零归档"
+  - name: "⑦ 商品信息变更"
+    steps:
+      - type: start_end
+        text: "开始：红布林信息变更通知"
+      - type: process
+        lane: "E"
+        text: "红布林通知:商品信息变更(商品ID+变更字段+新值)"
+      - type: cross_lane
+        from: "E"
+        to: "A"
+        text: "信息变更通知"
+      - type: process
+        lane: "A"
+        text: "Webhook接收：签名验证+幂等校验"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "查询product(external_item_id)"
+      - type: process
+        lane: "B"
+        text: "返回product当前数据(status/source_data)"
+      - type: cross_lane
+        from: "B"
+        to: "A"
+        text: "返回查询结果"
+      - type: decision
+        lane: "A"
+        text: "product存在?"
+        on_no: "忽略(商品未同步)"
+        yes_label: "是"
+        no_label: "否"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "更新product.source_data(写入新原始值)"
+      - type: process
+        lane: "B"
+        text: "source_data JSON更新变更字段"
+      - type: decision
+        lane: "A"
+        text: "product已上架(有listing)?"
+        on_no: "标记信息已更新,待后续加工时使用"
+        yes_label: "是"
+        no_label: "否"
+      - type: multi_branch
+        lane: "A"
+        text: "变更类型?"
+        branches:
+          - label: "折扣价变更"
+            nodes:
+              - type: process
+                text: "重算A=新折扣价/6.86"
+              - type: process
+                text: "重新执行定价公式→新售价B"
+              - type: process
+                text: "重算Cost Price"
+          - label: "图片变更"
+            nodes:
+              - type: process
+                text: "下载新图片→更新对象存储"
+              - type: process
+                text: "更新product.images+listing图片"
+          - label: "品类/品牌/系列等"
+            nodes:
+              - type: process
+                text: "重新映射主数据ID"
+              - type: process
+                text: "重新翻译→生成新Product Name"
+              - type: process
+                text: "品牌/系列变更可能触发重新定价"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "同步更新到product+listing"
+      - type: process
+        lane: "B"
+        text: "写入变更后的数据"
+      - type: process
+        lane: "A"
+        text: "回查验证信息一致"
+      - type: decision
+        lane: "A"
+        text: "验证通过?"
+        on_no: "标记异常"
+        yes_label: "是"
+        no_label: "否"
+      - type: start_end
+        text: "信息变更处理完成"
+      - type: note
+        title: "V6.0变更"
+        lines:
+          - "变更数据先更新product.source_data(JSON)，再决定联动"
+          - "未上架商品(加工阶段):仅更新source_data，不触发重新定价/翻译"
+          - "已上架商品:根据变更字段类型决定处理方式"
+          - "折扣价变更→必须重新定价(A=折扣价/6.86, B=f(A))"
+          - "品牌/系列变更→重新映射主数据+可能重新定价"
+  - name: "⑧ 营销选品"
+    steps:
+      - type: start_end
+        text: "开始：营销选品"
+      - type: process
+        lane: "A"
+        text: "运营设置筛选条件(类目/品牌/颜色/成色/价格区间等)"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "查询product(status='销售中'+有listing)"
+      - type: process
+        lane: "B"
+        text: "返回筛选结果列表"
+      - type: cross_lane
+        from: "B"
+        to: "A"
+        text: "展示筛选结果"
+      - type: process
+        lane: "A"
+        text: "运营勾选商品→加入选品篮(按variant维度)"
+      - type: decision
+        lane: "A"
+        text: "选品篮非空?"
+        on_no: "提示选品篮为空"
+        yes_label: "是"
+        no_label: "否"
+      - type: multi_branch
+        lane: "A"
+        text: "选择操作?"
+        branches:
+          - label: "导出Excel"
+            nodes:
+              - type: process
+                text: "按选品篮生成Excel文件"
+              - type: process
+                text: "写入导出历史(可下载/删除)"
+          - label: "批量打标签"
+            nodes:
+              - type: process
+                text: "对选中商品执行tagsAdd"
+              - type: process
+                text: "回查确认tag已写入"
+      - type: start_end
+        text: "营销选品完成"
+      - type: note
+        title: "选品篮规则"
+        lines:
+          - "选品篮按variant维度保存,支持保存/清空/导出/打标签"
+          - "导出文件进入历史记录,可下载/删除/清空"
+          - "历史文件打标签用后台任务,选品篮打标签同步执行"
+          - "筛选:状态/类目/品牌/系列/颜色/成色/价格区间/模板/文本搜索"
+  - name: "⑨ 商品改价"
+    steps:
+      - type: start_end
+        text: "开始：商品改价"
+      - type: process
+        lane: "A"
+        text: "筛选product(status='销售中')→加载当前价格"
+      - type: process
+        lane: "A"
+        text: "运营设定目标售价B(+可选Cost Price)"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "逐行匹配listing,获取当前价格"
+      - type: process
+        lane: "B"
+        text: "返回匹配结果(当前price/compare-at/Cost Price)"
+      - type: cross_lane
+        from: "B"
+        to: "A"
+        text: "返回匹配数据"
+      - type: decision
+        lane: "A"
+        text: "商品匹配且价格有效?"
+        on_no: "标记无效(未匹配/B无效)"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "按改价规则计算(涨价/降价/持平/等于compare-at)"
+      - type: decision
+        lane: "A"
+        text: "通过改价校验?"
+        on_no: "不执行(降价差价不足30/无需变更)"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "生成改价预览(可处理/跳过/无效)"
+      - type: decision
+        lane: "A"
+        text: "运营确认执行?"
+        on_no: "取消"
+        yes_label: "是"
+        no_label: "否"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "执行价格更新(price+compare-at price)"
+      - type: process
+        lane: "B"
+        text: "更新listing价格"
+      - type: cross_lane
+        from: "A"
+        to: "C"
+        text: "更新Cost Price"
+      - type: process
+        lane: "C"
+        text: "写入inventory item unitCost"
+      - type: process
+        lane: "A"
+        text: "回读验证(price/compare-at/Cost Price)"
+      - type: decision
+        lane: "A"
+        text: "验证通过?"
+        on_no: "标记失败,记录原因"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "同步更新product.price_usd"
+      - type: start_end
+        text: "商品改价完成"
+      - type: note
+        title: "改价公式规则"
+        lines:
+          - "涨价: price改为target; 原compare-at高于target则保留,否则清空"
+          - "降价: price改为target; compare-at取max(原price,原compare-at)"
+          - "target等于compare-at: price改为target, 清空compare-at"
+          - "target等于price: 价格不变"
+          - "降价后compare-at与target差值不足30: 不执行"
+          - "Cost Price: 提供且与当前不一致时写入unitCost"
+]]>
+</metadata>
+<defs>
+<marker id="arr" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#475569"/></marker>
+<marker id="arr-r" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#DC2626"/></marker>
+</defs>
+<rect width="2228" height="10770" fill="#F8FAFC"/>
+<rect width="2228" height="46" fill="#1E1F2E"/>
+<text x="1114" y="30" text-anchor="middle" fill="#fff" font-size="17" font-weight="600">looply 商品业务全流程系统流程图（红布林对接版 — 方案B）</text>
+<text x="2198" y="30" text-anchor="end" fill="rgba(255,255,255,0.5)" font-size="10">V6.0</text>
+<rect x="40" y="46" width="320" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="200" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">红布林系统</text>
+<rect x="360" y="46" width="952" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="836" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 商品业务层</text>
+<rect x="1312" y="46" width="596" height="24" fill="#10B981" opacity="0.85"/>
+<text x="1610" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 商品系统</text>
+<rect x="1908" y="46" width="320" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="2068" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 库存模块</text>
+<rect x="40" y="46" width="320" height="912" fill="rgba(139,92,246,0.04)"/>
+<rect x="360" y="46" width="952" height="912" fill="rgba(74,108,247,0.04)"/>
+<line x1="360" y1="46" x2="360" y2="958" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1312" y="46" width="596" height="912" fill="rgba(16,185,129,0.04)"/>
+<line x1="1312" y1="46" x2="1312" y2="958" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1908" y="46" width="320" height="912" fill="rgba(245,158,11,0.04)"/>
+<line x1="1908" y1="46" x2="1908" y2="958" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="958" x2="2228" y2="958" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="46" width="40" height="912" fill="#DBEAFE" rx="0"/>
+<text x="20" y="453" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">①</text>
+<text x="20" y="471" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">商</text>
+<text x="20" y="489" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">品</text>
+<text x="20" y="507" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">数</text>
+<text x="20" y="525" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">据</text>
+<text x="20" y="543" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">同</text>
+<text x="20" y="561" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">步</text>
+<rect x="40" y="966" width="320" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="200" y="983" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">红布林系统</text>
+<rect x="360" y="966" width="952" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="836" y="983" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 商品业务层</text>
+<rect x="1312" y="966" width="596" height="24" fill="#10B981" opacity="0.85"/>
+<text x="1610" y="983" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 商品系统</text>
+<rect x="1908" y="966" width="320" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="2068" y="983" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 库存模块</text>
+<rect x="40" y="966" width="320" height="1188" fill="rgba(139,92,246,0.04)"/>
+<rect x="360" y="966" width="952" height="1188" fill="rgba(74,108,247,0.04)"/>
+<line x1="360" y1="966" x2="360" y2="2154" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1312" y="966" width="596" height="1188" fill="rgba(16,185,129,0.04)"/>
+<line x1="1312" y1="966" x2="1312" y2="2154" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1908" y="966" width="320" height="1188" fill="rgba(245,158,11,0.04)"/>
+<line x1="1908" y1="966" x2="1908" y2="2154" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="2154" x2="2228" y2="2154" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="966" width="40" height="1188" fill="#DBEAFE" rx="0"/>
+<text x="20" y="1529" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">②</text>
+<text x="20" y="1547" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">选</text>
+<text x="20" y="1565" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">品</text>
+<text x="20" y="1583" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">定</text>
+<text x="20" y="1601" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">价</text>
+<rect x="40" y="2162" width="320" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="200" y="2179" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">红布林系统</text>
+<rect x="360" y="2162" width="952" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="836" y="2179" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 商品业务层</text>
+<rect x="1312" y="2162" width="596" height="24" fill="#10B981" opacity="0.85"/>
+<text x="1610" y="2179" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 商品系统</text>
+<rect x="1908" y="2162" width="320" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="2068" y="2179" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 库存模块</text>
+<rect x="40" y="2162" width="320" height="1102" fill="rgba(139,92,246,0.04)"/>
+<rect x="360" y="2162" width="952" height="1102" fill="rgba(74,108,247,0.04)"/>
+<line x1="360" y1="2162" x2="360" y2="3264" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1312" y="2162" width="596" height="1102" fill="rgba(16,185,129,0.04)"/>
+<line x1="1312" y1="2162" x2="1312" y2="3264" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1908" y="2162" width="320" height="1102" fill="rgba(245,158,11,0.04)"/>
+<line x1="1908" y1="2162" x2="1908" y2="3264" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="3264" x2="2228" y2="3264" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="2162" width="40" height="1102" fill="#DBEAFE" rx="0"/>
+<text x="20" y="2682" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">③</text>
+<text x="20" y="2700" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">商</text>
+<text x="20" y="2718" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">品</text>
+<text x="20" y="2736" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">翻</text>
+<text x="20" y="2754" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">译</text>
+<rect x="40" y="3272" width="320" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="200" y="3289" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">红布林系统</text>
+<rect x="360" y="3272" width="952" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="836" y="3289" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 商品业务层</text>
+<rect x="1312" y="3272" width="596" height="24" fill="#10B981" opacity="0.85"/>
+<text x="1610" y="3289" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 商品系统</text>
+<rect x="1908" y="3272" width="320" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="2068" y="3289" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 库存模块</text>
+<rect x="40" y="3272" width="320" height="1642" fill="rgba(139,92,246,0.04)"/>
+<rect x="360" y="3272" width="952" height="1642" fill="rgba(74,108,247,0.04)"/>
+<line x1="360" y1="3272" x2="360" y2="4914" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1312" y="3272" width="596" height="1642" fill="rgba(16,185,129,0.04)"/>
+<line x1="1312" y1="3272" x2="1312" y2="4914" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1908" y="3272" width="320" height="1642" fill="rgba(245,158,11,0.04)"/>
+<line x1="1908" y1="3272" x2="1908" y2="4914" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="4914" x2="2228" y2="4914" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="3272" width="40" height="1642" fill="#DBEAFE" rx="0"/>
+<text x="20" y="4062" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">④</text>
+<text x="20" y="4080" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">商</text>
+<text x="20" y="4098" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">品</text>
+<text x="20" y="4116" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">上</text>
+<text x="20" y="4134" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">架</text>
+<rect x="40" y="4922" width="320" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="200" y="4939" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">红布林系统</text>
+<rect x="360" y="4922" width="952" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="836" y="4939" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 商品业务层</text>
+<rect x="1312" y="4922" width="596" height="24" fill="#10B981" opacity="0.85"/>
+<text x="1610" y="4939" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 商品系统</text>
+<rect x="1908" y="4922" width="320" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="2068" y="4939" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 库存模块</text>
+<rect x="40" y="4922" width="320" height="1310" fill="rgba(139,92,246,0.04)"/>
+<rect x="360" y="4922" width="952" height="1310" fill="rgba(74,108,247,0.04)"/>
+<line x1="360" y1="4922" x2="360" y2="6232" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1312" y="4922" width="596" height="1310" fill="rgba(16,185,129,0.04)"/>
+<line x1="1312" y1="4922" x2="1312" y2="6232" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1908" y="4922" width="320" height="1310" fill="rgba(245,158,11,0.04)"/>
+<line x1="1908" y1="4922" x2="1908" y2="6232" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="6232" x2="2228" y2="6232" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="4922" width="40" height="1310" fill="#DBEAFE" rx="0"/>
+<text x="20" y="5546" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">⑤</text>
+<text x="20" y="5564" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">商</text>
+<text x="20" y="5582" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">品</text>
+<text x="20" y="5600" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">售</text>
+<text x="20" y="5618" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">出</text>
+<rect x="40" y="6240" width="320" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="200" y="6257" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">红布林系统</text>
+<rect x="360" y="6240" width="952" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="836" y="6257" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 商品业务层</text>
+<rect x="1312" y="6240" width="596" height="24" fill="#10B981" opacity="0.85"/>
+<text x="1610" y="6257" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 商品系统</text>
+<rect x="1908" y="6240" width="320" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="2068" y="6257" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 库存模块</text>
+<rect x="40" y="6240" width="320" height="1066" fill="rgba(139,92,246,0.04)"/>
+<rect x="360" y="6240" width="952" height="1066" fill="rgba(74,108,247,0.04)"/>
+<line x1="360" y1="6240" x2="360" y2="7306" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1312" y="6240" width="596" height="1066" fill="rgba(16,185,129,0.04)"/>
+<line x1="1312" y1="6240" x2="1312" y2="7306" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1908" y="6240" width="320" height="1066" fill="rgba(245,158,11,0.04)"/>
+<line x1="1908" y1="6240" x2="1908" y2="7306" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="7306" x2="2228" y2="7306" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="6240" width="40" height="1066" fill="#DBEAFE" rx="0"/>
+<text x="20" y="6724" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">⑥</text>
+<text x="20" y="6742" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">商</text>
+<text x="20" y="6760" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">品</text>
+<text x="20" y="6778" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">状</text>
+<text x="20" y="6796" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">态</text>
+<text x="20" y="6814" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">变</text>
+<text x="20" y="6832" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">更</text>
+<rect x="40" y="7314" width="320" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="200" y="7331" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">红布林系统</text>
+<rect x="360" y="7314" width="952" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="836" y="7331" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 商品业务层</text>
+<rect x="1312" y="7314" width="596" height="24" fill="#10B981" opacity="0.85"/>
+<text x="1610" y="7331" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 商品系统</text>
+<rect x="1908" y="7314" width="320" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="2068" y="7331" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 库存模块</text>
+<rect x="40" y="7314" width="320" height="1302" fill="rgba(139,92,246,0.04)"/>
+<rect x="360" y="7314" width="952" height="1302" fill="rgba(74,108,247,0.04)"/>
+<line x1="360" y1="7314" x2="360" y2="8616" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1312" y="7314" width="596" height="1302" fill="rgba(16,185,129,0.04)"/>
+<line x1="1312" y1="7314" x2="1312" y2="8616" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1908" y="7314" width="320" height="1302" fill="rgba(245,158,11,0.04)"/>
+<line x1="1908" y1="7314" x2="1908" y2="8616" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="8616" x2="2228" y2="8616" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="7314" width="40" height="1302" fill="#DBEAFE" rx="0"/>
+<text x="20" y="7916" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">⑦</text>
+<text x="20" y="7934" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">商</text>
+<text x="20" y="7952" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">品</text>
+<text x="20" y="7970" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">信</text>
+<text x="20" y="7988" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">息</text>
+<text x="20" y="8006" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">变</text>
+<text x="20" y="8024" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">更</text>
+<rect x="40" y="8624" width="320" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="200" y="8641" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">红布林系统</text>
+<rect x="360" y="8624" width="952" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="836" y="8641" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 商品业务层</text>
+<rect x="1312" y="8624" width="596" height="24" fill="#10B981" opacity="0.85"/>
+<text x="1610" y="8641" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 商品系统</text>
+<rect x="1908" y="8624" width="320" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="2068" y="8641" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 库存模块</text>
+<rect x="40" y="8624" width="320" height="804" fill="rgba(139,92,246,0.04)"/>
+<rect x="360" y="8624" width="952" height="804" fill="rgba(74,108,247,0.04)"/>
+<line x1="360" y1="8624" x2="360" y2="9428" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1312" y="8624" width="596" height="804" fill="rgba(16,185,129,0.04)"/>
+<line x1="1312" y1="8624" x2="1312" y2="9428" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1908" y="8624" width="320" height="804" fill="rgba(245,158,11,0.04)"/>
+<line x1="1908" y1="8624" x2="1908" y2="9428" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="9428" x2="2228" y2="9428" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="8624" width="40" height="804" fill="#DBEAFE" rx="0"/>
+<text x="20" y="8995" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">⑧</text>
+<text x="20" y="9013" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">营</text>
+<text x="20" y="9031" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">销</text>
+<text x="20" y="9049" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">选</text>
+<text x="20" y="9067" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">品</text>
+<rect x="40" y="9436" width="320" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="200" y="9453" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">红布林系统</text>
+<rect x="360" y="9436" width="952" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="836" y="9453" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 商品业务层</text>
+<rect x="1312" y="9436" width="596" height="24" fill="#10B981" opacity="0.85"/>
+<text x="1610" y="9453" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 商品系统</text>
+<rect x="1908" y="9436" width="320" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="2068" y="9453" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 库存模块</text>
+<rect x="40" y="9436" width="320" height="1256" fill="rgba(139,92,246,0.04)"/>
+<rect x="360" y="9436" width="952" height="1256" fill="rgba(74,108,247,0.04)"/>
+<line x1="360" y1="9436" x2="360" y2="10692" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1312" y="9436" width="596" height="1256" fill="rgba(16,185,129,0.04)"/>
+<line x1="1312" y1="9436" x2="1312" y2="10692" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1908" y="9436" width="320" height="1256" fill="rgba(245,158,11,0.04)"/>
+<line x1="1908" y1="9436" x2="1908" y2="10692" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="10692" x2="2228" y2="10692" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="9436" width="40" height="1256" fill="#DBEAFE" rx="0"/>
+<text x="20" y="10033" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">⑨</text>
+<text x="20" y="10051" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">商</text>
+<text x="20" y="10069" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">品</text>
+<text x="20" y="10087" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">改</text>
+<text x="20" y="10105" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">价</text>
+<line x1="200" y1="116" x2="200" y2="132" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="200,164 200,200 756,200" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="216" x2="836" y2="236" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="268" x2="836" y2="284" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="316" x2="836" y2="332" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="364" x2="836" y2="383" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="901" y1="408" x2="912" y2="408" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="907" y="401" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="836" y1="433" x2="836" y2="450" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="848" y="446" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="836,482 836,518 1530,518" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="534" x2="1610" y2="553" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="603" x2="1610" y2="620" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1622" y="616" text-anchor="middle" fill="#64748B" font-size="8">有异常</text>
+<polyline points="1665,578 1810,578 1810,620" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1672" y="571" text-anchor="middle" fill="#64748B" font-size="8">映射成功</text>
+<line x1="1610" y1="652" x2="1610" y2="684" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1810,652 1810,700 1750,700" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="716" x2="1610" y2="735" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="1036" x2="836" y2="1052" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="1084" x2="836" y2="1100" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="1132" x2="836" y2="1148" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="1180" x2="836" y2="1199" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="901" y1="1224" x2="912" y2="1224" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="907" y="1217" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="836" y1="1249" x2="836" y2="1266" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="848" y="1262" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="836" y1="1298" x2="836" y2="1317" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="906" y1="1342" x2="917" y2="1342" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="912" y="1335" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="836" y1="1367" x2="836" y2="1387" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="848" y="1380" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="766,1412 536,1412 536,1454" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="651" y="1405" text-anchor="middle" fill="#64748B" font-size="8">包袋Top系列</text>
+<line x1="536" y1="1486" x2="536" y2="1502" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="536" y1="1534" x2="536" y2="1550" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="766,1412 756,1412 756,1454" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="761" y="1405" text-anchor="middle" fill="#64748B" font-size="8">包袋非Top/无均价</text>
+<line x1="756" y1="1486" x2="756" y2="1502" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="906,1412 956,1412 956,1454" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="931" y="1405" text-anchor="middle" fill="#64748B" font-size="8">非包袋固定公式</text>
+<line x1="956" y1="1486" x2="956" y2="1502" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="906,1412 1156,1412 1156,1454" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1031" y="1405" text-anchor="middle" fill="#64748B" font-size="8">其他未命中</text>
+<polyline points="536,1582 536,1630 676,1630" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="756,1534 756,1630 676,1630" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="956,1534 956,1630 996,1630" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1156,1486 1156,1630 996,1630" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="1646" x2="836" y2="1662" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="1694" x2="836" y2="1713" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="901" y1="1738" x2="912" y2="1738" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="907" y="1731" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<text x="848" y="1776" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="836,1763 836,1796 1530,1796" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="1812" x2="1610" y2="1832" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="1864" x2="1610" y2="1880" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="1912" x2="1610" y2="1931" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="2232" x2="836" y2="2248" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="2280" x2="836" y2="2296" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="2328" x2="836" y2="2344" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="2376" x2="836" y2="2392" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="2424" x2="836" y2="2440" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="2472" x2="836" y2="2488" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="2520" x2="836" y2="2539" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="756,2564 516,2564 516,2606" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="636" y="2557" text-anchor="middle" fill="#64748B" font-size="8">Handbags</text>
+<line x1="516" y1="2638" x2="516" y2="2654" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="516" y1="2686" x2="516" y2="2702" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="2589" x2="836" y2="2606" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="848" y="2602" text-anchor="middle" fill="#64748B" font-size="8">Accessories</text>
+<line x1="836" y1="2638" x2="836" y2="2654" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="916,2564 1156,2564 1156,2606" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1036" y="2557" text-anchor="middle" fill="#64748B" font-size="8">Jewelry</text>
+<line x1="1156" y1="2638" x2="1156" y2="2654" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="911" y1="2794" x2="922" y2="2794" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="917" y="2787" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<polyline points="516,2734 516,2794 761,2794" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="2686" x2="836" y2="2769" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1156,2686 1156,2794 911,2794" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="2819" x2="836" y2="2836" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="848" y="2832" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="836" y1="2868" x2="836" y2="2887" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="901" y1="2912" x2="912" y2="2912" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="907" y="2905" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<text x="848" y="2950" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="836,2937 836,2970 1530,2970" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="2986" x2="1610" y2="3006" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="3038" x2="1610" y2="3057" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="3342" x2="836" y2="3358" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="3390" x2="836" y2="3409" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="911" y1="3434" x2="922" y2="3434" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="917" y="3427" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<text x="848" y="3472" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="836,3459 836,3492 1530,3492" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="3508" x2="1610" y2="3527" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="3577" x2="1610" y2="3594" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1622" y="3590" text-anchor="middle" fill="#64748B" font-size="8">没有</text>
+<polyline points="1670,3552 1800,3552 1800,3594" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1677" y="3545" text-anchor="middle" fill="#64748B" font-size="8">已有</text>
+<polyline points="1610,3626 1610,3678 916,3678" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1800,3626 1800,3678 916,3678" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="3694" x2="836" y2="3714" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="3746" x2="836" y2="3765" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="901" y1="3790" x2="912" y2="3790" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="907" y="3783" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<text x="848" y="3828" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="836,3815 836,3848 1530,3848" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="3864" x2="1610" y2="3883" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="3933" x2="1610" y2="3950" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1622" y="3946" text-anchor="middle" fill="#64748B" font-size="8">不存在</text>
+<polyline points="1675,3908 1830,3908 1830,3950" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1682" y="3901" text-anchor="middle" fill="#64748B" font-size="8">已存在</text>
+<line x1="1610" y1="3982" x2="1610" y2="4014" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1830,3982 1830,4030 1690,4030" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1610,4046 1610,4082 1988,4082" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="2068" y1="4098" x2="2068" y2="4118" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="2068" y1="4150" x2="2068" y2="4166" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="2068,4198 2068,4234 1690,4234" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="4250" x2="1610" y2="4270" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="4302" x2="1610" y2="4318" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1610,4350 1610,4386 1988,4386" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="2068" y1="4402" x2="2068" y2="4422" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="2068,4454 2068,4486 916,4486" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="4502" x2="836" y2="4521" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="901" y1="4546" x2="912" y2="4546" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="907" y="4539" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<text x="848" y="4584" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="836,4571 836,4604 1530,4604" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="4620" x2="1610" y2="4640" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="4672" x2="1610" y2="4691" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="200" y1="4992" x2="200" y2="5008" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="200,5040 200,5076 756,5076" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="5092" x2="836" y2="5112" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="836,5144 836,5180 1530,5180" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="5196" x2="1610" y2="5216" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1610,5248 1610,5284 916,5284" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="5300" x2="836" y2="5319" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="911" y1="5344" x2="922" y2="5344" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="917" y="5337" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="836" y1="5369" x2="836" y2="5389" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="848" y="5382" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="916" y1="5414" x2="927" y2="5414" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="922" y="5407" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="836" y1="5439" x2="836" y2="5459" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="848" y="5452" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="911" y1="5484" x2="922" y2="5484" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="917" y="5477" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<text x="848" y="5522" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="836,5509 836,5542 1988,5542" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="2068" y1="5558" x2="2068" y2="5578" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="2068" y1="5610" x2="2068" y2="5626" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="2068" y1="5658" x2="2068" y2="5678" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="2068" y1="5710" x2="2068" y2="5730" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="2068,5762 2068,5798 1690,5798" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="5814" x2="1610" y2="5834" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="5866" x2="1610" y2="5882" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1610,5914 1610,5946 916,5946" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="5962" x2="836" y2="5981" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="901" y1="6006" x2="912" y2="6006" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="907" y="5999" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="836" y1="6031" x2="836" y2="6041" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="200" y1="6310" x2="200" y2="6326" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="200,6358 200,6394 756,6394" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="6410" x2="836" y2="6430" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="836,6462 836,6498 1530,6498" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="6514" x2="1610" y2="6534" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1610,6566 1610,6602 916,6602" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="6618" x2="836" y2="6637" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="901" y1="6662" x2="912" y2="6662" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="907" y="6655" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="836" y1="6687" x2="836" y2="6707" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="848" y="6700" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="916" y1="6732" x2="927" y2="6732" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="922" y="6725" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="836" y1="6757" x2="836" y2="6777" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="848" y="6770" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="771,6802 696,6802 696,6844" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="734" y="6795" text-anchor="middle" fill="#64748B" font-size="8">红布林下架</text>
+<line x1="696" y1="6876" x2="696" y2="6892" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="696" y1="6924" x2="696" y2="6940" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="901,6802 976,6802 976,6844" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="938" y="6795" text-anchor="middle" fill="#64748B" font-size="8">红布林重新上架</text>
+<line x1="976" y1="6876" x2="976" y2="6892" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="976" y1="6924" x2="976" y2="6940" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="696,6972 696,7020 746,7020" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="976,6972 976,7020 926,7020" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="7036" x2="836" y2="7055" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="901" y1="7080" x2="912" y2="7080" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="907" y="7073" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="836" y1="7105" x2="836" y2="7115" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="200" y1="7384" x2="200" y2="7400" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="200,7432 200,7468 756,7468" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="7484" x2="836" y2="7504" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="836,7536 836,7572 1530,7572" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="7588" x2="1610" y2="7608" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1610,7640 1610,7676 916,7676" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="7692" x2="836" y2="7711" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="901" y1="7736" x2="912" y2="7736" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="907" y="7729" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<text x="848" y="7774" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="836,7761 836,7794 1530,7794" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="7810" x2="1610" y2="7830" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1610,7862 1610,7906 901,7906" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="916" y1="7906" x2="927" y2="7906" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="922" y="7899" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="836" y1="7931" x2="836" y2="7951" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="848" y="7944" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="766,7976 556,7976 556,8018" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="661" y="7969" text-anchor="middle" fill="#64748B" font-size="8">折扣价变更</text>
+<line x1="556" y1="8050" x2="556" y2="8066" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="556" y1="8098" x2="556" y2="8114" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="766,7976 826,7976 826,8018" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="796" y="7969" text-anchor="middle" fill="#64748B" font-size="8">图片变更</text>
+<line x1="826" y1="8050" x2="826" y2="8066" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="906,7976 1106,7976 1106,8018" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1006" y="7969" text-anchor="middle" fill="#64748B" font-size="8">品类/品牌/系列等</text>
+<line x1="1106" y1="8050" x2="1106" y2="8066" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1106" y1="8098" x2="1106" y2="8114" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="556,8146 556,8198 1530,8198" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="826,8098 826,8198 1530,8198" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1106,8146 1106,8198 1530,8198" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="8214" x2="1610" y2="8234" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1610,8266 1610,8298 916,8298" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="8314" x2="836" y2="8333" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="901" y1="8358" x2="912" y2="8358" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="907" y="8351" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="836" y1="8383" x2="836" y2="8393" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="8694" x2="836" y2="8710" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="836,8742 836,8778 1530,8778" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="8794" x2="1610" y2="8814" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1610,8846 1610,8882 916,8882" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="8898" x2="836" y2="8918" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="8950" x2="836" y2="8969" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="901" y1="8994" x2="912" y2="8994" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="907" y="8987" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="836" y1="9019" x2="836" y2="9039" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="848" y="9032" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="771,9064 716,9064 716,9106" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="744" y="9057" text-anchor="middle" fill="#64748B" font-size="8">导出Excel</text>
+<line x1="716" y1="9138" x2="716" y2="9154" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="901,9064 966,9064 966,9106" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="933" y="9057" text-anchor="middle" fill="#64748B" font-size="8">批量打标签</text>
+<line x1="966" y1="9138" x2="966" y2="9154" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="716,9186 716,9234 791,9234" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="966,9186 966,9234 881,9234" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="9506" x2="836" y2="9522" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="9554" x2="836" y2="9570" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="836,9602 836,9638 1530,9638" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="9654" x2="1610" y2="9674" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1610,9706 1610,9742 916,9742" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="9758" x2="836" y2="9777" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="916" y1="9802" x2="927" y2="9802" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="922" y="9795" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="836" y1="9827" x2="836" y2="9844" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="848" y="9840" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="836" y1="9876" x2="836" y2="9895" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="906" y1="9920" x2="917" y2="9920" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="912" y="9913" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="836" y1="9945" x2="836" y2="9962" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="848" y="9958" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="836" y1="9994" x2="836" y2="10013" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="901" y1="10038" x2="912" y2="10038" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="907" y="10031" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<text x="848" y="10076" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="836,10063 836,10096 1530,10096" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1610" y1="10112" x2="1610" y2="10132" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1610,10164 1610,10200 1988,10200" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="2068" y1="10216" x2="2068" y2="10236" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="2068,10268 2068,10300 916,10300" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="836" y1="10316" x2="836" y2="10335" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="901" y1="10360" x2="912" y2="10360" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="907" y="10353" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="836" y1="10385" x2="836" y2="10402" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="848" y="10398" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="836" y1="10434" x2="836" y2="10453" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<rect x="155" y="87" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="200" y="104" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始：商品数据同步</text>
+<rect x="80" y="132" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="200" y="152" text-anchor="middle" fill="#1E293B" font-size="9.5">红布林通过Webhook推送商品数据</text>
+<rect x="756" y="184" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="204" text-anchor="middle" fill="#1E293B" font-size="9.5">商品数据(品类/品牌/系列/成色/折扣价/图片URL)</text>
+<rect x="726" y="236" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="256" text-anchor="middle" fill="#1E293B" font-size="9.5">Webhook接收：签名验证(HMAC)</text>
+<rect x="726" y="284" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="304" text-anchor="middle" fill="#1E293B" font-size="9.5">幂等校验(Item ID + 事件ID去重)</text>
+<rect x="686" y="332" width="300" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="352" text-anchor="middle" fill="#1E293B" font-size="9.5">主数据映射：品牌/类目/系列原始值→looply主数据ID</text>
+<polygon points="836,383 901,408 836,433 771,408" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="412" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">映射全部成功?</text>
+<rect x="913" y="395" width="170" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="998" y="412" text-anchor="middle" fill="#1E293B" font-size="9.5">映射失败字段记入source_data</text>
+<rect x="706" y="450" width="260" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="470" text-anchor="middle" fill="#1E293B" font-size="9.5">下载商品原图→存储到looply对象存储</text>
+<rect x="1530" y="502" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="522" text-anchor="middle" fill="#1E293B" font-size="9.5">写入product表(source='plum')</text>
+<polygon points="1610,553 1665,578 1610,603 1555,578" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="1610" y="582" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">映射结果?</text>
+<rect x="1520" y="620" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="640" text-anchor="middle" fill="#1E293B" font-size="9.5">product.status='映射异常'</text>
+<rect x="1720" y="620" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1810" y="640" text-anchor="middle" fill="#1E293B" font-size="9.5">product.status='待定价'</text>
+<rect x="1470" y="684" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="704" text-anchor="middle" fill="#1E293B" font-size="9.5">红布林原始数据完整保留到source_data(JSON)</text>
+<rect x="1565" y="735" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1610" y="752" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">数据同步完成</text>
+<rect x="791" y="1007" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="836" y="1024" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始：选品定价(v2.10.3公式)</text>
+<rect x="696" y="1052" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="1072" text-anchor="middle" fill="#1E293B" font-size="9.5">加载product(status='待定价', source='plum')</text>
+<rect x="686" y="1100" width="300" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="1120" text-anchor="middle" fill="#1E293B" font-size="9.5">从source_data读取折扣价：A = 折扣价 / 6.86 (CNY→USD)</text>
+<rect x="706" y="1148" width="260" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="1168" text-anchor="middle" fill="#1E293B" font-size="9.5">加载TRR参考价(top_series+avg_prices)</text>
+<polygon points="836,1199 901,1224 836,1249 771,1224" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="1228" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">通过排除检查?</text>
+<rect x="913" y="1211" width="200" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1013" y="1228" text-anchor="middle" fill="#1E293B" font-size="9.5">排除(养护/改色/边油重做/折扣价无效)</text>
+<rect x="736" y="1266" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="1286" text-anchor="middle" fill="#1E293B" font-size="9.5">品牌/系列/尺码/成色匹配</text>
+<polygon points="836,1317 906,1342 836,1367 766,1342" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="1346" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">属于可选品类目?</text>
+<rect x="918" y="1329" width="140" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="988" y="1346" text-anchor="middle" fill="#1E293B" font-size="9.5">不选中(服饰/鞋靴/腕表等)</text>
+<polygon points="836,1387 906,1412 836,1437 766,1412" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="1416" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">类目+系列分流?</text>
+<rect x="436" y="1454" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="536" y="1474" text-anchor="middle" fill="#1E293B" font-size="9.5">公式3/1: B=ceil(1.46A+207)</text>
+<rect x="436" y="1502" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="536" y="1522" text-anchor="middle" fill="#1E293B" font-size="9.5">公式2/4: B=ceil(1.28A+181)</text>
+<rect x="436" y="1550" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="536" y="1570" text-anchor="middle" fill="#1E293B" font-size="9.5">公式5/7: B=ceil(1.22A+172)</text>
+<rect x="676" y="1454" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="756" y="1474" text-anchor="middle" fill="#1E293B" font-size="9.5">公式6(自动选中)</text>
+<rect x="676" y="1502" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="756" y="1522" text-anchor="middle" fill="#1E293B" font-size="9.5">B=ceil(1.28A+181)</text>
+<rect x="896" y="1454" width="120" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="956" y="1474" text-anchor="middle" fill="#1E293B" font-size="9.5">自动选中</text>
+<rect x="876" y="1502" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="956" y="1522" text-anchor="middle" fill="#1E293B" font-size="9.5">B=ceil(1.46A+207)</text>
+<rect x="1106" y="1454" width="100" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1156" y="1474" text-anchor="middle" fill="#1E293B" font-size="9.5">不选中</text>
+<rect x="676" y="1614" width="320" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="1634" text-anchor="middle" fill="#1E293B" font-size="9.5">低价修正(公式2/4/5/6/7/非Top):B≤500→ceil(1.46A+207)</text>
+<rect x="686" y="1662" width="300" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="1682" text-anchor="middle" fill="#1E293B" font-size="9.5">生成选品预览(售价B/公式编号/选中/未选中原因)</text>
+<polygon points="836,1713 901,1738 836,1763 771,1738" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="1742" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">运营确认执行?</text>
+<rect x="913" y="1725" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="963" y="1742" text-anchor="middle" fill="#1E293B" font-size="9.5">取消</text>
+<rect x="1530" y="1780" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="1800" text-anchor="middle" fill="#1E293B" font-size="9.5">更新product定价结果</text>
+<rect x="1480" y="1832" width="260" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="1852" text-anchor="middle" fill="#1E293B" font-size="9.5">选中→product.price_usd=B, status='已定价'</text>
+<rect x="1500" y="1880" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="1900" text-anchor="middle" fill="#1E293B" font-size="9.5">不选中→product.status='已排除'</text>
+<rect x="1565" y="1931" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1610" y="1948" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">选品定价完成</text>
+<rect x="791" y="2203" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="836" y="2220" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始：商品翻译</text>
+<rect x="696" y="2248" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="2268" text-anchor="middle" fill="#1E293B" font-size="9.5">加载product(status='已定价', source='plum')</text>
+<rect x="716" y="2296" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="2316" text-anchor="middle" fill="#1E293B" font-size="9.5">从source_data读取中文原始字段</text>
+<rect x="636" y="2344" width="400" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="2364" text-anchor="middle" fill="#1E293B" font-size="9.5">加载4.3标准翻译数据(品牌/系列/颜色/尺码/材质/设计元素/附件/瑕疵/Category Suffix)</text>
+<rect x="656" y="2392" width="360" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="2412" text-anchor="middle" fill="#1E293B" font-size="9.5">前置清洗：空值统一处理/只取第一个颜色+材质+设计元素/去重相邻词</text>
+<rect x="706" y="2440" width="260" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="2460" text-anchor="middle" fill="#1E293B" font-size="9.5">逐字段中文→英文翻译(查4.3翻译表)</text>
+<rect x="686" y="2488" width="300" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="2508" text-anchor="middle" fill="#1E293B" font-size="9.5">获取Category Suffix(先查4.3→再查翻译后Category L3)</text>
+<polygon points="836,2539 916,2564 836,2589 756,2564" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="2568" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">按类目组装Product Name?</text>
+<rect x="376" y="2606" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="516" y="2626" text-anchor="middle" fill="#1E293B" font-size="9.5">有系列非Wallet:系列+尺码+设计元素+材质+颜色</text>
+<rect x="396" y="2654" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="516" y="2674" text-anchor="middle" fill="#1E293B" font-size="9.5">有系列Wallet:同上+Category Suffix</text>
+<rect x="386" y="2702" width="260" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="516" y="2722" text-anchor="middle" fill="#1E293B" font-size="9.5">无系列:设计元素+材质+Suffix+尺码+颜色</text>
+<rect x="696" y="2606" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="2626" text-anchor="middle" fill="#1E293B" font-size="9.5">有系列:系列+尺码+设计元素+材质+颜色+Suffix</text>
+<rect x="706" y="2654" width="260" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="2674" text-anchor="middle" fill="#1E293B" font-size="9.5">无系列:设计元素+材质+Suffix+尺码+颜色</text>
+<rect x="1016" y="2606" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1156" y="2626" text-anchor="middle" fill="#1E293B" font-size="9.5">有系列:系列+设计元素+材质+颜色+Suffix+尺码</text>
+<rect x="1026" y="2654" width="260" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1156" y="2674" text-anchor="middle" fill="#1E293B" font-size="9.5">无系列:设计元素+材质+颜色+Suffix+尺码</text>
+<polygon points="836,2769 911,2794 836,2819 761,2794" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="2798" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">中文残留审计通过?</text>
+<rect x="923" y="2781" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="973" y="2798" text-anchor="middle" fill="#1E293B" font-size="9.5">标记warning</text>
+<rect x="676" y="2836" width="320" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="2856" text-anchor="middle" fill="#1E293B" font-size="9.5">Cost Price转换：discount≤B保留原值,否则=discount/6.86</text>
+<polygon points="836,2887 901,2912 836,2937 771,2912" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="2916" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">运营确认执行?</text>
+<rect x="913" y="2899" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="963" y="2916" text-anchor="middle" fill="#1E293B" font-size="9.5">取消</text>
+<rect x="1530" y="2954" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="2974" text-anchor="middle" fill="#1E293B" font-size="9.5">更新product翻译结果</text>
+<rect x="1460" y="3006" width="300" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="3026" text-anchor="middle" fill="#1E293B" font-size="9.5">product.product_name_en=翻译结果, status='已翻译'</text>
+<rect x="1565" y="3057" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1610" y="3074" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">商品翻译完成</text>
+<rect x="791" y="3313" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="836" y="3330" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始：商品上架</text>
+<rect x="696" y="3358" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="3378" text-anchor="middle" fill="#1E293B" font-size="9.5">加载product(status='已翻译', source='plum')</text>
+<polygon points="836,3409 911,3434 836,3459 761,3434" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="3438" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">关键字段校验通过?</text>
+<rect x="923" y="3421" width="166" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1006" y="3438" text-anchor="middle" fill="#1E293B" font-size="9.5">标记invalid(价格无效/名称缺失)</text>
+<rect x="1530" y="3476" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="3496" text-anchor="middle" fill="#1E293B" font-size="9.5">查询该product是否已有listing</text>
+<polygon points="1610,3527 1670,3552 1610,3577 1550,3552" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="1610" y="3556" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">已有listing?</text>
+<rect x="1530" y="3594" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="3614" text-anchor="middle" fill="#1E293B" font-size="9.5">标记ready,可上架</text>
+<rect x="1710" y="3594" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1800" y="3614" text-anchor="middle" fill="#1E293B" font-size="9.5">跳过(防止重复上架)</text>
+<rect x="756" y="3662" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="3682" text-anchor="middle" fill="#1E293B" font-size="9.5">返回校验结果</text>
+<rect x="716" y="3714" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="3734" text-anchor="middle" fill="#1E293B" font-size="9.5">生成预览清单(ready/skip/invalid)</text>
+<polygon points="836,3765 901,3790 836,3815 771,3790" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="3794" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">确认上架?</text>
+<rect x="913" y="3777" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="963" y="3794" text-anchor="middle" fill="#1E293B" font-size="9.5">取消</text>
+<rect x="1530" y="3832" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="3852" text-anchor="middle" fill="#1E293B" font-size="9.5">① 匹配/创建标品SKU</text>
+<polygon points="1610,3883 1675,3908 1610,3933 1545,3908" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="1610" y="3912" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">SKU已存在?</text>
+<rect x="1480" y="3950" width="260" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="3970" text-anchor="middle" fill="#1E293B" font-size="9.5">创建标品SKU(brand+series+category+属性)</text>
+<rect x="1760" y="3950" width="140" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1830" y="3970" text-anchor="middle" fill="#1E293B" font-size="9.5">复用已有SPU</text>
+<rect x="1530" y="4014" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="4034" text-anchor="middle" fill="#1E293B" font-size="9.5">关联product.spu_id</text>
+<rect x="1988" y="4066" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2068" y="4086" text-anchor="middle" fill="#1E293B" font-size="9.5">② 创建库存主体</text>
+<rect x="1948" y="4118" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2068" y="4138" text-anchor="middle" fill="#1E293B" font-size="9.5">创建inventory_item(qty=1,二手商品)</text>
+<rect x="1968" y="4166" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2068" y="4186" text-anchor="middle" fill="#1E293B" font-size="9.5">写入库存流水(INBOUND +1)</text>
+<rect x="1530" y="4218" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="4238" text-anchor="middle" fill="#1E293B" font-size="9.5">③ 创建渠道商品</text>
+<rect x="1500" y="4270" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="4290" text-anchor="middle" fill="#1E293B" font-size="9.5">创建listing(渠道+市场+挂牌价)</text>
+<rect x="1470" y="4318" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="4338" text-anchor="middle" fill="#1E293B" font-size="9.5">关联图片(商品图+成色图+瑕疵图,保持源顺序)</text>
+<rect x="1988" y="4370" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2068" y="4390" text-anchor="middle" fill="#1E293B" font-size="9.5">创建渠道库存分配</text>
+<rect x="1958" y="4422" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2068" y="4442" text-anchor="middle" fill="#1E293B" font-size="9.5">创建channel_inventory_allocation</text>
+<rect x="736" y="4470" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="4490" text-anchor="middle" fill="#1E293B" font-size="9.5">④ 审计验证(4维回查)</text>
+<polygon points="836,4521 901,4546 836,4571 771,4546" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="4550" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">验证通过?</text>
+<rect x="913" y="4533" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="963" y="4550" text-anchor="middle" fill="#1E293B" font-size="9.5">标记失败,人工介入</text>
+<rect x="1530" y="4588" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="4608" text-anchor="middle" fill="#1E293B" font-size="9.5">更新product状态</text>
+<rect x="1520" y="4640" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="4660" text-anchor="middle" fill="#1E293B" font-size="9.5">product.status='销售中'</text>
+<rect x="1565" y="4691" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1610" y="4708" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">商品上架完成</text>
+<rect x="155" y="4963" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="200" y="4980" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始：红布林售出通知</text>
+<rect x="80" y="5008" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="200" y="5028" text-anchor="middle" fill="#1E293B" font-size="9.5">红布林通知:商品已售出(商品ID)</text>
+<rect x="756" y="5060" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="5080" text-anchor="middle" fill="#1E293B" font-size="9.5">售出通知(商品ID)</text>
+<rect x="716" y="5112" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="5132" text-anchor="middle" fill="#1E293B" font-size="9.5">Webhook接收：签名验证+幂等校验</text>
+<rect x="1530" y="5164" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="5184" text-anchor="middle" fill="#1E293B" font-size="9.5">查询product(external_item_id)</text>
+<rect x="1470" y="5216" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="5236" text-anchor="middle" fill="#1E293B" font-size="9.5">返回product信息(status/spu_id/关联listing)</text>
+<rect x="756" y="5268" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="5288" text-anchor="middle" fill="#1E293B" font-size="9.5">返回查询结果</text>
+<polygon points="836,5319 911,5344 836,5369 761,5344" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="5348" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">product存在且有效?</text>
+<rect x="923" y="5331" width="120" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="983" y="5348" text-anchor="middle" fill="#1E293B" font-size="9.5">忽略(未同步/已售出)</text>
+<polygon points="836,5389 916,5414 836,5439 756,5414" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="5418" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">product有关联listing?</text>
+<rect x="928" y="5401" width="166" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1011" y="5418" text-anchor="middle" fill="#1E293B" font-size="9.5">仅更新product.status='已售出'</text>
+<polygon points="836,5459 911,5484 836,5509 761,5484" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="5488" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">订单保护检查通过?</text>
+<rect x="923" y="5471" width="140" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="993" y="5488" text-anchor="middle" fill="#1E293B" font-size="9.5">有活跃订单,转异常处理</text>
+<rect x="1988" y="5526" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2068" y="5546" text-anchor="middle" fill="#1E293B" font-size="9.5">执行库存清零</text>
+<rect x="1968" y="5578" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2068" y="5598" text-anchor="middle" fill="#1E293B" font-size="9.5">更新inventory_item(qty=0)</text>
+<rect x="1978" y="5626" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2068" y="5646" text-anchor="middle" fill="#1E293B" font-size="9.5">写入库存流水(SOLD -1)</text>
+<rect x="1988" y="5678" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2068" y="5698" text-anchor="middle" fill="#1E293B" font-size="9.5">释放渠道库存分配</text>
+<rect x="1958" y="5730" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2068" y="5750" text-anchor="middle" fill="#1E293B" font-size="9.5">更新allocation(status=RELEASED)</text>
+<rect x="1530" y="5782" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="5802" text-anchor="middle" fill="#1E293B" font-size="9.5">下架渠道商品+更新product</text>
+<rect x="1520" y="5834" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="5854" text-anchor="middle" fill="#1E293B" font-size="9.5">listing.status='已下架'</text>
+<rect x="1520" y="5882" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="5902" text-anchor="middle" fill="#1E293B" font-size="9.5">product.status='已售出'</text>
+<rect x="726" y="5930" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="5950" text-anchor="middle" fill="#1E293B" font-size="9.5">回查验证(多模块状态检查)</text>
+<polygon points="836,5981 901,6006 836,6031 771,6006" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="6010" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">验证通过?</text>
+<rect x="913" y="5993" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="963" y="6010" text-anchor="middle" fill="#1E293B" font-size="9.5">标记异常,人工介入</text>
+<rect x="791" y="6041" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="836" y="6058" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">商品售出处理完成</text>
+<rect x="155" y="6281" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="200" y="6298" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始：红布林状态变更通知</text>
+<rect x="60" y="6326" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="200" y="6346" text-anchor="middle" fill="#1E293B" font-size="9.5">红布林通知:商品状态变更(商品ID+新状态)</text>
+<rect x="756" y="6378" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="6398" text-anchor="middle" fill="#1E293B" font-size="9.5">状态变更通知</text>
+<rect x="716" y="6430" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="6450" text-anchor="middle" fill="#1E293B" font-size="9.5">Webhook接收：签名验证+幂等校验</text>
+<rect x="1530" y="6482" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="6502" text-anchor="middle" fill="#1E293B" font-size="9.5">查询product(external_item_id)</text>
+<rect x="1490" y="6534" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="6554" text-anchor="middle" fill="#1E293B" font-size="9.5">返回product信息(status/关联listing)</text>
+<rect x="756" y="6586" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="6606" text-anchor="middle" fill="#1E293B" font-size="9.5">返回查询结果</text>
+<polygon points="836,6637 901,6662 836,6687 771,6662" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="6666" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">product存在?</text>
+<rect x="913" y="6649" width="110" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="968" y="6666" text-anchor="middle" fill="#1E293B" font-size="9.5">忽略(商品未同步)</text>
+<polygon points="836,6707 916,6732 836,6757 756,6732" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="6736" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">product有关联listing?</text>
+<rect x="928" y="6719" width="121" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="988" y="6736" text-anchor="middle" fill="#1E293B" font-size="9.5">仅更新product.status</text>
+<polygon points="836,6777 901,6802 836,6827 771,6802" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="6806" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">变更类型?</text>
+<rect x="576" y="6844" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="696" y="6864" text-anchor="middle" fill="#1E293B" font-size="9.5">下架渠道listing(status=已下架)</text>
+<rect x="596" y="6892" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="696" y="6912" text-anchor="middle" fill="#1E293B" font-size="9.5">库存标记不可售(保留数量)</text>
+<rect x="606" y="6940" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="696" y="6960" text-anchor="middle" fill="#1E293B" font-size="9.5">product.status='已下架'</text>
+<rect x="856" y="6844" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="976" y="6864" text-anchor="middle" fill="#1E293B" font-size="9.5">恢复渠道listing(status=Active)</text>
+<rect x="896" y="6892" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="976" y="6912" text-anchor="middle" fill="#1E293B" font-size="9.5">库存恢复可售</text>
+<rect x="886" y="6940" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="976" y="6960" text-anchor="middle" fill="#1E293B" font-size="9.5">product.status='销售中'</text>
+<rect x="746" y="7004" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="7024" text-anchor="middle" fill="#1E293B" font-size="9.5">回查验证状态同步</text>
+<polygon points="836,7055 901,7080 836,7105 771,7080" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="7084" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">验证通过?</text>
+<rect x="913" y="7067" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="963" y="7084" text-anchor="middle" fill="#1E293B" font-size="9.5">标记异常</text>
+<rect x="791" y="7115" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="836" y="7132" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">状态变更处理完成</text>
+<rect x="155" y="7355" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="200" y="7372" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始：红布林信息变更通知</text>
+<rect x="50" y="7400" width="300" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="200" y="7420" text-anchor="middle" fill="#1E293B" font-size="9.5">红布林通知:商品信息变更(商品ID+变更字段+新值)</text>
+<rect x="756" y="7452" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="7472" text-anchor="middle" fill="#1E293B" font-size="9.5">信息变更通知</text>
+<rect x="716" y="7504" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="7524" text-anchor="middle" fill="#1E293B" font-size="9.5">Webhook接收：签名验证+幂等校验</text>
+<rect x="1530" y="7556" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="7576" text-anchor="middle" fill="#1E293B" font-size="9.5">查询product(external_item_id)</text>
+<rect x="1480" y="7608" width="260" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="7628" text-anchor="middle" fill="#1E293B" font-size="9.5">返回product当前数据(status/source_data)</text>
+<rect x="756" y="7660" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="7680" text-anchor="middle" fill="#1E293B" font-size="9.5">返回查询结果</text>
+<polygon points="836,7711 901,7736 836,7761 771,7736" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="7740" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">product存在?</text>
+<rect x="913" y="7723" width="110" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="968" y="7740" text-anchor="middle" fill="#1E293B" font-size="9.5">忽略(商品未同步)</text>
+<rect x="1530" y="7778" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="7798" text-anchor="middle" fill="#1E293B" font-size="9.5">更新product.source_data(写入新原始值)</text>
+<rect x="1500" y="7830" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="7850" text-anchor="middle" fill="#1E293B" font-size="9.5">source_data JSON更新变更字段</text>
+<polygon points="836,7881 916,7906 836,7931 756,7906" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="7910" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">product已上架(有listing)?</text>
+<rect x="928" y="7893" width="180" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1018" y="7910" text-anchor="middle" fill="#1E293B" font-size="9.5">标记信息已更新,待后续加工时使用</text>
+<polygon points="836,7951 906,7976 836,8001 766,7976" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="7980" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">变更类型?</text>
+<rect x="466" y="8018" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="556" y="8038" text-anchor="middle" fill="#1E293B" font-size="9.5">重算A=新折扣价/6.86</text>
+<rect x="446" y="8066" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="556" y="8086" text-anchor="middle" fill="#1E293B" font-size="9.5">重新执行定价公式→新售价B</text>
+<rect x="476" y="8114" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="556" y="8134" text-anchor="middle" fill="#1E293B" font-size="9.5">重算Cost Price</text>
+<rect x="716" y="8018" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="826" y="8038" text-anchor="middle" fill="#1E293B" font-size="9.5">下载新图片→更新对象存储</text>
+<rect x="706" y="8066" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="826" y="8086" text-anchor="middle" fill="#1E293B" font-size="9.5">更新product.images+listing图片</text>
+<rect x="1016" y="8018" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1106" y="8038" text-anchor="middle" fill="#1E293B" font-size="9.5">重新映射主数据ID</text>
+<rect x="986" y="8066" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1106" y="8086" text-anchor="middle" fill="#1E293B" font-size="9.5">重新翻译→生成新Product Name</text>
+<rect x="986" y="8114" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1106" y="8134" text-anchor="middle" fill="#1E293B" font-size="9.5">品牌/系列变更可能触发重新定价</text>
+<rect x="1530" y="8182" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="8202" text-anchor="middle" fill="#1E293B" font-size="9.5">同步更新到product+listing</text>
+<rect x="1520" y="8234" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="8254" text-anchor="middle" fill="#1E293B" font-size="9.5">写入变更后的数据</text>
+<rect x="746" y="8282" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="8302" text-anchor="middle" fill="#1E293B" font-size="9.5">回查验证信息一致</text>
+<polygon points="836,8333 901,8358 836,8383 771,8358" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="8362" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">验证通过?</text>
+<rect x="913" y="8345" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="963" y="8362" text-anchor="middle" fill="#1E293B" font-size="9.5">标记异常</text>
+<rect x="791" y="8393" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="836" y="8410" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">信息变更处理完成</text>
+<rect x="791" y="8665" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="836" y="8682" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始：营销选品</text>
+<rect x="676" y="8710" width="320" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="8730" text-anchor="middle" fill="#1E293B" font-size="9.5">运营设置筛选条件(类目/品牌/颜色/成色/价格区间等)</text>
+<rect x="1530" y="8762" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="8782" text-anchor="middle" fill="#1E293B" font-size="9.5">查询product(status='销售中'+有listing)</text>
+<rect x="1520" y="8814" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="8834" text-anchor="middle" fill="#1E293B" font-size="9.5">返回筛选结果列表</text>
+<rect x="756" y="8866" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="8886" text-anchor="middle" fill="#1E293B" font-size="9.5">展示筛选结果</text>
+<rect x="696" y="8918" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="8938" text-anchor="middle" fill="#1E293B" font-size="9.5">运营勾选商品→加入选品篮(按variant维度)</text>
+<polygon points="836,8969 901,8994 836,9019 771,8994" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="8998" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">选品篮非空?</text>
+<rect x="913" y="8981" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="963" y="8998" text-anchor="middle" fill="#1E293B" font-size="9.5">提示选品篮为空</text>
+<polygon points="836,9039 901,9064 836,9089 771,9064" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="9068" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">选择操作?</text>
+<rect x="616" y="9106" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="716" y="9126" text-anchor="middle" fill="#1E293B" font-size="9.5">按选品篮生成Excel文件</text>
+<rect x="606" y="9154" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="716" y="9174" text-anchor="middle" fill="#1E293B" font-size="9.5">写入导出历史(可下载/删除)</text>
+<rect x="866" y="9106" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="966" y="9126" text-anchor="middle" fill="#1E293B" font-size="9.5">对选中商品执行tagsAdd</text>
+<rect x="876" y="9154" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="966" y="9174" text-anchor="middle" fill="#1E293B" font-size="9.5">回查确认tag已写入</text>
+<rect x="791" y="9221" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="836" y="9238" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">营销选品完成</text>
+<rect x="791" y="9477" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="836" y="9494" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始：商品改价</text>
+<rect x="686" y="9522" width="300" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="9542" text-anchor="middle" fill="#1E293B" font-size="9.5">筛选product(status='销售中')→加载当前价格</text>
+<rect x="706" y="9570" width="260" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="9590" text-anchor="middle" fill="#1E293B" font-size="9.5">运营设定目标售价B(+可选Cost Price)</text>
+<rect x="1530" y="9622" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="9642" text-anchor="middle" fill="#1E293B" font-size="9.5">逐行匹配listing,获取当前价格</text>
+<rect x="1470" y="9674" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="9694" text-anchor="middle" fill="#1E293B" font-size="9.5">返回匹配结果(当前price/compare-at/Cost Price)</text>
+<rect x="756" y="9726" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="9746" text-anchor="middle" fill="#1E293B" font-size="9.5">返回匹配数据</text>
+<polygon points="836,9777 916,9802 836,9827 756,9802" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="9806" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">商品匹配且价格有效?</text>
+<rect x="928" y="9789" width="140" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="998" y="9806" text-anchor="middle" fill="#1E293B" font-size="9.5">标记无效(未匹配/B无效)</text>
+<rect x="686" y="9844" width="300" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="9864" text-anchor="middle" fill="#1E293B" font-size="9.5">按改价规则计算(涨价/降价/持平/等于compare-at)</text>
+<polygon points="836,9895 906,9920 836,9945 766,9920" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="9924" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">通过改价校验?</text>
+<rect x="918" y="9907" width="180" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1008" y="9924" text-anchor="middle" fill="#1E293B" font-size="9.5">不执行(降价差价不足30/无需变更)</text>
+<rect x="706" y="9962" width="260" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="9982" text-anchor="middle" fill="#1E293B" font-size="9.5">生成改价预览(可处理/跳过/无效)</text>
+<polygon points="836,10013 901,10038 836,10063 771,10038" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="10042" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">运营确认执行?</text>
+<rect x="913" y="10025" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="963" y="10042" text-anchor="middle" fill="#1E293B" font-size="9.5">取消</text>
+<rect x="1530" y="10080" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="10100" text-anchor="middle" fill="#1E293B" font-size="9.5">执行价格更新(price+compare-at price)</text>
+<rect x="1530" y="10132" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1610" y="10152" text-anchor="middle" fill="#1E293B" font-size="9.5">更新listing价格</text>
+<rect x="1988" y="10184" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2068" y="10204" text-anchor="middle" fill="#1E293B" font-size="9.5">更新Cost Price</text>
+<rect x="1968" y="10236" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2068" y="10256" text-anchor="middle" fill="#1E293B" font-size="9.5">写入inventory item unitCost</text>
+<rect x="706" y="10284" width="260" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="10304" text-anchor="middle" fill="#1E293B" font-size="9.5">回读验证(price/compare-at/Cost Price)</text>
+<polygon points="836,10335 901,10360 836,10385 771,10360" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="836" y="10364" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">验证通过?</text>
+<rect x="913" y="10347" width="100" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="963" y="10364" text-anchor="middle" fill="#1E293B" font-size="9.5">标记失败,记录原因</text>
+<rect x="736" y="10402" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="836" y="10422" text-anchor="middle" fill="#1E293B" font-size="9.5">同步更新product.price_usd</text>
+<rect x="791" y="10453" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="836" y="10470" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">商品改价完成</text>
+<rect x="90" y="778" width="380" height="140" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="280" y="800" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">V6.0变更(对比V5.0)</text><text x="280" y="818" text-anchor="middle" fill="#7F1D1D" font-size="9">同步方式确认为红布林Webhook推送</text><text x="280" y="834" text-anchor="middle" fill="#7F1D1D" font-size="9">新增主数据映射：红布林原始值→looply品牌/类目/系列ID</text><text x="280" y="850" text-anchor="middle" fill="#7F1D1D" font-size="9">映射失败→product.status='映射异常'，运营补映射后重新处理</text><text x="280" y="866" text-anchor="middle" fill="#7F1D1D" font-size="9">落库目标从独立暂存表改为product表(source='plum')</text><text x="280" y="882" text-anchor="middle" fill="#7F1D1D" font-size="9">红布林原始数据(折扣价CNY/养护/改色等)存入source_data JSON</text>
+<rect x="90" y="1974" width="380" height="140" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="280" y="1996" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">定价特殊规则</text><text x="280" y="2014" text-anchor="middle" fill="#7F1D1D" font-size="9">Speedy例外：B≤500时仍不选中(不做低价修正)</text><text x="280" y="2030" text-anchor="middle" fill="#7F1D1D" font-size="9">公式优先级：排除→Top系列→非Top→无系列无均价→非包袋→其他</text><text x="280" y="2046" text-anchor="middle" fill="#7F1D1D" font-size="9">Top系列公式判定顺序：3→1→2→4→5→7(按B与C的比值)</text><text x="280" y="2062" text-anchor="middle" fill="#7F1D1D" font-size="9">V6.0：定价结果直接写入product.price_usd，不导出Excel中转</text><text x="280" y="2078" text-anchor="middle" fill="#7F1D1D" font-size="9">V6.0：被排除商品显式标记status='已排除'</text>
+<rect x="90" y="3100" width="380" height="124" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="280" y="3122" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">翻译特殊规则</text><text x="280" y="3140" text-anchor="middle" fill="#7F1D1D" font-size="9">Wallet范围：Wallet/Passport Holder/Card Holder/Coin Purse/Key Pouch/Cosmetic Pouch</text><text x="280" y="3156" text-anchor="middle" fill="#7F1D1D" font-size="9">Wristlet不算Wallet，按Jewelry规则处理</text><text x="280" y="3172" text-anchor="middle" fill="#7F1D1D" font-size="9">Handbags有系列非Wallet时不追加Category Suffix</text><text x="280" y="3188" text-anchor="middle" fill="#7F1D1D" font-size="9">V6.0：翻译结果直接写入product.product_name_en</text>
+<rect x="90" y="4734" width="380" height="140" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="280" y="4756" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">V6.0变更(对比V5.0)</text><text x="280" y="4774" text-anchor="middle" fill="#7F1D1D" font-size="9">product在同步阶段已创建,上架不再创建实物商品</text><text x="280" y="4790" text-anchor="middle" fill="#7F1D1D" font-size="9">链路从5步简化为4步:匹配SPU→创建库存→创建listing→审计</text><text x="280" y="4806" text-anchor="middle" fill="#7F1D1D" font-size="9">冲突检测改为'是否已有listing'(external_item_id唯一性在同步时已保证)</text><text x="280" y="4822" text-anchor="middle" fill="#7F1D1D" font-size="9">checkpoint: sku_matched→inventory_created→listing_created→audit_done</text><text x="280" y="4838" text-anchor="middle" fill="#7F1D1D" font-size="9">审计4维: SPU关联+库存主体+渠道商品+库存分配(去掉'实物商品是否创建')</text>
+<rect x="90" y="6084" width="380" height="108" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="280" y="6106" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">V6.0变更</text><text x="280" y="6124" text-anchor="middle" fill="#7F1D1D" font-size="9">直接查product表，根据product.status判断处理方式</text><text x="280" y="6140" text-anchor="middle" fill="#7F1D1D" font-size="9">新增判断:product是否有关联listing(加工阶段的商品无listing，仅更新status)</text><text x="280" y="6156" text-anchor="middle" fill="#7F1D1D" font-size="9">不再经过暂存表中转</text>
+<rect x="90" y="7158" width="380" height="108" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="280" y="7180" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">V6.0变更</text><text x="280" y="7198" text-anchor="middle" fill="#7F1D1D" font-size="9">直接更新product表，根据是否有listing决定是否联动</text><text x="280" y="7214" text-anchor="middle" fill="#7F1D1D" font-size="9">加工阶段的商品(待定价/已定价/已翻译)无listing，仅更新product.status</text><text x="280" y="7230" text-anchor="middle" fill="#7F1D1D" font-size="9">与售出区别:状态变更保留库存数量,售出则清零归档</text>
+<rect x="90" y="8436" width="380" height="140" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="280" y="8458" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">V6.0变更</text><text x="280" y="8476" text-anchor="middle" fill="#7F1D1D" font-size="9">变更数据先更新product.source_data(JSON)，再决定联动</text><text x="280" y="8492" text-anchor="middle" fill="#7F1D1D" font-size="9">未上架商品(加工阶段):仅更新source_data，不触发重新定价/翻译</text><text x="280" y="8508" text-anchor="middle" fill="#7F1D1D" font-size="9">已上架商品:根据变更字段类型决定处理方式</text><text x="280" y="8524" text-anchor="middle" fill="#7F1D1D" font-size="9">折扣价变更→必须重新定价(A=折扣价/6.86, B=f(A))</text><text x="280" y="8540" text-anchor="middle" fill="#7F1D1D" font-size="9">品牌/系列变更→重新映射主数据+可能重新定价</text>
+<rect x="90" y="9264" width="380" height="124" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="280" y="9286" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">选品篮规则</text><text x="280" y="9304" text-anchor="middle" fill="#7F1D1D" font-size="9">选品篮按variant维度保存,支持保存/清空/导出/打标签</text><text x="280" y="9320" text-anchor="middle" fill="#7F1D1D" font-size="9">导出文件进入历史记录,可下载/删除/清空</text><text x="280" y="9336" text-anchor="middle" fill="#7F1D1D" font-size="9">历史文件打标签用后台任务,选品篮打标签同步执行</text><text x="280" y="9352" text-anchor="middle" fill="#7F1D1D" font-size="9">筛选:状态/类目/品牌/系列/颜色/成色/价格区间/模板/文本搜索</text>
+<rect x="90" y="10496" width="380" height="156" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="280" y="10518" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">改价公式规则</text><text x="280" y="10536" text-anchor="middle" fill="#7F1D1D" font-size="9">涨价: price改为target; 原compare-at高于target则保留,否则清空</text><text x="280" y="10552" text-anchor="middle" fill="#7F1D1D" font-size="9">降价: price改为target; compare-at取max(原price,原compare-at)</text><text x="280" y="10568" text-anchor="middle" fill="#7F1D1D" font-size="9">target等于compare-at: price改为target, 清空compare-at</text><text x="280" y="10584" text-anchor="middle" fill="#7F1D1D" font-size="9">target等于price: 价格不变</text><text x="280" y="10600" text-anchor="middle" fill="#7F1D1D" font-size="9">降价后compare-at与target差值不足30: 不执行</text><text x="280" y="10616" text-anchor="middle" fill="#7F1D1D" font-size="9">Cost Price: 提供且与当前不一致时写入unitCost</text>
+<rect x="0" y="10710" width="2228" height="60" fill="#fff" stroke="#E2E8F0" stroke-width="1"/>
+<text x="20" y="10735" fill="#1E293B" font-size="12" font-weight="600">图例：</text>
+<rect x="75" y="10723" width="50" height="20" rx="10" fill="#fff" stroke="#64748B" stroke-width="1.2"/>
+<text x="100" y="10737" text-anchor="middle" fill="#64748B" font-size="8">开始/结束</text>
+<rect x="140" y="10723" width="50" height="20" rx="3" fill="#fff" stroke="#475569" stroke-width="1.2"/>
+<text x="165" y="10737" text-anchor="middle" fill="#475569" font-size="8">操作步骤</text>
+<polygon points="225,10723 240,10733 225,10743 210,10733" fill="#FEF3C7" stroke="#D97706" stroke-width="1.2"/>
+<text x="225" y="10737" text-anchor="middle" fill="#92400E" font-size="7">判断</text>
+<line x1="260" y1="10733" x2="310" y2="10733" stroke="#475569" stroke-width="1.3" marker-end="url(#arr)"/>
+<text x="285" y="10728" text-anchor="middle" fill="#475569" font-size="8">正常流向</text>
+<line x1="330" y1="10733" x2="380" y2="10733" stroke="#DC2626" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="355" y="10728" text-anchor="middle" fill="#DC2626" font-size="8">异常/回退</text>
+<rect x="420" y="10725" width="12" height="12" rx="2" fill="#8B5CF6" opacity="0.3"/>
+<text x="438" y="10736" fill="#8B5CF6" font-size="9">红布林系统</text>
+<rect x="520" y="10725" width="12" height="12" rx="2" fill="#4A6CF7" opacity="0.3"/>
+<text x="538" y="10736" fill="#4A6CF7" font-size="9">looply 商品业务层</text>
+<rect x="620" y="10725" width="12" height="12" rx="2" fill="#10B981" opacity="0.3"/>
+<text x="638" y="10736" fill="#10B981" font-size="9">looply 商品系统</text>
+<rect x="720" y="10725" width="12" height="12" rx="2" fill="#F59E0B" opacity="0.3"/>
+<text x="738" y="10736" fill="#F59E0B" font-size="9">looply 库存模块</text>
+</svg>

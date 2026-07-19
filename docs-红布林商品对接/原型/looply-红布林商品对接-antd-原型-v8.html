@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Looply 红布林商品对接 — antd 原型 v8</title>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/dayjs@1.11.21/dayjs.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/antd@6.4.3/dist/antd.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/@ant-design/icons@6.2.1/dist/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.28.4/babel.min.js"></script>
+<style>
+html,body,#root{height:100%;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937}
+#root::before{content:'正在加载 antd 原型……';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#9CA3AF;font-size:14px}
+#root:not(:empty)::before{display:none}
+.lp-kpi{background:linear-gradient(180deg,#FEFCFF 0%,#F3EEFF 100%);border:1px solid #DDD6FE;border-radius:14px;padding:14px 16px}
+.lp-kpi .num{font-size:24px;font-weight:700;color:#7C3AED;line-height:1;margin-bottom:6px;font-variant-numeric:tabular-nums}
+.lp-kpi .label{font-size:12px;color:#6B7280}
+.lp-pagination{display:flex;align-items:center;justify-content:center;gap:24px;padding:12px 16px;font-size:13px;color:#6B7280}
+.lp-pagination .divider{width:1px;height:20px;background:#E5E7EB}
+.lp-tip-trigger{cursor:help;border-bottom:1px dashed #9CA3AF;padding-bottom:1px}
+.lp-section{font-size:15px;font-weight:600;color:#1F2937;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #E5E7EB}
+.lp-section-purple{font-size:14px;font-weight:700;color:#7C3AED;margin:0 0 12px}
+.lp-oplog-title{font-size:14px;font-weight:700;color:#7C3AED;margin:24px 0 12px}
+.lp-empty{display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center}
+.lp-empty .icon{font-size:48px;margin-bottom:16px;color:#9CA3AF}
+.lp-empty .icon.err{color:#DC2626}
+.lp-empty .title{font-size:16px;font-weight:600;color:#1F2937;margin-bottom:8px}
+.lp-empty .desc{font-size:13px;color:#6B7280;margin-bottom:24px;max-width:360px}
+.lp-form-row{display:flex;gap:16px;margin-bottom:12px;align-items:center}
+.lp-form-row:first-of-type{margin-top:8px}
+.lp-form-row .lp-form-label{width:96px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0}
+.lp-form-row .lp-form-label .req{color:#DC2626;margin-right:4px}
+.lp-form-row .lp-form-control{flex:1}
+.lp-helper{font-size:12px;color:#9CA3AF;margin:-4px 0 12px 112px}
+.lp-note{padding:14px;border-radius:10px;background:#F3EEFF;border:1px solid #DDD6FE;color:#6D28D9;font-size:12px;line-height:1.8}
+.lp-note-sm{padding:10px 14px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:8px;font-size:12px;color:#6D28D9}
+.lp-upload-zone{border:2px dashed #D1D5DB;border-radius:14px;padding:32px;text-align:center;background:#FAFAFA}
+.lp-upload-zone .hint{font-size:13px;color:#6B7280;margin-bottom:8px}
+.lp-upload-zone .sub{font-size:12px;color:#9CA3AF;margin-top:8px}
+.lp-code{font-family:Menlo,Monaco,Consolas,monospace;font-size:12px;color:#374151;background:#F3F4F6;padding:1px 6px;border-radius:4px}
+:focus-visible{outline:none;box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo } = React;
+const { Layout, Menu, Card, Table, Button, Space, Tag, Select, Input, InputNumber,
+        DatePicker, Tabs, Modal, Drawer, Upload, Progress, Alert, Tooltip, Badge, Steps,
+        ConfigProvider, Radio, Checkbox, Switch, Cascader } = antd;
+const { AppstoreOutlined, ShoppingOutlined, SyncOutlined, TagOutlined,
+        TranslationOutlined, UploadOutlined, DownloadOutlined, SearchOutlined,
+        ReloadOutlined, InboxOutlined, ExclamationCircleOutlined, CheckCircleOutlined,
+        CloseCircleOutlined, FileTextOutlined, DollarOutlined, RocketOutlined,
+        FilterOutlined, EllipsisOutlined, EditOutlined, EyeOutlined, DeleteOutlined,
+        CloudSyncOutlined, ThunderboltOutlined, SwapOutlined, InfoCircleOutlined,
+        BarChartOutlined, DatabaseOutlined, BookOutlined, BranchesOutlined,
+        ImportOutlined, PlusOutlined, SettingOutlined, FolderOutlined,
+        OrderedListOutlined, ColumnHeightOutlined } = icons;
+
+const LOGO_SRC = "data:image/png;base64,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";
+
+const looplyTheme = {
+  token: {
+    colorPrimary: '#7C3AED', colorInfo: '#7C3AED',
+    colorBgLayout: '#F9FAFB', colorBgContainer: '#FFFFFF',
+    colorText: '#1F2937', colorTextSecondary: '#374151', colorTextTertiary: '#4B5563',
+    colorTextDescription: '#6B7280', colorTextPlaceholder: '#9CA3AF',
+    colorBorder: '#E5E7EB', colorBorderSecondary: '#F3F4F6',
+    colorSuccess: '#16A34A', colorWarning: '#D97706', colorError: '#DC2626',
+    borderRadius: 8, borderRadiusLG: 14, borderRadiusSM: 6,
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: 14, controlHeight: 34, controlHeightSM: 28,
+  },
+  components: {
+    Layout: { headerBg:'#FFFFFF', headerHeight:60, headerPadding:'0 24px', siderBg:'#FFFFFF', bodyBg:'#F9FAFB' },
+    Menu: { itemBg:'transparent', subMenuItemBg:'transparent', itemHoverBg:'rgba(0,0,0,.03)',
+            itemSelectedBg:'#F3EEFF', itemSelectedColor:'#7C3AED',
+            itemBorderRadius:0, itemMarginInline:0, itemMarginBlock:0, itemHeight:40, subMenuItemBorderRadius:0 },
+    Card: { borderRadiusLG:16, paddingLG:28 },
+    Table: { headerBg:'#FFFFFF', headerColor:'#6B7280', rowHoverBg:'#FAF5FF', borderColor:'#E5E7EB',
+             headerSplitColor:'transparent', cellFontSize:13, cellFontSizeMD:13, cellFontSizeSM:13,
+             cellPaddingBlock:11, cellPaddingInline:12, cellPaddingBlockMD:11, cellPaddingInlineMD:12,
+             cellPaddingBlockSM:9, cellPaddingInlineSM:12, headerBorderRadius:0 },
+    Tag: { defaultBg:'#F3F4F6', defaultColor:'#6B7280' },
+    Tabs: { itemSelectedColor:'#7C3AED', itemHoverColor:'#374151', inkBarColor:'#7C3AED' },
+    Steps: { colorPrimary:'#7C3AED' },
+    Button: { controlHeight:34, paddingInline:14, fontSize:13 },
+    Input: { controlHeight:34, paddingInline:12 },
+    Select: { controlHeight:34 },
+    DatePicker: { controlHeight:34 },
+    Modal: { borderRadiusLG:16, paddingContentHorizontalLG:28 },
+  },
+};
+
+const CARD_STYLE = { boxShadow:'0 10px 24px rgba(16,24,40,.06)', marginBottom:20 };
+const TABLE_STYLES = { root:{ borderRadius:14, border:'1px solid #E5E7EB', overflow:'hidden' } };
+const SIDER_STYLE = { boxShadow:'3px 0 12px rgba(0,0,0,0.06)', padding:'8px 0', overflowY:'auto', height:'100%' };
+
+function demoAction(label) { antd.message.info({ content: label + ' (原型演示)', duration: 1.5 }); }
+function demoConfirm(label, cb) { Modal.confirm({ title: '确认操作', content: '确定要' + label + '吗？', centered: true, closable: false, maskClosable: false, onOk: cb || (() => antd.message.success(label + ' 已执行 (原型演示)')) }); }
+function DemoSkip({ onClick, label }) { return <div style={{textAlign:'center',marginTop:12,marginBottom:20}}><Button type="link" onClick={onClick}>{label || '跳过上传，直接查看预览效果 →'}</Button></div>; }
+
+const TAG_COLORS = {
+  on:{bg:'#F0FDF4',color:'#16A34A'}, sale:{bg:'#EFF6FF',color:'#2563EB'},
+  pending:{bg:'#FFFBEB',color:'#D97706'}, off:{bg:'#F3F4F6',color:'#6B7280'},
+  req:{bg:'#FEF2F2',color:'#DC2626'}, warn:{bg:'#FFF1F2',color:'#E11D48'},
+};
+
+function StatusTag({ variant, children }) {
+  const c = TAG_COLORS[variant] || TAG_COLORS.off;
+  return <Tag bordered={false} style={{ background:c.bg, color:c.color, borderRadius:999, padding:'2px 8px', fontSize:12, lineHeight:'18px', marginInlineEnd:4 }}>{children}</Tag>;
+}
+function TipText({ label, tip }) {
+  return <Tooltip title={<div style={{ whiteSpace:'pre-line', lineHeight:1.6 }}>{tip}</div>} color="#fff" styles={{ body:{color:'#374151',fontSize:12,padding:'10px 14px'} }}><span className="lp-tip-trigger">{label}</span></Tooltip>;
+}
+function Kpi({ num, label, numStyle, onClick }) {
+  return <div className="lp-kpi" style={onClick?{cursor:'pointer'}:null} onClick={onClick}><div className="label" style={{marginBottom:6}}>{label}</div><div className="num" style={numStyle}>{num}</div></div>;
+}
+function FormRow({ label, required, children, helper }) {
+  return <><div className="lp-form-row"><div className="lp-form-label">{required && <span className="req">*</span>}{label}</div><div className="lp-form-control">{children}</div></div>{helper && <div className="lp-helper">{helper}</div>}</>;
+}
+function CompactPagination({ total, current=1, pageSize=10 }) {
+  const tp = Math.ceil(total / pageSize) || 1;
+  return <div className="lp-pagination"><span>{'共 '}{total.toLocaleString()}{' 条'}</span><div className="divider" /><span>{'第 '}{current}/{tp}{' 页'}</span></div>;
+}
+function EmptyZero({ entity, cta, onCta }) {
+  return <div className="lp-empty"><InboxOutlined className="icon" /><div className="title">{'暂无'}{entity}</div><div className="desc">{'点击下方按钮创建第一条'}{entity}{'记录'}</div>{cta && <Button type="primary" onClick={onCta}>{cta}</Button>}</div>;
+}
+function EmptyNoMatch({ onClear }) {
+  return <div className="lp-empty"><SearchOutlined className="icon" /><div className="title">未找到匹配结果</div><div className="desc">请尝试调整搜索关键词或筛选条件</div><Button onClick={onClear}>清除筛选条件</Button></div>;
+}
+function EmptyError({ onRetry }) {
+  return <div className="lp-empty"><ExclamationCircleOutlined className="icon err" /><div className="title">加载失败</div><div className="desc">网络异常，请检查网络连接后重试</div><Button type="primary" onClick={onRetry}>重试</Button></div>;
+}
+function EmptyStateSwitcher({ mode, setMode }) {
+  return <div style={{marginTop:12,display:'flex',gap:8,justifyContent:'center'}}>{[['data','正常数据'],['zero','零数据态'],['no-match','无匹配态'],['error','异常态']].map(([k,l])=><Button key={k} type={mode===k?'primary':'default'} onClick={()=>setMode(k)}>{l}</Button>)}</div>;
+}
+
+function ListPage({ title, desc, headActions, kpis, filters, columns, data, total, entity, scrollX, extraBeforeTable, extraAfterTable }) {
+  const [mode, setMode] = useState('data');
+  return (
+    <Card style={CARD_STYLE}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16,marginBottom:18}}>
+        <div><div style={{fontSize:20,fontWeight:700,marginBottom:6}}>{title}</div>{desc && <div style={{color:'#6B7280',fontSize:13}}>{desc}</div>}</div>
+        <div>{headActions}</div>
+      </div>
+      {kpis && <div style={{display:'grid',gridTemplateColumns:`repeat(${kpis.length},1fr)`,gap:12,marginBottom:18}}>{kpis.map((k,i)=><Kpi key={i} num={k.num} label={k.label} numStyle={k.numStyle} />)}</div>}
+      {filters && <Space size={12} wrap style={{marginBottom:16}}>{filters}</Space>}
+      {extraBeforeTable}
+      {mode==='data' && <>
+        <Table rowKey={r=>r.id||r.key} columns={columns} dataSource={data} pagination={false} styles={TABLE_STYLES} scroll={scrollX?{x:scrollX}:undefined} />
+        <CompactPagination total={total||data.length} pageSize={10} />
+      </>}
+      {mode==='zero' && <EmptyZero entity={entity} />}
+      {mode==='no-match' && <EmptyNoMatch onClear={()=>setMode('data')} />}
+      {mode==='error' && <EmptyError onRetry={()=>setMode('data')} />}
+      <EmptyStateSwitcher mode={mode} setMode={setMode} />
+      {extraAfterTable}
+    </Card>
+  );
+}
+
+function TaskHistory({ tasks }) {
+  return (
+    <div style={{marginTop:24}}>
+      <h4 className="lp-section">任务历史</h4>
+      <Table rowKey="id" size="small" pagination={false} styles={TABLE_STYLES}
+        columns={[
+          { title:'任务ID', dataIndex:'id', width:100, render:v=><span className="lp-code">{v}</span> },
+          { title:'创建时间', dataIndex:'createdAt', width:160 },
+          { title:'状态', dataIndex:'status', width:100,
+            render:v=>({ done:<StatusTag variant="on">已完成</StatusTag>, running:<StatusTag variant="sale">执行中</StatusTag>,
+                         failed:<StatusTag variant="req">失败</StatusTag>, queued:<StatusTag variant="off">排队中</StatusTag> })[v] },
+          { title:'总数', dataIndex:'total', width:80, align:'right' },
+          { title:'成功', dataIndex:'success', width:80, align:'right' },
+          { title:'跳过', dataIndex:'skipped', width:80, align:'right' },
+          { title:'失败', dataIndex:'errors', width:80, align:'right' },
+          { title:'操作', key:'op', width:120, render:(_,r)=><Space size={6}>{r.exportUrl && <Button size="small" icon={<DownloadOutlined />} onClick={()=>demoConfirm('导出任务结果')}>导出</Button>}<Button size="small" onClick={()=>demoAction('查看详情')}>详情</Button></Space> },
+        ]}
+        dataSource={tasks} />
+    </div>
+  );
+}
+
+const TASK_HISTORY_SAMPLE = [
+  { id:'T-001', createdAt:'2026-06-11 14:30', status:'done', total:120, success:115, skipped:3, errors:2, exportUrl:true },
+  { id:'T-002', createdAt:'2026-06-10 10:15', status:'done', total:85, success:85, skipped:0, errors:0, exportUrl:true },
+  { id:'T-003', createdAt:'2026-06-09 16:00', status:'failed', total:50, success:20, skipped:0, errors:30 },
+];
+
+/* ========== 共用：商品详情（Modal.info，只读展示）========== */
+function showListingDetail(r) {
+  Modal.info({
+    title: '商品详情 — ' + r.productName,
+    icon: null,
+    width: 600,
+    centered: true,
+    content: (
+      <div style={{fontSize:13}}>
+        <h4 className="lp-section-purple" style={{fontSize:13,marginTop:0}}>基本信息</h4>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'8px 16px',marginBottom:18}}>
+          <div><span style={{color:'#6B7280'}}>品牌：</span>{r.brand}</div>
+          <div><span style={{color:'#6B7280'}}>系列：</span>{r.series}</div>
+          <div><span style={{color:'#6B7280'}}>类目：</span>{r.category}</div>
+          <div><span style={{color:'#6B7280'}}>成色：</span>{r.condition}</div>
+        </div>
+        <h4 className="lp-section-purple" style={{fontSize:13}}>价格信息</h4>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'8px 16px',marginBottom:18}}>
+          <div><span style={{color:'#6B7280'}}>挂牌价：</span><span style={{fontWeight:700,color:'#7C3AED'}}>{r.price}</span></div>
+          <div><span style={{color:'#6B7280'}}>Compare-at 价：</span>{r.compareAt || '—'}</div>
+        </div>
+        <h4 className="lp-section-purple" style={{fontSize:13}}>渠道信息</h4>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'8px 16px',marginBottom:18}}>
+          <div><span style={{color:'#6B7280'}}>渠道名：</span>Looply US</div>
+          <div><span style={{color:'#6B7280'}}>Listing ID：</span><span className="lp-code">{r.listingId}</span></div>
+          <div><span style={{color:'#6B7280'}}>Listing 状态：</span>{r.status==='active'?<StatusTag variant="on">在售</StatusTag>:<StatusTag variant="off">已下架</StatusTag>}</div>
+          <div><span style={{color:'#6B7280'}}>上架时间：</span>2026-06-08 10:00</div>
+        </div>
+        <h4 className="lp-section-purple" style={{fontSize:13}}>图片预览</h4>
+        <div style={{display:'flex',gap:8}}>
+          {[1,2,3,4].map(i=><div key={i} style={{width:64,height:64,borderRadius:8,background:'#F3F4F6',display:'flex',alignItems:'center',justifyContent:'center',color:'#9CA3AF',fontSize:11}}>{'图'+i}</div>)}
+        </div>
+      </div>
+    ),
+  });
+}
+
+/* ========== 共用：主数据映射 — 编辑映射 Modal ========== */
+const FM_BRAND_OPTIONS = ['Louis Vuitton','Gucci','Chanel','Hermès','Dior','Prada','Bottega Veneta','Celine'].map(v=>({value:v,label:v}));
+const FM_SERIES_OPTIONS = ['Speedy','Neverfull','Classic Flap','Saddle','Marmont','Dionysus','LOVE'].map(v=>({value:v,label:v}));
+const FM_CATEGORY_TREE = [
+  { value:'bag', label:'包袋', children:[
+    { value:'handbag', label:'手提包', children:[ { value:'tote', label:'托特包' } ] },
+  ]},
+  { value:'acc', label:'配饰', children:[ { value:'scarf', label:'围巾' } ] },
+  { value:'jewelry', label:'珠宝', children:[ { value:'necklace', label:'项链' } ] },
+];
+
+function FieldMappingEditModal({ open, target, onClose, onSave }) {
+  const [brandVal, setBrandVal] = useState(undefined);
+  const [seriesVal, setSeriesVal] = useState(undefined);
+  const [categoryVal, setCategoryVal] = useState(undefined);
+  React.useEffect(() => {
+    if (target && target.record) {
+      const r = target.record;
+      setBrandVal(r.brandId ? r.targetBrand : undefined);
+      setSeriesVal(r.seriesId ? r.targetSeries : undefined);
+      setCategoryVal(r.categoryId ? ['bag','handbag','tote'] : undefined);
+    }
+  }, [target]);
+  if (!target || !target.record) return null;
+  const { kind, record } = target;
+  return (
+    <Modal title={'编辑映射 — ' + record.sourceValue} open={open} onCancel={onClose}
+      closable={false} maskClosable={false} centered width={520}
+      footer={[
+        <Button key="c" onClick={onClose}>取消</Button>,
+        <Button key="s" type="primary" onClick={onSave}>保存</Button>,
+      ]}>
+      <FormRow label="红布林原始值"><span style={{fontWeight:500}}>{record.sourceValue}</span></FormRow>
+      <FormRow label="当前状态">
+        {record.status==='active' ? <StatusTag variant="on">已激活</StatusTag> : <StatusTag variant="pending">待补充</StatusTag>}
+      </FormRow>
+      {kind === 'brand' && (
+        <FormRow label="looply 品牌" required>
+          <Select style={{width:'100%'}} placeholder="请选择 looply 标准品牌" value={brandVal} onChange={setBrandVal} options={FM_BRAND_OPTIONS} />
+        </FormRow>
+      )}
+      {kind === 'series' && (
+        <FormRow label="looply 系列" required>
+          <Select style={{width:'100%'}} placeholder="请选择 looply 标准系列" value={seriesVal} onChange={setSeriesVal} options={FM_SERIES_OPTIONS} />
+        </FormRow>
+      )}
+      {kind === 'category' && (
+        <FormRow label="looply 类目" required>
+          <Cascader style={{width:'100%'}} placeholder="请选择 L1 / L2 / L3 类目" value={categoryVal} onChange={setCategoryVal} options={FM_CATEGORY_TREE} />
+        </FormRow>
+      )}
+    </Modal>
+  );
+}
+
+/* ========== 共用：TRR 参考价 — 编辑参考价 Modal ========== */
+function TrrEditModal({ open, sheet, row, onClose, onSave }) {
+  const [isTop, setIsTop] = useState(true);
+  const [refAvg, setRefAvg] = useState(0);
+  const [avgPrice, setAvgPrice] = useState(0);
+  const [sampleCount, setSampleCount] = useState(0);
+  React.useEffect(() => {
+    if (row) {
+      setIsTop(!!row.isTop);
+      const n = row.avgPrice ? Number(String(row.avgPrice).replace(/[^0-9.]/g,'')) : 0;
+      setRefAvg(n); setAvgPrice(n); setSampleCount(row.sampleCount || 0);
+    }
+  }, [row]);
+  if (!row) return null;
+  return (
+    <Modal title="编辑参考价" open={open} onCancel={onClose}
+      closable={false} maskClosable={false} centered width={480}
+      footer={[
+        <Button key="c" onClick={onClose}>取消</Button>,
+        <Button key="s" type="primary" onClick={onSave}>保存</Button>,
+      ]}>
+      <FormRow label="品牌"><span style={{fontWeight:500}}>{row.brand}</span></FormRow>
+      <FormRow label="系列"><span>{row.series}</span></FormRow>
+      {sheet === 'top_series' && <>
+        <FormRow label="是否 Top" required>
+          <Switch checked={isTop} onChange={setIsTop} checkedChildren="Top" unCheckedChildren="非Top" />
+        </FormRow>
+        <FormRow label="参考均价(USD)" helper="用于人工核对该系列价格水位，不参与 Top 判定逻辑">
+          <InputNumber value={refAvg} onChange={setRefAvg} style={{width:'100%'}} prefix="$" min={0} />
+        </FormRow>
+      </>}
+      {sheet === 'avg_prices' && <>
+        <FormRow label="尺码"><span>{row.size}</span></FormRow>
+        <FormRow label="成色"><span>{row.condition}</span></FormRow>
+        <FormRow label="TRR 均价(USD)" required><InputNumber value={avgPrice} onChange={setAvgPrice} style={{width:'100%'}} prefix="$" min={0} /></FormRow>
+        <FormRow label="样本数" required><InputNumber value={sampleCount} onChange={setSampleCount} style={{width:'100%'}} min={0} /></FormRow>
+      </>}
+    </Modal>
+  );
+}
+
+/* ========== PAGE: 红布林商品库 ========== */
+function ProductPoolPage({ go }) {
+  return (
+    <ListPage
+      title="红布林商品库"
+      desc="红布林快照层视图 · 红布林推送商品的唯一入口与最新状态快照（一行一个红布林商品ID，全量留底、后推覆盖）。两维状态：信息准备进度 + 商品状态。加工完成后系统自动创建 product/listing(待销售态)，人工确认后上架销售"
+      entity="红布林商品"
+      headActions={<Space><Button icon={<SettingOutlined />} onClick={()=>Modal.info({title:'三层架构与创建规则',icon:null,width:580,centered:true,content:<div style={{lineHeight:2,fontSize:13}}><div><strong>快照层（本页）：</strong>红布林推送的全量留底（中文原始数据，红布林商品ID主键），100% 落库、不丢不失败</div><div><strong>自动加工（映射→定价→翻译）：</strong>映射完成后系统自动选品定价，选中的自动翻译；全程无人工触发，仅异常项进入「加工异常处理」人工修正</div><div><strong>自动创建实体：</strong>加工完成后系统自动创建 product + SKU + inventory_item(qty=1) + listing(未上架态)，product_status=待销售；对齐现有业务系统实体模型</div><div><strong>人工确认上架销售：</strong>运营在「商品上架」页确认后，listing 未上架→Active、product_status 待销售→销售中</div><div style={{color:'#D97706',marginTop:10}}>预处理全自动：人工只在「加工异常处理」处理异常、在「商品上架」确认上架销售</div><div style={{color:'#6B7280',marginTop:10,padding:'8px 12px',background:'#F9FAFB',borderRadius:8}}>product 只存英文，中文/原始数据靠红布林商品ID回溯快照层。映射异常项系统有定时自动重试机制。推送接收/幂等/重试/异常恢复由技术方案保证</div></div>})}>架构说明</Button><Button icon={<DownloadOutlined />} onClick={()=>demoConfirm('导出全部红布林商品到 Excel')}>导出</Button></Space>}
+      kpis={[
+        { num:'2,580', label:'红布林商品总数' },
+        { num:'128', label:'待映射', numStyle:{color:'#D97706'} },
+        { num:'3', label:'映射异常', numStyle:{color:'#DC2626'} },
+        { num:'214', label:'加工中' },
+        { num:'9', label:'加工异常', numStyle:{color:'#DC2626'} },
+        { num:'1,625', label:'已定价', numStyle:{color:'#4A6CF7'} },
+        { num:'118', label:'已创建待上架', numStyle:{color:'#2563EB'} },
+        { num:'246', label:'已上架', numStyle:{color:'#16A34A'} },
+      ]}
+      filters={[
+        <Select key="info" defaultValue="" style={{width:160}} options={[{value:'',label:'信息准备进度'},{value:'to_map',label:'待映射'},{value:'map_err',label:'映射异常'},{value:'processing',label:'加工中'},{value:'process_err',label:'加工异常'},{value:'priced',label:'已定价'},{value:'created',label:'已创建待上架'},{value:'listed',label:'已上架'},{value:'excluded',label:'已排除'}]} />,
+        <Select key="ps" defaultValue="" style={{width:130}} options={[{value:'',label:'商品状态'},{value:'pending_sale',label:'待销售'},{value:'on_sale',label:'销售中'},{value:'sold',label:'已售出'},{value:'invalid',label:'已失效'}]} />,
+        <Select key="br" defaultValue="" style={{width:130}} options={[{value:'',label:'全部品牌'},{value:'lv',label:'Louis Vuitton'},{value:'gucci',label:'Gucci'},{value:'chanel',label:'Chanel'},{value:'hermes',label:'Hermès'},{value:'dior',label:'Dior'}]} />,
+        <Select key="cat" defaultValue="" style={{width:110}} options={[{value:'',label:'全部类目'},{value:'bag',label:'包袋'},{value:'acc',label:'配饰'},{value:'jew',label:'珠宝'}]} />,
+        <Input key="q" prefix={<SearchOutlined style={{color:'#9CA3AF'}} />} placeholder="搜索红布林商品ID/商品ID/名称" style={{width:230}} allowClear />,
+        <Button key="btn" type="primary" icon={<SearchOutlined />} onClick={()=>demoAction('查询')}>查询</Button>,
+        <Button key="r" icon={<ReloadOutlined />} onClick={()=>demoAction('重置筛选')}>重置</Button>,
+      ]}
+      columns={[
+        { title:'红布林商品ID', dataIndex:'plmId', width:130, fixed:'left', render:v=><span className="lp-code">{v}</span> },
+        { title:'商品名称', dataIndex:'productName', width:240 },
+        { title:'品牌', dataIndex:'brand', width:110 },
+        { title:'系列', dataIndex:'series', width:100 },
+        { title:'类目', dataIndex:'category', width:70 },
+        { title:'成色', dataIndex:'condition', width:56 },
+        { title:'红布林折扣价(CNY)', dataIndex:'discountCny', width:130, align:'right' },
+        { title:<TipText label="信息准备进度" tip={'快照层跟踪：映射→加工(定价+翻译)→已定价→自动创建待上架→上架'} />, dataIndex:'infoStage', width:120,
+          render:v=>({
+            to_map:<StatusTag variant="pending">待映射</StatusTag>,
+            map_err:<StatusTag variant="req">映射异常</StatusTag>,
+            processing:<StatusTag variant="sale">加工中</StatusTag>,
+            process_err:<StatusTag variant="req">加工异常</StatusTag>,
+            priced:<StatusTag variant="sale">已定价</StatusTag>,
+            created:<StatusTag variant="sale">已创建待上架</StatusTag>,
+            listed:<StatusTag variant="on">已上架</StatusTag>,
+            excluded:<StatusTag variant="off">已排除</StatusTag>,
+          })[v] },
+        { title:'商品ID (product)', dataIndex:'productId', width:120, render:v=>v?<span className="lp-code">{v}</span>:<span style={{color:'#9CA3AF'}}>—</span> },
+        { title:'商品状态', dataIndex:'productStatus', width:90,
+          render:v=>v?({
+            pending_sale:<StatusTag variant="pending">待销售</StatusTag>,
+            on_sale:<StatusTag variant="on">销售中</StatusTag>,
+            sold:<StatusTag variant="off">已售出</StatusTag>,
+            invalid:<StatusTag variant="off">已失效</StatusTag>,
+          })[v]:<span style={{color:'#9CA3AF'}}>—</span> },
+        { title:'最新同步时间', dataIndex:'syncTime', width:150 },
+        { title:'操作', key:'op', width:130, render:(_,r)=><Space size={4}>{r.infoStage==='map_err'?<Button size="small" type="link" onClick={()=>go('field-mapping')}>去映射</Button>:null}<Button size="small" onClick={()=>antd.Modal.info({title:'红布林原始信息 — '+r.plmId,centered:true,width:520,content:React.createElement('div',{style:{fontSize:13}},React.createElement('div',{style:{marginBottom:10,color:'#6B7280'}},'本详情仅展示红布林快照层同步的原始商品信息（中文），与 product 的映射/翻译结果互不影响此处展示'),React.createElement('table',{style:{width:'100%',borderCollapse:'collapse'}},React.createElement('thead',null,React.createElement('tr',null,['字段','红布林原始值(中文)'].map((h,i)=>React.createElement('th',{key:i,style:{textAlign:'left',padding:'8px 6px',borderBottom:'1px solid #E5E7EB',color:'#6B7280',fontSize:12}},h)))),React.createElement('tbody',null,[['品牌','迪奥'],['系列','马鞍'],['类目','包袋'],['颜色','蓝色'],['材质','老花帆布'],['成色','AB']].map((row,i)=>React.createElement('tr',{key:i},row.map((c,j)=>React.createElement('td',{key:j,style:{padding:'8px 6px',borderBottom:'1px solid #F3F4F6'}},c)))))))})}>详情</Button></Space> },
+      ]}
+      scrollX="max-content"
+      data={[
+        { id:'1', plmId:'PLM-001', productId:'P-100001', productName:'Neverfull MM Monogram Coated Canvas Brown', brand:'Louis Vuitton', series:'Neverfull', category:'包袋', condition:'A', discountCny:'¥6,860', infoStage:'listed', productStatus:'on_sale', syncTime:'2026-06-11 08:00' },
+        { id:'2', plmId:'PLM-002', productId:'P-100002', productName:'GG Marmont Small Matelassé Leather Black', brand:'Gucci', series:'Marmont', category:'包袋', condition:'AB', discountCny:'¥4,116', infoStage:'listed', productStatus:'on_sale', syncTime:'2026-06-11 08:00' },
+        { id:'3', plmId:'PLM-006', productId:'P-100006', productName:'Book Tote Small Canvas Blue', brand:'Dior', series:'Book Tote', category:'包袋', condition:'A', discountCny:'¥8,232', infoStage:'created', productStatus:'pending_sale', syncTime:'2026-06-10 08:00' },
+        { id:'4', plmId:'PLM-023', productId:'P-100023', productName:'Pochette Metis Monogram Reverse Canvas', brand:'Louis Vuitton', series:'Pochette Metis', category:'包袋', condition:'AB', discountCny:'¥9,604', infoStage:'listed', productStatus:'sold', syncTime:'2026-06-09 08:00' },
+        { id:'5', plmId:'PLM-003', productId:'P-100003', productName:'Classic Flap Medium Caviar Leather Black', brand:'Chanel', series:'Classic Flap', category:'包袋', condition:'B', discountCny:'¥13,720', infoStage:'created', productStatus:'pending_sale', syncTime:'2026-06-11 08:00' },
+        { id:'6', plmId:'PLM-051', productId:null, productName:'CELINE 凯旋门 Triomphe 小号手袋 米棕', brand:'Celine', series:'Triomphe', category:'包袋', condition:'A', discountCny:'¥7,900', infoStage:'processing', productStatus:null, syncTime:'2026-06-11 15:20' },
+        { id:'7', plmId:'PLM-044', productId:null, productName:'PRADA Re-Edition 2005 尼龙 黑 (养护)', brand:'Prada', series:'Re-Edition', category:'包袋', condition:'AB', discountCny:'¥3,430', infoStage:'excluded', productStatus:null, syncTime:'2026-06-11 14:30' },
+        { id:'8', plmId:'PLM-052', productId:null, productName:'HERMÈS Birkin 30 金扣 Togo 皮 黑', brand:'Hermès', series:'Birkin', category:'包袋', condition:'AB', discountCny:'¥88,000', infoStage:'process_err', productStatus:null, syncTime:'2026-06-11 14:05' },
+        { id:'9', plmId:'PLM-053', productId:null, productName:'PRADA Re-Edition 2005 尼龙 黑', brand:'Prada', series:'—', category:'包袋', condition:'A', discountCny:'¥3,430', infoStage:'map_err', productStatus:null, syncTime:'2026-06-11 13:41' },
+        { id:'10', plmId:'PLM-055', productId:null, productName:'GUCCI Jackie 1961 中号 酒红', brand:'Gucci', series:'Jackie', category:'包袋', condition:'A', discountCny:'¥9,200', infoStage:'to_map', productStatus:null, syncTime:'2026-06-11 09:12' },
+      ]}
+      total={2580}
+      extraAfterTable={
+        <div style={{marginTop:24}}>
+          <div className="lp-note">
+            <strong>两维状态说明（分层）：</strong><br/>
+            <strong>① 信息准备进度（快照层，上架前全流程）：</strong>待映射 → 映射异常（系统定时自动重试）→ 加工中（系统自动选品定价+翻译）→ 加工异常（人工在「加工异常处理」修正）→ 已定价 → 已创建待上架（系统自动创建 product/SKU/库存/listing）→ 已上架 / 已排除<br/>
+            <strong>② 商品状态（自动创建后，商品系统标准态）：</strong>待销售 ⇄ 销售中 → 已售出 / 已失效。加工完成后系统自动创建 product 即为「待销售」<br/>
+            <span style={{color:'#6B7280'}}>本页为红布林快照层视图：红布林商品ID为主键、全量留底、后推覆盖；加工完成后系统<strong>自动创建</strong> product + SKU + inventory_item(qty=1) + listing(未上架态，product_status=待销售)，运营在「商品上架」页人工确认后 listing→Active、product_status→销售中。product 只存英文，中文靠红布林商品ID回溯。推送接收/幂等/重试/异常恢复由技术方案保证</span>
+          </div>
+        </div>
+      }
+    />
+  );
+}
+
+/* ========== PAGE: 商品命名规则（v8 新增：替代原「商品名称数据」，仅保留命名拼接规则） ========== */
+function NamingRulePage({ go }) {
+  const [activeTab, setActiveTab] = useState('suffix');
+
+  const suffixData = [
+    { id:'1', category:'Handbags', suffix:'Bag', priority:'1' },
+    { id:'2', category:'Handbags › Wallet', suffix:'（用类目名，如 Wallet / Card Holder）', priority:'2' },
+    { id:'3', category:'Accessories', suffix:'（无后缀）', priority:'3' },
+    { id:'4', category:'Jewelry', suffix:'（无后缀）', priority:'4' },
+    { id:'5', category:'Watches', suffix:'（无后缀）', priority:'5' },
+  ];
+  const walletData = [
+    { id:'1', l3:'Wallet', isWallet:true },
+    { id:'2', l3:'Passport Holder', isWallet:true },
+    { id:'3', l3:'Cosmetic Pouch', isWallet:true },
+    { id:'4', l3:'Card Holder', isWallet:true },
+    { id:'5', l3:'Coin Purse', isWallet:true },
+    { id:'6', l3:'Key Pouch', isWallet:true },
+    { id:'7', l3:'Wristlet', isWallet:false },
+  ];
+  const orderData = [
+    { id:'1', category:'Handbags（有系列，非 Wallet）', hasSeries:'有系列', order:'系列 + 尺码 + 设计元素 + 材质 + 颜色' },
+    { id:'2', category:'Handbags › Wallet（有系列）', hasSeries:'有系列', order:'系列 + 尺码 + 设计元素 + 材质 + 颜色 + Category Suffix' },
+    { id:'3', category:'Handbags（无系列）', hasSeries:'无系列', order:'设计元素 + 材质 + Category Suffix + 尺码 + 颜色' },
+    { id:'4', category:'Accessories（有系列）', hasSeries:'有系列', order:'系列 + 设计元素 + 材质 + 颜色' },
+    { id:'5', category:'Jewelry / Wristlet', hasSeries:'—', order:'设计元素 + 材质 + 颜色（按 Jewelry 规则，Wristlet 不归 Wallet）' },
+  ];
+
+  const opCol = { title:'操作', key:'op', width:120, render:(_,r)=><Space size={6}><Button size="small" icon={<EditOutlined />} onClick={()=>demoAction('编辑规则')}>编辑</Button><Button size="small" danger icon={<DeleteOutlined />} onClick={()=>demoConfirm('删除此规则')}>删除</Button></Space> };
+
+  return (
+    <Card style={CARD_STYLE}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16,marginBottom:18}}>
+        <div>
+          <div style={{fontSize:20,fontWeight:700,marginBottom:6}}>商品命名规则</div>
+          <div style={{color:'#6B7280',fontSize:13}}>维护 Product Name 的拼接规则：Category Suffix、Wallet 范围、各类目名称拼接顺序。系统自动翻译时按本规则组装商品英文名称</div>
+        </div>
+        <Space>
+          <Button type="primary" icon={<PlusOutlined />} onClick={()=>demoAction('新增规则')}>新增规则</Button>
+        </Space>
+      </div>
+
+      <div className="lp-note-sm" style={{marginBottom:18}}>
+        本页只维护<strong>命名拼接规则</strong>；品牌 / 系列 / 类目 / 颜色 / 材质 / 尺码 / 五金 / 设计元素等<strong>值翻译已收敛到「主数据映射」</strong>（红布林原始值→自建标准英文名）。系统按主数据映射得到各字段英文值后，再按本页规则拼接为完整 Product Name
+      </div>
+
+      <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
+        { key:'suffix', label:'Category Suffix' },
+        { key:'wallet', label:'Wallet 范围' },
+        { key:'order', label:'名称拼接规则' },
+      ]} style={{marginBottom:16}} />
+
+      {activeTab === 'suffix' && <>
+        <Table rowKey="id" pagination={false} styles={TABLE_STYLES}
+          columns={[
+            { title:'类目', dataIndex:'category', width:220 },
+            { title:'后缀词（Suffix）', dataIndex:'suffix', width:260 },
+            { title:'优先级', dataIndex:'priority', width:90, align:'right' },
+            opCol,
+          ]}
+          dataSource={suffixData}
+        />
+        <CompactPagination total={suffixData.length} pageSize={10} />
+      </>}
+
+      {activeTab === 'wallet' && <>
+        <Table rowKey="id" pagination={false} styles={TABLE_STYLES}
+          columns={[
+            { title:'L3 类目', dataIndex:'l3', width:200 },
+            { title:'是否归 Wallet', dataIndex:'isWallet', width:130,
+              render:v=>v?<StatusTag variant="on">归 Wallet</StatusTag>:<StatusTag variant="off">不归</StatusTag> },
+            opCol,
+          ]}
+          dataSource={walletData}
+        />
+        <CompactPagination total={walletData.length} pageSize={10} />
+      </>}
+
+      {activeTab === 'order' && <>
+        <Table rowKey="id" pagination={false} styles={TABLE_STYLES} scroll={{x:'max-content'}}
+          columns={[
+            { title:'类目', dataIndex:'category', width:220 },
+            { title:'有无系列', dataIndex:'hasSeries', width:100 },
+            { title:'拼接顺序', dataIndex:'order', width:380 },
+            opCol,
+          ]}
+          dataSource={orderData}
+        />
+        <CompactPagination total={orderData.length} pageSize={10} />
+      </>}
+
+      <div style={{marginTop:24}}>
+        <div className="lp-note">
+          <strong>命名规则说明（v8）：</strong><br/>
+          <strong>Category Suffix：</strong>Handbags 拼接末尾加「Bag」；Wallet 类目用其类目名（Wallet / Card Holder 等）；Accessories / Jewelry / Watches 无后缀<br/>
+          <strong>Wallet 范围：</strong>Wallet / Passport Holder / Cosmetic Pouch / Card Holder / Coin Purse / Key Pouch 归 Wallet；Wristlet 不归 Wallet（按 Jewelry 规则处理）<br/>
+          <strong>名称拼接顺序：</strong>Handbags 有系列非 Wallet = 系列+尺码+设计元素+材质+颜色；Handbags Wallet = 同上 + Category Suffix；无系列 = 设计元素+材质+Suffix+尺码+颜色<br/>
+          <span style={{color:'#6B7280'}}>各字段英文值来自「主数据映射」，本页不维护值翻译，仅维护拼接规则</span>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+/* ========== PAGE: 加工异常处理（v8 新增：替代原「商品翻译」，统一异常入口） ========== */
+function ProcessExceptionModal({ open, kind, record, onClose, onSave }) {
+  const [brandEn, setBrandEn] = useState('');
+  const [productName, setProductName] = useState('');
+  const [decision, setDecision] = useState('cap');
+  React.useEffect(() => {
+    if (record) { setBrandEn(record.brandEn || ''); setProductName(record.productName || ''); setDecision('cap'); }
+  }, [record]);
+  if (!record) return null;
+  const isTrans = kind === 'trans_residual';
+  return (
+    <Modal title={(isTrans ? '人工修正 — ' : '人工决策 — ') + record.plmId} open={open} onCancel={onClose}
+      closable={false} maskClosable={false} centered width={560}
+      footer={[
+        <Button key="c" onClick={onClose}>取消</Button>,
+        <Button key="s" type="primary" onClick={()=>onSave(record.id)}>{isTrans ? '保存并标记通过' : '提交决策'}</Button>,
+      ]}>
+      {isTrans ? <>
+        <div style={{marginBottom:16,color:'#6B7280',fontSize:13}}>系统自动翻译存在中文残留（术语表未覆盖的自由文本片段），请人工补齐英文译文后保存，保存后系统自动重跑加工流程</div>
+        <FormRow label="红布林商品ID"><span className="lp-code">{record.plmId}</span></FormRow>
+        <FormRow label="翻译后品牌" required><Input value={brandEn} onChange={e=>setBrandEn(e.target.value)} style={{width:'100%'}} /></FormRow>
+        <FormRow label="Product Name" required><Input.TextArea rows={3} value={productName} onChange={e=>setProductName(e.target.value)} style={{width:'100%'}} /></FormRow>
+      </> : <>
+        <div style={{marginBottom:16,color:'#6B7280',fontSize:13}}>该商品定价结果超出 TRR 参考价上限，需人工决策后系统按决策自动重跑</div>
+        <FormRow label="红布林商品ID"><span className="lp-code">{record.plmId}</span></FormRow>
+        <FormRow label="商品名称"><span>{record.productName}</span></FormRow>
+        <FormRow label="异常详情"><span style={{color:'#DC2626'}}>{record.detail}</span></FormRow>
+        <FormRow label="处理决策" required>
+          <Radio.Group value={decision} onChange={e=>setDecision(e.target.value)}>
+            <Space direction="vertical">
+              <Radio value="cap">按公式上限价挂牌</Radio>
+              <Radio value="keep">维持原价（超上限继续挂牌）</Radio>
+              <Radio value="off">下架（不进入销售）</Radio>
+            </Space>
+          </Radio.Group>
+        </FormRow>
+      </>}
+    </Modal>
+  );
+}
+
+function ProcessExceptionPage({ go }) {
+  const [modalTarget, setModalTarget] = useState(null);
+  const [rows, setRows] = useState([
+    { id:'1', plmId:'PLM-053', productName:'PRADA Re-Edition 2005 尼龙 黑', brand:'Prada', brandEn:'Prada', exType:'map_missing', detail:'系列「Re-Edition」未命中主数据映射' },
+    { id:'2', plmId:'PLM-055', productName:'GUCCI Jackie 1961 中号 酒红', brand:'Gucci', brandEn:'Gucci', exType:'map_missing', detail:'颜色「酒红」未命中主数据映射' },
+    { id:'3', plmId:'PLM-018', productName:'Dionysus Small GG Supreme 帆布 Brown', brand:'Gucci', brandEn:'Gucci', exType:'trans_residual', detail:'title 含中文「帆布」（材质术语未覆盖自由文本）' },
+    { id:'4', plmId:'PLM-033', productName:'Jackie 1961 中号 Leather 酒红', brand:'Gucci', brandEn:'Gucci', exType:'trans_residual', detail:'title 含中文「中号 / 酒红」' },
+    { id:'5', plmId:'PLM-077', productName:'—', brand:'—', brandEn:'—', exType:'term_miss', detail:'五金术语「金扣」未命中术语表，翻译中断' },
+    { id:'6', plmId:'PLM-052', productName:'HERMÈS Birkin 30 金扣 Togo 皮 黑', brand:'Hermès', brandEn:'Hermès', exType:'trr_over', detail:'B=$14,200 > 上限 1.10C=$13,750，超 TRR 待决策' },
+  ]);
+
+  const resolve = (id) => {
+    setRows(rs => rs.filter(r => r.id !== id));
+    setModalTarget(null);
+    antd.message.success('已处理，系统将自动重跑加工流程 (原型演示)');
+  };
+
+  const EX_TYPE_TAG = {
+    map_missing:<StatusTag variant="req">映射缺失</StatusTag>,
+    trans_residual:<StatusTag variant="pending">翻译中文残留</StatusTag>,
+    term_miss:<StatusTag variant="pending">术语未命中</StatusTag>,
+    trr_over:<StatusTag variant="warn">定价超TRR待决策</StatusTag>,
+  };
+
+  return (
+    <>
+      <ListPage
+        title="加工异常处理"
+        desc="映射完成后系统自动加工（选品定价 + 翻译），本页集中处理加工异常，修正后系统自动重跑。此阶段可能尚无 product，主键用红布林商品ID"
+        entity="加工异常"
+        headActions={<Space><Button icon={<DownloadOutlined />} onClick={()=>demoConfirm('导出加工异常清单到 Excel')}>导出</Button></Space>}
+        kpis={[
+          { num:'214', label:'加工中' },
+          { num:'9', label:'加工异常(待处理)', numStyle:{color:'#DC2626'} },
+          { num:'1,625', label:'已定价', numStyle:{color:'#16A34A'} },
+          { num:'32', label:'已排除' },
+        ]}
+        filters={[
+          <Select key="ex" defaultValue="" style={{width:170}} options={[{value:'',label:'全部异常类型'},{value:'map_missing',label:'映射缺失'},{value:'trans_residual',label:'翻译中文残留'},{value:'term_miss',label:'术语未命中'},{value:'trr_over',label:'定价超TRR待决策'}]} />,
+          <Input key="q" prefix={<SearchOutlined style={{color:'#9CA3AF'}} />} placeholder="搜索红布林商品ID/品牌/名称" style={{width:230}} allowClear />,
+          <Button key="btn" type="primary" icon={<SearchOutlined />} onClick={()=>demoAction('查询')}>查询</Button>,
+          <Button key="r" icon={<ReloadOutlined />} onClick={()=>demoAction('重置筛选')}>重置</Button>,
+        ]}
+        columns={[
+          { title:'红布林商品ID', dataIndex:'plmId', width:120, fixed:'left', render:v=><span className="lp-code">{v}</span> },
+          { title:'商品名称', dataIndex:'productName', width:260 },
+          { title:'品牌', dataIndex:'brand', width:100 },
+          { title:'异常类型', dataIndex:'exType', width:130, render:v=>EX_TYPE_TAG[v] },
+          { title:'异常详情', dataIndex:'detail', width:260, render:v=><span style={{color:'#DC2626'}}>{v}</span> },
+          { title:'操作', key:'op', width:130, render:(_,r)=>
+            r.exType==='trans_residual'
+              ? <Button size="small" style={{borderColor:'#D97706',color:'#D97706'}} onClick={()=>setModalTarget({kind:'trans_residual',record:r})}>人工修正</Button>
+              : r.exType==='trr_over'
+                ? <Button size="small" style={{borderColor:'#E11D48',color:'#E11D48'}} onClick={()=>setModalTarget({kind:'trr_over',record:r})}>人工决策</Button>
+                : <Button size="small" type="link" onClick={()=>go('field-mapping')}>去映射</Button>
+          },
+        ]}
+        scrollX="max-content"
+        data={rows}
+        total={9}
+        extraAfterTable={<>
+          <TaskHistory tasks={TASK_HISTORY_SAMPLE} />
+          <div style={{marginTop:24}}>
+            <div className="lp-note">
+              <strong>加工异常处理说明（v8 · 预处理全自动）：</strong><br/>
+              映射完成后系统<strong>自动加工</strong>：系统自动选品定价 → 选中的自动翻译，全程无人工触发<br/>
+              人工只在本页处理异常，修正后系统<strong>自动重跑</strong>加工流程：<br/>
+              · <strong>映射缺失</strong>：跳转「主数据映射」补充映射，系统定时自动重试<br/>
+              · <strong>翻译中文残留</strong>：术语表未覆盖的自由文本片段，「人工修正」补齐英文后系统自动重跑<br/>
+              · <strong>术语未命中</strong>：术语无法命中导致翻译中断，多为映射缺失，先补映射<br/>
+              · <strong>定价超TRR待决策</strong>：定价超参考价上限，「人工决策」选择按上限价挂牌 / 维持原价 / 下架<br/>
+              <span style={{color:'#6B7280'}}>某商品「映射完成 + 自动定价 + 自动翻译全部通过」→ 信息准备进度自动变为「已定价」，系统随后自动创建 product/SKU/库存/listing(待销售态)</span>
+            </div>
+          </div>
+        </>}
+      />
+      <ProcessExceptionModal open={!!modalTarget} kind={modalTarget && modalTarget.kind} record={modalTarget && modalTarget.record} onClose={()=>setModalTarget(null)} onSave={resolve} />
+    </>
+  );
+}
+
+/* ========== PAGE: 商品上架（v8：product/listing 已自动创建,本页人工确认上架销售） ========== */
+function ListingPage({ go }) {
+  const [step, setStep] = useState('select');
+  return (
+    <Card style={CARD_STYLE}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16,marginBottom:18}}>
+        <div>
+          <div style={{fontSize:20,fontWeight:700,marginBottom:6}}>商品上架</div>
+          <div style={{color:'#6B7280',fontSize:13}}>product / listing 已在自动加工时创建（listing 未上架、product_status 待销售），本页人工确认上架销售（listing 未上架 → Active、product_status 待销售 → 销售中）</div>
+        </div>
+      </div>
+
+      <Steps current={step==='select'?0:step==='audit'?1:2} size="small" style={{marginBottom:24}}
+        items={[{title:'筛选商品'},{title:'上架前审计'},{title:'确认上架销售'}]} />
+
+      {step === 'select' && <>
+        <Alert type="info" showIcon={false} message="筛选信息准备进度「已创建待上架」的 listing（product/SKU/库存/listing 均已由系统自动创建），勾选后进入上架前审计" style={{marginBottom:16}} />
+        <Space size={12} wrap style={{marginBottom:16}}>
+          <Select defaultValue="" style={{width:120}} options={[{value:'',label:'全部品牌'},{value:'lv',label:'Louis Vuitton'},{value:'gucci',label:'Gucci'},{value:'chanel',label:'Chanel'}]} />
+          <Select defaultValue="" style={{width:120}} options={[{value:'',label:'全部类目'},{value:'bag',label:'包袋'},{value:'acc',label:'配饰'},{value:'jew',label:'珠宝'}]} />
+          <Input prefix={<SearchOutlined style={{color:'#9CA3AF'}} />} placeholder="搜索红布林商品ID/名称" style={{width:220}} allowClear />
+          <Button type="primary" icon={<SearchOutlined />} onClick={()=>demoAction('查询')}>查询</Button>
+          <Button icon={<ReloadOutlined />} onClick={()=>demoAction('重置筛选')}>重置</Button>
+        </Space>
+        <Table rowKey="id" pagination={false} styles={TABLE_STYLES} scroll={{x:'max-content'}}
+          columns={[
+            { title:'', dataIndex:'checked', width:50, fixed:'left', render:()=><Checkbox defaultChecked /> },
+            { title:'红布林商品ID', dataIndex:'plmId', width:120, fixed:'left', render:v=><span className="lp-code">{v}</span> },
+            { title:'Product Name', dataIndex:'productName', width:240 },
+            { title:'品牌', dataIndex:'brand', width:100 },
+            { title:'类目', dataIndex:'category', width:90 },
+            { title:'挂牌价(USD)', dataIndex:'price', width:100, align:'right' },
+            { title:'listing 状态', dataIndex:'listingStatus', width:100, render:()=><StatusTag variant="off">未上架</StatusTag> },
+            { title:'product_status', dataIndex:'productStatus', width:100, render:()=><StatusTag variant="pending">待销售</StatusTag> },
+          ]}
+          dataSource={[
+            { id:'1', plmId:'PLM-003', productName:'Classic Flap Medium Caviar Leather Black', brand:'Chanel', category:'Handbags', price:'$3,127' },
+            { id:'2', plmId:'PLM-006', productName:'Book Tote Small Canvas Blue', brand:'Dior', category:'Handbags', price:'$1,375' },
+            { id:'3', plmId:'PLM-005', productName:'Saddle Bag Oblique Canvas Blue', brand:'Dior', category:'Handbags', price:'$1,375' },
+          ]}
+        />
+        <CompactPagination total={118} pageSize={10} />
+        <div style={{display:'flex',justifyContent:'flex-end',gap:12,marginTop:16}}>
+          <Button type="primary" onClick={()=>setStep('audit')}>上架前审计（已选 118 件）</Button>
+        </div>
+      </>}
+
+      {step === 'audit' && <>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:18}}>
+          <Kpi num="118" label="审计总数" />
+          <Kpi num="114" label="审计通过(可上架)" numStyle={{color:'#16A34A'}} />
+          <Kpi num="4" label="阻断(退回加工异常)" numStyle={{color:'#DC2626'}} />
+        </div>
+
+        <Alert type="info" showIcon={false} message={<>
+          <strong>上架前审计（7维校验，仅校验已存在实体，不创建）：</strong>
+          <span style={{color:'#6B7280'}}> product core · SKU 关联 · taxonomy · metafields · 图片 · 库存(qty=1) · listing</span>
+        </>} style={{marginBottom:12}} />
+
+        <Alert type="warning" showIcon message="有中文残留等阻断项的商品无法上架，将退回「加工异常处理」修正后重跑" style={{marginBottom:16}} />
+
+        <Space size={12} wrap style={{marginBottom:16}}>
+          <Select defaultValue="" style={{width:130}} options={[{value:'',label:'全部审计结果'},{value:'pass',label:'审计通过'},{value:'block',label:'阻断'}]} />
+          <Input prefix={<SearchOutlined style={{color:'#9CA3AF'}} />} placeholder="搜索红布林商品ID/名称" style={{width:220}} allowClear />
+          <Button type="primary" icon={<SearchOutlined />} onClick={()=>demoAction('查询')}>查询</Button>
+        </Space>
+
+        <Table rowKey="id" size="small" pagination={false} styles={TABLE_STYLES} scroll={{x:'max-content'}}
+          columns={[
+            { title:'红布林商品ID', dataIndex:'plmId', width:120, fixed:'left', render:v=><span className="lp-code">{v}</span> },
+            { title:'商品ID', dataIndex:'productId', width:100, render:v=><span className="lp-code">{v}</span> },
+            { title:'Listing ID', dataIndex:'listingId', width:100, render:v=><span className="lp-code">{v}</span> },
+            { title:'Product Name', dataIndex:'productName', width:200 },
+            { title:<TipText label="product" tip="product core+tags+template" />, dataIndex:'productOk', width:80, align:'center',
+              render:v=>v?<StatusTag variant="on">OK</StatusTag>:<StatusTag variant="req">FAIL</StatusTag> },
+            { title:<TipText label="SKU" tip="sku_id 关联" />, dataIndex:'skuOk', width:70, align:'center',
+              render:v=>v?<StatusTag variant="on">OK</StatusTag>:<StatusTag variant="req">FAIL</StatusTag> },
+            { title:<TipText label="taxonomy" tip="类目/taxonomy 映射" />, dataIndex:'taxonomyOk', width:90, align:'center',
+              render:v=>v?<StatusTag variant="on">OK</StatusTag>:<StatusTag variant="req">FAIL</StatusTag> },
+            { title:<TipText label="metafields" tip="按类目:bag/wallet/accessory/jewelry" />, dataIndex:'metafieldsOk', width:90, align:'center',
+              render:v=>v?<StatusTag variant="on">OK</StatusTag>:<StatusTag variant="req">FAIL</StatusTag> },
+            { title:<TipText label="图片" tip="商品/成色图在前+瑕疵图在后" />, dataIndex:'imagesOk', width:70, align:'center',
+              render:v=>v?<StatusTag variant="on">OK</StatusTag>:<StatusTag variant="req">FAIL</StatusTag> },
+            { title:<TipText label="库存" tip="inventory_item(qty=1)" />, dataIndex:'inventoryOk', width:70, align:'center',
+              render:v=>v?<StatusTag variant="on">OK</StatusTag>:<StatusTag variant="req">FAIL</StatusTag> },
+            { title:<TipText label="listing" tip="渠道商品+挂牌价(未上架)" />, dataIndex:'listingOk', width:70, align:'center',
+              render:v=>v?<StatusTag variant="on">OK</StatusTag>:<StatusTag variant="req">FAIL</StatusTag> },
+            { title:'审计结果', dataIndex:'result', width:110,
+              render:v=>v==='pass'?<StatusTag variant="on">审计通过</StatusTag>:<StatusTag variant="req">阻断</StatusTag> },
+            { title:'阻断原因', dataIndex:'blockReason', width:180 },
+            { title:'操作', key:'op', width:120, render:(_,r)=>r.result==='block'?<Button size="small" type="link" onClick={()=>go('process-exception')}>退回加工异常</Button>:<span style={{color:'#9CA3AF'}}>—</span> },
+          ]}
+          dataSource={[
+            { id:'1', plmId:'PLM-003', productId:'P-100003', listingId:'L-200003', productName:'Classic Flap Medium Caviar Black', productOk:true, skuOk:true, taxonomyOk:true, metafieldsOk:true, imagesOk:true, inventoryOk:true, listingOk:true, result:'pass', blockReason:'—' },
+            { id:'2', plmId:'PLM-006', productId:'P-100006', listingId:'L-200006', productName:'Book Tote Small Canvas Blue', productOk:true, skuOk:true, taxonomyOk:true, metafieldsOk:true, imagesOk:true, inventoryOk:true, listingOk:true, result:'pass', blockReason:'—' },
+            { id:'3', plmId:'PLM-099', productId:'P-100099', listingId:'L-200099', productName:'Dionysus Small GG Supreme 帆布 Brown', productOk:false, skuOk:true, taxonomyOk:true, metafieldsOk:true, imagesOk:true, inventoryOk:true, listingOk:true, result:'block', blockReason:'中文残留: title 含「帆布」' },
+            { id:'4', plmId:'PLM-088', productId:'P-100088', listingId:'L-200088', productName:'Wallet On Chain Leather Black', productOk:true, skuOk:true, taxonomyOk:true, metafieldsOk:true, imagesOk:false, inventoryOk:true, listingOk:true, result:'block', blockReason:'图片缺失(3张/8张)' },
+          ]}
+        />
+        <CompactPagination total={118} pageSize={10} />
+
+        <div style={{display:'flex',justifyContent:'flex-end',gap:12,marginTop:16}}>
+          <Button onClick={()=>setStep('select')}>返回筛选</Button>
+          <Button type="primary" icon={<RocketOutlined />} onClick={()=>setStep('confirm')}>确认上架销售（114 件审计通过）</Button>
+        </div>
+      </>}
+
+      {step === 'confirm' && <>
+        <Alert type="success" showIcon message="以下 114 件审计通过的商品将上架销售：listing 未上架 → Active、product_status 待销售 → 销售中、信息准备进度 → 已上架" style={{marginBottom:16}} />
+
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:18}}>
+          <Kpi num="114" label="待上架销售" numStyle={{color:'#16A34A'}} />
+          <Kpi num="4" label="阻断(未通过审计)" numStyle={{color:'#DC2626'}} />
+          <Kpi num="118" label="本批总数" />
+        </div>
+
+        <Table rowKey="id" pagination={false} styles={TABLE_STYLES} scroll={{x:'max-content'}}
+          columns={[
+            { title:'红布林商品ID', dataIndex:'plmId', width:120, fixed:'left', render:v=><span className="lp-code">{v}</span> },
+            { title:'商品ID', dataIndex:'productId', width:100, render:v=><span className="lp-code">{v}</span> },
+            { title:'Listing ID', dataIndex:'listingId', width:100, render:v=><span className="lp-code">{v}</span> },
+            { title:'Product Name', dataIndex:'productName', width:220 },
+            { title:'挂牌价(USD)', dataIndex:'price', width:100, align:'right' },
+            { title:'listing 状态', dataIndex:'listingFlow', width:150, render:()=><span><StatusTag variant="off">未上架</StatusTag>→<StatusTag variant="on">Active</StatusTag></span> },
+            { title:'product_status', dataIndex:'psFlow', width:150, render:()=><span><StatusTag variant="pending">待销售</StatusTag>→<StatusTag variant="on">销售中</StatusTag></span> },
+          ]}
+          dataSource={[
+            { id:'1', plmId:'PLM-003', productId:'P-100003', listingId:'L-200003', productName:'Classic Flap Medium Caviar Black', price:'$3,127' },
+            { id:'2', plmId:'PLM-006', productId:'P-100006', listingId:'L-200006', productName:'Book Tote Small Canvas Blue', price:'$1,375' },
+          ]}
+        />
+        <CompactPagination total={114} pageSize={10} />
+
+        <div style={{display:'flex',justifyContent:'flex-end',gap:12,marginTop:16}}>
+          <Button onClick={()=>setStep('audit')}>返回审计</Button>
+          <Button type="primary" icon={<RocketOutlined />} onClick={()=>demoConfirm('确认上架销售 114 件：listing→Active、product_status→销售中、信息准备进度→已上架')}>确认上架销售</Button>
+        </div>
+      </>}
+
+      <TaskHistory tasks={[
+        { id:'L-001', createdAt:'2026-06-11 15:00', status:'done', total:118, success:114, skipped:0, errors:4 },
+        { id:'L-002', createdAt:'2026-06-10 11:30', status:'done', total:85, success:85, skipped:0, errors:0 },
+      ]} />
+
+      <div style={{marginTop:24}}>
+        <div className="lp-note">
+          <strong>上架说明（v8 · 本页只激活销售，不创建实体）：</strong><br/>
+          product + SKU + inventory_item(qty=1) + listing 已在<strong>自动加工完成时由系统创建</strong>（listing=未上架态，product_status=待销售），本页<strong>不再创建任何实体</strong><br/>
+          本页作用 = 人工确认上架销售：把 listing 从<strong>未上架激活为 Active</strong>、product_status 从<strong>待销售 → 销售中</strong>、信息准备进度 → 已上架<br/>
+          上架前审计（7维，仅校验已存在实体）：product core · SKU 关联 · taxonomy · metafields · 图片 · 库存(qty=1) · listing<br/>
+          审计通过方可上架；有中文残留 / 图片缺失等<strong>阻断项</strong>的商品退回「加工异常处理」，修正后系统自动重跑加工<br/>
+          <span style={{color:'#6B7280'}}>渠道库存分配（channel inventory allocation）不在 V1 范围内</span>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+/* ========== PAGE: 营销选品 ========== */
+function CurationPage({ go }) {
+  const [basket, setBasket] = useState([]);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [tagModalOpen, setTagModalOpen] = useState(false);
+  const toggleBasket = (id) => setBasket(b => b.includes(id) ? b.filter(x=>x!==id) : [...b, id]);
+  const sampleProducts = [
+    { id:'1', listingId:'L-200001', productId:'P-100001', productName:'Neverfull MM Monogram Coated Canvas Brown', brand:'Louis Vuitton', series:'Neverfull', category:'Handbags', condition:'A', price:'$1,667', status:'active', tags:['热卖'] },
+    { id:'2', listingId:'L-200002', productId:'P-100002', productName:'GG Marmont Small Matelassé Leather Black', brand:'Gucci', series:'Marmont', category:'Handbags', condition:'AB', price:'$1,083', status:'active', tags:[] },
+    { id:'3', listingId:'L-200003', productId:'P-100003', productName:'Classic Flap Medium Caviar Leather Black', brand:'Chanel', series:'Classic Flap', category:'Handbags', condition:'B', price:'$3,127', status:'active', tags:['新品'] },
+    { id:'4', listingId:'L-200004', productId:'P-100004', productName:'Calvi Duo Epsom Leather Gold Card Holder', brand:'Hermès', series:'—', category:'Accessories', condition:'A', price:'$645', status:'active', tags:[] },
+    { id:'5', listingId:'L-200005', productId:'P-100005', productName:'Saddle Bag Oblique Canvas Blue', brand:'Dior', series:'Saddle', category:'Handbags', condition:'AB', price:'$1,200', status:'active', tags:['热卖','限时'] },
+  ];
+  return (
+    <Card style={CARD_STYLE}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16,marginBottom:18}}>
+        <div>
+          <div style={{fontSize:20,fontWeight:700,marginBottom:6}}>营销选品</div>
+          <div style={{color:'#6B7280',fontSize:13}}>基于在售渠道商品（listing）筛选，支持加入选品篮、批量导出 Excel、批量打标签（Tag 打在 listing 渠道商品级别）</div>
+        </div>
+        <Space>
+          <Badge count={basket.length} size="small"><Button icon={<ShoppingOutlined />} onClick={()=>setDrawerOpen(true)}>选品篮</Button></Badge>
+          <Button icon={<DownloadOutlined />} onClick={()=>{if(!basket.length){antd.message.warning('请先选入商品到选品篮');return;}demoConfirm('导出 '+basket.length+' 件选中商品到 Excel');}}>导出选中</Button>
+          <Button icon={<TagOutlined />} onClick={()=>{if(!basket.length){antd.message.warning('请先选入商品到选品篮');return;}setTagModalOpen(true);}}>批量打标签</Button>
+        </Space>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:18}}>
+        <Kpi num="2,580" label="在售商品总数" />
+        <Kpi num={String(basket.length)} label="已选入篮" numStyle={{color:basket.length?'#16A34A':'#7C3AED'}} />
+        <Kpi num="328" label="Handbags" />
+        <Kpi num="156" label="Accessories" />
+      </div>
+
+      <Space size={12} wrap style={{marginBottom:16}}>
+        <Select defaultValue="" style={{width:120}} options={[{value:'',label:'全部品牌'},{value:'lv',label:'Louis Vuitton'},{value:'gucci',label:'Gucci'},{value:'chanel',label:'Chanel'},{value:'hermes',label:'Hermès'},{value:'dior',label:'Dior'}]} />
+        <Select defaultValue="" style={{width:120}} options={[{value:'',label:'全部类目'},{value:'bag',label:'Handbags'},{value:'acc',label:'Accessories'},{value:'jew',label:'Jewelry'}]} />
+        <Select defaultValue="" style={{width:100}} options={[{value:'',label:'全部成色'},{value:'S',label:'S'},{value:'A',label:'A'},{value:'AB',label:'AB'},{value:'B',label:'B'}]} />
+        <Select defaultValue="" style={{width:120}} options={[{value:'',label:'价格区间'},{value:'0-500',label:'$0-500'},{value:'500-1000',label:'$500-1,000'},{value:'1000-2000',label:'$1,000-2,000'},{value:'2000+',label:'$2,000+'}]} />
+        <Select defaultValue="" style={{width:100}} options={[{value:'',label:'全部状态'},{value:'active',label:'在售'},{value:'off',label:'已下架'}]} />
+        <Select defaultValue="" style={{width:120}} options={[{value:'',label:'商品类型'},{value:'bag',label:'包袋'},{value:'wallet',label:'钱包'},{value:'acc',label:'配饰其他'},{value:'jew',label:'珠宝'}]} />
+        <Select defaultValue="" style={{width:100}} options={[{value:'',label:'全部系列'},{value:'nf',label:'Neverfull'},{value:'sp',label:'Speedy'},{value:'cf',label:'Classic Flap'},{value:'mar',label:'Marmont'}]} />
+        <Select defaultValue="" style={{width:100}} options={[{value:'',label:'全部颜色'},{value:'black',label:'Black'},{value:'brown',label:'Brown'},{value:'blue',label:'Blue'},{value:'red',label:'Red'}]} />
+        <Input prefix={<SearchOutlined style={{color:'#9CA3AF'}} />} placeholder="搜索品牌/系列/名称" style={{width:200}} allowClear />
+        <Button type="primary" icon={<SearchOutlined />} onClick={()=>demoAction('查询')}>查询</Button>
+        <Button icon={<ReloadOutlined />} onClick={()=>demoAction('重置筛选')}>重置</Button>
+      </Space>
+
+      <Table rowKey="id" pagination={false} styles={TABLE_STYLES} scroll={{x:'max-content'}}
+        columns={[
+          { title:'', dataIndex:'id', width:50, fixed:'left', render:v=><Checkbox checked={basket.includes(v)} onChange={()=>toggleBasket(v)} /> },
+          { title:'Listing ID', dataIndex:'listingId', width:100, fixed:'left', render:v=><span className="lp-code">{v}</span> },
+          { title:'商品ID', dataIndex:'productId', width:100, render:v=><span style={{color:'#9CA3AF',fontSize:12}}>{v}</span> },
+          { title:'Product Name', dataIndex:'productName', width:280 },
+          { title:'品牌', dataIndex:'brand', width:110 },
+          { title:'系列', dataIndex:'series', width:110 },
+          { title:'类目', dataIndex:'category', width:90 },
+          { title:'成色', dataIndex:'condition', width:60 },
+          { title:'售价', dataIndex:'price', width:80, align:'right' },
+          { title:'标签', dataIndex:'tags', width:120, render:v=>v.length?<Space size={4}>{v.map(t=><Tag key={t} color="purple" style={{fontSize:11}}>{t}</Tag>)}</Space>:'—' },
+          { title:'操作', key:'op', width:120, render:(_,r)=><Space size={6}><Button size="small" type={basket.includes(r.id)?'default':'primary'} onClick={()=>toggleBasket(r.id)}>{basket.includes(r.id)?'移出':'选入'}</Button><Button size="small" onClick={()=>showListingDetail(r)}>详情</Button></Space> },
+        ]}
+        dataSource={sampleProducts}
+      />
+      <CompactPagination total={2580} pageSize={10} />
+
+      <div style={{marginTop:24}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+          <h4 className="lp-section" style={{margin:0}}>选品历史</h4>
+          <Button size="small" danger onClick={()=>demoConfirm('清空全部选品历史记录')}>清空历史</Button>
+        </div>
+        <Table rowKey="id" size="small" pagination={false} styles={TABLE_STYLES}
+          columns={[
+            { title:'导出时间', dataIndex:'time', width:150 },
+            { title:'选品数量', dataIndex:'count', width:80, align:'right' },
+            { title:'导出人', dataIndex:'operator', width:80 },
+            { title:'标签', dataIndex:'tags', width:140, render:v=>v&&v.length?<Space size={4}>{v.map(t=><Tag key={t} color="purple" style={{fontSize:11}}>{t}</Tag>)}</Space>:'—' },
+            { title:'操作', key:'op', width:200, render:()=><Space size={6}><Button size="small" icon={<DownloadOutlined />} onClick={()=>demoConfirm('下载此文件')}>下载</Button><Button size="small" icon={<TagOutlined />} onClick={()=>demoAction('为此文件打标签')}>打标签</Button><Button size="small" danger icon={<DeleteOutlined />} onClick={()=>demoConfirm('删除此历史记录')}>删除</Button></Space> },
+          ]}
+          dataSource={[
+            { id:'1', time:'2026-06-11 10:30', count:45, operator:'运营A', tags:['618大促'] },
+            { id:'2', time:'2026-06-10 16:00', count:32, operator:'运营A', tags:[] },
+            { id:'3', time:'2026-06-09 14:20', count:28, operator:'运营B', tags:['新品推荐'] },
+          ]}
+        />
+      </div>
+
+      <Drawer title={'选品篮 ('+basket.length+')'} open={drawerOpen} onClose={()=>setDrawerOpen(false)} width={540} styles={{body:{padding:'16px 24px'}}}>
+        {basket.length===0 ? (
+          <div className="lp-empty">
+            <ShoppingOutlined className="icon" />
+            <div className="title">选品篮为空</div>
+            <div className="desc">请在商品列表中点击「选入」按钮添加商品</div>
+            <Button type="primary" onClick={()=>setDrawerOpen(false)}>去选品</Button>
+          </div>
+        ) : (<>
+          <div style={{marginBottom:16,color:'#6B7280',fontSize:13}}>{'已选 '+basket.length+' 件商品，可在下方移出或批量操作'}</div>
+          <Table rowKey="id" size="small" pagination={false} styles={TABLE_STYLES}
+            columns={[
+              { title:'Item ID', dataIndex:'itemId', width:90, render:v=><span className="lp-code">{v}</span> },
+              { title:'商品名称', dataIndex:'productName', ellipsis:true },
+              { title:'品牌', dataIndex:'brand', width:100 },
+              { title:'售价', dataIndex:'price', width:80, align:'right' },
+              { title:'操作', key:'op', width:60, render:(_,r)=><Button size="small" danger onClick={()=>toggleBasket(r.id)}>移出</Button> },
+            ]}
+            dataSource={sampleProducts.filter(p=>basket.includes(p.id))}
+          />
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:20,paddingTop:16,borderTop:'1px solid #E5E7EB'}}>
+            <Button danger onClick={()=>{setBasket([]);antd.message.success('已清空选品篮');}}>清空选品篮</Button>
+            <Space>
+              <Button icon={<TagOutlined />} onClick={()=>{setDrawerOpen(false);setTagModalOpen(true);}}>打标签</Button>
+              <Button type="primary" icon={<DownloadOutlined />} onClick={()=>demoConfirm('导出 '+basket.length+' 件商品到 Excel')}>导出 Excel</Button>
+            </Space>
+          </div>
+        </>)}
+      </Drawer>
+
+      <Modal title="批量打标签" open={tagModalOpen} centered closable={false} maskClosable={false}
+        onCancel={()=>setTagModalOpen(false)}
+        onOk={()=>{setTagModalOpen(false);antd.message.success('已为 '+basket.length+' 件商品打标签 (原型演示)');}}>
+        <div style={{marginBottom:16,color:'#6B7280',fontSize:13}}>{'为选品篮中的 '+basket.length+' 件渠道商品（listing）添加标签'}</div>
+        <FormRow label="标签名称" required><Input placeholder="输入标签名称，如：618大促" style={{width:'100%'}} /></FormRow>
+        <div style={{marginTop:16}}>
+          <div style={{color:'#6B7280',fontSize:12,marginBottom:8}}>常用标签（点击快速选择）</div>
+          <Space size={8} wrap>
+            {['热卖','新品','限时','618大促','夏季推荐','清仓'].map(t=><Tag key={t} color="purple" style={{cursor:'pointer',fontSize:12}} onClick={()=>demoAction('选择标签: '+t)}>{t}</Tag>)}
+          </Space>
+        </div>
+        <div className="lp-note-sm" style={{marginTop:16}}>Tag 打在 listing（渠道商品）级别，同一件货在不同渠道可打不同标签</div>
+      </Modal>
+
+      <div style={{marginTop:24}}>
+        <div className="lp-note">
+          <strong>营销选品说明（v8）：</strong><br/>
+          营销选品是卖场销售需求，标签打在<strong>渠道商品（listing）</strong>级别，而非 product 级别<br/>
+          同一件货（同一 product）在不同渠道可打不同标签，互不影响<br/>
+          <span style={{color:'#6B7280'}}>选品篮、导出、批量打标签等交互均以 listing 为操作对象</span>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+/* ========== PAGE: 商品改价（重构：从商品库筛选，非 Excel 上传） ========== */
+function PriceChangePage({ go }) {
+  const [step, setStep] = useState('select');
+  return (
+    <Card style={CARD_STYLE}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16,marginBottom:18}}>
+        <div>
+          <div style={{fontSize:20,fontWeight:700,marginBottom:6}}>商品改价</div>
+          <div style={{color:'#6B7280',fontSize:13}}>从在售渠道商品（listing）中筛选，设定新售价后批量执行改价并同步 compare-at price</div>
+        </div>
+        <Space>
+          <Button icon={<InfoCircleOutlined />} onClick={()=>Modal.info({
+            title:'改价规则说明', icon:null, width:520, centered:true,
+            content: (
+              <div style={{fontSize:13,lineHeight:1.9}}>
+                <div style={{marginBottom:14}}>
+                  <strong style={{color:'#DC2626'}}>涨价规则（B &gt; price）：</strong>price 改为 B；原 compare-at 高于 B 则保留，否则清空
+                </div>
+                <div style={{marginBottom:14}}>
+                  <strong style={{color:'#16A34A'}}>降价规则（B &lt; price）：</strong>price 改为 B；compare-at = max(原 price, 原 compare-at)；差值不足 $30 不执行
+                </div>
+                <div style={{marginBottom:14}}>
+                  <strong style={{color:'#4A6CF7'}}>等于 compare-at（B = compare-at）：</strong>price 改为 B，清空 compare-at（取消划线价）
+                </div>
+                <div>
+                  <strong style={{color:'#6B7280'}}>等于当前价（B = price）：</strong>价格不动，但 Cost Price 有变化时仍可执行（仅更新 unitCost）
+                </div>
+              </div>
+            ),
+          })}>改价规则说明</Button>
+        </Space>
+      </div>
+
+      <Steps current={step==='select'?0:step==='preview'?1:2} size="small" style={{marginBottom:24}}
+        items={[{title:'筛选商品'},{title:'设定新价'},{title:'执行改价'}]} />
+
+      {step === 'select' && <>
+        <Alert type="info" showIcon={false} message="从在售渠道商品中筛选需要改价的 listing" style={{marginBottom:16}} />
+        <Space size={12} wrap style={{marginBottom:16}}>
+          <Select defaultValue="" style={{width:120}} options={[{value:'',label:'全部品牌'},{value:'lv',label:'Louis Vuitton'},{value:'gucci',label:'Gucci'},{value:'chanel',label:'Chanel'}]} />
+          <Select defaultValue="" style={{width:120}} options={[{value:'',label:'价格区间'},{value:'0-500',label:'$0-500'},{value:'500-1000',label:'$500-1,000'},{value:'1000+',label:'$1,000+'}]} />
+          <Input prefix={<SearchOutlined style={{color:'#9CA3AF'}} />} placeholder="搜索 Listing ID / 商品ID / 名称" style={{width:240}} allowClear />
+          <Button type="primary" icon={<SearchOutlined />} onClick={()=>demoAction('查询')}>查询</Button>
+          <Button icon={<ReloadOutlined />} onClick={()=>demoAction('重置筛选')}>重置</Button>
+        </Space>
+        <Table rowKey="id" pagination={false} styles={TABLE_STYLES} scroll={{x:'max-content'}}
+          columns={[
+            { title:'', dataIndex:'checked', width:50, fixed:'left', render:()=><Checkbox defaultChecked /> },
+            { title:'Listing ID', dataIndex:'listingId', width:100, fixed:'left', render:v=><span className="lp-code">{v}</span> },
+            { title:'商品ID', dataIndex:'productId', width:100, render:v=><span style={{color:'#9CA3AF',fontSize:12}}>{v}</span> },
+            { title:'Product Name', dataIndex:'productName', width:240 },
+            { title:'品牌', dataIndex:'brand', width:110 },
+            { title:'当前售价(USD)', dataIndex:'currentPrice', width:120, align:'right' },
+            { title:<TipText label="compare-at" tip="当前划线价（如有）" />, dataIndex:'compareAt', width:100, align:'right' },
+            { title:'Cost Price', dataIndex:'costPrice', width:100, align:'right' },
+            { title:'上架时间', dataIndex:'listedAt', width:140 },
+          ]}
+          dataSource={[
+            { id:'1', listingId:'L-200001', productId:'P-100001', productName:'Neverfull MM Monogram Canvas Brown', brand:'Louis Vuitton', currentPrice:'$1,667', compareAt:'$1,850', costPrice:'$1,000', listedAt:'2026-06-08 10:00' },
+            { id:'2', listingId:'L-200002', productId:'P-100002', productName:'GG Marmont Small Leather Black', brand:'Gucci', currentPrice:'$1,083', compareAt:'—', costPrice:'$600', listedAt:'2026-06-07 15:00' },
+            { id:'3', listingId:'L-200003', productId:'P-100003', productName:'Classic Flap Medium Caviar Black', brand:'Chanel', currentPrice:'$3,127', compareAt:'$3,500', costPrice:'$2,000', listedAt:'2026-06-06 09:00' },
+          ]}
+        />
+        <CompactPagination total={1628} pageSize={10} />
+        <div style={{display:'flex',justifyContent:'flex-end',gap:12,marginTop:16}}>
+          <Button type="primary" onClick={()=>setStep('preview')}>设定新价（已选 86 件）</Button>
+        </div>
+      </>}
+
+      {step === 'preview' && <>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:12,marginBottom:18}}>
+          <Kpi num="86" label="改价总数" />
+          <Kpi num="52" label="降价" numStyle={{color:'#16A34A'}} />
+          <Kpi num="28" label="涨价" numStyle={{color:'#D97706'}} />
+          <Kpi num="4" label="持平(仅改Cost)" />
+          <Kpi num="15" label="差值不足$30(跳过)" numStyle={{color:'#F59E0B'}} />
+          <Kpi num="2" label="匹配失败" numStyle={{color:'#DC2626'}} />
+        </div>
+
+        <Alert type="warning" showIcon message="降价后划线价与新售价差值 < $30 的商品（已标橙）将自动跳过不执行；涨价时 compare-at price 自动清除" style={{marginBottom:16}} />
+
+        <Space size={12} wrap style={{marginBottom:16}}>
+          <Select defaultValue="" style={{width:120}} options={[{value:'',label:'改价方向'},{value:'down',label:'降价'},{value:'up',label:'涨价'},{value:'same',label:'持平'}]} />
+          <Input prefix={<SearchOutlined style={{color:'#9CA3AF'}} />} placeholder="搜索 Listing ID / 商品ID" style={{width:200}} allowClear />
+          <Button type="primary" icon={<SearchOutlined />} onClick={()=>demoAction('查询')}>查询</Button>
+        </Space>
+
+        <Table rowKey="id" pagination={false} styles={TABLE_STYLES} scroll={{x:'max-content'}}
+          columns={[
+            { title:'', dataIndex:'checked', width:50, fixed:'left', render:()=><Checkbox defaultChecked /> },
+            { title:'Listing ID', dataIndex:'listingId', width:100, fixed:'left', render:v=><span className="lp-code">{v}</span> },
+            { title:'商品ID', dataIndex:'productId', width:100, render:v=><span style={{color:'#9CA3AF',fontSize:12}}>{v}</span> },
+            { title:'商品名称', dataIndex:'productName', width:220 },
+            { title:'品牌', dataIndex:'brand', width:100 },
+            { title:<TipText label="原售价" tip="当前渠道商品售价" />, dataIndex:'oldPrice', width:90, align:'right' },
+            { title:<TipText label="新售价" tip="设定的目标售价" />, dataIndex:'newPrice', width:90, align:'right' },
+            { title:'差额', dataIndex:'diff', width:80, align:'right',
+              render:(v,r)=>{
+                const color = r.direction==='down'?'#16A34A':r.direction==='up'?'#DC2626':'#6B7280';
+                return <span style={{color,fontWeight:600}}>{v}</span>;
+              }},
+            { title:'方向', dataIndex:'direction', width:100,
+              render:v=>({ down:<StatusTag variant="on">降价</StatusTag>, up:<StatusTag variant="warn">涨价</StatusTag>, same:<StatusTag variant="off">持平</StatusTag>, skip:<StatusTag variant="req">跳过(差值不足)</StatusTag>, unmatched:<StatusTag variant="off">匹配失败</StatusTag> })[v] },
+            { title:<TipText label="compare-at" tip={'降价：设为原售价\n涨价：清除\n持平：保持不变'} />, dataIndex:'compareAt', width:100, align:'right' },
+            { title:'新 Cost', dataIndex:'newCost', width:90, align:'right' },
+          ]}
+          dataSource={[
+            { id:'1', listingId:'L-200001', productId:'P-100001', productName:'Neverfull MM Monogram Canvas', brand:'Louis Vuitton', oldPrice:'$1,667', newPrice:'$1,499', diff:'-$168', direction:'down', compareAt:'$1,667', newCost:'$1,000' },
+            { id:'2', listingId:'L-200002', productId:'P-100002', productName:'GG Marmont Small Leather Black', brand:'Gucci', oldPrice:'$1,083', newPrice:'$1,199', diff:'+$116', direction:'up', compareAt:'—', newCost:'$600' },
+            { id:'3', listingId:'L-200003', productId:'P-100003', productName:'Classic Flap Medium Caviar', brand:'Chanel', oldPrice:'$3,127', newPrice:'$3,127', diff:'$0', direction:'same', compareAt:'$3,500', newCost:'$2,200' },
+            { id:'4', listingId:'L-200004', productId:'P-100004', productName:'Lady Dior Medium Cannage Lambskin', brand:'Dior', oldPrice:'$2,180', newPrice:'$2,160', diff:'-$20', direction:'skip', compareAt:'—', newCost:'$1,300' },
+            { id:'5', listingId:'L-200005', productId:'P-100005', productName:'Boy Bag Old Medium Caviar', brand:'Chanel', oldPrice:'—', newPrice:'$4,500', diff:'—', direction:'unmatched', compareAt:'—', newCost:'—' },
+          ]}
+        />
+        <CompactPagination total={86} pageSize={10} />
+
+        <div style={{display:'flex',justifyContent:'flex-end',gap:12,marginTop:16}}>
+          <Button onClick={()=>setStep('select')}>返回筛选</Button>
+          <Button type="primary" icon={<ThunderboltOutlined />} onClick={()=>demoConfirm('执行批量改价')}>执行改价</Button>
+        </div>
+      </>}
+
+      <TaskHistory tasks={[
+        { id:'PC-001', createdAt:'2026-06-11 14:00', status:'done', total:86, success:84, skipped:0, errors:2 },
+        { id:'PC-002', createdAt:'2026-06-10 11:00', status:'done', total:42, success:42, skipped:0, errors:0, exportUrl:true },
+      ]} />
+
+      <div style={{marginTop:24}}>
+        <div className="lp-note">
+          <strong>改价规则提示：</strong><br/>
+          降价：新售价 {'<'} 原售价 → compare-at price 设为原售价(划线价效果)<br/>
+          涨价：新售价 {'>'} 原售价 → compare-at price 清除<br/>
+          持平：仅更新 Cost Price，售价和 compare-at price 不变<br/>
+          降价差值不足：新售价与新划线价差值 {'<'} $30 时自动跳过不执行（避免频繁微调），已标橙
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+/* ========== PAGE: TRR 参考价 ========== */
+function TrrPage({ go }) {
+  const [activeSheet, setActiveSheet] = useState('top_series');
+  const [editRow, setEditRow] = useState(null);
+  const saveTrr = () => { setEditRow(null); antd.message.success('参考价已保存 (原型演示)'); };
+  return (
+    <>
+    <Card style={CARD_STYLE}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16,marginBottom:18}}>
+        <div>
+          <div style={{fontSize:20,fontWeight:700,marginBottom:6}}>TRR 参考价</div>
+          <div style={{color:'#6B7280',fontSize:13}}>The RealReal 参考价数据管理(Top 系列 + 均价表)，用于选品定价公式匹配</div>
+        </div>
+        <Space>
+          <Button icon={<PlusOutlined />} onClick={()=>Modal.confirm({title:'新增记录',icon:null,width:480,centered:true,closable:false,maskClosable:false,okText:'保存',content:<div style={{padding:'8px 0'}}><FormRow label="字段1" required><Input placeholder="请输入" style={{width:'100%'}} /></FormRow><FormRow label="字段2" required><Input placeholder="请输入" style={{width:'100%'}} /></FormRow><div className="lp-note-sm" style={{marginTop:12}}>表单字段根据当前数据表动态生成（开发阶段实现）</div></div>,onOk:()=>antd.message.success('新增成功 (原型演示)')})}>新增记录</Button>
+          <Button icon={<ImportOutlined />} onClick={()=>Modal.confirm({title:'导入数据',icon:null,width:520,centered:true,closable:false,maskClosable:false,okText:'开始导入',content:<div style={{padding:'8px 0'}}><Upload.Dragger name="file" multiple={false} accept=".xlsx,.csv" beforeUpload={()=>false} style={{marginBottom:16}}><p className="ant-upload-drag-icon"><InboxOutlined style={{color:'#7C3AED'}} /></p><p className="ant-upload-text">点击或拖拽 Excel 到此处</p><p className="ant-upload-hint">支持 .xlsx 格式</p></Upload.Dragger><div style={{color:'#6B7280',fontSize:12,marginBottom:8}}>冲突策略</div><Radio.Group defaultValue="replace"><Space direction="vertical"><Radio value="replace">覆盖 — 相同 key 用新数据覆盖</Radio><Radio value="keep">保留 — 相同 key 保留现有数据</Radio></Space></Radio.Group></div>,onOk:()=>antd.message.success('导入成功 (原型演示)')})}>导入</Button>
+          <Button icon={<DownloadOutlined />} onClick={()=>demoConfirm('导出当前数据表到 Excel')}>导出当前表</Button>
+        </Space>
+      </div>
+
+      <Tabs activeKey={activeSheet} onChange={setActiveSheet}
+        items={[
+          { key:'top_series', label:'Top 系列' },
+          { key:'avg_prices', label:'均价表' },
+        ]} style={{marginBottom:16}} />
+
+      <Space size={12} wrap style={{marginBottom:16}}>
+        <Select defaultValue="" style={{width:130}} options={[{value:'',label:'全部品牌'},{value:'lv',label:'Louis Vuitton'},{value:'gucci',label:'Gucci'},{value:'chanel',label:'Chanel'},{value:'hermes',label:'Hermès'}]} />
+        <Input prefix={<SearchOutlined style={{color:'#9CA3AF'}} />} placeholder="搜索品牌/系列" style={{width:200}} allowClear />
+        <Button type="primary" icon={<SearchOutlined />} onClick={()=>demoAction('查询')}>查询</Button>
+        <Button icon={<ReloadOutlined />} onClick={()=>demoAction('重置筛选')}>重置</Button>
+      </Space>
+
+      {activeSheet === 'top_series' && <>
+        <Table rowKey="id" pagination={false} styles={TABLE_STYLES}
+          columns={[
+            { title:'品牌', dataIndex:'brand', width:150 },
+            { title:'系列', dataIndex:'series', width:150 },
+            { title:'是否 Top', dataIndex:'isTop', width:90, render:v=>v?<StatusTag variant="on">Top</StatusTag>:<StatusTag variant="off">非Top</StatusTag> },
+            { title:'更新时间', dataIndex:'updatedAt', width:150 },
+            { title:'操作', key:'op', width:120, render:(_,r)=><Space size={6}><Button size="small" icon={<EditOutlined />} onClick={()=>setEditRow(r)}>编辑</Button><Button size="small" danger icon={<DeleteOutlined />} onClick={()=>demoConfirm('删除此记录')}>删除</Button></Space> },
+          ]}
+          dataSource={[
+            { id:'1', brand:'Louis Vuitton', series:'Neverfull', isTop:true, updatedAt:'2026-06-10' },
+            { id:'2', brand:'Louis Vuitton', series:'Speedy', isTop:true, updatedAt:'2026-06-10' },
+            { id:'3', brand:'Chanel', series:'Classic Flap', isTop:true, updatedAt:'2026-06-10' },
+            { id:'4', brand:'Gucci', series:'Dionysus', isTop:true, updatedAt:'2026-06-10' },
+            { id:'5', brand:'Hermès', series:'Birkin', isTop:true, updatedAt:'2026-06-10' },
+            { id:'6', brand:'Prada', series:'Re-Edition', isTop:false, updatedAt:'2026-06-08' },
+          ]}
+        />
+        <CompactPagination total={48} pageSize={10} />
+      </>}
+
+      {activeSheet === 'avg_prices' && <>
+        <Table rowKey="id" pagination={false} styles={TABLE_STYLES}
+          columns={[
+            { title:'品牌', dataIndex:'brand', width:120 },
+            { title:'系列', dataIndex:'series', width:120 },
+            { title:'尺码', dataIndex:'size', width:80 },
+            { title:'成色', dataIndex:'condition', width:70 },
+            { title:<TipText label="TRR 均价(USD)" tip="The RealReal 平台该系列的平均售价" />, dataIndex:'avgPrice', width:120, align:'right' },
+            { title:'样本数', dataIndex:'sampleCount', width:80, align:'right' },
+            { title:'数据日期', dataIndex:'dataDate', width:110 },
+            { title:'更新时间', dataIndex:'updatedAt', width:140 },
+            { title:'操作', key:'op', width:120, render:(_,r)=><Space size={6}><Button size="small" icon={<EditOutlined />} onClick={()=>setEditRow(r)}>编辑</Button><Button size="small" danger icon={<DeleteOutlined />} onClick={()=>demoConfirm('删除此记录')}>删除</Button></Space> },
+          ]}
+          dataSource={[
+            { id:'1', brand:'Louis Vuitton', series:'Neverfull', size:'MM', condition:'A', avgPrice:'$2,200', sampleCount:342, dataDate:'2026-06', updatedAt:'2026-06-10' },
+            { id:'2', brand:'Louis Vuitton', series:'Speedy', size:'25', condition:'AB', avgPrice:'$1,800', sampleCount:215, dataDate:'2026-06', updatedAt:'2026-06-10' },
+            { id:'3', brand:'Chanel', series:'Classic Flap', size:'Medium', condition:'B', avgPrice:'$5,800', sampleCount:189, dataDate:'2026-06', updatedAt:'2026-06-10' },
+            { id:'4', brand:'Gucci', series:'Marmont', size:'Small', condition:'A', avgPrice:'$1,500', sampleCount:276, dataDate:'2026-06', updatedAt:'2026-06-10' },
+            { id:'5', brand:'Hermès', series:'Birkin', size:'25', condition:'S', avgPrice:'$12,500', sampleCount:45, dataDate:'2026-06', updatedAt:'2026-06-10' },
+          ]}
+        />
+        <CompactPagination total={85} pageSize={10} />
+      </>}
+
+      <div style={{marginTop:24}}>
+        <h4 className="lp-section">导入历史</h4>
+        <Table rowKey="id" size="small" pagination={false} styles={TABLE_STYLES}
+          columns={[
+            { title:'导入时间', dataIndex:'time', width:160 },
+            { title:'数据表', dataIndex:'sheet', width:120 },
+            { title:'新增', dataIndex:'added', width:80, align:'right' },
+            { title:'更新', dataIndex:'updated', width:80, align:'right' },
+            { title:'操作', key:'op', width:80, render:()=><Button size="small" icon={<DownloadOutlined />} onClick={()=>demoConfirm('下载此文件')}>下载</Button> },
+          ]}
+          dataSource={[
+            { id:'1', time:'2026-06-10 09:00', sheet:'均价表', added:8, updated:77 },
+            { id:'2', time:'2026-06-01 09:00', sheet:'Top 系列', added:2, updated:0 },
+          ]}
+        />
+      </div>
+
+      <div style={{marginTop:24}}>
+        <div className="lp-note">
+          <strong>TRR 数据用途：</strong><br/>
+          Top 系列表：判断品牌+系列是否为 Top，决定定价公式路由(Top → 公式1-5，非Top → 公式6)<br/>
+          均价表：提供 C 值(TRR 均价)，用于判断 B/C 比例，选择具体公式编号<br/>
+          数据更新频率建议：每月从 The RealReal 抓取最新数据
+        </div>
+      </div>
+    </Card>
+    <TrrEditModal open={!!editRow} sheet={activeSheet} row={editRow} onClose={()=>setEditRow(null)} onSave={saveTrr} />
+    </>
+  );
+}
+
+
+/* ========== PAGE: 主数据映射（新增：方案B） ========== */
+function FieldMappingPage({ go }) {
+  const [activeTab, setActiveTab] = useState('brand');
+  const [editTarget, setEditTarget] = useState(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importPreview, setImportPreview] = useState(false);
+  const saveMapping = () => { setEditTarget(null); antd.message.success('映射已保存 (原型演示)'); };
+  const closeImport = () => { setImportOpen(false); setImportPreview(false); };
+  return (
+    <>
+    <Card style={CARD_STYLE}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16,marginBottom:18}}>
+        <div>
+          <div style={{fontSize:20,fontWeight:700,marginBottom:6}}>主数据映射</div>
+          <div style={{color:'#6B7280',fontSize:13}}>维护红布林原始值到 looply 主数据的映射关系，覆盖品牌/系列/类目/属性（颜色/材质/尺码/五金/设计元素）全字段。红布林原始值 → 自建标准 ID + 标准英文名，是创建 product/listing 所需全字段的来源</div>
+        </div>
+        <Space>
+          <Button icon={<UploadOutlined />} onClick={()=>setImportOpen(true)}>批量导入</Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={()=>demoAction('新增映射')}>新增映射</Button>
+        </Space>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:18}}>
+        <Kpi num="86" label="品牌映射" />
+        <Kpi num="315" label="系列映射" />
+        <Kpi num="142" label="类目映射" />
+        <Kpi num="12" label="待补充(映射异常)" numStyle={{color:'#D97706'}} />
+      </div>
+
+      <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
+        { key:'brand', label:'品牌映射' },
+        { key:'category', label:'类目映射' },
+        { key:'series', label:'系列映射' },
+        { key:'color', label:'颜色' },
+        { key:'material', label:'材质' },
+        { key:'size', label:'尺码' },
+        { key:'hardware', label:'五金' },
+        { key:'design', label:'设计元素' },
+      ]} />
+
+      {activeTab === 'brand' && <>
+        <Space size={12} wrap style={{marginBottom:16}}>
+          <Select defaultValue="" style={{width:120}} options={[{value:'',label:'全部状态'},{value:'active',label:'已激活'},{value:'pending',label:'待补充'}]} />
+          <Input prefix={<SearchOutlined style={{color:'#9CA3AF'}} />} placeholder="搜索品牌名称" style={{width:200}} allowClear />
+          <Button type="primary" icon={<SearchOutlined />} onClick={()=>demoAction('查询')}>查询</Button>
+        </Space>
+        <Table rowKey="id" pagination={false} styles={TABLE_STYLES} scroll={{x:'max-content'}}
+          columns={[
+            { title:'红布林原始值', dataIndex:'sourceValue', width:160, render:v=><span style={{fontWeight:500}}>{v}</span> },
+            { title:'looply 品牌', dataIndex:'targetBrand', width:160 },
+            { title:'品牌ID', dataIndex:'brandId', width:80, render:v=>v?<span className="lp-code">{v}</span>:<StatusTag variant="req">未映射</StatusTag> },
+            { title:'英文名', dataIndex:'brandEn', width:160 },
+            { title:'状态', dataIndex:'status', width:80,
+              render:v=>v==='active'?<StatusTag variant="on">已激活</StatusTag>:<StatusTag variant="pending">待补充</StatusTag> },
+            { title:'更新时间', dataIndex:'updatedAt', width:140 },
+            { title:'操作', width:100, render:(_,r)=><Space size={8}><a onClick={()=>setEditTarget({kind:'brand',record:r})}>编辑</a><a onClick={()=>demoConfirm('确认删除该映射？')} style={{color:'#DC2626'}}>删除</a></Space> },
+          ]}
+          dataSource={[
+            { id:'1', sourceValue:'路易威登', targetBrand:'Louis Vuitton', brandId:'B001', brandEn:'Louis Vuitton', status:'active', updatedAt:'2026-06-10 14:30' },
+            { id:'2', sourceValue:'路易·威登', targetBrand:'Louis Vuitton', brandId:'B001', brandEn:'Louis Vuitton', status:'active', updatedAt:'2026-06-10 14:30' },
+            { id:'3', sourceValue:'香奈儿', targetBrand:'Chanel', brandId:'B002', brandEn:'Chanel', status:'active', updatedAt:'2026-06-10 14:30' },
+            { id:'4', sourceValue:'迪奥', targetBrand:'Dior', brandId:'B003', brandEn:'Dior', status:'active', updatedAt:'2026-06-10 14:30' },
+            { id:'5', sourceValue:'宝格丽', targetBrand:'Bvlgari', brandId:'B008', brandEn:'Bvlgari', status:'active', updatedAt:'2026-06-11 09:15' },
+            { id:'6', sourceValue:'赛琳', targetBrand:'—', brandId:null, brandEn:'—', status:'pending', updatedAt:'2026-06-11 16:00' },
+            { id:'7', sourceValue:'珑骧', targetBrand:'—', brandId:null, brandEn:'—', status:'pending', updatedAt:'2026-06-11 16:00' },
+          ]}
+        />
+        <CompactPagination total={86} pageSize={10} />
+      </>}
+
+      {activeTab === 'category' && <>
+        <Table rowKey="id" pagination={false} styles={TABLE_STYLES} scroll={{x:'max-content'}}
+          columns={[
+            { title:'红布林原始值', dataIndex:'sourceValue', width:180, render:v=><span style={{fontWeight:500}}>{v}</span> },
+            { title:'looply 类目(L1)', dataIndex:'l1', width:100 },
+            { title:'looply 类目(L2)', dataIndex:'l2', width:120 },
+            { title:'looply 类目(L3)', dataIndex:'l3', width:120 },
+            { title:'类目ID', dataIndex:'categoryId', width:80, render:v=>v?<span className="lp-code">{v}</span>:<StatusTag variant="req">未映射</StatusTag> },
+            { title:'状态', dataIndex:'status', width:80,
+              render:v=>v==='active'?<StatusTag variant="on">已激活</StatusTag>:<StatusTag variant="pending">待补充</StatusTag> },
+            { title:'操作', width:100, render:(_,r)=><Space size={8}><a onClick={()=>setEditTarget({kind:'category',record:r})}>编辑</a><a onClick={()=>demoConfirm('确认删除？')} style={{color:'#DC2626'}}>删除</a></Space> },
+          ]}
+          dataSource={[
+            { id:'1', sourceValue:'女包>手提包', l1:'Handbags', l2:'Tote Bag', l3:'Tote', categoryId:'C101', status:'active' },
+            { id:'2', sourceValue:'女包>斜挎包', l1:'Handbags', l2:'Crossbody', l3:'Crossbody Bag', categoryId:'C102', status:'active' },
+            { id:'3', sourceValue:'配饰>钱包', l1:'Accessories', l2:'Wallet', l3:'Wallet', categoryId:'C201', status:'active' },
+            { id:'4', sourceValue:'珠宝>戒指', l1:'Jewelry', l2:'Ring', l3:'Ring', categoryId:'C301', status:'active' },
+          ]}
+        />
+        <CompactPagination total={142} pageSize={10} />
+      </>}
+
+      {activeTab === 'series' && <>
+        <Table rowKey="id" pagination={false} styles={TABLE_STYLES} scroll={{x:'max-content'}}
+          columns={[
+            { title:'红布林原始值', dataIndex:'sourceValue', width:160, render:v=><span style={{fontWeight:500}}>{v}</span> },
+            { title:'关联品牌', dataIndex:'brand', width:120 },
+            { title:'looply 系列', dataIndex:'targetSeries', width:160 },
+            { title:'系列ID', dataIndex:'seriesId', width:80, render:v=>v?<span className="lp-code">{v}</span>:<StatusTag variant="req">未映射</StatusTag> },
+            { title:'状态', dataIndex:'status', width:80,
+              render:v=>v==='active'?<StatusTag variant="on">已激活</StatusTag>:<StatusTag variant="pending">待补充</StatusTag> },
+            { title:'操作', width:100, render:(_,r)=><Space size={8}><a onClick={()=>setEditTarget({kind:'series',record:r})}>编辑</a><a onClick={()=>demoConfirm('确认删除？')} style={{color:'#DC2626'}}>删除</a></Space> },
+          ]}
+          dataSource={[
+            { id:'1', sourceValue:'Speedy', brand:'Louis Vuitton', targetSeries:'Speedy', seriesId:'S001', status:'active' },
+            { id:'2', sourceValue:'经典翻盖包', brand:'Chanel', targetSeries:'Classic Flap', seriesId:'S023', status:'active' },
+            { id:'3', sourceValue:'马鞍包', brand:'Dior', targetSeries:'Saddle', seriesId:'S045', status:'active' },
+            { id:'4', sourceValue:'LOVE系列', brand:'Cartier', targetSeries:'LOVE', seriesId:'S067', status:'active' },
+          ]}
+        />
+        <CompactPagination total={315} pageSize={10} />
+      </>}
+
+      {['color','material','size','hardware','design'].includes(activeTab) && (()=>{
+        const attrMeta = {
+          color:{ label:'颜色', total:96, idPrefix:'CL', rows:[
+            { id:'1', sourceValue:'蓝色', standardValue:'Blue', stdId:'CL05', status:'active' },
+            { id:'2', sourceValue:'米棕', standardValue:'Beige', stdId:'CL11', status:'active' },
+            { id:'3', sourceValue:'酒红', standardValue:'Burgundy', stdId:'CL18', status:'active' },
+            { id:'4', sourceValue:'裸粉', standardValue:'—', stdId:null, status:'pending' },
+          ]},
+          material:{ label:'材质', total:74, idPrefix:'M', rows:[
+            { id:'1', sourceValue:'老花帆布', standardValue:'Monogram Canvas', stdId:'M012', status:'active' },
+            { id:'2', sourceValue:'鱼子酱牛皮', standardValue:'Caviar Leather', stdId:'M004', status:'active' },
+            { id:'3', sourceValue:'小牛皮', standardValue:'Calfskin Leather', stdId:'M001', status:'active' },
+            { id:'4', sourceValue:'水波纹羊皮', standardValue:'—', stdId:null, status:'pending' },
+          ]},
+          size:{ label:'尺码', total:58, idPrefix:'SZ', rows:[
+            { id:'1', sourceValue:'25', standardValue:'Small', stdId:'SZ02', status:'active' },
+            { id:'2', sourceValue:'30', standardValue:'Medium', stdId:'SZ03', status:'active' },
+            { id:'3', sourceValue:'MM', standardValue:'Medium', stdId:'SZ03', status:'active' },
+            { id:'4', sourceValue:'BB', standardValue:'Mini', stdId:'SZ01', status:'active' },
+          ]},
+          hardware:{ label:'五金', total:22, idPrefix:'HW', rows:[
+            { id:'1', sourceValue:'金扣', standardValue:'Gold Hardware', stdId:'HW01', status:'active' },
+            { id:'2', sourceValue:'银扣', standardValue:'Silver Hardware', stdId:'HW02', status:'active' },
+            { id:'3', sourceValue:'玫瑰金', standardValue:'Rose Gold Hardware', stdId:'HW03', status:'active' },
+          ]},
+          design:{ label:'设计元素', total:41, idPrefix:'DS', rows:[
+            { id:'1', sourceValue:'菱格纹', standardValue:'Matelassé', stdId:'DS07', status:'active' },
+            { id:'2', sourceValue:'马鞍造型', standardValue:'Saddle', stdId:'DS12', status:'active' },
+            { id:'3', sourceValue:'链条肩带', standardValue:'Chain Strap', stdId:'DS03', status:'active' },
+            { id:'4', sourceValue:'流苏', standardValue:'—', stdId:null, status:'pending' },
+          ]},
+        };
+        const m = attrMeta[activeTab];
+        return <>
+          <Space size={12} wrap style={{marginBottom:16}}>
+            <Select defaultValue="" style={{width:120}} options={[{value:'',label:'全部状态'},{value:'active',label:'已激活'},{value:'pending',label:'待补充'}]} />
+            <Input prefix={<SearchOutlined style={{color:'#9CA3AF'}} />} placeholder={'搜索'+m.label} style={{width:200}} allowClear />
+            <Button type="primary" icon={<SearchOutlined />} onClick={()=>demoAction('查询')}>查询</Button>
+          </Space>
+          <Table rowKey="id" pagination={false} styles={TABLE_STYLES} scroll={{x:'max-content'}}
+            columns={[
+              { title:'红布林原始值', dataIndex:'sourceValue', width:160, render:v=><span style={{fontWeight:500}}>{v}</span> },
+              { title:'自建标准值(英文)', dataIndex:'standardValue', width:180, render:v=>v==='—'?<span style={{color:'#9CA3AF'}}>—</span>:v },
+              { title:'标准ID', dataIndex:'stdId', width:90, render:v=>v?<span className="lp-code">{v}</span>:<StatusTag variant="req">未映射</StatusTag> },
+              { title:'状态', dataIndex:'status', width:90,
+                render:v=>v==='active'?<StatusTag variant="on">已激活</StatusTag>:<StatusTag variant="pending">待补充</StatusTag> },
+              { title:'操作', width:100, render:(_,r)=><Space size={8}><a onClick={()=>demoAction('编辑'+m.label+'映射')}>编辑</a><a onClick={()=>demoConfirm('确认删除？')} style={{color:'#DC2626'}}>删除</a></Space> },
+            ]}
+            dataSource={m.rows}
+          />
+          <CompactPagination total={m.total} pageSize={10} />
+        </>;
+      })()}
+
+      <div style={{marginTop:24}}>
+        <div className="lp-note">
+          <strong>主数据映射说明（v8 · 全字段映射）：</strong><br/>
+          红布林推送商品时，品牌 / 系列 / 类目 / 属性（颜色 / 材质 / 尺码 / 五金 / 设计元素）原始值均需映射到 looply 主数据：红布林原始值 → 自建标准 ID + 标准英文名<br/>
+          映射结果是创建 product / listing 所需<strong>全字段的来源</strong>；值翻译收敛到本页，命名拼接规则见「商品命名规则」页<br/>
+          映射失败的商品 status='映射异常'，运营在此页面补充映射后系统自动重跑加工<br/>
+          同一个 looply 主数据可对应多个红布林原始值（如"路易威登"和"路易·威登"都映射到 Louis Vuitton）
+        </div>
+      </div>
+    </Card>
+
+    <FieldMappingEditModal open={!!editTarget} target={editTarget} onClose={()=>setEditTarget(null)} onSave={saveMapping} />
+
+    <Modal title="批量导入映射" open={importOpen} onCancel={closeImport}
+      closable={false} maskClosable={false} centered width={560}
+      footer={[
+        <Button key="c" onClick={closeImport}>取消</Button>,
+        <Button key="s" type="primary" onClick={()=>{closeImport();antd.message.success('导入成功 (原型演示)');}}>确认导入</Button>,
+      ]}>
+      <Upload.Dragger name="file" multiple={false} accept=".xlsx,.csv" beforeUpload={()=>{setImportPreview(true);return false;}} style={{marginBottom:16}}>
+        <p className="ant-upload-drag-icon"><InboxOutlined style={{color:'#7C3AED'}} /></p>
+        <p className="ant-upload-text">点击或拖拽 Excel/CSV 文件到此处</p>
+        <p className="ant-upload-hint">支持 .xlsx / .csv 格式，单次最多 5,000 行</p>
+      </Upload.Dragger>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+        <span style={{color:'#6B7280',fontSize:12}}>请按模板填写「红布林原始值 → looply 标准值」对应关系</span>
+        <Button size="small" icon={<DownloadOutlined />} onClick={()=>demoConfirm('下载映射导入模板')}>下载模板</Button>
+      </div>
+      <div className="lp-note-sm" style={{marginBottom:16}}>
+        导入规则：仅支持「红布林原始值 → looply 标准值」一一对应；相同红布林原始值以导入文件为准覆盖现有映射；looply 标准值在系统中不存在时该行导入失败，需先在对应标准数据表中新增
+      </div>
+      {importPreview && <>
+        <h4 className="lp-section-purple" style={{fontSize:13}}>预览（前 3 行）</h4>
+        <Table rowKey="row" size="small" pagination={false} styles={TABLE_STYLES}
+          columns={[
+            { title:'红布林原始值', dataIndex:'src', width:140 },
+            { title:'looply 标准值', dataIndex:'target', width:160 },
+            { title:'状态', dataIndex:'status', width:100, render:v=>v==='ok'?<StatusTag variant="on">可导入</StatusTag>:<StatusTag variant="req">未匹配</StatusTag> },
+          ]}
+          dataSource={[
+            { row:'1', src:'圣罗兰', target:'Saint Laurent', status:'ok' },
+            { row:'2', src:'思琳', target:'Celine', status:'ok' },
+            { row:'3', src:'芬迪', target:'—', status:'fail' },
+          ]}
+        />
+      </>}
+    </Modal>
+    </>
+  );
+}
+
+
+/* ========== APP ========== */
+function App() {
+  const [activeKey, setActiveKey] = useState('product-pool');
+  const go = (key) => setActiveKey(key);
+  const subLabel = (text, key) => <span style={{fontWeight:activeKey===key?600:400}}>{text}</span>;
+
+  const menuItems = [
+    { key:'product-pool', icon:<DatabaseOutlined />, label:subLabel('红布林商品库','product-pool') },
+    { type:'divider' },
+    { key:'grp-data', icon:<SettingOutlined />, label:'数据维护（规则源）', children:[
+      { key:'field-mapping', icon:<SwapOutlined />, label:subLabel('主数据映射','field-mapping') },
+      { key:'naming-rule', icon:<BookOutlined />, label:subLabel('商品命名规则','naming-rule') },
+      { key:'trr', icon:<BarChartOutlined />, label:subLabel('TRR 参考价','trr') },
+    ]},
+    { type:'divider' },
+    { key:'process-exception', icon:<TranslationOutlined />, label:subLabel('加工异常处理','process-exception') },
+    { key:'listing', icon:<RocketOutlined />, label:subLabel('商品上架','listing') },
+    { type:'divider' },
+    { key:'grp-ops', icon:<ShoppingOutlined />, label:'上架后运营', children:[
+      { key:'curation', icon:<FilterOutlined />, label:subLabel('营销选品','curation') },
+      { key:'price-change', icon:<TagOutlined />, label:subLabel('商品改价','price-change') },
+    ]},
+  ];
+
+  const pages = {
+    'product-pool': <ProductPoolPage go={go} />,
+    'field-mapping': <FieldMappingPage go={go} />,
+    'naming-rule': <NamingRulePage go={go} />,
+    'trr': <TrrPage go={go} />,
+    'process-exception': <ProcessExceptionPage go={go} />,
+    'listing': <ListingPage go={go} />,
+    'curation': <CurationPage go={go} />,
+    'price-change': <PriceChangePage go={go} />,
+  };
+
+  const pageLabels = {
+    'product-pool':'红布林商品库','field-mapping':'主数据映射',
+    'naming-rule':'商品命名规则','process-exception':'加工异常处理',
+    'listing':'商品上架','curation':'营销选品','price-change':'商品改价',
+    'trr':'TRR 参考价',
+  };
+
+  return (
+    <ConfigProvider theme={looplyTheme}>
+      <Layout style={{height:'100vh'}}>
+        <Layout.Header style={{borderBottom:'1px solid #E5E7EB',display:'flex',alignItems:'center'}}>
+          <img src={LOGO_SRC} alt="Looply" style={{height:32,display:'block'}} />
+          <div style={{width:1,height:20,background:'#E5E7EB',margin:'0 16px'}} />
+          <span style={{fontSize:14,fontWeight:500,color:'#6B7280'}}>红布林商品对接</span>
+          <span style={{marginLeft:'auto',color:'#9CA3AF',fontSize:13}}>红布林商品对接 / {pageLabels[activeKey]||'—'}</span>
+        </Layout.Header>
+        <Layout>
+          <Layout.Sider width={220} theme="light" style={SIDER_STYLE}>
+            <Menu mode="inline" items={menuItems} selectedKeys={[activeKey]}
+              defaultOpenKeys={['grp-data','grp-ops']}
+              style={{borderInlineEnd:'none'}}
+              onClick={({key})=>{ if(!key.startsWith('grp-')) setActiveKey(key); }} />
+          </Layout.Sider>
+          <Layout.Content style={{padding:28,overflow:'auto'}}>
+            {pages[activeKey] || <Card style={CARD_STYLE}><div>未知页面</div></Card>}
+          </Layout.Content>
+        </Layout>
+      </Layout>
+    </ConfigProvider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

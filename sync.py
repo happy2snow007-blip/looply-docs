@@ -423,6 +423,32 @@ MODULES = {
             },
         },
     },
+    'plm': {
+        'name': '红布林商品对接',
+        'default_source': '$HOME/Desktop/海外业务/红布林商品对接',
+        'target': 'docs-红布林商品对接',
+        'keywords': ['红布林', 'plm', '商品对接'],
+        'config_key': 'plm',
+        'artifacts': {
+            'prototype': {
+                'subdir': '原型',
+                'pattern': r'looply-红布林商品对接-antd-原型-v(.+?)\.html',
+                'exclude': r'(backup|对比|report)',
+            },
+            'prd': {
+                'subdir': 'PRD',
+                'pattern': r'looply-红布林商品对接-PRD-v(.+?)\.md',
+            },
+            'flowchart': {
+                'subdir': '系统流程图',
+                'pattern': r'looply-商品业务全流程系统流程图-v(.+?)\.svg',
+            },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'红布林商品对接-交付开发 V(.+?)\.zip',
+            },
+        },
+    },
     'shop': {
         'name': 'Shop页导航',
         'default_source': '$HOME/looply/shop',
