@@ -16,7 +16,7 @@ var PROTOTYPE_CONFIG = {
   'collection':     'docs-Collection管理/原型/looply-类目管理-后台-v0.20-antd.html',
   'logistics':      'docs-物流管理/原型/looply-物流管理后台原型-v5.11-antd.html',
   'order':          'docs-订单支付/原型/looply-订单管理后台原型-v7.html',
-  'plm':            'docs-红布林商品对接/原型/looply-红布林商品对接-antd-原型-v15.html',
+  'plm':            'docs-红布林商品对接/原型/looply-红布林商品对接-antd-原型-v17.html',
   'shop':           'docs-shop页/后台原型/looply-shop页导航栏配置-后台原型-v0.1-antd.html',
   'social_share':   'docs-社媒分享管理/原型/looply-社媒分享管理-antd-原型-v1.2.html',
   'subscription':   'docs-订阅管理/原型/looply-订阅管理-antd-原型-v2.html',
