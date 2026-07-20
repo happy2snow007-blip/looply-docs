@@ -333,49 +333,6 @@ MODULES = {
             },
         },
     },
-    'cms': {
-        'name': 'CMS管理',
-        'prd_variants': {
-            'cms': {'pattern': r'looply-CMS管理-PRD-v(.+?)\.md', 'title': 'CMS 后台 PRD'},
-            'nav': {'pattern': r'looply-导航栏配置-PRD-v(.+?)\.md', 'title': 'PC 导航栏配置 PRD'},
-        },
-        'default_source': '$HOME/looply/cms/资源位配置/正式文件',
-        'target': 'docs-CMS管理',
-        'keywords': ['cms', 'CMS', 'CMS管理'],
-        'config_key': 'cms',
-        'artifacts': {
-            'prototype': {
-                'subdir': '原型',
-                'pattern': r'looply-cms-antd-原型-v(.+?)\.html',
-                'exclude': r'(backup)',
-            },
-            'prd_html': {
-                'subdir': 'PRD',
-                'pattern': r'looply-CMS管理-PRD\.html',
-                'no_version': True,
-            },
-            'prd': {
-                'subdir': 'PRD',
-                'pattern': r'looply-CMS管理-PRD-v(.+?)\.md',
-            },
-            'architecture': {
-                'subdir': '产品架构图',
-                'pattern': r'looply-CMS资源位配置产品架构图-v(.+?)\.svg',
-            },
-            'er': {
-                'subdir': '实体关系图',
-                'pattern': r'looply-CMS资源位配置实体关系图-v(.+?)\.svg',
-            },
-            'flowchart': {
-                'subdir': '系统流程图',
-                'pattern': r'looply-CMS资源位配置流程图-v(.+?)\.svg',
-            },
-            'delivery': {
-                'subdir': '.',
-                'pattern': r'CMS管理-交付开发 V(.+?)\.zip',
-            },
-        },
-    },
     'cart': {
         'name': '购物车',
         'default_source': '$HOME/Desktop/海外业务/购物车',
