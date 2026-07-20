@@ -335,6 +335,10 @@ MODULES = {
     },
     'cms': {
         'name': 'CMS管理',
+        'prd_variants': {
+            'cms': {'pattern': r'looply-CMS管理-PRD-v(.+?)\.md', 'title': 'CMS 后台 PRD'},
+            'nav': {'pattern': r'looply-导航栏配置-PRD-v(.+?)\.md', 'title': 'PC 导航栏配置 PRD'},
+        },
         'default_source': '$HOME/looply/cms/资源位配置/正式文件',
         'target': 'docs-CMS管理',
         'keywords': ['cms', 'CMS', 'CMS管理'],
@@ -523,6 +527,10 @@ MODULES = {
     },
     'collection': {
         'name': 'Collection管理',
+        'prd_variants': {
+            'collection': {'pattern': r'looply-collection-landing-PRD-v(.+?)\.md', 'title': 'Collection 落地页 PRD'},
+            'category': {'pattern': r'looply-类目管理-PRD-v(.+?)\.md', 'title': '类目管理 PRD'},
+        },
         'default_source': '$HOME/Desktop/Collection管理',
         'target': 'docs-Collection管理',
         'keywords': ['collection', 'Collection', '类目', '类目管理'],
@@ -1481,6 +1489,58 @@ def update_index_html(updates, all_versions, all_history=None):
         print('  [无变化] index.html 无需更新')
 
 
+def update_prd_variants():
+    """多 PRD 混装目录：为每份 PRD 维护独立的 latest-{key}.md 与命名阅读器。
+
+    背景：find_latest_prd_md 是跨全目录取版本号最大的 .md，与 PRD 归属无关。
+    一个目录塞多份 PRD 时（如 Collection管理 有 collection-landing 和 类目管理），
+    latest.md 会被版本号最大的那份占据，且随版本增长可能突然切换到另一份 PRD。
+    故为每份 PRD 单独维护 latest 文件，命名阅读器各读各的。
+    """
+    updated = []
+    for mod_key, cfg in MODULES.items():
+        variants = cfg.get('prd_variants')
+        if not variants:
+            continue
+        prd_dir = os.path.join(REPO_DIR, cfg['target'], 'PRD')
+        if not os.path.isdir(prd_dir):
+            continue
+        for vkey, vcfg in variants.items():
+            pat = re.compile(vcfg['pattern'])
+            best, best_ver = None, (0,)
+            for fname in os.listdir(prd_dir):
+                m = pat.fullmatch(fname)
+                if not m:
+                    continue
+                ver = tuple(int(x) for x in m.group(1).split('.'))
+                if ver > best_ver:
+                    best_ver, best = ver, fname
+            if not best:
+                continue
+            ver_str = '.'.join(str(x) for x in best_ver)
+            # 1) 维护该 PRD 专属的 latest 文件
+            latest_name = f'latest-{vkey}.md'
+            shutil.copy2(os.path.join(prd_dir, best),
+                         os.path.join(prd_dir, latest_name))
+            # 2) 更新命名阅读器：数据源指向自己的 latest、topbar 写自己的版本
+            reader = os.path.join(prd_dir, f'index-{vkey}.html')
+            if os.path.isfile(reader):
+                html = open(reader, encoding='utf-8').read()
+                html = re.sub(r"latest(?:-[\w]+)?\.md", latest_name, html)
+                html = re.sub(r'<span class="title">[^<]*</span>',
+                              f'<span class="title">{vcfg["title"]} V{ver_str}</span>',
+                              html, count=1)
+                html = re.sub(r'<title>[^<]*</title>',
+                              f'<title>Looply PRD - {vcfg["title"]}</title>',
+                              html, count=1)
+                open(reader, 'w', encoding='utf-8').write(html)
+            updated.append(f'{cfg["name"]}/{vkey} v{ver_str}')
+    if updated:
+        for u in updated:
+            print(f'  [更新] PRD 变体 {u}')
+    return updated
+
+
 def update_prd_index_topbar():
     """扫描各模块 PRD/latest.md 提取版本号，同步更新 PRD/index.html 的 topbar 标题。"""
     prd_dirs = globmod.glob(os.path.join(REPO_DIR, 'docs*/PRD'))
@@ -1665,6 +1725,7 @@ def main():
     if index_updates:
         update_index_html(index_updates, all_versions, all_history)
 
+    update_prd_variants()
     update_prd_index_topbar()
 
     # 更新 admin.html 的模块列表
