@@ -1,0 +1,351 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1260" height="2778" viewBox="0 0 1260 2778" font-family="'PingFang SC','Microsoft YaHei','Helvetica Neue',Arial,sans-serif">
+<metadata>
+<![CDATA[
+# looply 交易链路与国内二奢系统衔接 — 系统流程图（红布林API对接版 · 一单一件） V8.0
+# 研发编码参考数据，从 SVG <metadata> 提取
+
+swimlanes:
+  - key: "A"
+    name: "looply 系统"
+  - key: "B"
+    name: "红布林系统"
+
+sections:
+  - name: "① 下单采购"
+    steps:
+      - type: start_end
+        text: "开始：用户下单(父订单含 N 件商品)"
+      - type: process
+        lane: "A"
+        text: "创建订单(status=待付款 pending_payment)"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "逐件建 N 张红布林订单(每张1件·按类目路由账号+上海地址)"
+      - type: decision
+        lane: "B"
+        text: "N 张红布林库存均可用?"
+        on_no: "任一缺货→该件建单失败"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "B"
+        text: "红布林逐张锁库存+生成 N 张红布林订单(每张1件,待支付)"
+      - type: cross_lane
+        from: "B"
+        to: "A"
+        text: "回传 N 个红布林订单号"
+      - type: process
+        lane: "A"
+        text: "记录 N 个红布林订单号+锁定looply库存(LOCKED)"
+      - type: decision
+        lane: "A"
+        text: "支付成功?"
+        on_no: "超时/支付失败→订单转取消→驱动N张逐张取消"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "更新订单状态(paid)"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "N 张逐张驱动红布林订单转已支付(触发发货)"
+      - type: process
+        lane: "B"
+        text: "N 张红布林订单逐张标记已支付+安排发货"
+      - type: start_end
+        text: "采购完成"
+      - type: note
+        title: "一单一件(1:N) / 待与红布林技术确认"
+        lines:
+          - "一单一件：looply 父订单含 N 件 → 红布林侧建 N 张订单，每张 1 件(1:N)"
+          - "类目路由(业务根因)：N 张的采购账号、上海收货地址按商品类目各不相同，不同类目走不同账号+不同上海地址"
+          - "待付款建单：下单即逐件调红布林锁库存+建 N 张红布林订单(待支付)，占住一物一码商品"
+          - "驱动支付：looply支付成功后 N 张逐张调红布林更新为已支付，才触发真实发货；looply订单保持paid"
+          - "支付未成功(超时 或 支付单最终failed)：先让looply订单转取消,再由订单取消驱动 N 张逐张调红布林取消+释放库存+looply关单(closed)"
+          - "★取消触发约束：红布林取消必须由looply订单变为取消状态才触发,不允许支付单failed直接调红布林取消"
+          - "超时口径：looply支付超时以订单支付模块最新规则为准(非1自然日,待核实);红布林侧超时自动取消=120H,红布林控制,looply知晓即可"
+          - "缺货：下单时任一件红布林无库存→该件建单失败"
+          - "★前置依赖(最高优先级)：合并发货能力——红布林能否把 N 张订单合并成包裹？不同类目本就不同上海地址、天然分开；同类目多张能否合并待确认"
+          - "待确认：N 张建单原子性——某张建失败暂定整单失败 + 已建的逐张回滚取消"
+          - "阻塞项：取消订单接口在现有红布林技术文档中尚未列出"
+          - "待确认：红布林订单API(建单/驱动支付/取消)字段、幂等、状态回调"
+  - name: "② 国内发货"
+    steps:
+      - type: start_end
+        text: "开始：红布林发货(按张,可能 N 次)"
+      - type: process
+        lane: "B"
+        text: "红布林逐张完成拣货打包"
+      - type: process
+        lane: "B"
+        text: "更新红布林订单=已发货+国内物流单号(按张)"
+      - type: cross_lane
+        from: "B"
+        to: "A"
+        text: "按张回调发货通知(物流单号+承运商)"
+      - type: process
+        lane: "A"
+        text: "记录各张国内物流信息(订单状态不变,仍为paid)"
+      - type: start_end
+        text: "国内发货完成"
+      - type: note
+        title: "状态说明(一单一件)"
+        lines:
+          - "一单一件下发货回调按张触发：N 张各自发货，looply 可能收到 N 次发货回调"
+          - "红布林发货后 looply 仅记录各张国内物流信息，不更新订单状态"
+          - "★前置依赖：合并发货能力——红布林能否把 N 张合并成包裹发货？不同类目不同上海地址天然分开；同类目多张能否合并待红布林确认"
+          - "looply 订单在国内收货且报关出关后才显示已发货(见③)"
+  - name: "③ 线下履约与状态同步"
+    steps:
+      - type: start_end
+        text: "开始：国内物流送达上海集货仓(按张,可能 N 次)"
+      - type: process
+        lane: "B"
+        text: "红布林逐张确认国内物流签收"
+      - type: cross_lane
+        from: "B"
+        to: "A"
+        text: "按张回调国内签收通知"
+      - type: process
+        lane: "A"
+        text: "记录各张国内签收节点(订单状态不变,仍为paid)"
+      - type: process
+        lane: "A"
+        text: "拾二线下：上海收货+验货通过"
+      - type: process
+        lane: "A"
+        text: "拾二线下：报关完成出关"
+      - type: process
+        lane: "A"
+        text: "looply运营后台录入国际物流单号 → 订单状态(已发货 shipped)"
+      - type: start_end
+        text: "履约状态同步完成"
+      - type: note
+        title: "线下节点说明(一单一件)"
+        lines:
+          - "一单一件下签收回调按张触发：N 张各自签收，looply 可能收到 N 次签收回调"
+          - "签收回调触发时点=国内物流签收(非上海仓验收完成)，由红布林按张回调告知 looply"
+          - "looply 收到签收回调后记录各张签收节点，订单状态不变(仍 paid)"
+          - "上海集货仓收货/验货、报关、国际物流交运均由拾二线下全权处理"
+          - "国内收货且报关出关后，运营录入国际物流单号，订单才更新为已发货(shipped)"
+          - "国际物流单号由 looply 运营在后台录入（非拾二）"
+          - "报关方式(单件/批量)由拾二决定，系统不关心"
+          - "待确认：签收回调的字段与幂等"
+  - name: "④ 取消退回"
+    steps:
+      - type: start_end
+        text: "开始：用户/运营发起取消"
+      - type: multi_branch
+        lane: "A"
+        text: "取消时的履约阶段?"
+        branches:
+          - label: "支付前(待付款)"
+            nodes:
+              - type: process
+                text: "按件取消对应红布林订单"
+              - type: process
+                text: "释放对应库存+关单"
+          - label: "支付后·红布林发货前"
+            nodes:
+              - type: process
+                text: "按件取消对应红布林订单"
+              - type: process
+                text: "退对应件款+释放对应库存"
+          - label: "发货后·国际物流前"
+            nodes:
+              - type: process
+                text: "人工协调红布林退回(按件)"
+              - type: process
+                text: "退对应件款"
+          - label: "国际物流发货后"
+            nodes:
+              - type: process
+                text: "转looply售后退货"
+      - type: start_end
+        text: "取消退回完成"
+      - type: note
+        title: "取消/退回分阶段说明(一单一件)"
+        lines:
+          - "一单一件：退某件 = 取消对应那张红布林订单；每张1件，整单取消即可，不再有「部分退」"
+          - "支付前(待付款)：接口对接，按件取消对应红布林订单+释放对应库存+关单（未支付无退款）"
+          - "支付后·红布林发货前：接口对接，按件取消对应红布林订单+退对应件款+释放对应库存"
+          - "红布林发货后·looply发国际物流前：线下人工协调红布林退回(按件)+退对应件款"
+          - "looply发国际物流后：进入 looply 售后退货阶段，与红布林不再有关系"
+          - "阻塞项：取消订单接口在现有红布林技术文档中尚未列出"
+]]>
+</metadata>
+<defs>
+<marker id="arr" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#475569"/></marker>
+<marker id="arr-r" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#DC2626"/></marker>
+</defs>
+<rect width="1260" height="2778" fill="#F8FAFC"/>
+<rect width="1260" height="46" fill="#1E1F2E"/>
+<text x="630" y="30" text-anchor="middle" fill="#fff" font-size="17" font-weight="600">looply 交易链路与国内二奢系统衔接 — 系统流程图（红布林API对接版 · 一单一件）</text>
+<text x="1230" y="30" text-anchor="end" fill="rgba(255,255,255,0.5)" font-size="10">V8.0</text>
+<rect x="40" y="46" width="880" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="480" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 系统</text>
+<rect x="920" y="46" width="340" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="1090" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">红布林系统</text>
+<rect x="40" y="46" width="880" height="968" fill="rgba(74,108,247,0.04)"/>
+<rect x="920" y="46" width="340" height="968" fill="rgba(245,158,11,0.04)"/>
+<line x1="920" y1="46" x2="920" y2="1014" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="1014" x2="1260" y2="1014" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="46" width="40" height="968" fill="#DBEAFE" rx="0"/>
+<text x="20" y="499" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">①</text>
+<text x="20" y="517" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">下</text>
+<text x="20" y="535" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">单</text>
+<text x="20" y="553" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">采</text>
+<text x="20" y="571" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">购</text>
+<rect x="40" y="1022" width="880" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="480" y="1039" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 系统</text>
+<rect x="920" y="1022" width="340" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="1090" y="1039" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">红布林系统</text>
+<rect x="40" y="1022" width="880" height="496" fill="rgba(74,108,247,0.04)"/>
+<rect x="920" y="1022" width="340" height="496" fill="rgba(245,158,11,0.04)"/>
+<line x1="920" y1="1022" x2="920" y2="1518" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="1518" x2="1260" y2="1518" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="1022" width="40" height="496" fill="#DBEAFE" rx="0"/>
+<text x="20" y="1239" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">②</text>
+<text x="20" y="1257" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">国</text>
+<text x="20" y="1275" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">内</text>
+<text x="20" y="1293" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">发</text>
+<text x="20" y="1311" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">货</text>
+<rect x="40" y="1526" width="880" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="480" y="1543" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 系统</text>
+<rect x="920" y="1526" width="340" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="1090" y="1543" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">红布林系统</text>
+<rect x="40" y="1526" width="880" height="656" fill="rgba(74,108,247,0.04)"/>
+<rect x="920" y="1526" width="340" height="656" fill="rgba(245,158,11,0.04)"/>
+<line x1="920" y1="1526" x2="920" y2="2182" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="2182" x2="1260" y2="2182" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="1526" width="40" height="656" fill="#DBEAFE" rx="0"/>
+<text x="20" y="1778" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">③</text>
+<text x="20" y="1796" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">线</text>
+<text x="20" y="1814" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">下</text>
+<text x="20" y="1832" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">履</text>
+<text x="20" y="1850" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">约</text>
+<text x="20" y="1868" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">与</text>
+<text x="20" y="1886" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">状</text>
+<text x="20" y="1904" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">态</text>
+<text x="20" y="1922" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">同</text>
+<text x="20" y="1940" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">步</text>
+<rect x="40" y="2190" width="880" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="480" y="2207" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">looply 系统</text>
+<rect x="920" y="2190" width="340" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="1090" y="2207" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">红布林系统</text>
+<rect x="40" y="2190" width="880" height="510" fill="rgba(74,108,247,0.04)"/>
+<rect x="920" y="2190" width="340" height="510" fill="rgba(245,158,11,0.04)"/>
+<line x1="920" y1="2190" x2="920" y2="2700" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="2700" x2="1260" y2="2700" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="2190" width="40" height="510" fill="#DBEAFE" rx="0"/>
+<text x="20" y="2414" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">④</text>
+<text x="20" y="2432" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">取</text>
+<text x="20" y="2450" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">消</text>
+<text x="20" y="2468" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">退</text>
+<text x="20" y="2486" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">回</text>
+<line x1="480" y1="116" x2="480" y2="132" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="480,164 480,200 1010,200" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1090" y1="216" x2="1090" y2="235" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1170" y1="260" x2="1181" y2="260" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="1176" y="253" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="1090" y1="285" x2="1090" y2="302" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1102" y="298" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="1090,334 1090,370 560,370" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="480" y1="386" x2="480" y2="406" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="480" y1="438" x2="480" y2="457" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="545" y1="482" x2="556" y2="482" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="551" y="475" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="480" y1="507" x2="480" y2="524" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="492" y="520" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="480,556 480,592 1010,592" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1090" y1="608" x2="1090" y2="628" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1090" y1="660" x2="1090" y2="679" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1090" y1="1092" x2="1090" y2="1108" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1090" y1="1140" x2="1090" y2="1156" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1090,1188 1090,1224 560,1224" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="480" y1="1240" x2="480" y2="1260" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="480" y1="1292" x2="480" y2="1311" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1090" y1="1596" x2="1090" y2="1612" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1090,1644 1090,1680 560,1680" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="480" y1="1696" x2="480" y2="1716" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="480" y1="1748" x2="480" y2="1764" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="480" y1="1796" x2="480" y2="1812" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="480" y1="1844" x2="480" y2="1860" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="480" y1="1892" x2="480" y2="1911" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="480" y1="2260" x2="480" y2="2279" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="405,2304 151,2304 151,2346" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="278" y="2297" text-anchor="middle" fill="#64748B" font-size="8">支付前(待付款)</text>
+<line x1="151" y1="2378" x2="151" y2="2394" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="405,2304 382,2304 382,2346" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="394" y="2297" text-anchor="middle" fill="#64748B" font-size="8">支付后·红布林发货前</text>
+<line x1="382" y1="2378" x2="382" y2="2394" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="555,2304 613,2304 613,2346" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="584" y="2297" text-anchor="middle" fill="#64748B" font-size="8">发货后·国际物流前</text>
+<line x1="613" y1="2378" x2="613" y2="2394" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="555,2304 824,2304 824,2346" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="689" y="2297" text-anchor="middle" fill="#64748B" font-size="8">国际物流发货后</text>
+<polyline points="151,2426 151,2474 435,2474" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="382,2426 382,2474 435,2474" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="613,2426 613,2474 525,2474" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="824,2378 824,2474 525,2474" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<rect x="435" y="87" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="480" y="104" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始：用户下单(父订单含 N 件商品)</text>
+<rect x="350" y="132" width="260" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="480" y="152" text-anchor="middle" fill="#1E293B" font-size="9.5">创建订单(status=待付款 pending_payment)</text>
+<rect x="920" y="184" width="340" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1090" y="204" text-anchor="middle" fill="#1E293B" font-size="9.5">逐件建 N 张红布林订单(每张1件·按类目路由账号+上海地址)</text>
+<polygon points="1090,235 1170,260 1090,285 1010,260" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="1090" y="264" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">N 张红布林库存均可用?</text>
+<rect x="1182" y="247" width="74" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1219" y="264" text-anchor="middle" fill="#1E293B" font-size="9.5">任一缺货→该件建单失败</text>
+<rect x="940" y="302" width="300" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1090" y="322" text-anchor="middle" fill="#1E293B" font-size="9.5">红布林逐张锁库存+生成 N 张红布林订单(每张1件,待支付)</text>
+<rect x="370" y="354" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="480" y="374" text-anchor="middle" fill="#1E293B" font-size="9.5">回传 N 个红布林订单号</text>
+<rect x="330" y="406" width="300" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="480" y="426" text-anchor="middle" fill="#1E293B" font-size="9.5">记录 N 个红布林订单号+锁定looply库存(LOCKED)</text>
+<polygon points="480,457 545,482 480,507 415,482" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="480" y="486" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">支付成功?</text>
+<rect x="557" y="469" width="209" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="661" y="486" text-anchor="middle" fill="#1E293B" font-size="9.5">超时/支付失败→订单转取消→驱动N张逐张取消</text>
+<rect x="395" y="524" width="170" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="480" y="544" text-anchor="middle" fill="#1E293B" font-size="9.5">更新订单状态(paid)</text>
+<rect x="935" y="576" width="310" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1090" y="596" text-anchor="middle" fill="#1E293B" font-size="9.5">N 张逐张驱动红布林订单转已支付(触发发货)</text>
+<rect x="950" y="628" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1090" y="648" text-anchor="middle" fill="#1E293B" font-size="9.5">N 张红布林订单逐张标记已支付+安排发货</text>
+<rect x="1045" y="679" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1090" y="696" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">采购完成</text>
+<rect x="1045" y="1063" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1090" y="1080" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始：红布林发货(按张,可能 N 次)</text>
+<rect x="990" y="1108" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1090" y="1128" text-anchor="middle" fill="#1E293B" font-size="9.5">红布林逐张完成拣货打包</text>
+<rect x="950" y="1156" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1090" y="1176" text-anchor="middle" fill="#1E293B" font-size="9.5">更新红布林订单=已发货+国内物流单号(按张)</text>
+<rect x="360" y="1208" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="480" y="1228" text-anchor="middle" fill="#1E293B" font-size="9.5">按张回调发货通知(物流单号+承运商)</text>
+<rect x="320" y="1260" width="320" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="480" y="1280" text-anchor="middle" fill="#1E293B" font-size="9.5">记录各张国内物流信息(订单状态不变,仍为paid)</text>
+<rect x="435" y="1311" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="480" y="1328" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">国内发货完成</text>
+<rect x="1045" y="1567" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1090" y="1584" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始：国内物流送达上海集货仓(按张,可能 N 次)</text>
+<rect x="980" y="1612" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1090" y="1632" text-anchor="middle" fill="#1E293B" font-size="9.5">红布林逐张确认国内物流签收</text>
+<rect x="370" y="1664" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="480" y="1684" text-anchor="middle" fill="#1E293B" font-size="9.5">按张回调国内签收通知</text>
+<rect x="320" y="1716" width="320" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="480" y="1736" text-anchor="middle" fill="#1E293B" font-size="9.5">记录各张国内签收节点(订单状态不变,仍为paid)</text>
+<rect x="360" y="1764" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="480" y="1784" text-anchor="middle" fill="#1E293B" font-size="9.5">拾二线下：上海收货+验货通过</text>
+<rect x="380" y="1812" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="480" y="1832" text-anchor="middle" fill="#1E293B" font-size="9.5">拾二线下：报关完成出关</text>
+<rect x="300" y="1860" width="360" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="480" y="1880" text-anchor="middle" fill="#1E293B" font-size="9.5">looply运营后台录入国际物流单号 → 订单状态(已发货 shipped)</text>
+<rect x="435" y="1911" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="480" y="1928" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">履约状态同步完成</text>
+<rect x="435" y="2231" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="480" y="2248" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">开始：用户/运营发起取消</text>
+<polygon points="480,2279 555,2304 480,2329 405,2304" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="480" y="2308" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">取消时的履约阶段?</text>
+<rect x="56" y="2346" width="190" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="151" y="2366" text-anchor="middle" fill="#1E293B" font-size="9.5">按件取消对应红布林订单</text>
+<rect x="71" y="2394" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="151" y="2414" text-anchor="middle" fill="#1E293B" font-size="9.5">释放对应库存+关单</text>
+<rect x="287" y="2346" width="190" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="382" y="2366" text-anchor="middle" fill="#1E293B" font-size="9.5">按件取消对应红布林订单</text>
+<rect x="282" y="2394" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="382" y="2414" text-anchor="middle" fill="#1E293B" font-size="9.5">退对应件款+释放对应库存</text>
+<rect x="518" y="2346" width="190" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="613" y="2366" text-anchor="middle" fill="#1E293B" font-size="9.5">人工协调红布林退回(按件)</text>
+<rect x="553" y="2394" width="120" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="613" y="2414" text-anchor="middle" fill="#1E293B" font-size="9.5">退对应件款</text>
+<rect x="744" y="2346" width="160" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="824" y="2366" text-anchor="middle" fill="#1E293B" font-size="9.5">转looply售后退货</text>
+<rect x="435" y="2461" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="480" y="2478" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">取消退回完成</text>
+<rect x="350" y="722" width="420" height="252" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="560" y="744" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">一单一件(1:N) / 待与红布林技术确认</text><text x="560" y="762" text-anchor="middle" fill="#7F1D1D" font-size="9">一单一件：looply 父订单含 N 件 → 红布林侧建 N 张订单，每张 1 件(1:N)</text><text x="560" y="778" text-anchor="middle" fill="#7F1D1D" font-size="9">类目路由(业务根因)：N 张的采购账号、上海收货地址按商品类目各不相同，不同类目走不同账号+不同上海地址</text><text x="560" y="794" text-anchor="middle" fill="#7F1D1D" font-size="9">待付款建单：下单即逐件调红布林锁库存+建 N 张红布林订单(待支付)，占住一物一码商品</text><text x="560" y="810" text-anchor="middle" fill="#7F1D1D" font-size="9">驱动支付：looply支付成功后 N 张逐张调红布林更新为已支付，才触发真实发货；looply订单保持paid</text><text x="560" y="826" text-anchor="middle" fill="#7F1D1D" font-size="9">支付未成功(超时 或 支付单最终failed)：先让looply订单转取消,再由订单取消驱动 N 张逐张调红布林取消+释放库存+looply关单(closed)</text><text x="560" y="842" text-anchor="middle" fill="#7F1D1D" font-size="9">★取消触发约束：红布林取消必须由looply订单变为取消状态才触发,不允许支付单failed直接调红布林取消</text><text x="560" y="858" text-anchor="middle" fill="#7F1D1D" font-size="9">超时口径：looply支付超时以订单支付模块最新规则为准(非1自然日,待核实);红布林侧超时自动取消=120H,红布林控制,looply知晓即可</text><text x="560" y="874" text-anchor="middle" fill="#7F1D1D" font-size="9">缺货：下单时任一件红布林无库存→该件建单失败</text><text x="560" y="890" text-anchor="middle" fill="#7F1D1D" font-size="9">★前置依赖(最高优先级)：合并发货能力——红布林能否把 N 张订单合并成包裹？不同类目本就不同上海地址、天然分开；同类目多张能否合并待确认</text><text x="560" y="906" text-anchor="middle" fill="#7F1D1D" font-size="9">待确认：N 张建单原子性——某张建失败暂定整单失败 + 已建的逐张回滚取消</text><text x="560" y="922" text-anchor="middle" fill="#7F1D1D" font-size="9">阻塞项：取消订单接口在现有红布林技术文档中尚未列出</text><text x="560" y="938" text-anchor="middle" fill="#7F1D1D" font-size="9">待确认：红布林订单API(建单/驱动支付/取消)字段、幂等、状态回调</text>
+<rect x="370" y="1354" width="380" height="124" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="560" y="1376" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">状态说明(一单一件)</text><text x="560" y="1394" text-anchor="middle" fill="#7F1D1D" font-size="9">一单一件下发货回调按张触发：N 张各自发货，looply 可能收到 N 次发货回调</text><text x="560" y="1410" text-anchor="middle" fill="#7F1D1D" font-size="9">红布林发货后 looply 仅记录各张国内物流信息，不更新订单状态</text><text x="560" y="1426" text-anchor="middle" fill="#7F1D1D" font-size="9">★前置依赖：合并发货能力——红布林能否把 N 张合并成包裹发货？不同类目不同上海地址天然分开；同类目多张能否合并待红布林确认</text><text x="560" y="1442" text-anchor="middle" fill="#7F1D1D" font-size="9">looply 订单在国内收货且报关出关后才显示已发货(见③)</text>
+<rect x="360" y="1954" width="400" height="188" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="560" y="1976" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">线下节点说明(一单一件)</text><text x="560" y="1994" text-anchor="middle" fill="#7F1D1D" font-size="9">一单一件下签收回调按张触发：N 张各自签收，looply 可能收到 N 次签收回调</text><text x="560" y="2010" text-anchor="middle" fill="#7F1D1D" font-size="9">签收回调触发时点=国内物流签收(非上海仓验收完成)，由红布林按张回调告知 looply</text><text x="560" y="2026" text-anchor="middle" fill="#7F1D1D" font-size="9">looply 收到签收回调后记录各张签收节点，订单状态不变(仍 paid)</text><text x="560" y="2042" text-anchor="middle" fill="#7F1D1D" font-size="9">上海集货仓收货/验货、报关、国际物流交运均由拾二线下全权处理</text><text x="560" y="2058" text-anchor="middle" fill="#7F1D1D" font-size="9">国内收货且报关出关后，运营录入国际物流单号，订单才更新为已发货(shipped)</text><text x="560" y="2074" text-anchor="middle" fill="#7F1D1D" font-size="9">国际物流单号由 looply 运营在后台录入（非拾二）</text><text x="560" y="2090" text-anchor="middle" fill="#7F1D1D" font-size="9">报关方式(单件/批量)由拾二决定，系统不关心</text><text x="560" y="2106" text-anchor="middle" fill="#7F1D1D" font-size="9">待确认：签收回调的字段与幂等</text>
+<rect x="340" y="2504" width="440" height="156" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="560" y="2526" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">取消/退回分阶段说明(一单一件)</text><text x="560" y="2544" text-anchor="middle" fill="#7F1D1D" font-size="9">一单一件：退某件 = 取消对应那张红布林订单；每张1件，整单取消即可，不再有「部分退」</text><text x="560" y="2560" text-anchor="middle" fill="#7F1D1D" font-size="9">支付前(待付款)：接口对接，按件取消对应红布林订单+释放对应库存+关单（未支付无退款）</text><text x="560" y="2576" text-anchor="middle" fill="#7F1D1D" font-size="9">支付后·红布林发货前：接口对接，按件取消对应红布林订单+退对应件款+释放对应库存</text><text x="560" y="2592" text-anchor="middle" fill="#7F1D1D" font-size="9">红布林发货后·looply发国际物流前：线下人工协调红布林退回(按件)+退对应件款</text><text x="560" y="2608" text-anchor="middle" fill="#7F1D1D" font-size="9">looply发国际物流后：进入 looply 售后退货阶段，与红布林不再有关系</text><text x="560" y="2624" text-anchor="middle" fill="#7F1D1D" font-size="9">阻塞项：取消订单接口在现有红布林技术文档中尚未列出</text>
+<rect x="0" y="2718" width="1260" height="60" fill="#fff" stroke="#E2E8F0" stroke-width="1"/>
+<text x="20" y="2743" fill="#1E293B" font-size="12" font-weight="600">图例：</text>
+<rect x="75" y="2731" width="50" height="20" rx="10" fill="#fff" stroke="#64748B" stroke-width="1.2"/>
+<text x="100" y="2745" text-anchor="middle" fill="#64748B" font-size="8">开始/结束</text>
+<rect x="140" y="2731" width="50" height="20" rx="3" fill="#fff" stroke="#475569" stroke-width="1.2"/>
+<text x="165" y="2745" text-anchor="middle" fill="#475569" font-size="8">操作步骤</text>
+<polygon points="225,2731 240,2741 225,2751 210,2741" fill="#FEF3C7" stroke="#D97706" stroke-width="1.2"/>
+<text x="225" y="2745" text-anchor="middle" fill="#92400E" font-size="7">判断</text>
+<line x1="260" y1="2741" x2="310" y2="2741" stroke="#475569" stroke-width="1.3" marker-end="url(#arr)"/>
+<text x="285" y="2736" text-anchor="middle" fill="#475569" font-size="8">正常流向</text>
+<line x1="330" y1="2741" x2="380" y2="2741" stroke="#DC2626" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="355" y="2736" text-anchor="middle" fill="#DC2626" font-size="8">异常/回退</text>
+<rect x="420" y="2733" width="12" height="12" rx="2" fill="#4A6CF7" opacity="0.3"/>
+<text x="438" y="2744" fill="#4A6CF7" font-size="9">looply 系统</text>
+<rect x="520" y="2733" width="12" height="12" rx="2" fill="#F59E0B" opacity="0.3"/>
+<text x="538" y="2744" fill="#F59E0B" font-size="9">红布林系统</text>
+</svg>

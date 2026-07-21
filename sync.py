@@ -410,6 +410,32 @@ MODULES = {
             },
         },
     },
+    'rhl_order': {
+        'name': '红布林订单对接',
+        'default_source': '$HOME/Desktop/海外业务/红布林订单对接',
+        'target': 'docs-红布林订单对接',
+        'keywords': ['红布林订单', 'rhlorder', '订单对接'],
+        'config_key': 'rhl_order',
+        'artifacts': {
+            'prototype': {
+                'subdir': '原型',
+                'pattern': r'looply-红布林订单对接-后台原型-v(.+?)\.html',
+                'exclude': r'(backup|report)',
+            },
+            'prd': {
+                'subdir': 'PRD',
+                'pattern': r'looply-红布林订单对接-PRD-v(.+?)\.md',
+            },
+            'flowchart': {
+                'subdir': '系统流程图',
+                'pattern': r'looply-交易链路与国内二奢系统衔接-系统流程图-v(.+?)\.svg',
+            },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'红布林订单对接-交付开发 V(.+?)\.zip',
+            },
+        },
+    },
     'shop': {
         'name': 'Shop页导航',
         'default_source': '$HOME/looply/shop',
