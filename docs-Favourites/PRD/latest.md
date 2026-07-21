@@ -91,25 +91,10 @@ Favorites 的首次进入、重新进入、从子页面返回、回到前台和�
 
 当 App 策略触发刷新，或用户在 Favorites 主动下拉刷新时：
 
-1. Wishlist、Recently Viewed、Recommended for You 并行请求，彼此不阻塞；
-2. 每个模块成功后独立更新，不等待其他模块；
-3. 有可用缓存时，保留当前内容和位置，不用 Loading、空白或骨架覆盖；
-4. Recommended for You 空结果或不满足展示条件时静默隐藏，不视为页面加载失败；
-5. Recommended for You 已有缓存 Feed 时刷新失败，保留当前 Feed 并静默处理，不显示模块错误、Toast 或末尾 Retry；等待下次页面统一刷新再尝试更新；
-6. Wishlist 或 Recently Viewed 刷新失败且有缓存时，保留该模块的商品卡、数量、Price Drop 和横向位置；在**对应模块标题下方**显示轻量行内提示与 `Retry`，不使用页面顶部浮层；
-7. Wishlist 提示为 `Couldn’t refresh your wishlist`，Recently Viewed 提示为 `Couldn’t refresh recently viewed items`；点击 `Retry` 只重新请求当前失败模块，不影响其他模块；
-8. 三个模块均刷新失败但仍有任一缓存内容时，保留旧内容；只有三者均无可用内容时才进入 App 统一整页错误态；
-9. 下拉刷新属于页面级刷新，默认并行请求三个模块；模块级 Retry 仅重试对应失败模块。
-
-两个模块的刷新失败提示使用相同结构、信息密度、错误层级与 Retry 交互；固定文案进入 `en-US` / `es-US` 的 UI message package。App 页面容器仍负责刷新触发、缓存有效期和回到前台策略；Favorites 负责模块内可见降级与模块级 Retry。
-
-### 2.3 关联完整列表页加载基线
-
-本节仅统一从 Favorites Overview 跳转到 Wishlist 完整页和完整浏览历史页后的公共列表加载规则，不扩展 Favorites Overview 的其他职责：
-
-- 移动端完整列表页使用上滑无限滚动，每页最多加载 40 个商品。
-- 移动端无更多数据时使用系统原生 overscroll 回弹。
-- PC 端完整列表页使用 `View More` 加载，每次追加 40 个商品；全部数据加载完成后，`View More` 按钮消失。
+1. Wishlist、Recently Viewed、Recommended for You 并行请求，各模块成功后独立更新；
+2. 有可用缓存时，刷新期间保留当前内容和位置；
+3. 下拉刷新请求三个模块；模块级 `Retry` 仅重试对应模块；
+4. 各模块的刷新失败、缓存保留和 Retry 规则见第四章。
 
 ## 三、模块详细规则
 
@@ -132,18 +117,18 @@ Wishlist 使用上游提供的真实总数、有序列表和收藏状态。预�
 |---|---|---|
 | 在售 | 未收藏 | 空心，可加入。 |
 | 在售 | 已收藏 | 实心，可移出。 |
-| Sold Out | 未收藏 | 展示置灰空心，禁用点击，不允许新加入。 |
+| Sold Out | 未收藏 | 展示置灰空心，禁用点击。 |
 | Sold Out | 已收藏 | 保留实心且可操作，可移出。 |
 
-本期只消费商品系统返回的在售或 Sold Out 状态，不新增“已失效”商品状态。Sold Out 卡使用整卡灰色蒙版，但不得阻断已收藏商品的移出操作；商品从在售变为 Sold Out 后不自动移出 Wishlist。
+商品支持在售和 Sold Out 两种展示状态。Sold Out 卡整卡灰化；已收藏商品保留可操作的实心心形。商品从在售变为 Sold Out 后仍保留在 Wishlist。
 
 Price Drop 完全使用 Wishlist 上游返回的“可购买 Price Drop 总数”，不得从预览数组、分页或当前卡片自行计算；上游负责排除 Sold Out。`N > 0` 显示提示条，`N = 0` 或数量失败时隐藏；文案使用 `1 item dropped in price` / `{N} items dropped in price` 的 i18n 复数规则。点击提示条进入 Wishlist 完整页并定位 Price Drop Tab。
 
-`View all` 进入 Wishlist 完整页 All Tab，不属于 Favorites 内加载更多；目标页加载失败由 Wishlist 完整页处理。
+`View all` 进入 Wishlist 完整页 All Tab。
 
 ### 3.2 Recently Viewed
 
-Recently Viewed 使用浏览历史上游返回的顺序、真实总数、商品字段和本地化浏览时间；不二次排序或去重，横向最多预览 30 件。浏览时间未返回时隐藏，不由 Favorites 计算或格式化。
+Recently Viewed 直接展示浏览历史上游返回的顺序、真实总数、商品字段和本地化浏览时间，横向最多预览 30 件；浏览时间缺失时隐藏。
 
 | 上游总数 | 标题 View all | 列表末尾 | 展示规则 |
 |---|---|---|---|
@@ -153,23 +138,23 @@ Recently Viewed 使用浏览历史上游返回的顺序、真实总数、商品�
 | 4–30 | 展示 | `View all` | 展示全部预览商品。 |
 | 大于 30 | 展示 | 第 30 件后 `View all` | 只预览前 30 件。 |
 
-商品卡展示商品图、品牌、名称、可选成色、价格、可选浏览时间、可选降价、Wishlist 心形与 Sold Out；不展示无操作含义的时钟图标。卡片主体进入商品详情；心形仅切换 Wishlist，不得触发商品跳转。加入或移出 Wishlist 后，浏览记录卡保持原位置，不从 Recently Viewed 移除；Wishlist 概览在下一次权威刷新中再更新。
+商品卡展示商品图、品牌、名称、可选成色、价格、可选浏览时间、可选降价、Wishlist 心形与 Sold Out。卡片主体进入商品详情；心形仅切换 Wishlist，不得触发商品跳转。加入或移出 Wishlist 后，浏览记录卡保持原位置；Wishlist 概览在下一次权威刷新中更新。
 
-Recently Viewed 的 Sold Out 心形规则、Price Drop 上游数量规则、Loading、首次失败、缓存刷新失败和全售罄视觉层级与 Wishlist 一致。Price Drop 点击进入完整浏览历史页并定位 Price Drop Tab；`View all` 进入完整浏览历史 All Tab，不属于 Favorites 内加载更多。
+Recently Viewed 的 Sold Out 心形规则、Price Drop 上游数量规则、Loading、首次失败、缓存刷新失败和全售罄视觉层级与 Wishlist 一致。Price Drop 点击进入完整浏览历史页并定位 Price Drop Tab；`View all` 进入完整浏览历史 All Tab。
 
 ### 3.3 Recommended for You
 
-Recommended for You 仅在推荐上游基于当前登录或匿名主体返回非空个性化结果时出现。行为数据不足、空结果或首次请求失败时静默隐藏；不使用 Home 通用推荐流补足，也不展示 `Based on your activity` 等副标题。
+Recommended for You 仅在推荐上游基于当前登录或匿名主体返回非空个性化结果时出现。行为数据不足、空结果或首次请求失败时静默隐藏。
 
-推荐上游必须只返回可购买商品，Sold Out 在上游过滤。Favorites 不为 Recommend 定义 Sold Out 卡片、蒙版或 Sold Out 心形分支。
+推荐上游只返回可购买商品，Sold Out 在上游过滤。
 
 推荐使用双列商品 Feed。卡片主体进入商品详情；心形支持加入或移出 Wishlist，写入失败时恢复点击前状态，写入中不可重复点击，卡片位置不变化。加载更多失败时保留已有商品，并在 Feed 末尾提供轻量 Retry。
 
 ### 3.4 Heart 写入失败的统一规则
 
-Wishlist、Recently Viewed 与 Recommended for You 的心形均采用同一业务规则。同一页面中，相同 `listing_id` 共用 Wishlist 状态：任一商品卡发起收藏或取消收藏后，所有同商品心形先乐观切换；同一商品写入中不可重复点击；写入失败时所有同商品心形统一恢复点击前状态。心形状态实时联动，但商品卡增删、模块数量、排序、Price Drop 入口及其他模块结构只在权威刷新后更新。
+同一页面中，相同 `listing_id` 共用 Wishlist 状态：任一商品卡发起收藏或取消收藏后，所有同商品心形乐观更新；写入中不可重复点击，写入失败时统一回滚。心形状态即时联动，商品卡、模块数量、排序和入口在权威刷新后更新。
 
-回滚完成后，展示轻量 Toast：`Couldn’t update Wishlist. Try again.`。该 Toast 仅用于失败；不展示取消收藏成功 Toast。三个模块共用同一提示和 i18n key。普通写入失败不得误触发登录流程；会话失效才遵循登录注册模块的统一恢复规则。
+回滚完成后展示轻量 Toast：`Couldn’t update Wishlist. Try again.`，三个模块共用同一提示和 i18n key。普通写入失败保留当前登录状态；会话失效时使用登录注册模块的统一恢复规则。
 
 ## 四、状态、异常与组合场景
 
@@ -257,5 +242,3 @@ Favorites 不采集商品标题、浏览时间文案、完整商品列表、原�
 | 两个核心模块同时失败、Recommend 可用 | `Page · Wishlist + Recently failed`。 |
 | 所有业务数据不可用 | `Page · All data failed`。 |
 | Recommend 无数据、首次失败、加载更多失败 | Recommend 对应状态选择器。 |
-
-本版不新增接口清单、实体关系图、产品架构图或泳道图；本页面仅聚合既有上游结果。
