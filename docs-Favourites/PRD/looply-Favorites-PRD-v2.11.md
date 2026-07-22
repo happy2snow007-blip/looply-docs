@@ -144,7 +144,7 @@ Recently Viewed 直接展示浏览历史上游返回的顺序、真实总数、�
 
 商品卡展示商品图、品牌、名称、可选成色、价格、可选浏览时间、可选降价、删除入口与 Sold Out，不展示 Wishlist 心形。卡片主体进入商品详情；点击右上角删除入口只删除当前浏览记录，不得触发商品跳转。
 
-单条删除与完整浏览记录页保持一致：操作后立即从当前预览移除卡片，并更新 Recently Viewed 数量及对应入口；删除失败时恢复原卡片和数量，并展示轻量 Toast：`Couldn’t remove this item. Try again.`。Sold Out 浏览记录同样允许删除。
+单条删除与完整浏览记录页保持一致：操作后立即从当前预览移除卡片。删除成功后，使用浏览历史上游的最新结果同步更新 Recently Viewed 总数、Price Drop 数量及对应入口；若 Price Drop 数量变为 0，在卡片完成删除收起后，通过高度与透明度过渡平滑收起提示条，动效参数遵循 App 全局 UI 规范，减少动态效果开启时使用全局默认处理。删除失败时恢复原卡片、总数、Price Drop 数量及相关入口，并展示轻量 Toast：`Couldn’t remove this item. Try again.`。Sold Out 浏览记录同样允许删除。
 
 Recently Viewed 与 Wishlist 的加载和异常反馈保持一致，具体按第四章的公共状态规则执行；Price Drop 上游数量和全售罄视觉层级同样保持一致。Price Drop 点击进入完整浏览历史页并定位 Price Drop Tab；`View all` 进入完整浏览历史 All Tab。
 
@@ -199,7 +199,7 @@ Wishlist 与 Recently Viewed 的同类状态使用一致的视觉层级：
 | 依赖 | Favorites 的关键要求 |
 |---|---|
 | Wishlist / 收藏关系 | 当前主体的有序预览、真实总数、收藏状态、Wishlist 写入、可购买 Price Drop 总数和完整页定位。 |
-| 浏览历史 | 当前主体的有序预览、真实总数、本地化浏览时间、单条删除、可购买 Price Drop 总数和完整页定位。 |
+| 浏览历史 | 当前主体的有序预览、真实总数、本地化浏览时间、单条删除、统一的删除成功与失败反馈、可购买 Price Drop 总数和完整页定位。 |
 | 推荐 | 基于当前主体的 Wishlist、加购、购买和商品点击浏览行为生成个性化结果；仅有点击浏览行为时使用分段函数判断是否返回。结果只包含可购买商品，并排除已购买及当前页面 Wishlist / Recently Viewed 已展示的同 `listing_id` 商品。购买行为及订单状态口径由推荐侧定义。 |
 | 订单 | 为推荐侧提供购买行为及对应 `listing_id`。 |
 | 商品系统 | 最终本地化商品字段、价格与币种、成色、在售 / Sold Out 状态与商品详情目标。 |
@@ -207,7 +207,7 @@ Wishlist 与 Recently Viewed 的同类状态使用一致的视觉层级：
 | 统一身份 / 登录注册 | 当前主体、登录复制完成信号、会话恢复和退出结果。 |
 | Home / Search / Cart / 商品详情 | 统一目标页、目标区域定位和返回恢复。 |
 
-开发前需与 App 页面容器确认统一刷新触发时机、缓存有效期和回到前台规则；推荐侧需按本 PRD 过滤 Sold Out、已购买同 `listing_id` 及当前页面重复商品；与 Wishlist / 浏览历史确认模块 Retry 和权威刷新结果契约、Wishlist 写入结果及单条浏览记录删除结果契约。
+开发前需与 App 页面容器确认统一刷新触发时机、缓存有效期和回到前台规则；推荐侧需按本 PRD 过滤 Sold Out、已购买同 `listing_id` 及当前页面重复商品；与 Wishlist / 浏览历史确认模块 Retry 和权威刷新结果契约、Wishlist 写入结果，以及单条删除后的浏览历史总数与可购买 Price Drop 总数。
 
 ### 5.2 数据与埋点
 
@@ -243,7 +243,7 @@ Favorites 不采集商品标题、浏览时间文案、完整商品列表、原�
 13. 推荐侧使用当前主体的 Wishlist、加购、购买和商品点击浏览行为；仅有点击浏览行为时由推荐侧使用分段函数判断是否返回。返回非空结果时展示，行为条件不满足、结果为空或首次失败时静默隐藏；Favorites 前端不自行计算推荐资格。
 14. Recommended for You 不展示与当前页面 Wishlist 或 Recently Viewed 相同 `listing_id` 的商品；去重后有 1 件商品仍展示，无剩余商品时静默隐藏模块。
 15. 推荐侧识别为已购买的同一 `listing_id` 不出现在推荐结果中；购买行为仍可作为其他商品的偏好信号。哪些订单状态计入购买信号由推荐侧定义。
-16. Recently Viewed 概览卡不显示 Wishlist 心形；点击删除入口后立即移除卡片并更新数量及入口，失败时恢复原状态并展示 `Couldn’t remove this item. Try again.`；Sold Out 记录同样可删除。
+16. Recently Viewed 概览卡不显示 Wishlist 心形；点击删除入口后立即移除卡片。删除成功后同步更新上游返回的 Recently Viewed 总数、Price Drop 数量及对应入口；Price Drop 变为 0 时，在卡片删除收起后平滑收起提示条，不发生突兀跳变；失败时恢复卡片、两类数量与相关入口，并展示 `Couldn’t remove this item. Try again.`；Sold Out 记录同样可删除。
 
 Recommended for You 验收用例：
 
@@ -255,6 +255,7 @@ Recommended for You 验收用例：
 | 已购买同一商品 | 推荐候选中包含推荐侧识别为已购买的 `listing_id`。 | 已购买商品不出现；该购买行为仍可用于其他商品的个性化。 |
 | 去重后剩余 1 件 | 排除 Wishlist 和 Recently Viewed 重复商品后，只剩 1 件可展示商品。 | 模块正常展示该商品。 |
 | 去重后为空 | 推荐候选全部与 Wishlist 或 Recently Viewed 当前已展示商品重复。 | Recommended for You 静默隐藏。 |
+| 删除浏览记录后的当前 Feed | 页面已展示 Recommended for You，用户成功删除一条 Recently Viewed 记录。 | 当前推荐商品、顺序和位置不立即变化；下次页面统一刷新时，使用推荐侧基于最新行为与页面数据返回的新结果。 |
 
 ## 六、版本规划
 

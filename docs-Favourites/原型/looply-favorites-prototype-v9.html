@@ -8,7 +8,6 @@
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{background:#F5F5F7;font-family:-apple-system,BlinkMacSystemFont,'Inter','SF Pro Text',sans-serif;display:flex;justify-content:center;height:100vh;overflow:hidden;color:#1A1A1A}
 .phone{width:390px;height:100vh;position:relative;overflow:hidden;background:#F5F5F7}
-
 /* ─── Status Bar ─── */
 .status-bar{height:50px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:50}
 .status-time{font-size:15px;font-weight:700;letter-spacing:-.2px}
@@ -58,6 +57,10 @@ body{background:#F5F5F7;font-family:-apple-system,BlinkMacSystemFont,'Inter','SF
 /* clock top-right on RV mini card */
 .mini-clock{position:absolute;top:8px;right:8px;width:26px;height:26px;background:rgba(255,255,255,.9);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .mini-clock svg{width:13px;height:13px;color:#6B7280}
+.mini-remove{position:absolute;top:8px;right:8px;width:26px;height:26px;padding:0;border:0;background:rgba(255,255,255,.92);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#6B7280;box-shadow:0 1px 3px rgba(0,0,0,.12);cursor:pointer;z-index:8;touch-action:manipulation}
+.mini-remove svg{width:12px;height:12px}
+.mini-card.rv-removing{opacity:0;transform:scale(.98);pointer-events:none;transition:opacity .18s ease,transform .18s ease}
+.sold-out-card .mini-remove,.all-sold-demo .mini-card .mini-remove{z-index:9;background:#fff}
 .mini-drop-badge{position:absolute;bottom:6px;left:6px;background:#16A34A;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:8px;display:flex;align-items:center;gap:3px}
 .mini-drop-badge svg{width:9px;height:9px}
 .mini-sold-overlay{position:absolute;inset:0;background:rgba(255,255,255,.65);display:flex;align-items:center;justify-content:center}
@@ -73,6 +76,8 @@ body{background:#F5F5F7;font-family:-apple-system,BlinkMacSystemFont,'Inter','SF
 
 /* ─── Price drop banner: positive savings semantic ─── */
 .pdrop-banner{height:50px;display:flex;align-items:center;gap:10px;background:#F0FDF4;border:1px solid #DCFCE7;border-radius:10px;overflow:hidden;margin:0 20px 16px;padding:0 12px;cursor:pointer}
+.pdrop-banner.is-collapsing{height:0;opacity:0;transform:translateY(-4px);margin-bottom:0;padding-top:0;padding-bottom:0;border-width:0;pointer-events:none;transition:height .22s ease,opacity .16s ease,transform .22s ease,margin-bottom .22s ease,padding .22s ease,border-width .22s ease}
+@media (prefers-reduced-motion:reduce){.pdrop-banner.is-collapsing{transition:none;transform:none}}
 .pdrop-banner-imgs{width:28px;height:28px;border-radius:50%;background:#DCFCE7;flex-shrink:0;position:relative;overflow:hidden}
 .pdrop-banner-imgs img{display:none}
 .pdrop-banner-imgs .blur-lock{position:absolute;inset:0;background:transparent;display:flex;align-items:center;justify-content:center}
@@ -903,7 +908,7 @@ svg{display:block}
   <option value="empty">Recently · Empty</option>
   <option value="error">Recently · Load failed</option>
   <option value="price-one">Recently · 1 price drop</option>
-  <option value="heart-error">Recently · Heart failed (global UI)</option>
+  <option value="remove-error">Recently · Remove failed</option>
   <option value="no-price-drop">Recently · No price drops</option>
   <option value="all-sold">Recently · All sold out</option>
   <option value="refresh-error">Recently · Refresh failed (global UI)</option>
@@ -922,6 +927,8 @@ svg{display:block}
   <option value="both-error">Page · Wishlist + Recently failed</option>
   <option value="all-data-error">Page · All data failed</option>
 </select>
+
+</div><!-- /phone -->
 
 <script>
 var likedTotal = 42;
@@ -1143,50 +1150,73 @@ function initLikedOverviewDemo() {
 
 var rvTotal = 42;
 var rvDemoMode = 'ready';
+var rvPriceDropCollapseTimer = null;
 
-function recentlyViewedHeartMarkup(isSaved, isDisabled) {
-  return '<div class="mini-heart' + (isDisabled ? ' is-disabled' : '') + '" role="button" aria-pressed="' + (isSaved ? 'true' : 'false') + '" aria-disabled="' + (isDisabled ? 'true' : 'false') + '" aria-label="' + (isDisabled ? 'Sold out item cannot be added to Wishlist' : (isSaved ? 'Remove from Wishlist' : 'Add to Wishlist')) + '"><span style="color:' + (isSaved ? '#EF4444' : '#9CA3AF') + ';font-size:15px">' + (isSaved ? '♥' : '♡') + '</span></div>';
+function collapseRecentlyViewedPriceDrop() {
+  var banner = document.getElementById('rv-price-drop');
+  if (!banner || banner.style.display === 'none') return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    banner.style.display = 'none';
+    return;
+  }
+  banner.classList.add('is-collapsing');
+  rvPriceDropCollapseTimer = setTimeout(function(){
+    banner.style.display = 'none';
+    banner.classList.remove('is-collapsing');
+    rvPriceDropCollapseTimer = null;
+  }, 220);
 }
 
-function handleRecentlyViewedHeart(event) {
+function recentlyViewedRemoveMarkup() {
+  return '<button class="mini-remove" type="button" aria-label="Remove from recently viewed"><svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="2" x2="11" y2="11"/><line x1="11" y1="2" x2="2" y2="11"/></svg></button>';
+}
+
+function handleRecentlyViewedRemove(event) {
   event.preventDefault();
   event.stopPropagation();
   if (event.stopImmediatePropagation) event.stopImmediatePropagation();
-  var heart = event.currentTarget;
-  if (heart.getAttribute('aria-disabled') === 'true') return false;
-  var wasSaved = heart.getAttribute('aria-pressed') === 'true';
-  setMiniHeartVisual(heart, !wasSaved);
-  var card = heart.closest('.mini-card');
-  setMiniHeartAvailability(heart, !!card && (card.classList.contains('sold-out-card') || !!card.closest('.all-sold-demo')));
-  if (rvDemoMode === 'heart-error') {
-    heart.setAttribute('aria-disabled', 'true');
-    heart.classList.add('is-disabled');
+  var button = event.currentTarget;
+  var card = button.closest('.mini-card');
+  if (!card || card.dataset.removeBusy === 'true') return false;
+  card.dataset.removeBusy = 'true';
+  card.classList.add('rv-removing');
+  if (rvDemoMode === 'remove-error') {
     setTimeout(function(){
-      setMiniHeartVisual(heart, wasSaved);
-      setMiniHeartAvailability(heart, !!card && (card.classList.contains('sold-out-card') || !!card.closest('.all-sold-demo')));
-      showFavoritesFeedback('Couldn’t update Wishlist. Try again.');
+      card.classList.remove('rv-removing');
+      delete card.dataset.removeBusy;
+      showFavoritesFeedback('Couldn’t remove this item. Try again.');
     }, 450);
+    return false;
   }
+  setTimeout(function(){
+    card.style.display = 'none';
+    card.classList.remove('rv-removing');
+    delete card.dataset.removeBusy;
+    var count = document.getElementById('rv-count');
+    var current = parseInt(count.textContent, 10);
+    var next = Math.max(0, (isNaN(current) ? rvTotal : current) - 1);
+    count.textContent = next + (next === 1 ? ' item' : ' items');
+    var summary = document.querySelector('#rv-strip .view-all-card .view-all-sub');
+    if (summary) summary.textContent = next + ' recently viewed';
+    // Price Drop demo: the removed card represents the only price-drop item.
+    if (rvDemoMode === 'price-one') collapseRecentlyViewedPriceDrop();
+    if (next === 0) setRecentlyViewedState('empty');
+  }, 180);
   return false;
 }
 
-function setupRecentlyViewedHearts() {
-  document.querySelectorAll('#rv-strip .mini-card').forEach(function(card, index){
-    var soldOut = card.classList.contains('sold-out-card');
-    var clock = card.querySelector('.mini-clock');
-    if (clock) clock.outerHTML = recentlyViewedHeartMarkup(index === 0 && !soldOut, soldOut);
-    var heart = card.querySelector('.mini-heart');
-    if (!heart || heart.dataset.bound === 'true') return;
-    heart.dataset.bound = 'true';
-    heart.addEventListener('pointerdown', function(event){ event.stopPropagation(); });
-    heart.addEventListener('pointerup', function(event){ event.stopPropagation(); });
-    heart.addEventListener('click', handleRecentlyViewedHeart);
-  });
-}
-
-function setRecentlyViewedHeartAvailability(allSoldOut) {
+function setupRecentlyViewedRemoveButtons() {
   document.querySelectorAll('#rv-strip .mini-card').forEach(function(card){
-    setMiniHeartAvailability(card.querySelector('.mini-heart'), allSoldOut || card.classList.contains('sold-out-card'));
+    var clock = card.querySelector('.mini-clock');
+    if (clock) clock.outerHTML = recentlyViewedRemoveMarkup();
+    var staleHeart = card.querySelector('.mini-heart');
+    if (staleHeart) staleHeart.outerHTML = recentlyViewedRemoveMarkup();
+    var button = card.querySelector('.mini-remove');
+    if (!button || button.dataset.bound === 'true') return;
+    button.dataset.bound = 'true';
+    button.addEventListener('pointerdown', function(event){ event.stopPropagation(); });
+    button.addEventListener('pointerup', function(event){ event.stopPropagation(); });
+    button.addEventListener('click', handleRecentlyViewedRemove);
   });
 }
 
@@ -1220,7 +1250,7 @@ function initRecentlyViewedDemo() {
   exploreMore.innerHTML = '<div class="view-all-circle">＋</div><div class="view-all-title">Explore more</div><div class="view-all-sub">Discover more finds</div>';
   exploreMore.addEventListener('click', function(event){ event.stopPropagation(); openHomeDemo(); });
   strip.appendChild(exploreMore);
-  setupRecentlyViewedHearts();
+  setupRecentlyViewedRemoveButtons();
   setRecentlyViewedState('ready');
 }
 
@@ -1336,20 +1366,24 @@ function setRecentlyViewedState(mode) {
   var bannerMain = banner.querySelector('.pdrop-banner-main');
   var count = document.getElementById('rv-count');
   var headerViewAll = document.getElementById('rv-view-all-header');
+  if (rvPriceDropCollapseTimer) {
+    clearTimeout(rvPriceDropCollapseTimer);
+    rvPriceDropCollapseTimer = null;
+  }
+  banner.classList.remove('is-collapsing');
   count.classList.remove('is-loading');
   rvDemoMode = mode;
   ['rv-loading','rv-empty-state','rv-error-state'].forEach(function(id){ document.getElementById(id).classList.remove('show'); });
   section.style.display = '';
   strip.style.display = 'flex';
   strip.classList.remove('all-sold-demo');
-  cards.forEach(function(card){ card.style.display = ''; });
+  cards.forEach(function(card){ card.style.display = ''; card.classList.remove('rv-removing'); delete card.dataset.removeBusy; });
   if (terminal) terminal.style.display = 'flex';
   if (exploreMore) exploreMore.style.display = 'none';
   banner.style.display = 'flex';
   bannerMain.textContent = '2 items dropped in price';
   headerViewAll.style.display = '';
   count.textContent = rvTotal + ' items';
-  setRecentlyViewedHeartAvailability(false);
   if (mode !== 'refresh-error') clearModuleRefreshFailure('recently-viewed');
 
   if (mode === 'one-item') {
@@ -1378,12 +1412,11 @@ function setRecentlyViewedState(mode) {
     document.getElementById('rv-error-state').classList.add('show');
   } else if (mode === 'price-one') {
     bannerMain.textContent = '1 item dropped in price';
-  } else if (mode === 'heart-error') {
+  } else if (mode === 'remove-error') {
   } else if (mode === 'no-price-drop') {
     banner.style.display = 'none';
   } else if (mode === 'all-sold') {
     strip.classList.add('all-sold-demo');
-    setRecentlyViewedHeartAvailability(true);
     banner.style.display = 'none';
   } else if (mode === 'refresh-error') {
     showModuleRefreshFailure('recently-viewed');
@@ -1536,7 +1569,18 @@ function removeWishlistItem(btn) {
 }
 function removeCard(btn) {
   const card = btn.closest('.product-card');
+  if (!card || card.dataset.removeBusy === 'true') return;
+  card.dataset.removeBusy = 'true';
+  card.style.transition = 'opacity .22s ease';
   card.style.opacity = '0';
+  if (rvDemoMode === 'remove-error') {
+    setTimeout(() => {
+      card.style.opacity = '1';
+      delete card.dataset.removeBusy;
+      showFavoritesFeedback('Couldn’t remove this item. Try again.');
+    }, 220);
+    return;
+  }
   setTimeout(() => {
     card.remove();
     if (document.querySelectorAll('#rv-cards .product-card').length === 0) {
@@ -1649,8 +1693,7 @@ initLikedOverviewDemo();
 initRecentlyViewedDemo();
 setupRecommendationHearts();
 setRecommendedState('ready');
-</script>
 
-</div>
+</script>
 </body>
 </html>
