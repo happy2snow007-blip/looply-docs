@@ -1176,6 +1176,12 @@ def build_delivery_desc(zip_path):
                 parts.append((_ORDER['app'], f'APP 原型 v{ver}'))
                 continue
 
+            # 通用后台原型兜底（如 antd-原型-v20），须放在 CMS/PC/APP 专用模式之后
+            if re.search(r'原型[- ]*[vV](.+?)\.html', basename):
+                ver = re.search(r'原型[- ]*[vV](.+?)\.html', basename).group(1)
+                parts.append((_ORDER['cms'], f'后台原型 v{ver}'))
+                continue
+
             if re.search(r'实体关系图[- ]*[vV](.+?)\.(?:svg|html)', basename):
                 ver = re.search(r'实体关系图[- ]*[vV](.+?)\.(?:svg|html)', basename).group(1)
                 parts.append((_ORDER['er'], f'ER图 v{ver}'))
