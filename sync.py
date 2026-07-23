@@ -1137,25 +1137,16 @@ var PROTOTYPE_CONFIG = {
 
 
 def build_delivery_desc(zip_path):
-    """从交付包 zip 内容生成 doc-desc：完整文件清单 + 日期。"""
+    """从交付包 zip 内容生成 doc-desc：清爽的「类型 版本」清单（覆盖全部文件），如
+    'PRD v1.7 + CMS 后台原型 v3 + 差异汇总 + 图片资源 &middot; 日期'。"""
     if not os.path.isfile(zip_path):
         return None
 
-    def _sort_key(name):
-        low = name.lower()
-        if low.endswith('.md'):
-            pri = 2 if ('差异' in name or '汇总' in name or 'diff' in low) else 1  # PRD/说明 在前，差异汇总在后
-        elif low.endswith('.html'):
-            pri = 3
-        elif low.endswith('.svg'):
-            pri = 4
-        elif low.endswith(('.png', '.jpg', '.jpeg', '.gif')):
-            pri = 6
-        else:
-            pri = 5
-        return (pri, name)
+    _ORDER = {'prd': 1, 'proto': 2, 'pc': 3, 'app': 4, 'er': 5, 'arch': 6, 'flow': 7,
+              'diff': 8, 'changelog': 9, 'doc': 10, 'img': 99}
+    parts = []
+    has_images = False
 
-    files = []
     with zipfile.ZipFile(zip_path, 'r') as zf:
         for info in zf.infolist():
             raw_name = info.filename
@@ -1166,15 +1157,59 @@ def build_delivery_desc(zip_path):
             basename = os.path.basename(raw_name)
             if not basename or basename.startswith('.'):
                 continue
-            files.append(basename)
+            low = basename.lower()
 
-    if not files:
+            m = re.search(r'PRD[- ]*[vV](.+?)\.md', basename)
+            if m:
+                parts.append((_ORDER['prd'], f'PRD v{m.group(1)}')); continue
+            m = re.search(r'(?:CMS[^.]*)?后台原型[- ]*[vV](.+?)\.html', basename)
+            if m:
+                label = 'CMS 后台原型' if 'CMS' in basename else '后台原型'
+                parts.append((_ORDER['proto'], f'{label} v{m.group(1)}')); continue
+            m = re.search(r'-PC[- ]*[vV](.+?)\.html', basename)
+            if m:
+                parts.append((_ORDER['pc'], f'PC 原型 v{m.group(1)}')); continue
+            m = re.search(r'-APP[- ]*[vV](.+?)\.html', basename)
+            if m:
+                parts.append((_ORDER['app'], f'APP 原型 v{m.group(1)}')); continue
+            m = re.search(r'原型[- ]*[vV](.+?)\.html', basename)
+            if m:
+                parts.append((_ORDER['proto'], f'后台原型 v{m.group(1)}')); continue
+            m = re.search(r'实体关系图[- ]*[vV](.+?)\.(?:svg|html)', basename)
+            if m:
+                parts.append((_ORDER['er'], f'ER图 v{m.group(1)}')); continue
+            m = re.search(r'产品架构图[- ]*[vV](.+?)\.svg', basename)
+            if m:
+                parts.append((_ORDER['arch'], f'架构图 v{m.group(1)}')); continue
+            m = re.search(r'流程图[- ]*[vV](.+?)\.svg', basename)
+            if m:
+                parts.append((_ORDER['flow'], f'流程图 v{m.group(1)}')); continue
+
+            if low.endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                has_images = True; continue
+            if basename.endswith('.md'):
+                if '差异' in basename or '汇总' in basename or 'diff' in low:
+                    parts.append((_ORDER['diff'], '差异汇总')); continue
+                if '变更日志' in basename or 'changelog' in low:
+                    parts.append((_ORDER['changelog'], '变更日志')); continue
+                parts.append((_ORDER['doc'], os.path.splitext(basename)[0])); continue
+            # 其他文件：列基础名兜底，确保不漏
+            parts.append((_ORDER['doc'], basename))
+
+    if has_images:
+        parts.append((_ORDER['img'], '图片资源'))
+
+    if not parts:
         return None
 
-    files.sort(key=_sort_key)
-    date_str = datetime.fromtimestamp(os.path.getmtime(zip_path)).strftime('%Y-%m-%d %H:%M')
+    parts.sort(key=lambda x: x[0])
+    seen, labels = set(), []
+    for _, label in parts:
+        if label not in seen:
+            seen.add(label); labels.append(label)
 
-    return f'共 {len(files)} 个文件：' + ' · '.join(files) + f' &middot; {date_str}'
+    date_str = datetime.fromtimestamp(os.path.getmtime(zip_path)).strftime('%Y-%m-%d %H:%M')
+    return ' + '.join(labels) + f' &middot; {date_str}'
 
 
 def update_index_html(updates, all_versions, all_history=None):
