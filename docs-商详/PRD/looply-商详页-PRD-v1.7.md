@@ -121,9 +121,9 @@ Footer 页脚
 
 | 域名 | 卡片名 | 卡片编码（resource_type） | 字段（fieldName） | 中文显示名 | 数据类型 | 展示面 |
 |------|-------|--------------------------|-------------------|-----------|---------|-------|
-| 前端页面 | 商详-鉴定认证 | `pdp_template` | `ca_title` | 鉴定认证标题 | text | PDP Certified Authentic 区 |
-| 前端页面 | 商详-鉴定认证 | `pdp_template` | `ca_desc` | 鉴定认证描述 | text | PDP Certified Authentic 区 |
-| 前端页面 | 商详-鉴定认证 | `pdp_template` | `ca_detail` | 鉴定认证详情 | rich_text | PDP Certified Authentic 详情弹层 |
+| 前端页面 | 商详-鉴定认证 | `pdp_certified_authentic` | `ca_title` | 鉴定认证标题 | text | PDP Certified Authentic 区 |
+| 前端页面 | 商详-鉴定认证 | `pdp_certified_authentic` | `ca_desc` | 鉴定认证描述 | text | PDP Certified Authentic 区 |
+| 前端页面 | 商详-鉴定认证 | `pdp_certified_authentic` | `ca_detail` | 鉴定认证详情 | rich_text | PDP Certified Authentic 详情弹层 |
 | 前端页面 | 商详-成色等级 | `pdp_condition_grade` | `grade_name` | 成色等级名称 | text | PDP Condition 进度条 / Guide |
 | 前端页面 | 商详-成色等级 | `pdp_condition_grade` | `grade_description` | 成色等级描述 | text | PDP Condition Guide |
 | 前端页面 | 商详-成色展示名 | `pdp_condition_display` | `display_name` | 成色展示名 | text | PDP 成色详细信息（字段名） |
@@ -141,7 +141,7 @@ Footer 页脚
 | sort | 成员（子导航名） | resource_type | display_name（卡片展示名） | key_type | storage_mode | 配置粒度 |
 |------|----------------|---------------|--------------------------|----------|--------------|---------|
 | 1 | 页面文案 | `page-pdp` | 商详-页面文案 | `static_content` | `language_pack` | 页面级（静态文案） |
-| 2 | 鉴定认证 | `pdp_template` | 商详-鉴定认证 | `entity_field` | `translation_table` | 模板级 |
+| 2 | 鉴定认证 | `pdp_certified_authentic` | 商详-鉴定认证 | `entity_field` | `translation_table` | 模板级 |
 | 3 | 成色等级 | `pdp_condition_grade` | 商详-成色等级 | `entity_field` | `translation_table` | 模板 × 等级 |
 | 4 | 成色展示名 | `pdp_condition_display` | 商详-成色展示名 | `entity_field` | `translation_table` | 类目 × 字段 |
 | 5 | 属性展示名 | `pdp_description_display` | 商详-属性展示名 | `entity_field` | `translation_table` | 类目 × 属性 |
@@ -204,7 +204,7 @@ Footer 页脚
 | 属性名（兜底） | 第三类 | `attribute` | `attribute_name` | attribute_id | 商品域 · translation_table |
 | 属性值 | 第三类 | `attribute_option` | `option_value` | option_id | 商品域 · translation_table |
 | 成色等级 grade 值（如 `Excellent`） | 第三类 | `enum` | `grade` | -- | 商品域 · translation_table |
-| 鉴定认证标题/描述/详情 | 第二类 | `pdp_template` | `ca_title` / `ca_desc` / `ca_detail` | template_id | 聚合组 pdp · translation_table |
+| 鉴定认证标题/描述/详情 | 第二类 | `pdp_certified_authentic` | `ca_title` / `ca_desc` / `ca_detail` | template_id | 聚合组 pdp · translation_table |
 | 成色等级名称/描述（体系配置） | 第二类 | `pdp_condition_grade` | `grade_name` / `grade_description` | 等级配置记录 ID | 聚合组 pdp · translation_table |
 | 成色详细信息展示名 | 第二类 | `pdp_condition_display` | `display_name` | 展示名配置记录 ID | 聚合组 pdp · translation_table |
 | 属性/Size Guide 展示名 | 第二类 | `pdp_description_display` | `display_name` | 展示名配置记录 ID | 聚合组 pdp · translation_table |
@@ -649,7 +649,7 @@ Description 模块在模板内按类目配置，每个类目独立维护一套�
 
 | 页面元素 | 数据源 | 取值逻辑 |
 |---------|-------|---------|
-| 标题 | CMS 模板配置 | 如 "Confidence in Every Find"。走翻译（`resource_type='pdp_template'`） |
+| 标题 | CMS 模板配置 | 如 "Confidence in Every Find"。走翻译（`resource_type='pdp_certified_authentic'`） |
 | 描述文案 | CMS 模板配置 | 简要说明（如 "Each luxury piece is carefully reviewed for authenticity, condition, and listing accuracy."）。走翻译 |
 | 详细说明 | CMS 模板配置 | 点击后展示的完整内容（多段落，如认证流程、成色分级标准、售后保障条款等）。走翻译 |
 

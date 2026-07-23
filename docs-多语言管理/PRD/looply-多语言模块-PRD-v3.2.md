@@ -65,7 +65,7 @@ looply 作为面向全球市场的二手电商平台，需要将商品信息、�
 | 页面分组（resource_group） | 把同一 C 端页面下的多个卡片聚合成的导航单元，对应 resource_group 一条记录，如"商详页" |
 | 卡片 / 翻译资源（translation_resource） | 翻译中心一级对象，一张卡 = 一个 resource_type（一个业务实体类型，或一类页面文案） |
 | Key | 可翻译字段的注册标识，对应 translatable_field_config 中一条记录，归属某张卡片 |
-| resource_type | 资源类型编码，由 translation_resource 建卡统一登记（本版由开放字段升为建卡主键），如 product、page-home、pdp_template |
+| resource_type | 资源类型编码，由 translation_resource 建卡统一登记（本版由开放字段升为建卡主键），如 product、page-home、pdp_certified_authentic |
 | key_type | 卡片的 UI 分类标签：entity_field（业务实体字段）/ static_content（页面文案/法律文档等）。仅用于后台分类展示，不决定数据落地方式（见 §2.2） |
 | storage_mode | 卡片内容的落地方式：translation_table（翻译中心 translation 表）/ language_pack（前端语言包）。决定内容实际存储位置与后台保存行为（见 §2.2） |
 | integration_status | 卡片对接状态：connected（已对接）/ pending（待对接）/ placeholder（占位） |
@@ -449,7 +449,7 @@ product 表（只存结构化数据）:
 | 域 | resource_type | 显示名称 | 说明 |
 |----|--------------|---------|------|
 | 商品域 | listing / product / spu / sku / category / brand / series / attribute / attribute_option / enum | 渠道商品 / 实物商品 / 标品SPU / 标品SKU / 类目 / 品牌 / 系列 / 属性 / 属性选项 / 成色等级 | entity_field，各自独立卡 |
-| 前端页面 | page-pdp（商详页） | 商详页聚合卡 | 聚合 group_code = pdp 的成员：页面文案 + 鉴定认证（pdp_template）+ 成色等级 + 成色展示名 + 属性展示名 |
+| 前端页面 | page-pdp（商详页） | 商详页聚合卡 | 聚合 group_code = pdp 的成员：页面文案 + 鉴定认证（pdp_certified_authentic）+ 成色等级 + 成色展示名 + 属性展示名 |
 | 前端页面 | page-home / page-cart / page-checkout / legal-tos / legal-privacy 等 | 首页 / 购物车 / 结账页 / 服务条款 / 隐私政策 等 | static_content 或占位 |
 | 通知模板 | notif-email / notif-message | 邮件模板 / 站内消息 | 占位 |
 
