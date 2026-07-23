@@ -1137,14 +1137,25 @@ var PROTOTYPE_CONFIG = {
 
 
 def build_delivery_desc(zip_path):
-    """从交付包 zip 内容自动生成 doc-desc 描述文本。"""
+    """从交付包 zip 内容生成 doc-desc：完整文件清单 + 日期。"""
     if not os.path.isfile(zip_path):
         return None
 
-    _ORDER = {'prd': 1, 'cms': 2, 'pc': 3, 'app': 4, 'er': 5, 'arch': 6, 'flow': 7, 'img': 99}
-    parts = []
-    has_images = False
+    def _sort_key(name):
+        low = name.lower()
+        if low.endswith('.md'):
+            pri = 2 if ('差异' in name or '汇总' in name or 'diff' in low) else 1  # PRD/说明 在前，差异汇总在后
+        elif low.endswith('.html'):
+            pri = 3
+        elif low.endswith('.svg'):
+            pri = 4
+        elif low.endswith(('.png', '.jpg', '.jpeg', '.gif')):
+            pri = 6
+        else:
+            pri = 5
+        return (pri, name)
 
+    files = []
     with zipfile.ZipFile(zip_path, 'r') as zf:
         for info in zf.infolist():
             raw_name = info.filename
@@ -1153,64 +1164,17 @@ def build_delivery_desc(zip_path):
             except (UnicodeDecodeError, UnicodeEncodeError):
                 pass
             basename = os.path.basename(raw_name)
-            if not basename:
+            if not basename or basename.startswith('.'):
                 continue
+            files.append(basename)
 
-            if re.search(r'PRD[- ]*[vV](.+?)\.md', basename):
-                ver = re.search(r'PRD[- ]*[vV](.+?)\.md', basename).group(1)
-                parts.append((_ORDER['prd'], f'PRD v{ver}'))
-                continue
-
-            if re.search(r'(?:CMS[^.]*)?后台原型[- ]*[vV](.+?)\.html', basename):
-                ver = re.search(r'(?:CMS[^.]*)?后台原型[- ]*[vV](.+?)\.html', basename).group(1)
-                parts.append((_ORDER['cms'], f'CMS 后台原型 v{ver}'))
-                continue
-
-            if re.search(r'-PC[- ]*[vV](.+?)\.html', basename):
-                ver = re.search(r'-PC[- ]*[vV](.+?)\.html', basename).group(1)
-                parts.append((_ORDER['pc'], f'PC 原型 v{ver}'))
-                continue
-
-            if re.search(r'-APP[- ]*[vV](.+?)\.html', basename):
-                ver = re.search(r'-APP[- ]*[vV](.+?)\.html', basename).group(1)
-                parts.append((_ORDER['app'], f'APP 原型 v{ver}'))
-                continue
-
-            # 通用后台原型兜底（如 antd-原型-v20），须放在 CMS/PC/APP 专用模式之后
-            if re.search(r'原型[- ]*[vV](.+?)\.html', basename):
-                ver = re.search(r'原型[- ]*[vV](.+?)\.html', basename).group(1)
-                parts.append((_ORDER['cms'], f'后台原型 v{ver}'))
-                continue
-
-            if re.search(r'实体关系图[- ]*[vV](.+?)\.(?:svg|html)', basename):
-                ver = re.search(r'实体关系图[- ]*[vV](.+?)\.(?:svg|html)', basename).group(1)
-                parts.append((_ORDER['er'], f'ER图 v{ver}'))
-                continue
-
-            if re.search(r'产品架构图[- ]*[vV](.+?)\.svg', basename):
-                ver = re.search(r'产品架构图[- ]*[vV](.+?)\.svg', basename).group(1)
-                parts.append((_ORDER['arch'], f'架构图 v{ver}'))
-                continue
-
-            if re.search(r'流程图[- ]*[vV](.+?)\.svg', basename):
-                ver = re.search(r'流程图[- ]*[vV](.+?)\.svg', basename).group(1)
-                parts.append((_ORDER['flow'], f'流程图 v{ver}'))
-                continue
-
-            if basename.lower().endswith(('.png', '.jpg', '.jpeg')):
-                has_images = True
-
-    if has_images:
-        parts.append((_ORDER['img'], '图片资源'))
-
-    if not parts:
+    if not files:
         return None
 
-    parts.sort(key=lambda x: x[0])
-
+    files.sort(key=_sort_key)
     date_str = datetime.fromtimestamp(os.path.getmtime(zip_path)).strftime('%Y-%m-%d %H:%M')
 
-    return ' + '.join(p[1] for p in parts) + f' &middot; {date_str}'
+    return f'共 {len(files)} 个文件：' + ' · '.join(files) + f' &middot; {date_str}'
 
 
 def update_index_html(updates, all_versions, all_history=None):
