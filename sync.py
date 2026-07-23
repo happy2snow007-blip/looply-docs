@@ -1267,13 +1267,13 @@ def update_index_html(updates, all_versions, all_history=None):
                         if rel_path in _updated_files:
                             changed_items.add(current_item_start)
                         else:
-                            # 文件内容已同步但日期可能过时：用源文件 mtime 对比页面日期
+                            # 文件内容已同步但日期可能过时：用源文件 mtime 对比页面日期（含时分，避免同日不同时被漏判）
                             dst_file = os.path.join(REPO_DIR, rel_path)
                             if os.path.isfile(dst_file):
-                                file_date = datetime.fromtimestamp(os.path.getmtime(dst_file)).strftime('%Y-%m-%d')
-                                # 检查页面上的日期是否早于文件日期
+                                file_date = datetime.fromtimestamp(os.path.getmtime(dst_file)).strftime('%Y-%m-%d %H:%M')
+                                # 检查页面上的日期是否早于文件日期（按 年-月-日 时:分 比较，页面无时分时也判为更早）
                                 for scan_j in range(current_item_start, min(current_item_start + 10, len(lines))):
-                                    m = re.search(r'更新于 (\d{4}-\d{2}-\d{2})', lines[scan_j])
+                                    m = re.search(r'更新于 (\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2})?)', lines[scan_j])
                                     if m and m.group(1) < file_date:
                                         changed_items.add(current_item_start)
                                         break
