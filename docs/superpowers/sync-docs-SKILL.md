@@ -21,21 +21,39 @@ description: Use when the user wants to upload/sync files to the documentation c
 
 根据对话上下文推断要同步的模块。不确定时问用户："同步哪个模块？还是全部？"
 
-**已注册模块列表**（来源于 `sync.py` 的 MODULES 字典）：
+**已注册模块以 `sync.py` 的 MODULES 字典为唯一准绳（硬性）**：判断一个模块是否已注册，**必须实际查 sync.py**，不能凭下方表格：
 
-| 模块 | 默认源目录 | 命令行关键词 | looply-docs 目标目录 |
-|------|-----------|-------------|-------------------:|
-| 登录注册 | ~/Desktop/海外业务/登录注册 | `login` `登录` | docs |
-| 首页 | ~/Desktop/海外业务首页 | `home` `首页` | docs-首页 |
-| 商品系统 | ~/Desktop/海外业务/商品 | `product` `商品` | docs-商品系统 |
-| 商详页 | ~/Desktop/海外业务/商详 | `pdp` `商详` | docs-商详 |
-| Market | ~/Desktop/海外业务/market | `market` | docs-market系统 |
-| 翻译管理 | ~/Desktop/海外业务/翻译 | `translation` `翻译` | docs-翻译管理 |
-| 库存管理 | ~/Desktop/海外业务/库存 | `inventory` `库存` | docs-库存管理 |
-| 汇率管理 | ~/Desktop/海外业务/汇率管理 | `exchange` `汇率` | docs-汇率管理 |
-| 用户管理 | ~/Desktop/海外业务/用户管理 | `user` `用户` | docs-用户管理 |
+```bash
+grep -n "^        'name':" ~/looply-docs/sync.py
+```
 
-如果用户要同步的模块不在上表中 → 进入**新模块注册流程**（见步骤 1.2）。
+> **为什么必须查**：本表是快照，会滞后于 sync.py。2026-07-22 曾出现表中只有 9 个模块、sync.py 实际已有 19 个的情况（红布林商品对接/红布林订单对接等早已注册但表中没有），若照表判断会误走「新模块注册流程」，重复写入 MODULES 造成冲突。**表格仅供快速参考，冲突时以 sync.py 为准，并顺手回填本表。**
+
+**注册模块快照**（2026-07-22 校准，19 个）：
+
+| 模块 | key | 命令行关键词 | looply-docs 目标目录 |
+|------|-----|-------------|-------------------:|
+| 登录注册 | `login` | `login` `登录` | docs |
+| 首页 | `home` | `home` `首页` | docs-首页 |
+| 商品系统 | `product` | `product` `商品` | docs-商品系统 |
+| 商详页 | `pdp` | `pdp` `商详` | docs-商详 |
+| Market | `market` | `market` | docs-market系统 |
+| 多语言管理 | `translation` | `translation` `多语言` | docs-多语言管理 |
+| 库存管理 | `inventory` | `inventory` `库存` | docs-库存管理 |
+| 汇率管理 | `exchange` | `exchange` `汇率` | docs-汇率管理 |
+| 用户管理 | `user` | `user` `用户` | docs-用户管理 |
+| 物流管理 | `logistics` | `logistics` `物流` | docs-物流管理 |
+| 订阅管理 | `subscription` | `subscription` `订阅` | docs-订阅管理 |
+| 购物车 | `cart` | `cart` `购物车` | docs-购物车 |
+| 订单支付 | `order` | `order` `订单支付` | docs-订单支付 |
+| 订单列表详情 | `order_list` | `order_list` `订单列表` | docs-订单列表详情 |
+| 红布林商品对接 | `plm` | `红布林` `plm` `商品对接` | docs-红布林商品对接 |
+| 红布林订单对接 | `rhl_order` | `红布林订单` `rhlorder` `订单对接` | docs-红布林订单对接 |
+| Shop页导航 | `shop` | `shop` | docs-shop页 |
+| 社媒分享管理 | `social_share` | `social_share` `社媒` | docs-社媒分享管理 |
+| 收藏与浏览历史 | `favourites_history` | `favourites` `收藏` | docs-收藏与浏览历史 |
+
+只有 **sync.py 中确实没有**该模块时 → 才进入**新模块注册流程**（见步骤 1.2）。
 
 ### 1.1 验证源目录路径
 
@@ -247,6 +265,13 @@ sync.py 自动完成：
 5. 然后 `git push origin main`
 6. 告知用户冲突已解决
 
+**如果 push 报网络错误（HTTP2 framing layer / 超时）**：
+不是冲突，是到 GitHub 的连接问题。处理：
+1. 先确认无本地代理干扰：`git config --get http.proxy`（用户用 AnyConnect，正常应为空）
+2. 降级 HTTP 版本绕过 framing 错误：`git config http.version HTTP/1.1`
+3. 重试 `git push origin main`
+该配置持久化在仓库，设置一次后续 push 均生效。
+
 ### 7. 汇报结果
 
 简要说明：
@@ -277,3 +302,4 @@ sync.py 自动完成：
 - PRD 阅读器依赖 `latest.md`，sync.py 已自动维护（按版本号选取最新 .md）
 - `.sync-paths.json` 是本地配置，已加入 .gitignore，不会被 push
 - 新模块注册只需改 sync.py 的 MODULES 字典 + index.html，不需要改其他文件
+- **index.html 时间戳统一用「文件 mtime（文件最后更新时间）」并显示到时分（格式 `%Y-%m-%d %H:%M`）**：所有 doc-desc 日期（交付包的 `&middot; 日期`、普通文件的 `更新于 日期`）都表示「该文件最后一次实际更新的时间」，取对应文件的 `os.path.getmtime`，**不要用 `datetime.now()`（脚本运行时间）**。原因：用运行时间会导致任何一次无关同步（改了别的模块、只改脚本空跑等）把日期刷成当天，与文件是否真正变化脱节而失真。sync.py 已按此实现——`build_delivery_desc` 用 zip 的 mtime；`_gen_card` 与「更新于」替换用各自文件路径的 mtime，取不到文件时才退回 `now()`。若日后重构脚本或新增日期展示点，一律用文件 mtime，不要退回到脚本运行时间或只显示到日
