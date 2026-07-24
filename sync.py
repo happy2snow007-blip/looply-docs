@@ -600,6 +600,34 @@ MODULES = {
             },
         },
     },
+    'privacy_legal': {
+        'name': '隐私与法律',
+        'default_source': '/Users/zz/Documents/Looply/deliveries/privacy-legal',
+        'target': 'docs-隐私与法律',
+        'keywords': ['隐私', '法律', 'privacy', 'legal'],
+        'config_key': None,
+        'sidebar_group': '基础服务域',
+        'prd_variants': {
+            'privacy_choices': {
+                'pattern': r'looply-Your-Privacy-Choices-PRD-v(.+?)\.md',
+                'title': 'Your Privacy Choices PRD',
+            },
+        },
+        'artifacts': {
+            'prototype': {
+                'subdir': '原型',
+                'pattern': r'looply-your-privacy-choices-web-demo-v(.+?)\.html',
+            },
+            'prd': {
+                'subdir': 'PRD',
+                'pattern': r'looply-Your-Privacy-Choices-PRD-v(.+?)\.md',
+            },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'隐私与法律-交付开发 V(.+?)\.zip',
+            },
+        },
+    },
 }
 
 # ─── 自动发现新模块 ────────────────────────────────────────────────────────────────
