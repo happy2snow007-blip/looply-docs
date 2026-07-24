@@ -1,7 +1,7 @@
 # Looply Favorites PRD
 
-> 文档版本：v2.13
-> 文档状态：模拟评审问题收口中，不代表已开发、上线或验收
+> 文档版本：v2.12
+> 文档状态：评审基线，不代表已开发、上线或验收
 > 日期：2026-07-24
 > 适用范围：H5 Mobile · Favorites Overview 聚合展示页
 > 原型：`prototypes/favorites/looply-favorites-prototype-v9.html`
@@ -42,7 +42,7 @@ Favorites → Home · Explore Finds · For You
 Favorites → 商品详情 → 返回 Favorites
 ```
 
-从可改变 Wishlist 或浏览历史的页面返回 Favorites 时，受影响模块展示当前主体的最新数据，并恢复离开前的页面及模块位置。该规则覆盖 Search、Wishlist 完整页、完整浏览历史页和商品详情。
+从 Wishlist 完整页、完整浏览历史页或商品详情返回 Favorites 时，受影响模块展示当前主体的最新数据，并恢复离开前的页面及模块位置。
 
 ### 1.5 多语言与市场策略
 
@@ -86,8 +86,6 @@ Favorites → 商品详情 → 返回 Favorites
 | `favorites.price_drop` | Price Drop 提示条 | 1 item dropped in price / {count} items dropped in price | 1 artículo bajó de precio / {count} artículos bajaron de precio | 使用 ICU 复数规则；`count > 0` |
 | `favorites.recommended.loading_more` | 推荐加载更多 | Loading more… | Cargando más… | 无 |
 | `favorites.recommended.load_more_error` | 推荐加载更多失败 | Couldn’t load more | No se pudieron cargar más artículos | 与 `common.retry` 同时使用 |
-
-固定 UI 的可见文案与无障碍文案均随当前语言切换；商品卡、Wishlist 心形和 Loading 复用全局组件规则。
 
 动态展示内容与不翻译字段按下表消费上游结果，Favorites 不新建资源卡片：
 
@@ -196,8 +194,6 @@ Recommended for You 基于当前登录或匿名主体的 Wishlist、加购、购
 
 三个模块仍可并行请求，但 Recommended for You 只有在推荐上游或聚合层完成同主体预览集合去重校验后才展示，不依赖 Wishlist / Recently Viewed 组件是否成功渲染；无法确认去重结果时不展示未校验结果。过滤后返回至少 1 件商品时展示模块；行为条件不满足、隐私或同意状态不允许个性化、结果为空或首次请求失败时静默隐藏。
 
-Recommended for You 首次请求未完成时不展示模块，也不将该状态视为正常隐藏；其结果会影响整页空态与错误态时，按第四章的组合状态规则处理。
-
 Recommended for You 复用全局双列商品 Feed 卡片。卡片主体进入商品详情；心形支持加入或移出 Wishlist，写入失败时恢复点击前状态，写入中不可重复点击，卡片位置不变化。加载更多复用 H5 Mobile 公共商品 Feed 规则：接近 Feed 底部时自动请求，请求中不重复发起；每批结果完成同主体、跨页去重校验后再追加；无更多结果时静默隐藏加载区；请求失败或本批结果无法完成校验时保留已有商品并在 Feed 末尾提供轻量 Retry，重试成功后追加结果并继续按同一规则加载。
 
 ### 3.4 Heart 写入失败的统一规则
@@ -218,24 +214,22 @@ Wishlist 与 Recently Viewed 的同类状态使用一致的视觉层级：
 | 首次失败 | 轻量行内错误与模块 Retry；不伪装为空态。 |
 | 刷新中 | 保留当前可用内容和位置。 |
 | 有缓存的刷新失败 | 保留当前可用内容和位置；已确认成功的操作结果不回滚；在当前模块标题下显示轻量提示与 Retry，仅重试当前模块。 |
-| 全部售罄 | 上游通过完整集合可购买数量或等价结果确认全部商品均为 Sold Out；商品卡整卡灰化，View all 与 Home 引导仍按 3.1 / 3.2 的总数阈值展示，可购买 Price Drop 数量为 0 并隐藏提示条。不得从最多 10 件预览自行判断。 |
+| 全部售罄 | 上游通过完整集合可购买数量或等价结果确认全部商品均为 Sold Out；商品卡整卡灰化，按真实总数保留 View all，可购买 Price Drop 数量为 0 并隐藏提示条。不得从最多 10 件预览自行判断。 |
 
 | 页面场景 | 页面表现 | Retry 范围 |
 |---|---|---|
 | Wishlist 单独失败 | Wishlist 模块级错误，其他内容保持。 | 仅 Wishlist。 |
 | Recently Viewed 单独失败 | Recently Viewed 模块级错误，其他内容保持。 | 仅 Recently Viewed。 |
 | Wishlist 与 Recently Viewed 同时为空、Recommend 可用 | 隐藏两个核心模块标题及各自空态，合并显示轻量空态引导；Recommend 正常展示。 | 无 Retry；`Explore items` 进入 Home · Explore Finds · For You。 |
-| Wishlist 与 Recently Viewed 同时为空、Recommend 首次请求中 | 隐藏两个核心模块标题及各自空态，先显示合并轻量空态；Recommend 暂不展示，不进入整页空态。 | 无 Retry；Recommend 首次请求完成后重新判断页面组合状态。 |
 | Wishlist 与 Recently Viewed 同时为空、Recommend 隐藏 | 隐藏三个模块，内容区域显示统一整页空态。Recommend 因行为不足、不允许个性化、空结果或首次失败均按既有规则静默隐藏。 | 无 Retry；`Explore items` 进入 Home · Explore Finds · For You。 |
 | Wishlist 与 Recently Viewed 同时首次失败、Recommend 可用 | 隐藏两个核心模块标题及各自错误态，合并显示轻量错误与一个 Retry；Recommend 已完成同主体去重校验时正常展示，否则隐藏。 | 同时重试 Wishlist 与 Recently Viewed；重试后仅一个模块仍失败时恢复为该模块独立错误。 |
-| Wishlist 与 Recently Viewed 同时首次失败、Recommend 首次请求中 | 隐藏两个核心模块标题及各自错误态，先显示合并轻量错误与一个 Retry；Recommend 暂不展示，不进入整页错误。 | Retry 只同时重试 Wishlist 与 Recently Viewed；Recommend 首次请求完成后重新判断页面组合状态。 |
 | 一个核心模块为空、另一个首次失败 | 两个模块分别显示空态与错误态，不升级为合并状态或整页状态。 | 仅重试失败模块。 |
 | Recommend 首次失败 | 静默隐藏 Recommend。 | 无首屏 Retry。 |
 | Recommend 有缓存时刷新失败 | 保留当前 Feed 并静默处理，不显示错误、Toast 或 Retry。 | 等待下次页面统一刷新。 |
 | Wishlist 与 Recently Viewed 均首次失败且无缓存，Recommend 正常隐藏或首次失败，页面无任何可用业务内容 | 内容区域使用 H5 Mobile 统一整页错误组件；Recommend 的正常隐藏不计为请求失败，但页面已无可用内容。 | 重新请求本页业务数据。 |
 | 页面容器或关键公共依赖不可用 | 使用 H5 Mobile 全局整页错误规则。 | 由全局组件负责。 |
 
-空态只表示请求成功且返回 0 条；首次失败只表示无缓存且请求失败。有缓存的刷新失败继续保留原内容并使用模块标题下的刷新失败提示，不进入以上空态或首次失败组合。只要任一模块仍有可用内容，不得使用整页错误覆盖。Wishlist、Recently Viewed 或 Recommended for You 在首次加载、Retry、刷新或删除后结果变化时，均按最新结果重新判断以上组合状态。
+空态只表示请求成功且返回 0 条；首次失败只表示无缓存且请求失败。有缓存的刷新失败继续保留原内容并使用模块标题下的刷新失败提示，不进入以上空态或首次失败组合。只要任一模块仍有可用内容，不得使用整页错误覆盖。任一核心模块在加载、Retry、刷新或删除后结果变化时，按最新结果重新判断以上组合状态。
 
 ## 五、依赖、数据与验收
 
@@ -278,18 +272,18 @@ Favorites 不采集商品标题、浏览时间文案、完整商品列表、原�
 5. Wishlist 取消收藏成功后，心形立即变空，卡片、顺序、Wishlist 总数、入口阈值和 Price Drop 提示条均保留至下次权威刷新；写入完成前不可重复点击。
 6. Wishlist 符合四种在售 / Sold Out 心形规则；Sold Out 未收藏展示置灰空心且禁用点击，已收藏仍可取消；Recently Viewed 的 Sold Out 记录可删除；Recommended for You 不展示 Sold Out 商品。
 7. Price Drop 数量使用各自上游的可购买总数，`N = 0` 时隐藏，单复数文案正确；无缓存请求失败时隐藏，有缓存刷新失败时保留上次成功的数量和提示条。
-8. Wishlist 与 Recently Viewed 的 Loading、空态、首次失败、缓存刷新失败、Retry 和完整集合全售罄状态保持一致；单模块空态或首次失败保留对应模块标题并隐藏数量、View all、Price Drop 和商品卡；空态进入 Home，首次失败仅重试当前模块；全售罄使用上游完整集合可购买数量或等价结果判定，不改变各模块原有入口阈值。
+8. Wishlist 与 Recently Viewed 的 Loading、空态、首次失败、缓存刷新失败、Retry 和完整集合全售罄状态保持一致；单模块空态或首次失败保留对应模块标题并隐藏数量、View all、Price Drop 和商品卡；空态进入 Home，首次失败仅重试当前模块；全售罄使用上游完整集合可购买数量或等价结果判定。
 9. Recently Viewed 单条删除请求中禁用当前删除入口；成功后用最新有序预览、总数和 Price Drop 数量更新模块，总数仍大于 10 时补足 10 件；Price Drop 归零时在卡片收起后平滑收起提示条。删除成功后的同步失败不得复活记录，应保留删除结果、显示模块刷新失败并可 Retry；删除请求失败才恢复原状态并显示删除失败 Toast。
-10. 下拉刷新并行请求三个模块，部分失败不影响成功模块；Wishlist 与 Recently Viewed 同时为空且 Recommend 可用时合并显示轻量空态，Recommend 隐藏时进入统一整页空态；两个核心模块均首次失败、无缓存且页面无任何可用业务内容时进入统一整页错误。Recommend 仍在首次请求中时先展示与两个核心模块结果对应的合并轻量状态，不进入整页空态或整页错误；首次请求完成后重新判断页面组合状态。Recommend 首次失败静默隐藏，不得把两个核心模块的成功空结果升级为整页错误。
+10. 下拉刷新并行请求三个模块，部分失败不影响成功模块；Wishlist 与 Recently Viewed 同时为空且 Recommend 可用时合并显示轻量空态，Recommend 隐藏时进入统一整页空态；两个核心模块均首次失败、无缓存且页面无任何可用业务内容时进入统一整页错误。Recommend 首次失败静默隐藏，不得把两个核心模块的成功空结果升级为整页错误。
 11. Wishlist 与 Recently Viewed 有缓存的刷新失败保留当前可用内容和 Price Drop 入口，已确认成功的操作结果不回滚；在当前模块标题下显示行内提示，并仅重试失败模块。Recommended for You 有缓存时刷新失败保留 Feed 并静默处理。
 12. 同一页面所有显示 Wishlist 心形的卡片按 `listing_id` 实时联动；写入失败时所有同商品心形统一回滚、不改变卡片位置，并展示 `Couldn’t update Wishlist. Try again.`。
-13. Wishlist 与 Recently Viewed 同时首次失败但 Recommended for You 可用时，隐藏两个核心模块标题和各自错误态，合并显示轻量错误与一个 Retry；Retry 只同时重试两个核心模块，不刷新仍可用的 Recommended for You。重试后一个成功、一个仍失败时，成功模块正常展示，失败模块恢复为独立错误态。加载、Retry、刷新或删除使任一模块结果变化后，页面按最新结果重新判断组合状态。
-14. 固定 UI 的可见文案与无障碍文案均支持 `en-US` / `es-US`；切换语言后，屏幕阅读器读出的操作名称与页面语言一致。动态商品内容和浏览时间按翻译归属表消费上游本地化结果，开发前完成稳定 `resourceType` / `fieldName` 校验；价格与币种不翻译。
+13. Wishlist 与 Recently Viewed 同时首次失败但 Recommended for You 可用时，隐藏两个核心模块标题和各自错误态，合并显示轻量错误与一个 Retry；Retry 只同时重试两个核心模块，不刷新仍可用的 Recommended for You。重试后一个成功、一个仍失败时，成功模块正常展示，失败模块恢复为独立错误态。加载、Retry、刷新或删除使任一核心模块结果变化后，页面按最新结果重新判断组合状态。
+14. 静态 UI 文案使用本 PRD 定义的稳定 key、`en-US` / `es-US` 值及复数规则；动态商品内容和浏览时间按翻译归属表消费上游本地化结果，开发前完成稳定 `resourceType` / `fieldName` 校验；价格与币种不翻译。
 15. 仅在 H5 Mobile 验收本 PRD 定义的页面结构、交互、浏览器返回、页面可见性恢复与刷新规则；App 与 PC Web 不在本期验收范围。
 16. 推荐侧使用当前主体的 Wishlist、加购、购买和商品点击浏览行为；仅有点击浏览行为时由推荐侧使用分段函数判断是否返回。行为条件不满足、不允许个性化、结果为空或首次失败时静默隐藏；Favorites 前端不自行计算推荐资格。
 17. Recommended for You 在展示前排除 Sold Out、已购买的同 `listing_id` 及当前概览 Wishlist / Recently Viewed 最终预览集合中的同 `listing_id` 商品；无法确认去重结果时不展示，去重后有 1 件仍展示，无剩余商品时静默隐藏。
 18. Recommended for You 加载更多在接近 Feed 底部时触发，请求中不重复发起；每批结果不得与当前 Feed 重复，无更多结果时静默结束，失败或去重校验不可用时保留已有结果并可 Retry。
-19. 从 Search、Wishlist 完整页、完整浏览历史页、商品详情或其他可改变 Wishlist / 浏览历史的页面返回 Favorites 时，受影响模块展示当前主体的最新数据，并恢复离开前的页面及模块位置。
+19. 从 Wishlist 完整页、完整浏览历史页或商品详情返回 Favorites 时，受影响模块展示当前主体的最新数据，并恢复离开前的页面及模块位置。
 
 Recommended for You 验收用例：
 
@@ -304,8 +298,6 @@ Recommended for You 验收用例：
 | 加载更多跨页重复 | 新一页包含当前 Feed 已加载的 `listing_id`。 | 重复商品不追加；其余已校验商品按原顺序追加。 |
 | 去重校验不可用 | 首屏或加载更多结果无法确认已按当前主体去重。 | 首屏静默隐藏；加载更多保留已有商品并提供 Retry。 |
 | 不允许个性化 | 隐私 / 同意上游返回当前主体不可使用个性化。 | Recommended for You 静默隐藏。 |
-| 双核心模块为空、推荐首次请求中 | Wishlist 与 Recently Viewed 均已成功返回空，Recommended for You 尚未完成首次请求。 | 先显示合并轻量空态，不进入整页空态；推荐请求完成后按最终结果重新判断组合状态。 |
-| 双核心模块失败、推荐首次请求中 | Wishlist 与 Recently Viewed 均首次失败且无缓存，Recommended for You 尚未完成首次请求。 | 先显示合并轻量错误和核心模块 Retry，不进入整页错误；推荐请求完成后按最终结果重新判断组合状态。 |
 | 删除浏览记录后的当前 Feed | 页面已展示 Recommended for You，用户成功删除一条 Recently Viewed 记录。 | 当前推荐商品、顺序和位置不立即变化；下次页面统一刷新时，使用推荐侧基于最新行为与页面数据返回的新结果。 |
 
 ## 六、版本规划
@@ -321,9 +313,7 @@ Recommended for You 验收用例：
 | 心形写入失败 | Wishlist / Recommend 的 `Heart failed (global UI)`；任意可操作心形均乐观切换后回滚并显示轻量 Toast。 |
 | 删除浏览记录失败 | `Recently · Remove failed`；卡片先移除后恢复，并显示轻量 Toast。 |
 | 两个核心模块同时为空、Recommend 可用 | `Page · Wishlist + Recently empty`；合并空态后继续展示 Recommend。 |
-| 两个核心模块同时为空、Recommend 首次请求中 | `Page · Core empty + Recommend loading`；先展示合并轻量空态，不进入整页空态。 |
 | 两个核心模块同时为空、Recommend 隐藏 | `Page · All content empty`；展示统一整页空态。 |
 | 两个核心模块同时首次失败、Recommend 可用 | `Page · Wishlist + Recently failed`；隐藏两个模块标题，合并轻量错误并继续展示 Recommend。 |
-| 两个核心模块同时首次失败、Recommend 首次请求中 | `Page · Core failed + Recommend loading`；先展示合并轻量错误，不进入整页错误。 |
 | 所有业务数据不可用 | `Page · All data failed`；展示统一整页错误。 |
 | Recommend 无数据、首次失败、加载更多失败 | Recommend 对应状态选择器。 |
