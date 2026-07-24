@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Looply · Global Search Mobile Demo v0.6</title>
+  <style>
+    :root { --ink:#121212; --muted:#8d8d8d; --line:#ededeb; --paper:#fff; --soft:#f7f7f5; --accent:#6e42f4; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; overflow:hidden; display:grid; place-items:center; background:#f2f2f0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:var(--ink); }
+    button, input { font:inherit; }
+    .phone { width:390px; height:844px; overflow:hidden; background:var(--paper); position:relative; box-shadow:0 18px 48px rgba(0,0,0,.12); }
+    .status { height:44px; padding:17px 19px 0; display:flex; align-items:center; justify-content:space-between; font-size:12px; font-weight:700; }
+    .status svg { width:47px; height:12px; }
+    .home { height:800px; overflow:hidden; background:#fff; }
+    .home-header { height:50px; display:flex; align-items:center; gap:10px; padding:0 18px; }
+    .wordmark { width:67px; flex:none; font-size:17px; font-weight:900; letter-spacing:-1.5px; font-style:italic; position:relative; }
+    .wordmark::before { content:"⌁"; font-size:29px; font-weight:400; position:absolute; left:-7px; top:-10px; transform:rotate(-15deg); }
+    .wordmark span { position:relative; z-index:1; }
+    .search-trigger { border:0; height:32px; flex:1; min-width:0; background:#fafafa; border-radius:5px; color:#989898; display:flex; align-items:center; gap:8px; padding:0 10px; text-align:left; cursor:pointer; }
+    .search-trigger svg { width:13px; height:13px; flex:none; }
+    .search-trigger .rotating { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:9px; letter-spacing:.05px; }
+    .search-trigger .rotating.is-changing { animation:wordSlide .28s ease-out; }
+    @keyframes wordSlide { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:none; } }
+    .bag { width:27px; height:28px; border:0; background:transparent; padding:0; color:#1c1c1c; }
+    .hero { margin:0 0 12px; height:207px; position:relative; overflow:hidden; background:linear-gradient(105deg,#fafbf9 18%,#eff1ed 62%,#e5e8e2); }
+    .hero:after { content:""; position:absolute; width:200px; height:200px; right:-24px; bottom:-50px; background:url('https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=640&q=80') center/cover; mix-blend-mode:multiply; opacity:.92; transform:rotate(-8deg); }
+    .hero-copy { position:relative; z-index:1; width:195px; padding:17px 19px; }
+    .hero h1 { margin:0; font-size:23px; line-height:1.18; letter-spacing:-.8px; }
+    .hero p { margin:8px 0 0; font-size:8px; line-height:1.42; color:#868686; }
+    .hero .cta { margin-top:27px; height:27px; padding:0 12px; border:0; border-radius:6px; color:#fff; background:#101010; font-weight:700; font-size:8px; }
+    .hero .pager { position:absolute; z-index:2; bottom:10px; left:50%; transform:translateX(-50%); display:flex; gap:5px; }
+    .hero .pager i { display:block; width:38px; height:2px; background:#d4d4d2; } .hero .pager i:first-child { background:#111; }
+    .trust { margin:0 8px; padding:14px 10px 12px; background:#fff; border-top:1px solid #f5f5f3; }
+    .trust-title { display:flex; justify-content:space-between; align-items:center; font-size:16px; font-weight:700; letter-spacing:-.35px; margin-bottom:10px; }
+    .arrow { border:0; background:#fafafa; width:31px; height:31px; border-radius:6px; font-size:20px; color:#666; }
+    .trust-grid { display:grid; grid-template-columns:1fr 1fr; border:1px solid var(--line); }
+    .trust-card { min-height:82px; padding:9px 8px; border-right:1px solid var(--line); border-bottom:1px solid var(--line); position:relative; }
+    .trust-card:nth-child(2n) { border-right:0; } .trust-card:nth-last-child(-n+2) { border-bottom:0; }
+    .trust-card b { display:block; width:66px; font-size:10px; line-height:1.2; font-weight:500; }
+    .trust-card small { display:block; margin-top:15px; width:95px; color:#969696; font-size:7px; line-height:1.35; }
+    .trust-card em { position:absolute; right:8px; top:10px; width:31px; height:31px; border-radius:3px; background:#e9e8e5 center/cover; }
+    .t1 em { background-image:url('https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=100&q=80'); }
+    .t2 em { background-image:url('https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=100&q=80'); }
+    .t3 em { background-image:url('https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=100&q=80'); }
+    .t4 em { background-image:url('https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=100&q=80'); }
+    .nav { position:absolute; bottom:0; left:0; right:0; height:72px; background:#fff; border-top:1px solid #f5f5f3; display:flex; justify-content:space-around; padding-top:11px; }
+    .nav-item { width:58px; display:flex; flex-direction:column; align-items:center; gap:4px; color:#8d8d8d; font-size:8px; } .nav-item.active { color:#151515; } .nav-item.active svg { stroke:var(--accent); fill:var(--accent); }
+    .nav svg { width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:1.7; }
+
+    .search-page { display:none; position:absolute; inset:0; z-index:10; overflow:hidden; background:#fff; }
+    .search-page.open { display:block; animation:open .22s ease-out; }
+    @keyframes open { from { opacity:.5; transform:translateY(14px); } to { opacity:1; transform:none; } }
+    .search-top { padding:14px 16px 12px; display:flex; align-items:center; gap:9px; border-bottom:1px solid #f4f4f2; }
+    .back { width:36px; height:36px; padding:0; display:grid; place-items:center; background:#f7f7f6; border:0; border-radius:6px; color:#656565; cursor:pointer; }
+    .back svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.8; }
+    .search-field { height:38px; flex:1; border:1px solid #e7e7e4; background:#fafafa; border-radius:6px; display:flex; align-items:center; padding:0 11px; gap:8px; }
+    .search-field svg { width:15px; height:15px; color:#656565; flex:none; }
+    .search-field input { width:100%; border:0; outline:0; background:transparent; color:#242424; font-size:11px; }
+    .search-field input::placeholder { color:#aaa; }
+    .search-content { height:calc(100% - 108px); overflow:auto; padding:8px 18px 32px; }
+    .search-content::-webkit-scrollbar { display:none; }
+    .section { padding:16px 0 4px; }
+    .section-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .section h2 { margin:0; font-size:14px; letter-spacing:-.25px; }
+    .section-head button { border:0; background:none; color:#999; font-size:10px; padding:0; cursor:pointer; }
+    .history { display:flex; flex-wrap:wrap; gap:8px; max-height:68px; overflow:hidden; padding:1px 0 4px; }
+    .history-entry { height:30px; max-width:75%; display:flex; align-items:center; border:1px solid #e7e7e4; border-radius:4px; background:#fff; overflow:hidden; }
+    .history-item { height:100%; min-width:0; max-width:230px; border:0; padding:0 6px 0 11px; background:transparent; color:#4a4a4a; font-size:10px; line-height:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; }
+    .history-delete { width:25px; height:100%; flex:none; border:0; background:transparent; color:#aaa; display:grid; place-items:center; cursor:pointer; }
+    .history-delete svg { width:10px; height:10px; stroke:currentColor; fill:none; stroke-width:1.8; }
+    .history-entry:active { border-color:#cfcfcb; }
+    .chips { display:flex; flex-wrap:wrap; gap:8px; }
+    .chip { min-height:29px; border:0; border-radius:4px; background:var(--soft); color:#333; padding:0 11px; font-size:10px; cursor:pointer; }
+    .chip:active { background:#eceae7; }
+    .brand-row, .category-grid { display:flex; gap:9px; overflow-x:auto; margin-right:-18px; padding:1px 18px 4px 0; scrollbar-width:none; scroll-snap-type:x proximity; }
+    .brand-row::-webkit-scrollbar, .category-grid::-webkit-scrollbar { display:none; }
+    .brand { flex:0 0 88px; min-width:0; cursor:pointer; scroll-snap-align:start; }
+    .brand-art { height:67px; border-radius:4px; background:center/cover; position:relative; overflow:hidden; }
+    .brand-art:after { content:""; position:absolute; inset:0; background:linear-gradient(0deg,rgba(0,0,0,.24),transparent 65%); }
+    .brand b { display:block; font-size:10px; margin-top:6px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .b1 { background-image:url('https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=220&q=80'); }
+    .b2 { background-image:url('https://images.unsplash.com/photo-1563170351-be82bc888aa4?auto=format&fit=crop&w=220&q=80'); }
+    .b3 { background-image:url('https://images.unsplash.com/photo-1594223274512-ad4803739b7c?auto=format&fit=crop&w=220&q=80'); }
+    .b4 { background-image:url('https://images.unsplash.com/photo-1523779917675-b6ed3a42a561?auto=format&fit=crop&w=220&q=80'); }
+    .category { flex:0 0 160px; height:66px; overflow:hidden; border-radius:4px; position:relative; background:#eee center/cover; border:0; text-align:left; padding:10px; color:#fff; cursor:pointer; scroll-snap-align:start; }
+    .category:before { content:""; position:absolute; inset:0; background:linear-gradient(90deg,rgba(0,0,0,.45),rgba(0,0,0,.06)); }
+    .category span { position:relative; font-size:12px; font-weight:600; }
+    .c1 { background-image:url('https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=350&q=80'); }
+    .c2 { background-image:url('https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=350&q=80'); }
+    .c3 { background-image:url('https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=350&q=80'); }
+    .c4 { background-image:url('https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=350&q=80'); }
+    .suggestions-panel { display:none; height:calc(100% - 108px); overflow:auto; padding:9px 18px 28px; }
+    .search-page.has-query .suggestions-panel { display:block; }
+    .search-page.has-query .search-content { display:none; }
+    .search-page.keyboard-open .suggestions-panel { height:calc(100% - 108px - 286px); }
+    .suggestion-group { padding:9px 0 4px; }
+    .suggestion-group h2 { margin:0 0 5px; color:#999; font-size:9px; font-weight:650; letter-spacing:.2px; text-transform:uppercase; }
+    .suggestion-row { width:100%; min-height:39px; padding:0; border:0; border-bottom:1px solid #f2f2ef; background:#fff; display:flex; align-items:center; gap:10px; color:#222; text-align:left; font-size:11px; cursor:pointer; }
+    .suggestion-row svg { width:15px; height:15px; flex:none; stroke:#92928e; fill:none; stroke-width:1.5; }
+    .suggestion-row small { margin-left:auto; color:#aaa; font-size:8px; }
+    .suggestion-empty { padding:76px 0 0; color:#888; text-align:center; font-size:11px; }
+    .suggestion-skeleton { padding-top:12px; }
+    .suggestion-skeleton i { display:block; height:39px; border-bottom:1px solid #f3f3f0; position:relative; overflow:hidden; }
+    .suggestion-skeleton i:before { content:""; position:absolute; left:0; top:12px; width:72%; height:11px; border-radius:3px; background:linear-gradient(90deg,#f1f1ef 25%,#fafafa 50%,#f1f1ef 75%); background-size:200% 100%; animation:shimmer 1.15s infinite linear; }
+    @keyframes shimmer { to { background-position:-200% 0; } }
+    .demo-keyboard { position:absolute; left:0; right:0; bottom:0; height:286px; padding:7px 5px 9px; background:#d2d5db; transform:translateY(100%); transition:transform .22s ease-out; z-index:3; }
+    .search-page.keyboard-open .demo-keyboard { transform:none; }
+    .search-page.keyboard-open .search-content { height:calc(100% - 108px - 286px); }
+    .keyboard-suggestions { height:32px; display:flex; align-items:center; justify-content:space-around; color:#252525; font-size:11px; }
+    .key-row { display:flex; justify-content:center; gap:5px; margin-bottom:7px; }
+    .key { height:39px; min-width:31px; padding:0 5px; border:0; border-radius:5px; background:#fff; box-shadow:0 1px 0 rgba(0,0,0,.22); color:#111; font-size:14px; cursor:pointer; }
+    .key.wide { min-width:47px; background:#aeb3bc; font-size:11px; }
+    .key.space { flex:1; max-width:190px; }
+    .key.search { min-width:68px; background:#111; color:#fff; font-size:11px; }
+    .key:active { background:#e8e8e8; }
+    .demo-note { position:absolute; right:12px; bottom:80px; z-index:4; background:rgba(255,255,255,.9); border:1px solid #ececea; border-radius:99px; padding:6px 9px; font-size:8px; color:#999; }
+
+    .results-page { display:none; position:absolute; inset:0; z-index:20; background:#fff; }
+    .results-page.open { display:block; animation:open .2s ease-out; }
+    .results-top { padding:12px 16px 10px; display:flex; align-items:center; gap:9px; }
+    .results-search { height:38px; flex:1; border:1px solid #e7e7e4; background:#fafafa; border-radius:6px; display:flex; align-items:center; padding:0 11px; gap:8px; }
+    .results-search svg { width:15px; height:15px; color:#656565; flex:none; }
+    .results-search input { min-width:0; width:100%; border:0; outline:0; background:transparent; color:#242424; font-size:11px; }
+    .clear-result-query { width:24px; height:24px; flex:none; padding:0; border:0; border-radius:50%; background:#e7e7e4; color:#70706d; display:grid; place-items:center; cursor:pointer; }
+    .clear-result-query[hidden] { display:none; }
+    .clear-result-query svg { width:11px; height:11px; stroke:currentColor; fill:none; stroke-width:2; }
+    .results-summary { height:28px; padding:0 16px; display:flex; align-items:center; border-top:1px solid #f5f5f3; background:#fff; }
+    .result-count { color:#8b8b8b; font-size:9px; }
+    .search-hint { display:none; min-height:34px; padding:8px 16px; border-top:1px solid #f5f5f3; color:#717171; background:#fff; font-size:9.5px; line-height:1.4; }
+    .search-hint.active { display:block; }
+    .search-hint button { border:0; padding:0; background:transparent; color:#111; font-weight:700; text-decoration:underline; cursor:pointer; }
+    .filter-strip { height:42px; padding:6px 14px 7px; display:flex; align-items:center; gap:7px; overflow-x:auto; border-bottom:1px solid #ededeb; background:#fff; scrollbar-width:none; }
+    .filter-strip::-webkit-scrollbar { display:none; }
+    .filter-chip { height:29px; flex:none; padding:0 10px; border:1px solid #dededb; border-radius:5px; background:#fff; color:#3d3d3b; display:flex; align-items:center; gap:5px; font-size:8.5px; font-weight:550; white-space:nowrap; cursor:pointer; }
+    .filter-chip.selected { border-color:#1d1d1b; background:#f4f4f1; color:#111; }
+    .filter-chip svg { width:11px; height:11px; stroke:currentColor; fill:none; stroke-width:1.7; }
+    .filter-chevron { margin-left:1px; color:#888; font-size:9px; line-height:1; }
+    .availability-chip { font-weight:650; }
+    .availability-check { width:12px; height:12px; border:1px solid #bcbcb8; border-radius:50%; display:grid; place-items:center; color:transparent; font-size:8px; line-height:1; }
+    .availability-chip.active { border-color:#1d1d1b; color:#1d1d1b; }
+    .availability-chip.active .availability-check { border-color:#1d1d1b; background:#1d1d1b; color:#fff; }
+    .results-content { height:calc(100% - 176px); overflow:auto; padding:14px 14px 34px; scrollbar-width:none; }
+    .results-page.has-hint .results-content { height:calc(100% - 210px); }
+    .results-content::-webkit-scrollbar { display:none; }
+    .product-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:21px 10px; }
+    .product-grid[hidden] { display:none !important; }
+    .product-card { min-width:0; cursor:pointer; }
+    .product-image { aspect-ratio:1 / 1.16; overflow:hidden; position:relative; border-radius:4px; background:#f2f1ef center/cover no-repeat; }
+    .product-image:after { content:""; position:absolute; inset:0; box-shadow:inset 0 0 0 1px rgba(0,0,0,.025); border-radius:inherit; }
+    .favorite-button { position:absolute; right:8px; top:8px; z-index:1; width:28px; height:28px; border:0; border-radius:50%; background:rgba(255,255,255,.9); display:grid; place-items:center; cursor:pointer; }
+    .favorite-button svg { width:14px; height:14px; fill:none; stroke:#242424; stroke-width:1.5; }
+    .favorite-button.active svg { fill:#161616; }
+    .favorite-button:disabled { background:rgba(255,255,255,.76); cursor:default; }
+    .favorite-button:disabled svg { stroke:#aaa; }
+    .sold-badge { position:absolute; left:8px; top:8px; z-index:1; height:21px; padding:0 7px; border-radius:3px; display:flex; align-items:center; background:rgba(27,27,26,.88); color:#fff; font-size:7px; font-weight:750; letter-spacing:.7px; }
+    .product-card[data-status="sold"] { display:none; }
+    .product-grid.show-sold .product-card[data-status="sold"] { display:block; }
+    .product-card[data-status="sold"] .product-image { filter:saturate(.72); }
+    .product-card[data-status="sold"] .product-price { color:#929292; font-weight:500; }
+    .see-similar { margin-top:8px; padding:0 0 2px; border:0; border-bottom:1px solid #222; background:transparent; color:#222; font-size:8px; font-weight:700; cursor:pointer; }
+    .product-meta { padding:8px 2px 0; }
+    .product-brand { display:block; font-size:10px; line-height:1.2; font-weight:700; letter-spacing:.05px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .product-name { margin:4px 0 7px; min-height:25px; color:#6f6f6f; font-size:9px; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .product-price { font-size:11px; font-weight:700; }
+    .product-price del { margin-left:5px; color:#a4a4a4; font-size:8px; font-weight:400; }
+    .p1 { background-image:url('https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=520&q=85'); }
+    .p2 { background-image:url('https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?auto=format&fit=crop&w=520&q=85'); }
+    .p3 { background-image:url('https://images.unsplash.com/photo-1594223274512-ad4803739b7c?auto=format&fit=crop&w=520&q=85'); }
+    .p4 { background-image:url('https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=520&q=85'); }
+    .p5 { background-image:url('https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&w=520&q=85'); }
+    .p6 { background-image:url('https://images.unsplash.com/photo-1564422170194-896b89110ef8?auto=format&fit=crop&w=520&q=85'); }
+    .p7 { background-image:url('https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=520&q=85'); }
+    .p8 { background-image:url('https://images.unsplash.com/photo-1612902456551-333ac5afa26e?auto=format&fit=crop&w=520&q=85'); }
+    .result-state { display:none; min-height:520px; padding:150px 34px 40px; text-align:center; }
+    .result-state.active { display:block; }
+    .result-state h2 { margin:0 0 8px; font-size:17px; letter-spacing:-.3px; }
+    .result-state p { margin:0 auto; max-width:240px; color:#8b8b8b; font-size:10px; line-height:1.55; }
+    .result-state button { margin-top:18px; height:34px; padding:0 16px; border:0; border-radius:6px; background:#111; color:#fff; font-size:10px; font-weight:700; }
+    .related-links { margin-top:22px; display:flex; justify-content:center; flex-wrap:wrap; gap:7px; }
+    .related-links button { margin:0; height:30px; border:1px solid #dededb; background:#fff; color:#333; }
+    .result-skeleton { display:none; grid-template-columns:repeat(2,minmax(0,1fr)); gap:21px 10px; }
+    .result-skeleton.active { display:grid; }
+    .skeleton-card .skeleton-image { aspect-ratio:1 / 1.16; border-radius:4px; background:linear-gradient(90deg,#f1f1ef 25%,#fafafa 50%,#f1f1ef 75%); background-size:200% 100%; animation:shimmer 1.15s infinite linear; }
+    .skeleton-card i { display:block; height:9px; margin-top:9px; border-radius:3px; background:#f1f1ef; }
+    .skeleton-card i:last-child { width:58%; margin-top:6px; }
+    .pagination-error { display:none; margin-top:26px; padding:13px 12px; border-radius:6px; background:#f8f8f6; color:#777; text-align:center; font-size:9px; }
+    .pagination-error.active { display:block; }
+    .pagination-error button { margin-left:6px; border:0; padding:0; background:transparent; color:#111; font-weight:700; text-decoration:underline; cursor:pointer; }
+    .sheet-backdrop { display:none; position:absolute; inset:0; z-index:30; background:rgba(0,0,0,.26); }
+    .sheet-backdrop.open { display:block; }
+    .bottom-sheet { position:absolute; left:0; right:0; bottom:0; max-height:76%; overflow:auto; padding:10px 20px 28px; background:#fff; border-radius:18px 18px 0 0; transform:translateY(100%); transition:transform .2s ease-out; }
+    .sheet-backdrop.open .bottom-sheet { transform:none; }
+    .sheet-handle { width:34px; height:3px; margin:0 auto 20px; border-radius:99px; background:#d7d7d4; }
+    .bottom-sheet h2 { margin:0; font-size:17px; }
+    .bottom-sheet p { margin:9px 0 19px; color:#888; font-size:10px; line-height:1.5; }
+    .sheet-close { width:100%; height:38px; border:0; border-radius:6px; background:#111; color:#fff; font-size:11px; font-weight:700; }
+    .sheet-options { margin:14px 0 19px; }
+    .sheet-option { width:100%; height:42px; padding:0; border:0; border-bottom:1px solid #f0f0ed; background:#fff; display:flex; align-items:center; justify-content:space-between; color:#333; font-size:11px; text-align:left; cursor:pointer; }
+    .sheet-option.selected { color:#111; font-weight:700; }
+    .sheet-option.selected:after { content:"✓"; }
+    .filter-block { margin:16px 0 20px; }
+    .filter-block h3 { margin:0 0 10px; font-size:11px; }
+    .filter-values { display:flex; flex-wrap:wrap; gap:7px; }
+    .filter-value { height:30px; padding:0 11px; border:1px solid #dededb; border-radius:5px; background:#fff; color:#555; font-size:9px; cursor:pointer; }
+    .filter-value.selected { border-color:#111; background:#111; color:#fff; }
+    .detail-page { display:none; position:absolute; inset:0; z-index:40; background:#fff; }
+    .detail-page.open { display:block; animation:open .2s ease-out; }
+    .detail-top { height:52px; padding:8px 16px; display:flex; align-items:center; border-bottom:1px solid #f1f1ee; }
+    .detail-top strong { margin-left:12px; font-size:13px; }
+    .detail-content { height:calc(100% - 96px); overflow:auto; }
+    .detail-image { height:390px; background:#f2f1ef center/cover no-repeat; }
+    .detail-copy { padding:20px 18px 40px; }
+    .detail-copy small { color:#777; font-size:9px; font-weight:700; letter-spacing:.4px; }
+    .detail-copy h1 { margin:8px 0 12px; font-size:19px; line-height:1.3; }
+    .detail-copy strong { font-size:16px; }
+    .detail-copy p { margin:18px 0 0; color:#777; font-size:10px; line-height:1.6; }
+    /* The demo stays a 390 × 844 canvas and is scaled by JS for small preview panes. */
+  </style>
+</head>
+<body>
+  <main class="phone" aria-label="Looply mobile global search demo">
+    <section class="home" id="homeView">
+      <div class="status"><span>9:41</span><svg viewBox="0 0 48 12" aria-hidden="true"><path d="M0 9h2V5h2v4h2V3h2v6h2V1h2v8m17-5h11m-7-3.5 5 3.5-5 3.5M42 1h4v8h-4z" fill="none" stroke="#161616" stroke-width="1.2"/></svg></div>
+      <header class="home-header">
+        <div class="wordmark"><span>LOOPLY</span></div>
+        <button class="search-trigger" id="openSearch" aria-label="Open search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg><span class="rotating" id="rotatingWord">Louis Vuitton Neverfull</span></button>
+        <button class="bag" aria-label="Bag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 8h12l1 12H5L6 8Z"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/></svg></button>
+      </header>
+      <section class="hero"><div class="hero-copy"><h1>From designer bags to premium tech.</h1><p>Every find is checked, clearly described, and ready for its next owner.</p><button class="cta">Explore Finds&nbsp;&nbsp; →</button></div><div class="pager"><i></i><i></i><i></i></div></section>
+      <section class="trust"><div class="trust-title">Confidence in Every Find <button class="arrow">›</button></div><div class="trust-grid"><article class="trust-card t1"><b>Authenticated Luxury</b><small>Expert-reviewed through a rigorous authentication process.</small><em></em></article><article class="trust-card t2"><b>Reliable Electronics</b><small>Tested, refurbished, and ready for everyday performance.</small><em></em></article><article class="trust-card t3"><b>True to the Piece</b><small>Real product photos, clear condition notes, and listed flaws.</small><em></em></article><article class="trust-card t4"><b>Tech-Driven Verification</b><small>Powered by intelligent technology and trusted partners.</small><em></em></article></div></section>
+      <div class="demo-note">Tap Search to preview</div>
+    </section>
+    <nav class="nav"><div class="nav-item active"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 21v-6h6v6"/></svg><span>Home</span></div><div class="nav-item"><svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="5"/><path d="m14 14 5 5M4 4l1 1M4 20l1-1"/></svg><span>Shop</span></div><div class="nav-item"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6Z"/></svg><span>Favorites</span></div><div class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4 3.3-6 8-6s7.2 2 8 6"/></svg><span>Me</span></div></nav>
+
+    <section class="search-page" id="searchView" aria-label="Global search">
+      <div class="status"><span>9:41</span><svg viewBox="0 0 48 12" aria-hidden="true"><path d="M0 9h2V5h2v4h2V3h2v6h2V1h2v8m17-5h11m-7-3.5 5 3.5-5 3.5M42 1h4v8h-4z" fill="none" stroke="#161616" stroke-width="1.2"/></svg></div>
+      <header class="search-top"><button class="back" id="closeSearch" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 5-7 7 7 7"/></svg></button><label class="search-field"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg><input id="query" placeholder="Louis Vuitton Neverfull" autocomplete="off" enterkeyhint="search"></label></header>
+      <div class="search-content">
+        <section class="section" id="recentSection"><div class="section-head"><h2>Recent searches</h2></div><div class="history" id="history"><div class="history-entry"><button class="history-item">Chanel bag</button><button class="history-delete" type="button" aria-label="Delete Chanel bag"><svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4l-8 8"/></svg></button></div><div class="history-entry"><button class="history-item">Gold watch</button><button class="history-delete" type="button" aria-label="Delete Gold watch"><svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4l-8 8"/></svg></button></div><div class="history-entry"><button class="history-item">Sony camera</button><button class="history-delete" type="button" aria-label="Delete Sony camera"><svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4l-8 8"/></svg></button></div></div></section>
+        <section class="section"><div class="section-head"><h2>Popular searches</h2></div><div class="chips"><button class="chip">Louis Vuitton Neverfull</button><button class="chip">Vintage jewelry</button><button class="chip">iPhone 15 Pro</button><button class="chip">Summer bags</button><button class="chip">Rolex Datejust</button></div></section>
+        <section class="section"><div class="section-head"><h2>Popular brands</h2></div><div class="brand-row" data-max-display="10"><div class="brand"><div class="brand-art b1"></div><b>Louis Vuitton</b></div><div class="brand"><div class="brand-art b2"></div><b>Chanel</b></div><div class="brand"><div class="brand-art b3"></div><b>Cartier</b></div><div class="brand"><div class="brand-art b4"></div><b>Rolex</b></div><div class="brand"><div class="brand-art b2"></div><b>Prada</b></div><div class="brand"><div class="brand-art b1"></div><b>Gucci</b></div><div class="brand"><div class="brand-art b3"></div><b>Dior</b></div><div class="brand"><div class="brand-art b4"></div><b>Hermès</b></div><div class="brand"><div class="brand-art b3"></div><b>Tiffany &amp; Co.</b></div><div class="brand"><div class="brand-art b1"></div><b>Saint Laurent</b></div></div></section>
+        <section class="section"><div class="section-head"><h2>Popular categories</h2></div><div class="category-grid" data-max-display="10"><button class="category c1"><span>Bags</span></button><button class="category c2"><span>Jewelry</span></button><button class="category c3"><span>Electronics</span></button><button class="category c4"><span>Accessories</span></button><button class="category c1"><span>Watches</span></button><button class="category c4"><span>Shoes</span></button><button class="category c2"><span>Clothing</span></button><button class="category c3"><span>Cameras</span></button><button class="category c1"><span>Wallets</span></button><button class="category c4"><span>Travel</span></button></div></section>
+      </div>
+      <div class="suggestions-panel" id="suggestionsPanel" aria-live="polite"></div>
+      <div class="demo-keyboard" id="demoKeyboard" aria-label="Demo mobile keyboard">
+        <div class="keyboard-suggestions"><span>Chanel</span><span>Louis Vuitton</span><span>Rolex</span></div>
+        <div class="key-row"><button class="key" data-key="q">Q</button><button class="key" data-key="w">W</button><button class="key" data-key="e">E</button><button class="key" data-key="r">R</button><button class="key" data-key="t">T</button><button class="key" data-key="y">Y</button><button class="key" data-key="u">U</button><button class="key" data-key="i">I</button><button class="key" data-key="o">O</button><button class="key" data-key="p">P</button></div>
+        <div class="key-row"><button class="key" data-key="a">A</button><button class="key" data-key="s">S</button><button class="key" data-key="d">D</button><button class="key" data-key="f">F</button><button class="key" data-key="g">G</button><button class="key" data-key="h">H</button><button class="key" data-key="j">J</button><button class="key" data-key="k">K</button><button class="key" data-key="l">L</button></div>
+        <div class="key-row"><button class="key wide" data-action="shift">Shift</button><button class="key" data-key="z">Z</button><button class="key" data-key="x">X</button><button class="key" data-key="c">C</button><button class="key" data-key="v">V</button><button class="key" data-key="b">B</button><button class="key" data-key="n">N</button><button class="key" data-key="m">M</button><button class="key wide" data-action="backspace">⌫</button></div>
+        <div class="key-row"><button class="key wide" data-action="numbers">123</button><button class="key space" data-key=" ">space</button><button class="key search" data-action="search">Search</button></div>
+      </div>
+    </section>
+
+    <section class="results-page" id="resultsView" aria-label="Search results">
+      <div class="status"><span>9:41</span><svg viewBox="0 0 48 12" aria-hidden="true"><path d="M0 9h2V5h2v4h2V3h2v6h2V1h2v8m17-5h11m-7-3.5 5 3.5-5 3.5M42 1h4v8h-4z" fill="none" stroke="#161616" stroke-width="1.2"/></svg></div>
+      <header class="results-top"><button class="back" id="backToSource" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 5-7 7 7 7"/></svg></button><div class="results-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg><input id="resultQuery" value="Louis Vuitton Neverfull" aria-label="Search results" autocomplete="off" enterkeyhint="search"><button class="clear-result-query" id="clearResultQuery" type="button" aria-label="Clear search"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button></div></header>
+      <div class="search-hint" id="searchHint">Did you mean <button type="button" id="suggestedCorrection">Louis Vuitton</button>?</div>
+      <div class="results-summary"><span class="result-count" id="resultCount">128 items</span></div>
+      <div class="filter-strip" aria-label="Search result filters">
+        <button class="filter-chip" type="button" data-sheet="Filter"><svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filter</button>
+        <button class="filter-chip" type="button" data-sheet="Sort"><svg viewBox="0 0 24 24"><path d="M8 7h11M5 7h.01M8 12h8M5 12h.01M8 17h5M5 17h.01"/></svg>Sort By <span class="filter-chevron">⌄</span></button>
+        <button class="filter-chip availability-chip active" id="inStockToggle" type="button" aria-pressed="true"><span class="availability-check">✓</span>In Stock Only</button>
+        <button class="filter-chip" type="button" data-sheet="Brand">Brand <span class="filter-chevron">⌄</span></button>
+        <button class="filter-chip" type="button" data-sheet="Category">Category <span class="filter-chevron">⌄</span></button>
+        <button class="filter-chip" type="button" data-sheet="Price">Price <span class="filter-chevron">⌄</span></button>
+        <button class="filter-chip" type="button" data-sheet="Condition">Condition <span class="filter-chevron">⌄</span></button>
+      </div>
+      <div class="results-content" id="resultsContent" data-page-size="40">
+        <div class="result-skeleton" id="resultSkeleton" aria-label="Loading products"><div class="skeleton-card"><div class="skeleton-image"></div><i></i><i></i></div><div class="skeleton-card"><div class="skeleton-image"></div><i></i><i></i></div><div class="skeleton-card"><div class="skeleton-image"></div><i></i><i></i></div><div class="skeleton-card"><div class="skeleton-image"></div><i></i><i></i></div></div>
+        <div class="product-grid" id="productGrid">
+          <article class="product-card"><div class="product-image p1"><button class="favorite-button" aria-label="Favorite"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6Z"/></svg></button></div><div class="product-meta"><b class="product-brand">LOUIS VUITTON</b><p class="product-name">Monogram Neverfull MM Tote</p><span class="product-price">$1,245 <del>$1,480</del></span></div></article>
+          <article class="product-card"><div class="product-image p2"><button class="favorite-button" aria-label="Favorite"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6Z"/></svg></button></div><div class="product-meta"><b class="product-brand">LOUIS VUITTON</b><p class="product-name">Damier Ebene Shoulder Bag</p><span class="product-price">$985</span></div></article>
+          <article class="product-card" data-status="sold"><div class="product-image p7"><span class="sold-badge">SOLD OUT</span><button class="favorite-button" aria-label="Unavailable to favorite" disabled><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6Z"/></svg></button></div><div class="product-meta"><b class="product-brand">LOUIS VUITTON</b><p class="product-name">Monogram Artsy MM Hobo</p><span class="product-price">Sold for $1,120</span><br><button class="see-similar" type="button">See Similar →</button></div></article>
+          <article class="product-card"><div class="product-image p3"><button class="favorite-button" aria-label="Favorite"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6Z"/></svg></button></div><div class="product-meta"><b class="product-brand">LOUIS VUITTON</b><p class="product-name">Monogram Canvas Pochette</p><span class="product-price">$760 <del>$895</del></span></div></article>
+          <article class="product-card"><div class="product-image p4"><button class="favorite-button" aria-label="Favorite"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6Z"/></svg></button></div><div class="product-meta"><b class="product-brand">LOUIS VUITTON</b><p class="product-name">Vintage Monogram Backpack</p><span class="product-price">$1,090</span></div></article>
+          <article class="product-card" data-status="sold"><div class="product-image p8"><span class="sold-badge">SOLD OUT</span><button class="favorite-button" aria-label="Unavailable to favorite" disabled><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6Z"/></svg></button></div><div class="product-meta"><b class="product-brand">LOUIS VUITTON</b><p class="product-name">Damier Azur Neverfull PM</p><span class="product-price">Sold for $895</span><br><button class="see-similar" type="button">See Similar →</button></div></article>
+          <article class="product-card"><div class="product-image p5"><button class="favorite-button" aria-label="Favorite"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6Z"/></svg></button></div><div class="product-meta"><b class="product-brand">LOUIS VUITTON</b><p class="product-name">Epi Leather Alma PM</p><span class="product-price">$825</span></div></article>
+          <article class="product-card"><div class="product-image p6"><button class="favorite-button" aria-label="Favorite"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6Z"/></svg></button></div><div class="product-meta"><b class="product-brand">LOUIS VUITTON</b><p class="product-name">Speedy Bandoulière 30</p><span class="product-price">$1,180 <del>$1,350</del></span></div></article>
+        </div>
+        <div class="pagination-error" id="paginationError">We couldn't load more items.<button type="button" id="retryNextPage">Retry</button></div>
+        <section class="result-state" id="emptyState"><h2>No results found</h2><p>Try a different search or explore a related brand or category.</p><button id="editSearch">Edit search</button><div class="related-links"><button type="button" data-related="Louis Vuitton">Louis Vuitton</button><button type="button" data-related="Designer bags">Designer bags</button></div></section>
+        <section class="result-state" id="filterEmptyState"><h2>No matches with these filters</h2><p>Clear your filters to see all results for this search.</p><button id="clearFilters">Clear filters</button></section>
+        <section class="result-state" id="errorState"><h2>Something went wrong</h2><p>We couldn't load your results. Check your connection and try again.</p><button id="retryResults">Try again</button></section>
+      </div>
+      <div class="sheet-backdrop" id="sheetBackdrop"><section class="bottom-sheet"><div class="sheet-handle"></div><h2 id="sheetTitle">Sort By</h2><p id="sheetDescription"></p><div id="sheetBody"></div><button class="sheet-close" id="closeSheet">Done</button></section></div>
+    </section>
+
+    <section class="detail-page" id="detailView" aria-label="Product details preview">
+      <div class="status"><span>9:41</span><svg viewBox="0 0 48 12" aria-hidden="true"><path d="M0 9h2V5h2v4h2V3h2v6h2V1h2v8m17-5h11m-7-3.5 5 3.5-5 3.5M42 1h4v8h-4z" fill="none" stroke="#161616" stroke-width="1.2"/></svg></div>
+      <header class="detail-top"><button class="back" id="backToResults" aria-label="Back to search results"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 5-7 7 7 7"/></svg></button><strong>Item details</strong></header>
+      <div class="detail-content"><div class="detail-image" id="detailImage"></div><div class="detail-copy"><small id="detailBrand">LOUIS VUITTON</small><h1 id="detailTitle">Monogram Neverfull MM Tote</h1><strong id="detailPrice">$1,245</strong><p>This lightweight detail preview demonstrates returning to the same search results, filters, sort, and scroll position.</p></div></div>
+    </section>
+  </main>
+  <script>
+    const phone = document.querySelector('.phone');
+    function fitPhone() {
+      const scale = Math.min((window.innerWidth - 16) / 390, (window.innerHeight - 16) / 844, 1);
+      phone.style.transform = `scale(${Math.max(scale, 0.05)})`;
+    }
+    fitPhone();
+    window.addEventListener('resize', fitPhone);
+
+    const searchView = document.getElementById('searchView');
+    const resultsView = document.getElementById('resultsView');
+    const detailView = document.getElementById('detailView');
+    const query = document.getElementById('query');
+    const resultQuery = document.getElementById('resultQuery');
+    const clearResultQuery = document.getElementById('clearResultQuery');
+    const resultCount = document.getElementById('resultCount');
+    const resultsContent = document.getElementById('resultsContent');
+    const productGrid = document.getElementById('productGrid');
+    const resultSkeleton = document.getElementById('resultSkeleton');
+    const inStockToggle = document.getElementById('inStockToggle');
+    const history = document.getElementById('history');
+    const recentSection = document.getElementById('recentSection');
+    const suggestionsPanel = document.getElementById('suggestionsPanel');
+    const sheetBackdrop = document.getElementById('sheetBackdrop');
+    const sheetTitle = document.getElementById('sheetTitle');
+    const sheetDescription = document.getElementById('sheetDescription');
+    const sheetBody = document.getElementById('sheetBody');
+    const closeSheetButton = document.getElementById('closeSheet');
+    const resultStates = ['emptyState', 'filterEmptyState', 'errorState'].map(id => document.getElementById(id));
+    const sortOptions = ['Best Match', 'Newest', 'Price: Low to High', 'Price: High to Low'];
+    const filterOptions = {
+      Brand: ['Louis Vuitton', 'Chanel', 'Gucci'],
+      Category: ['Bags', 'Jewelry', 'Accessories'],
+      Price: ['$0–$500', '$500–$1,000', '$1,000+'],
+      Condition: ['Excellent', 'Very Good', 'Good']
+    };
+    let currentSort = 'Best Match';
+    let currentSheet = '';
+    let selectedFilters = new Set();
+    let suggestionTimer = 0;
+    let resultRequestId = 0;
+    let nextPageFailureShown = false;
+
+    // Home and search discovery share one ordered Popular searches list.
+    const fallbackSearchTerm = 'Search by brand or item';
+    const words = Array.from(document.querySelectorAll('.chip'), chip => chip.textContent.trim()).filter(Boolean);
+    let wordIndex = 0;
+    const rotatingWord = document.getElementById('rotatingWord');
+    rotatingWord.textContent = words[0] || fallbackSearchTerm;
+    if (words.length > 1) setInterval(() => {
+      wordIndex = (wordIndex + 1) % words.length;
+      rotatingWord.classList.remove('is-changing');
+      void rotatingWord.offsetWidth;
+      rotatingWord.textContent = words[wordIndex];
+      rotatingWord.classList.add('is-changing');
+    }, 2400);
+
+    function normalizeSearchTerm(value){ return value.normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase(); }
+
+    function openSearch(){
+      const defaultTerm = rotatingWord.textContent.trim();
+      query.value = '';
+      query.placeholder = defaultTerm;
+      query.dataset.defaultTerm = defaultTerm;
+      searchView.classList.remove('has-query');
+      suggestionsPanel.innerHTML = '';
+      searchView.classList.add('open', 'keyboard-open');
+      setTimeout(() => query.focus(), 180);
+    }
+    function closeSearch(){
+      clearTimeout(suggestionTimer);
+      searchView.classList.remove('open', 'keyboard-open', 'has-query');
+      query.value = '';
+      query.removeAttribute('data-default-term');
+    }
+    document.getElementById('openSearch').addEventListener('click', openSearch);
+    document.getElementById('closeSearch').addEventListener('click', closeSearch);
+
+    function makeHistoryEntry(displayText, searchType = 'keyword', targetId = ''){
+      const normalizedText = normalizeSearchTerm(displayText);
+      const recordKey = `${searchType}|${normalizedText}|${targetId}`;
+      const entry = document.createElement('div');
+      entry.className = 'history-entry';
+      entry.innerHTML = `<button class="history-item"></button><button class="history-delete" type="button" aria-label="Delete search"><svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>`;
+      const item = entry.querySelector('.history-item');
+      item.textContent = displayText.trim();
+      item.dataset.recordKey = recordKey;
+      item.dataset.searchType = searchType;
+      item.dataset.targetId = targetId;
+      entry.querySelector('.history-delete').setAttribute('aria-label', `Delete ${displayText.trim()}`);
+      return entry;
+    }
+    function recordRecentSearch(displayText, searchType = 'keyword', targetId = ''){
+      const normalizedText = normalizeSearchTerm(displayText);
+      if (!normalizedText) return;
+      const recordKey = `${searchType}|${normalizedText}|${targetId}`;
+      const existing = Array.from(history.querySelectorAll('.history-item')).find(item => item.dataset.recordKey === recordKey || (!item.dataset.recordKey && normalizeSearchTerm(item.textContent) === normalizedText));
+      if (existing) existing.closest('.history-entry').remove();
+      history.prepend(makeHistoryEntry(displayText, searchType, targetId));
+      while (history.children.length > 20) history.lastElementChild.remove();
+      recentSection.hidden = history.children.length === 0;
+    }
+    history.addEventListener('click', event => {
+      const deleteButton = event.target.closest('.history-delete');
+      if (deleteButton) {
+        deleteButton.closest('.history-entry').remove();
+        recentSection.hidden = history.children.length === 0;
+        return;
+      }
+      const item = event.target.closest('.history-item');
+      if (item) submitDemoSearch(item.textContent, item.dataset.searchType || 'keyword', item.dataset.targetId || '');
+    });
+
+    function suggestionIcon(type){
+      if (type === 'brand') return '<svg viewBox="0 0 24 24"><path d="M5 8h14v11H5zM8 8V5h8v3"/></svg>';
+      if (type === 'category') return '<svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>';
+      return '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg>';
+    }
+    function renderSuggestions(rawValue){
+      const term = rawValue.trim();
+      const normalized = normalizeSearchTerm(term);
+      clearTimeout(suggestionTimer);
+      if (!normalized) {
+        searchView.classList.remove('has-query');
+        suggestionsPanel.innerHTML = '';
+        return;
+      }
+      searchView.classList.add('has-query');
+      suggestionsPanel.innerHTML = '<div class="suggestion-skeleton"><i></i><i></i><i></i></div>';
+      suggestionTimer = setTimeout(() => {
+        if (normalizeSearchTerm(query.value) !== normalized) return;
+        if (normalized.includes('offline')) {
+          suggestionsPanel.innerHTML = '';
+          return;
+        }
+        if (normalized.includes('zzzz')) {
+          suggestionsPanel.innerHTML = '<div class="suggestion-empty">No suggestions found</div>';
+          return;
+        }
+        const groups = [
+          { title:'Search terms', type:'keyword', values:[term, `${term} bag`, `${term} vintage`] },
+          { title:'Brands', type:'brand', values:['Louis Vuitton', 'Chanel', 'Gucci'].filter(value => normalizeSearchTerm(value).includes(normalized.slice(0, 2)) || normalized.length < 3) },
+          { title:'Categories', type:'category', values:['Bags', 'Jewelry', 'Accessories'].filter(value => normalizeSearchTerm(value).includes(normalized.slice(0, 1))) }
+        ];
+        suggestionsPanel.innerHTML = groups.filter(group => group.values.length).map(group => `<section class="suggestion-group"><h2>${group.title}</h2>${group.values.slice(0, 3).map(value => `<button class="suggestion-row" type="button" data-suggestion="${value.replace(/"/g, '&quot;')}" data-type="${group.type}">${suggestionIcon(group.type)}<span>${value}</span><small>Search</small></button>`).join('')}</section>`).join('') || '<div class="suggestion-empty">No suggestions found</div>';
+      }, 420);
+    }
+    query.addEventListener('input', () => renderSuggestions(query.value));
+    suggestionsPanel.addEventListener('click', event => {
+      const row = event.target.closest('.suggestion-row');
+      if (row) submitDemoSearch(row.dataset.suggestion, row.dataset.type, normalizeSearchTerm(row.dataset.suggestion));
+    });
+
+    function hideResultContent(){
+      productGrid.hidden = true;
+      resultSkeleton.classList.remove('active');
+      resultStates.forEach(state => state.classList.remove('active'));
+      document.getElementById('paginationError').classList.remove('active');
+    }
+    function showResultState(stateId){
+      hideResultContent();
+      document.getElementById(stateId).classList.add('active');
+      resultCount.textContent = '0 items';
+    }
+    function resetSearchControls(){
+      currentSort = 'Best Match';
+      selectedFilters = new Set();
+      document.querySelectorAll('.filter-chip').forEach(button => button.classList.remove('selected'));
+      document.querySelector('[data-sheet="Sort"]').innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 7h11M5 7h.01M8 12h8M5 12h.01M8 17h5M5 17h.01"/></svg>Sort By <span class="filter-chevron">⌄</span>';
+      Object.keys(filterOptions).forEach(group => {
+        document.querySelector(`[data-sheet="${group}"]`).innerHTML = `${group} <span class="filter-chevron">⌄</span>`;
+      });
+      setInStockOnly(true);
+    }
+    function submitDemoSearch(term, searchType = 'keyword', targetId = ''){
+      const submittedTerm = (term ?? query.value).trim() || query.dataset.defaultTerm || '';
+      if (!submittedTerm) return;
+      recordRecentSearch(submittedTerm, searchType, targetId);
+      searchView.dataset.submittedTerm = submittedTerm;
+      resultQuery.value = submittedTerm;
+      syncResultClearButton();
+      resetSearchControls();
+      hideResultContent();
+      resultSkeleton.classList.add('active');
+      resultCount.textContent = 'Loading…';
+      document.getElementById('searchHint').classList.remove('active');
+      resultsView.classList.remove('has-hint');
+      nextPageFailureShown = false;
+      searchView.classList.remove('keyboard-open');
+      resultsView.classList.add('open');
+      resultsContent.scrollTop = 0;
+      resultQuery.blur();
+      const requestId = ++resultRequestId;
+      setTimeout(() => {
+        if (requestId !== resultRequestId) return;
+        const normalized = normalizeSearchTerm(submittedTerm);
+        if (normalized.includes('error')) return showResultState('errorState');
+        if (normalized.includes('zzzz') || normalized.includes('no results')) return showResultState('emptyState');
+        hideResultContent();
+        productGrid.hidden = false;
+        setInStockOnly(true);
+        if (normalized.includes('luis vuiton')) {
+          document.getElementById('searchHint').classList.add('active');
+          resultsView.classList.add('has-hint');
+        }
+      }, 620);
+    }
+
+    document.querySelectorAll('.chip').forEach(chip => chip.addEventListener('click', () => submitDemoSearch(chip.textContent, 'keyword')));
+    document.querySelectorAll('.brand').forEach(brand => brand.addEventListener('click', () => { const name = brand.querySelector('b').textContent.trim(); submitDemoSearch(name, 'brand', normalizeSearchTerm(name)); }));
+    document.querySelectorAll('.category').forEach(category => category.addEventListener('click', () => { const name = category.textContent.trim(); submitDemoSearch(name, 'category', normalizeSearchTerm(name)); }));
+    query.addEventListener('keydown', event => {
+      if (event.key === 'Enter') { event.preventDefault(); submitDemoSearch(query.value); }
+    });
+    document.getElementById('demoKeyboard').addEventListener('click', event => {
+      const key = event.target.closest('.key');
+      if (!key) return;
+      const action = key.dataset.action;
+      if (action === 'backspace') query.value = query.value.slice(0, -1);
+      else if (action === 'search') return submitDemoSearch(query.value);
+      else if (key.dataset.key) query.value += key.dataset.key;
+      renderSuggestions(query.value);
+      query.focus();
+    });
+
+    function returnToDiscovery(){
+      resultsView.classList.remove('open');
+      query.value = resultQuery.value;
+      searchView.classList.add('open');
+      renderSuggestions(query.value);
+      searchView.classList.add('keyboard-open');
+      setTimeout(() => query.focus(), 120);
+    }
+    document.getElementById('backToSource').addEventListener('click', () => {
+      resultsView.classList.remove('open', 'has-hint');
+      searchView.classList.remove('open', 'keyboard-open', 'has-query');
+      query.value = '';
+      suggestionsPanel.innerHTML = '';
+    });
+    resultQuery.addEventListener('keydown', event => {
+      if (event.key === 'Enter') { event.preventDefault(); submitDemoSearch(resultQuery.value); }
+    });
+    function syncResultClearButton(){ clearResultQuery.hidden = resultQuery.value.length === 0; }
+    resultQuery.addEventListener('input', syncResultClearButton);
+    clearResultQuery.addEventListener('click', () => {
+      resultQuery.value = '';
+      syncResultClearButton();
+      resultQuery.focus();
+    });
+    syncResultClearButton();
+
+    function setInStockOnly(enabled){
+      inStockToggle.classList.toggle('active', enabled);
+      inStockToggle.setAttribute('aria-pressed', String(enabled));
+      productGrid.classList.toggle('show-sold', !enabled);
+      if (!productGrid.hidden) resultCount.textContent = enabled ? '128 items' : '146 items';
+    }
+    inStockToggle.addEventListener('click', () => {
+      setInStockOnly(inStockToggle.getAttribute('aria-pressed') !== 'true');
+      resultsContent.scrollTop = 0;
+    });
+
+    function filterKey(group, value){ return `${group}|${value}`; }
+    function renderFilterBlock(group){
+      return `<section class="filter-block"><h3>${group}</h3><div class="filter-values">${filterOptions[group].map(value => `<button class="filter-value${selectedFilters.has(filterKey(group, value)) ? ' selected' : ''}" type="button" data-filter-group="${group}" data-filter-value="${value}">${value}</button>`).join('')}</div></section>`;
+    }
+    function openSheet(type){
+      currentSheet = type;
+      sheetTitle.textContent = type === 'Sort' ? 'Sort By' : type === 'Filter' ? 'Filters' : type;
+      sheetDescription.textContent = type === 'Sort' ? 'Choose how products are ordered.' : 'Filter options reuse the shared Shop and Collection rules.';
+      if (type === 'Sort') {
+        sheetBody.innerHTML = `<div class="sheet-options">${sortOptions.map(option => `<button class="sheet-option${option === currentSort ? ' selected' : ''}" type="button" data-sort="${option}">${option}</button>`).join('')}</div>`;
+        closeSheetButton.textContent = 'Done';
+      } else {
+        const groups = type === 'Filter' ? Object.keys(filterOptions) : [type];
+        sheetBody.innerHTML = groups.map(renderFilterBlock).join('');
+        closeSheetButton.textContent = type === 'Filter' ? 'Apply' : 'Done';
+      }
+      sheetBackdrop.classList.add('open');
+    }
+    document.querySelectorAll('[data-sheet]').forEach(button => button.addEventListener('click', () => openSheet(button.dataset.sheet)));
+    sheetBody.addEventListener('click', event => {
+      const sortButton = event.target.closest('[data-sort]');
+      if (sortButton) {
+        currentSort = sortButton.dataset.sort;
+        document.querySelectorAll('[data-sort]').forEach(button => button.classList.toggle('selected', button === sortButton));
+        const chip = document.querySelector('[data-sheet="Sort"]');
+        chip.classList.toggle('selected', currentSort !== 'Best Match');
+        chip.innerHTML = `<svg viewBox="0 0 24 24"><path d="M8 7h11M5 7h.01M8 12h8M5 12h.01M8 17h5M5 17h.01"/></svg>${currentSort}<span class="filter-chevron">⌄</span>`;
+        resultsContent.scrollTop = 0;
+        setTimeout(closeSheet, 140);
+        return;
+      }
+      const filterButton = event.target.closest('[data-filter-value]');
+      if (filterButton) {
+        const key = filterKey(filterButton.dataset.filterGroup, filterButton.dataset.filterValue);
+        selectedFilters.has(key) ? selectedFilters.delete(key) : selectedFilters.add(key);
+        filterButton.classList.toggle('selected');
+      }
+    });
+    function applyFilters(){
+      Object.keys(filterOptions).forEach(group => {
+        const chip = document.querySelector(`[data-sheet="${group}"]`);
+        const count = Array.from(selectedFilters).filter(key => key.startsWith(`${group}|`)).length;
+        chip.classList.toggle('selected', count > 0);
+        chip.innerHTML = `${group}${count ? ` · ${count}` : ''} <span class="filter-chevron">⌄</span>`;
+      });
+      resultsContent.scrollTop = 0;
+      if (selectedFilters.has(filterKey('Price', '$0–$500'))) showResultState('filterEmptyState');
+      else {
+        hideResultContent();
+        productGrid.hidden = false;
+        setInStockOnly(inStockToggle.getAttribute('aria-pressed') === 'true');
+      }
+    }
+    function closeSheet(){
+      if (currentSheet && currentSheet !== 'Sort') applyFilters();
+      sheetBackdrop.classList.remove('open');
+    }
+    closeSheetButton.addEventListener('click', closeSheet);
+    sheetBackdrop.addEventListener('click', event => { if (event.target.id === 'sheetBackdrop') closeSheet(); });
+
+    document.querySelectorAll('.favorite-button').forEach(button => button.addEventListener('click', event => {
+      event.stopPropagation();
+      button.classList.toggle('active');
+    }));
+    document.querySelectorAll('.see-similar').forEach(button => button.addEventListener('click', event => {
+      event.stopPropagation();
+      currentSheet = '';
+      sheetTitle.textContent = 'Similar items';
+      sheetDescription.textContent = 'Available items with a similar brand, style, and category would open here.';
+      sheetBody.innerHTML = '';
+      closeSheetButton.textContent = 'Done';
+      sheetBackdrop.classList.add('open');
+    }));
+    productGrid.addEventListener('click', event => {
+      const card = event.target.closest('.product-card');
+      if (!card) return;
+      resultsView.dataset.savedScrollTop = String(resultsContent.scrollTop);
+      document.getElementById('detailBrand').textContent = card.querySelector('.product-brand')?.textContent || '';
+      document.getElementById('detailTitle').textContent = card.querySelector('.product-name')?.textContent || '';
+      document.getElementById('detailPrice').textContent = card.querySelector('.product-price')?.textContent.trim() || '';
+      document.getElementById('detailImage').style.backgroundImage = getComputedStyle(card.querySelector('.product-image')).backgroundImage;
+      detailView.classList.add('open');
+    });
+    document.getElementById('backToResults').addEventListener('click', () => {
+      detailView.classList.remove('open');
+      const savedScrollTop = Number(resultsView.dataset.savedScrollTop || 0);
+      requestAnimationFrame(() => { resultsContent.scrollTop = savedScrollTop; });
+    });
+
+    resultsContent.addEventListener('scroll', () => {
+      if (productGrid.hidden || nextPageFailureShown) return;
+      if (resultsContent.scrollTop + resultsContent.clientHeight >= resultsContent.scrollHeight - 12) {
+        nextPageFailureShown = true;
+        document.getElementById('paginationError').classList.add('active');
+      }
+    });
+    document.getElementById('retryNextPage').addEventListener('click', () => {
+      document.getElementById('paginationError').classList.remove('active');
+      resultCount.textContent = inStockToggle.getAttribute('aria-pressed') === 'true' ? '128 items' : '146 items';
+    });
+    document.getElementById('clearFilters').addEventListener('click', () => {
+      selectedFilters = new Set();
+      document.querySelectorAll('.filter-chip').forEach(button => button.classList.remove('selected'));
+      hideResultContent();
+      productGrid.hidden = false;
+      setInStockOnly(true);
+      resultsContent.scrollTop = 0;
+    });
+    document.getElementById('editSearch').addEventListener('click', returnToDiscovery);
+    document.getElementById('retryResults').addEventListener('click', () => submitDemoSearch(resultQuery.value));
+    document.getElementById('suggestedCorrection').addEventListener('click', () => submitDemoSearch('Louis Vuitton'));
+    document.querySelectorAll('[data-related]').forEach(button => button.addEventListener('click', () => submitDemoSearch(button.dataset.related)));
+  </script>
+</body>
+</html>

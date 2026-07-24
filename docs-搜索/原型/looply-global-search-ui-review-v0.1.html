@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Looply · Global Search UI Review v0.1</title>
+  <style>
+    :root{
+      --ink:#17171a;
+      --muted:#85858f;
+      --line:#e2e2e8;
+      --canvas:#ececf0;
+      --panel:#fff;
+      --soft:#f7f6fb;
+      --accent:#6432fc;
+      --accent-soft:#f1edff;
+      --warning:#9b5c00;
+      --warning-soft:#fff5df;
+    }
+    *{box-sizing:border-box}
+    html,body{width:100%;height:100%;margin:0}
+    body{min-width:820px;overflow:hidden;background:var(--canvas);color:var(--ink);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif}
+    button{font:inherit}
+    .review-layout{display:grid;grid-template-columns:minmax(414px,1fr) 380px;gap:18px;width:100%;height:100%;padding:18px}
+    .demo-stage{position:relative;min-width:0;height:100%;overflow:hidden;border:1px solid #d9d9df;border-radius:18px;background:#dedee3;box-shadow:0 18px 50px rgba(17,24,39,.1)}
+    .demo-stage::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,255,255,.24) 1px,transparent 1px),linear-gradient(rgba(255,255,255,.24) 1px,transparent 1px);background-size:32px 32px;pointer-events:none}
+    .demo-frame-shell{position:absolute;inset:0;display:flex;align-items:flex-start;justify-content:center;padding:18px;overflow:auto}
+    .demo-frame{position:relative;display:block;width:100%;height:100%;min-height:680px;border:0;background:#fff;box-shadow:0 16px 44px rgba(17,24,39,.18);transition:width .2s ease,border-radius .2s ease}
+    .demo-stage[data-device="mobile"] .demo-frame{width:390px;max-width:100%;height:min(844px,calc(100vh - 36px));border-radius:18px}
+    .demo-stage[data-device="pc"] .demo-frame-shell{padding:60px 0 0}
+    .demo-stage[data-device="pc"] .demo-frame{min-width:1024px;border-radius:0;box-shadow:none}
+    .review-panel{height:100%;min-height:0;padding:22px;border:1px solid var(--line);border-radius:20px;background:var(--panel);box-shadow:0 18px 50px rgba(17,24,39,.12);display:flex;flex-direction:column;overflow:auto}
+    .review-panel-kicker{color:#8b5cf6;font-size:10px;font-weight:850;letter-spacing:1.2px;text-transform:uppercase}
+    .review-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-top:6px}
+    .review-panel-title{font-size:22px;font-weight:850;line-height:1.2}
+    .review-panel-close{width:30px;height:30px;flex:none;border:0;border-radius:50%;background:#f5f5f7;color:#6b7280;font-size:17px;cursor:pointer}
+    .platform-switch{position:absolute;left:16px;top:14px;z-index:6;display:grid;grid-template-columns:1fr 1fr;gap:4px;width:224px;padding:4px;border:1px solid rgba(255,255,255,.8);border-radius:11px;background:rgba(23,23,26,.84);box-shadow:0 8px 24px rgba(17,24,39,.2);backdrop-filter:blur(10px)}
+    .platform-tab{height:34px;border:0;border-radius:8px;background:transparent;color:rgba(255,255,255,.7);font-size:11px;font-weight:800;cursor:pointer}
+    .platform-tab:hover{color:#fff}
+    .platform-tab.active{background:#fff;color:var(--accent);box-shadow:0 2px 8px rgba(17,24,39,.16)}
+    .review-progress-meta{display:flex;justify-content:space-between;gap:12px;margin-top:18px;color:#8b8b93;font-size:11px;font-weight:700}
+    .review-progress{height:5px;margin-top:7px;overflow:hidden;border-radius:99px;background:#ececf1}
+    .review-progress-fill{height:100%;border-radius:99px;background:var(--accent);transition:width .2s ease}
+    .review-script{margin-top:20px;padding:16px;border-radius:14px;background:var(--soft);color:#374151;font-size:13px;line-height:1.72;white-space:pre-line}
+    .review-block{margin-top:18px}
+    .review-block-label{margin-bottom:9px;color:#9ca3af;font-size:10px;font-weight:850;letter-spacing:.9px;text-transform:uppercase}
+    .review-focus{margin:0;padding:0;list-style:none;display:grid;gap:9px;color:#4b5563;font-size:12px;line-height:1.55}
+    .review-focus li{position:relative;padding-left:15px}
+    .review-focus li::before{content:"";position:absolute;left:0;top:7px;width:6px;height:6px;border:1.5px solid var(--accent);border-radius:50%}
+    .review-actions{display:flex;flex-wrap:wrap;gap:8px}
+    .review-action{min-height:34px;padding:7px 10px;border:1px solid #ddd6fe;border-radius:9px;background:#fff;color:var(--accent);font-size:11px;font-weight:750;cursor:pointer}
+    .review-action:hover,.review-action.active{background:var(--accent-soft)}
+    .review-action:active{transform:translateY(1px)}
+    .review-pending{display:none;margin-top:18px;padding:11px 12px;border-radius:10px;background:var(--warning-soft);color:var(--warning);font-size:11px;line-height:1.55}
+    .review-pending.show{display:block}
+    .review-panel-footer{display:flex;align-items:center;gap:10px;margin-top:auto;padding-top:22px}
+    .review-nav{height:40px;padding:0 14px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;color:#4b5563;font-size:12px;font-weight:800;cursor:pointer}
+    .review-nav.next{flex:1;border-color:var(--accent);background:var(--accent);color:#fff}
+    .review-nav:disabled{opacity:.36;cursor:not-allowed}
+    .review-show{display:none;position:fixed;right:18px;top:18px;z-index:10;padding:10px 14px;border:0;border-radius:10px;background:var(--accent);color:#fff;font-size:12px;font-weight:800;box-shadow:0 8px 22px rgba(100,50,252,.25);cursor:pointer}
+    body.panel-hidden .review-layout{grid-template-columns:1fr}
+    body.panel-hidden .review-panel{display:none}
+    body.panel-hidden .review-show{display:block}
+    @media(max-width:1000px){.review-layout{grid-template-columns:minmax(400px,1fr) 360px;gap:12px;padding:12px}.review-panel{padding:18px}.demo-frame-shell{padding:12px}}
+    @media(prefers-reduced-motion:reduce){.demo-frame,.review-progress-fill{transition:none}}
+  </style>
+</head>
+<body>
+  <main class="review-layout">
+    <section class="demo-stage" id="demoStage" data-device="mobile" aria-label="Search demo preview">
+      <div class="platform-switch" role="tablist" aria-label="选择评审终端">
+        <button class="platform-tab active" type="button" role="tab" aria-selected="true" data-platform="mobile">Mobile Web</button>
+        <button class="platform-tab" type="button" role="tab" aria-selected="false" data-platform="pc">PC Web</button>
+      </div>
+      <div class="demo-frame-shell">
+        <iframe class="demo-frame" id="demoFrame" title="Looply global search demo"></iframe>
+      </div>
+    </section>
+
+    <aside class="review-panel" aria-label="Search UI review guide">
+      <div class="review-panel-kicker">Search UI Review</div>
+      <div class="review-panel-head">
+        <div class="review-panel-title" id="reviewTitle">搜索入口</div>
+        <button class="review-panel-close" type="button" aria-label="隐藏评审说明" id="hidePanel">×</button>
+      </div>
+      <div class="review-progress-meta"><span id="reviewCount">1 / 10</span><span>使用 ← → 切换</span></div>
+      <div class="review-progress"><div class="review-progress-fill" id="reviewProgress"></div></div>
+      <div class="review-script" id="reviewScript"></div>
+      <div class="review-block">
+        <div class="review-block-label">UI 评审重点</div>
+        <ul class="review-focus" id="reviewFocus"></ul>
+      </div>
+      <div class="review-block" id="reviewActionsBlock">
+        <div class="review-block-label">Demo states</div>
+        <div class="review-actions" id="reviewActions"></div>
+      </div>
+      <div class="review-pending" id="reviewPending"></div>
+      <div class="review-panel-footer">
+        <button class="review-nav" id="reviewPrev" type="button">Previous</button>
+        <button class="review-nav next" id="reviewNext" type="button">Next</button>
+      </div>
+    </aside>
+  </main>
+  <button class="review-show" id="showPanel" type="button">Show review guide</button>
+
+  <script>
+    const SEARCH_DEMO='looply-global-search-web-demo-v0.1.html';
+    const FAVORITES_DEMO='../favorites/looply-favorites-prototype-v9.html';
+    const combinedReviewSteps=[
+      {
+        title:'搜索入口',
+        device:'mobile',
+        script:'Mobile Web 首页｜入口型搜索框 + 轮播底纹词 + 右侧搜索图标\n点击搜索框｜进入全屏搜索页\n点击搜索图标｜直接搜索当前轮播词\nFavorites｜顶部同样提供全局搜索入口，搜索全站商品',
+        focus:['首页与 Favorites 搜索入口哪些视觉参数共用，哪些随页面 Header 调整','搜索框与右侧搜索图标的一体化样式及点击热区','轮播长词、省略、暂停和减少动态效果的表现'],
+        actions:[
+          {label:'Mobile Home',device:'mobile',action:'home'},
+          {label:'Favorites entry',device:'mobile',source:'favorites'}
+        ],
+        defaultAction:{device:'mobile',action:'home'}
+      },
+      {
+        title:'Mobile 搜索发现页',
+        device:'mobile',
+        script:'页面形态｜全屏搜索页\n顶部｜返回按钮 + 搜索框 + 搜索图标\n模块顺序｜Recent → Popular searches → Brands → Categories\n进入后｜自动聚焦并唤起键盘\n返回｜清空未提交输入，回到来源页',
+        focus:['顶部三个控件的尺寸、间距和安全区','键盘展开时模块仍可滚动，收起后可完整浏览','有历史与无历史时首屏内容的视觉重心'],
+        actions:[
+          {label:'With history',device:'mobile',action:'discovery'},
+          {label:'No history',device:'mobile',action:'discovery-no-history'},
+          {label:'Loading',device:'mobile',action:'discovery-loading'}
+        ],
+        defaultAction:{device:'mobile',action:'discovery'}
+      },
+      {
+        title:'Recent searches',
+        device:'mobile',
+        script:'保存上限｜20 条，最近搜索优先\n默认展示｜Mobile Web 展示 2 行\n展开方式｜第二行末尾下箭头，展开后末尾上箭头\nV1｜不提供单条删除和清空全部',
+        focus:['展开入口必须占据真实位置，不能覆盖词条或单独掉到第三行','词条最大宽度 75%，长词单行省略但点击使用完整词','英语与西班牙语下的两行折叠和展开后页面跳动'],
+        actions:[
+          {label:'Collapsed',device:'mobile',action:'recent-collapsed'},
+          {label:'Expanded',device:'mobile',action:'recent-expanded'}
+        ],
+        defaultAction:{device:'mobile',action:'recent-collapsed'}
+      },
+      {
+        title:'Popular content',
+        device:'mobile',
+        script:'Popular searches｜Mobile Web 最多完整展示 3 行\nPopular brands｜横向滑动，共 10 个，不设 See all\nPopular categories｜横向滑动，不设 See all\n卡片内容｜已有图片 + 当前 locale 名称',
+        focus:['Brands 与 Categories 是否共用图片比例、标题行数和滑动提示','长名称截断、图片裁切及公共缺图占位','横向列表首尾留白、卡片露出量和是否吸附'],
+        actions:[
+          {label:'Popular content',device:'mobile',action:'discovery'},
+          {label:'Loading',device:'mobile',action:'discovery-loading'}
+        ],
+        pending:'待产品确认：Popular categories V1 的具体固定品类 ID 名单和顺序。当前建议复用网站一级品类并沿用全站导航顺序。',
+        defaultAction:{device:'mobile',action:'discovery'}
+      },
+      {
+        title:'Sug 输入联想',
+        device:'mobile',
+        script:'展示方式｜单列，不分组、不展示分类标题\n顺序｜完全按 Sug 服务返回顺序\nLoading｜3 行同结构轻量骨架\n空结果 / 失败｜保留输入，静默收起，不展示错误或重试\n点击联想｜直接搜索',
+        focus:['Sug 行高、图标、文本层级和 hover / pressed / focus','骨架与真实行保持同结构，避免状态切换跳动','空结果或失败后只剩搜索框时的空白区域处理'],
+        actions:[
+          {label:'Normal',device:'mobile',action:'sug-normal'},
+          {label:'Loading',device:'mobile',action:'sug-loading'},
+          {label:'Empty',device:'mobile',action:'sug-empty'},
+          {label:'Failed',device:'mobile',action:'sug-failed'}
+        ],
+        defaultAction:{device:'mobile',action:'sug-normal'}
+      },
+      {
+        title:'Mobile 搜索结果页',
+        device:'mobile',
+        script:'顶部｜返回 + 可编辑搜索框 + 搜索图标\n清除 ×｜仅清空并聚焦，当前结果与筛选保持\n结果信息｜Results for “搜索词”, N items\n商品列表｜复用 Collection Mobile 双列商品卡\n加载｜无限滚动，每页最多 40 个',
+        focus:['长搜索词与 Results for 文案的换行和压缩优先级','纠错提示、结果信息和筛选栏的视觉层级','商品卡必须标注复用 Collection 版本，不新建搜索卡片'],
+        actions:[
+          {label:'Normal',device:'mobile',action:'result-normal'},
+          {label:'Correction',device:'mobile',action:'result-hint'},
+          {label:'Filter',device:'mobile',action:'mobile-filter'},
+          {label:'Sort',device:'mobile',action:'mobile-sort'}
+        ],
+        defaultAction:{device:'mobile',action:'result-normal'}
+      },
+      {
+        title:'Mobile Filter / Sort',
+        device:'mobile',
+        script:'快捷栏｜固定 Filter、Sort By，其余维度按 Collection 规则出现\nFilter｜打开左侧抽屉，Reset + Apply · N items\nSort｜Best Match / Newest / Price Low to High / Price High to Low\n生效后｜返回列表顶部',
+        focus:['直接复用 Collection 对应端组件和当前版本','快捷栏横向溢出、选中态和数量状态','抽屉宽度、右侧露出区、底部固定操作栏及安全区'],
+        actions:[
+          {label:'Quick filters',device:'mobile',action:'result-normal'},
+          {label:'Filter drawer',device:'mobile',action:'mobile-filter'},
+          {label:'Sort sheet',device:'mobile',action:'mobile-sort'}
+        ],
+        defaultAction:{device:'mobile',action:'mobile-filter'}
+      },
+      {
+        title:'结果页异常状态',
+        device:'mobile',
+        script:'首次 Loading｜保留页面框架，商品区展示统一骨架\n首次失败｜保留搜索条件，结果区 Try again\n下一页失败｜保留已有商品，在列表末尾重试\n搜索无结果｜提示修改搜索词，可展示相关入口\n筛选无结果｜明确由筛选导致，提供 Clear filters',
+        focus:['搜索无结果与筛选无结果必须明显区分','首次失败、下一页失败和静默失败使用不同层级','骨架尺寸、数量和网格与目标商品卡一致'],
+        actions:[
+          {label:'First loading',device:'mobile',action:'result-loading'},
+          {label:'First failed',device:'mobile',action:'result-first-failed'},
+          {label:'Next failed',device:'mobile',action:'result-next-failed'},
+          {label:'Search empty',device:'mobile',action:'result-empty'},
+          {label:'Filter empty',device:'mobile',action:'filter-empty'}
+        ],
+        defaultAction:{device:'mobile',action:'result-loading'}
+      },
+      {
+        title:'多语言与最终收口',
+        device:'mobile',
+        script:'语言｜en-US + es-US\n静态文案｜Web i18n\n动态名称｜品牌 / 品类 / 商品读取当前 locale\n体验底线｜文本不遮挡、不溢出、不产生半截词条\n组件复用｜Home · Favorites · Collection · 统一商品卡',
+        focus:['用西班牙语和超长搜索词完成最终走查','补齐键盘焦点、hover、pressed、disabled 和读屏名称','设计稿逐页标注复用组件及版本，避免开发重复实现'],
+        actions:[
+          {label:'Mobile overview',device:'mobile',action:'discovery'}
+        ],
+        pending:'仍待外部确认但不由 UI 决策：已售商品、In Stock Only 默认状态及不同排序下的展示方案；Popular searches / brands 冷启动清单的发布方式。',
+        defaultAction:{device:'mobile',action:'discovery'}
+      }
+    ];
+
+    const mobileReviewSteps=combinedReviewSteps.filter(step=>step.device==='mobile');
+    const pcReviewSteps=[
+      {
+        title:'PC Header 搜索入口',
+        device:'pc',
+        script:'入口位置｜PC Web 全局 Header\n入口形态｜只展示搜索图标\n点击后｜在 Header 下方展开搜索层\n空输入｜提交不生效\n退出｜点击遮罩或按 Esc',
+        focus:['搜索图标尺寸、hover / focus 状态和点击热区','搜索层与 Header 的对齐关系、最大宽度和遮罩强度','打开搜索层后页面背景和 Header 是否继续可辨识'],
+        actions:[
+          {label:'Header',device:'pc',action:'home'},
+          {label:'Search layer',device:'pc',action:'discovery'}
+        ],
+        defaultAction:{device:'pc',action:'home'}
+      },
+      {
+        title:'PC 搜索发现层',
+        device:'pc',
+        script:'页面形态｜Header 下方展开层\n初始模块｜Recent searches → Popular searches\n不展示｜Popular brands / Popular categories\n无历史｜隐藏 Recent，Popular searches 自动上移\n内容超出｜搜索层内部滚动',
+        focus:['搜索层最大高度、内部滚动和页面遮罩的边界','有历史 / 无历史时内容区的垂直节奏','Popular searches 10 条完整展示时的高度和换行'],
+        actions:[
+          {label:'With history',device:'pc',action:'discovery'},
+          {label:'No history',device:'pc',action:'discovery-no-history'},
+          {label:'Loading',device:'pc',action:'discovery-loading'}
+        ],
+        defaultAction:{device:'pc',action:'discovery'}
+      },
+      {
+        title:'PC Recent / Popular',
+        device:'pc',
+        script:'Recent searches｜默认 2 行\n展开方式｜第二行末尾 More，展开后末尾 Less\nPopular searches｜完整展示服务返回的前 10 条\n长词｜单行省略，最大宽度 75%\nV1｜不提供单条删除和清空全部',
+        focus:['More / Less 必须占据真实词条位置，不能掉到第三行','展开前后搜索层高度和滚动位置的变化','长英语 / 西班牙语词条的两行布局'],
+        actions:[
+          {label:'Collapsed',device:'pc',action:'recent-collapsed'},
+          {label:'Expanded',device:'pc',action:'recent-expanded'}
+        ],
+        defaultAction:{device:'pc',action:'recent-collapsed'}
+      },
+      {
+        title:'PC Sug 输入联想',
+        device:'pc',
+        script:'展示方式｜单列，不分组\n顺序｜按 Sug 服务返回顺序\nLoading｜3 行同结构骨架\n空结果 / 失败｜保留输入并静默收起\n提交｜Enter 或搜索图标',
+        focus:['PC 搜索层内 Sug 行宽、行高和 hover / focus','骨架与真实行同结构，状态切换不跳动','Sug 收起后搜索层空白区域的高度处理'],
+        actions:[
+          {label:'Normal',device:'pc',action:'sug-normal'},
+          {label:'Loading',device:'pc',action:'sug-loading'},
+          {label:'Empty',device:'pc',action:'sug-empty'},
+          {label:'Failed',device:'pc',action:'sug-failed'}
+        ],
+        defaultAction:{device:'pc',action:'sug-normal'}
+      },
+      {
+        title:'PC 搜索结果页',
+        device:'pc',
+        script:'顶部｜保留全局导航栏及搜索图标，不增加结果页第二套搜索框\n重新搜索｜点击 Header 搜索图标，在导航栏下方展开搜索层\n结果信息｜Results for “搜索词”, N items\n商品列表｜复用 Collection PC 商品卡\n筛选｜左侧 240px，默认展开\n加载更多｜View More，每次追加 40 个',
+        focus:['全局导航、搜索图标、Results for、Sort 和筛选入口的层级','搜索结果页不重复出现返回按钮、搜索框和 Search 按钮','商品卡及列数直接沿用 Collection PC 规范'],
+        actions:[
+          {label:'Normal',device:'pc',action:'result-normal'},
+          {label:'Correction',device:'pc',action:'result-hint'},
+          {label:'Filters collapsed',device:'pc',action:'pc-filter-collapsed'}
+        ],
+        defaultAction:{device:'pc',action:'result-normal'}
+      },
+      {
+        title:'PC Filter / Sort',
+        device:'pc',
+        script:'Filter｜240px 左侧栏，默认展开，可收起\n操作｜勾选后即时应用并回到列表顶部\nSort｜Best Match / Newest / Price Low to High / Price High to Low\n维度｜由搜索接口返回，视觉复用 Collection\n不复用｜Collection Banner、图文筛和商品 Pin',
+        focus:['标注准确的 Collection Filter / Sort 组件版本','筛选栏内部滚动、长选项和展开收起状态','筛选栏收起后网格列数、间距和 View More 位置'],
+        actions:[
+          {label:'Filters expanded',device:'pc',action:'result-normal'},
+          {label:'Filters collapsed',device:'pc',action:'pc-filter-collapsed'}
+        ],
+        defaultAction:{device:'pc',action:'result-normal'}
+      },
+      {
+        title:'PC 结果异常状态',
+        device:'pc',
+        script:'首次 Loading｜保留搜索框和页面框架\n首次失败｜保留搜索条件并提供 Try again\n下一页失败｜保留商品，在 View More 区域重试\n搜索无结果｜提示修改搜索词\n筛选无结果｜提供 Clear filters',
+        focus:['首次失败、下一页失败和无结果的视觉层级','搜索无结果与筛选无结果必须明确区分','骨架网格与 Collection PC 商品卡结构一致'],
+        actions:[
+          {label:'First loading',device:'pc',action:'result-loading'},
+          {label:'First failed',device:'pc',action:'result-first-failed'},
+          {label:'Next failed',device:'pc',action:'result-next-failed'},
+          {label:'Search empty',device:'pc',action:'result-empty'},
+          {label:'Filter empty',device:'pc',action:'filter-empty'}
+        ],
+        defaultAction:{device:'pc',action:'result-loading'}
+      },
+      {
+        title:'PC 多语言与收口',
+        device:'pc',
+        script:'语言｜en-US + es-US\n静态文案｜Web i18n\n结果恢复｜刷新、分享 URL、浏览器前进后退\n组件复用｜Header · Collection Filter · 商品卡\n体验底线｜长词不遮挡、不溢出',
+        focus:['PC 1024 / 1280 / 1440 宽度下完成响应式走查','西班牙语、超长搜索词和大结果数联合验证','补齐 hover、focus、disabled 和读屏名称'],
+        actions:[
+          {label:'Search layer',device:'pc',action:'discovery'},
+          {label:'Results',device:'pc',action:'result-normal'}
+        ],
+        pending:'仍待外部确认但不由 UI 决策：已售商品、In Stock Only 默认状态及不同排序下的展示方案。',
+        defaultAction:{device:'pc',action:'result-normal'}
+      }
+    ];
+
+    let activePlatform='mobile';
+    let reviewSteps=mobileReviewSteps;
+    let reviewIndex=0;
+    let activeButton=null;
+    const frame=document.getElementById('demoFrame');
+    const stage=document.getElementById('demoStage');
+
+    function searchUrl(action){return SEARCH_DEMO+'?review_action='+encodeURIComponent(action||'home')}
+
+    function applyAction(action,button){
+      activeButton?.classList.remove('active');
+      activeButton=button||null;
+      activeButton?.classList.add('active');
+      const device=action.device||reviewSteps[reviewIndex].device;
+      stage.dataset.device=device;
+      frame.src=action.source==='favorites'?FAVORITES_DEMO:searchUrl(action.action);
+    }
+
+    function renderReviewStep(){
+      const step=reviewSteps[reviewIndex];
+      document.getElementById('reviewTitle').textContent=step.title;
+      document.getElementById('reviewCount').textContent=(reviewIndex+1)+' / '+reviewSteps.length;
+      document.getElementById('reviewProgress').style.width=((reviewIndex+1)/reviewSteps.length*100)+'%';
+      document.getElementById('reviewScript').textContent=step.script;
+      const focus=document.getElementById('reviewFocus');
+      focus.innerHTML='';
+      step.focus.forEach(item=>{const li=document.createElement('li');li.textContent=item;focus.appendChild(li)});
+      const actions=document.getElementById('reviewActions');
+      actions.innerHTML='';
+      step.actions.forEach(action=>{
+        const button=document.createElement('button');
+        button.type='button';
+        button.className='review-action';
+        button.textContent=action.label;
+        button.addEventListener('click',()=>applyAction(action,button));
+        actions.appendChild(button);
+      });
+      document.getElementById('reviewActionsBlock').style.display=step.actions.length?'':'none';
+      const pending=document.getElementById('reviewPending');
+      pending.textContent=step.pending||'';
+      pending.classList.toggle('show',Boolean(step.pending));
+      document.getElementById('reviewPrev').disabled=reviewIndex===0;
+      document.getElementById('reviewNext').disabled=reviewIndex===reviewSteps.length-1;
+      document.getElementById('reviewNext').textContent=reviewIndex===reviewSteps.length-1?'Review complete':'Next';
+      activeButton=null;
+      const defaultAction=step.defaultAction||step.actions[0];
+      const defaultIndex=Math.max(0,step.actions.findIndex(action=>action.device===defaultAction.device&&action.action===defaultAction.action&&action.source===defaultAction.source));
+      applyAction(defaultAction,actions.children[defaultIndex]||null);
+    }
+
+    function changeReviewStep(delta){
+      const next=Math.max(0,Math.min(reviewSteps.length-1,reviewIndex+delta));
+      if(next===reviewIndex)return;
+      reviewIndex=next;
+      renderReviewStep();
+    }
+
+    function switchPlatform(platform){
+      if(platform===activePlatform)return;
+      activePlatform=platform;
+      reviewSteps=platform==='pc'?pcReviewSteps:mobileReviewSteps;
+      reviewIndex=0;
+      document.querySelectorAll('.platform-tab').forEach(button=>{
+        const active=button.dataset.platform===platform;
+        button.classList.toggle('active',active);
+        button.setAttribute('aria-selected',String(active));
+      });
+      renderReviewStep();
+    }
+
+    document.getElementById('reviewPrev').addEventListener('click',()=>changeReviewStep(-1));
+    document.getElementById('reviewNext').addEventListener('click',()=>changeReviewStep(1));
+    document.getElementById('hidePanel').addEventListener('click',()=>document.body.classList.add('panel-hidden'));
+    document.getElementById('showPanel').addEventListener('click',()=>document.body.classList.remove('panel-hidden'));
+    document.querySelectorAll('.platform-tab').forEach(button=>button.addEventListener('click',()=>switchPlatform(button.dataset.platform)));
+    document.addEventListener('keydown',event=>{
+      const tag=event.target?.tagName?.toLowerCase();
+      if(['input','select','textarea'].includes(tag))return;
+      if(event.key==='ArrowRight')changeReviewStep(1);
+      if(event.key==='ArrowLeft')changeReviewStep(-1);
+    });
+    renderReviewStep();
+  </script>
+</body>
+</html>
