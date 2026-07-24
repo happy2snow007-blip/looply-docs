@@ -14,6 +14,7 @@ var PROTOTYPE_CONFIG = {
   'Favourites':     'docs-Favourites/原型/looply-favorites-prototype-v9.html',
   'cms':            'docs-CMS管理/原型/looply-cms-antd-原型-v1.0.html',
   'collection':     'docs-Collection管理/原型/looply-类目管理-后台-v0.20-antd.html',
+  'contact':        'docs-Contact-Us/原型/looply-contact-us-prototype-v0.1.html',
   'logistics':      'docs-物流管理/原型/looply-物流管理后台原型-v5.11-antd.html',
   'order':          'docs-订单支付/原型/looply-订单管理后台原型-v7.html',
   'plm':            'docs-红布林商品对接/原型/looply-红布林商品对接-antd-原型-v20.html',

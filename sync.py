@@ -578,6 +578,28 @@ MODULES = {
             },
         },
     },
+    'contact': {
+        'name': 'Contact Us',
+        'default_source': '/Users/zz/Documents/Looply/deliveries/contact-us',
+        'target': 'docs-Contact-Us',
+        'keywords': ['contact', 'Contact Us', '联系我们'],
+        'config_key': 'contact',
+        'sidebar_group': '基础服务域',
+        'artifacts': {
+            'prototype': {
+                'subdir': '原型',
+                'pattern': r'looply-contact-us-prototype-v(.+?)\.html',
+            },
+            'prd': {
+                'subdir': 'PRD',
+                'pattern': r'looply-Contact-Us-PRD-v(.+?)\.md',
+            },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'Contact Us-交付开发 V(.+?)\.zip',
+            },
+        },
+    },
 }
 
 # ─── 自动发现新模块 ────────────────────────────────────────────────────────────────
@@ -672,10 +694,11 @@ _CARD_META = {
     'prd':          ('PRD 文档',    'icon-md',   'M'),
     'prd_md':       ('PRD 文档',    'icon-md',   'M'),
     'prd_html':     ('PRD 文档',    'icon-html', 'H'),
+    'delivery':     ('交付包',      'icon-zip',  'Z'),
 }
 
 _STAGE2_TYPES = ('er', 'architecture', 'flowchart')
-_STAGE3_TYPES = ('prototype', 'prd', 'prd_md', 'prd_html')
+_STAGE3_TYPES = ('prototype', 'prd', 'prd_md', 'prd_html', 'delivery')
 
 
 def _gen_card(mod_name, target_dir, art_type, file_name, ver, today):
@@ -690,6 +713,8 @@ def _gen_card(mod_name, target_dir, art_type, file_name, ver, today):
     # 文档显示名
     if art_type == 'prototype':
         doc_label = f'{mod_name}后台原型 v{ver}'
+    elif art_type == 'delivery':
+        doc_label = f'{mod_name}交付开发 V{ver}'
     elif art_type.startswith('prd'):
         doc_label = f'{mod_name} PRD v{ver}'
     elif art_type == 'er':
@@ -1191,6 +1216,9 @@ def build_delivery_desc(zip_path):
             m = re.search(r'原型[- ]*[vV](.+?)\.html', basename)
             if m:
                 parts.append((_ORDER['proto'], f'后台原型 v{m.group(1)}')); continue
+            m = re.search(r'prototype[- ]*[vV](.+?)\.html', basename, re.IGNORECASE)
+            if m:
+                parts.append((_ORDER['proto'], f'原型 v{m.group(1)}')); continue
             m = re.search(r'实体关系图[- ]*[vV](.+?)\.(?:svg|html)', basename)
             if m:
                 parts.append((_ORDER['er'], f'ER图 v{m.group(1)}')); continue
@@ -1320,7 +1348,7 @@ def update_index_html(updates, all_versions, all_history=None):
                 ver_match = ver_regex.search(new_line)
                 if ver_match:
                     old_ver_text = ver_match.group(0)
-                    new_ver_text = f'v{new_ver}'
+                    new_ver_text = f'{"V" if upd.get("art_type") == "delivery" else "v"}{new_ver}'
                     if old_ver_text != new_ver_text:
                         new_line = new_line[:ver_match.start()] + new_ver_text + new_line[ver_match.end():]
                         changed = True
@@ -1707,10 +1735,10 @@ def main():
         update_prototype_config(latest_prototypes)
         print('  [更新] prototype-config.js')
 
-    # 为自动发现的新模块生成 index.html 区块
-    if discovered:
+    # 为本次同步且尚未展示的模块生成 index.html 区块
+    if synced_modules:
         new_arts = {}
-        for mod_key in discovered:
+        for mod_key in synced_modules:
             arts = {}
             mod_config = MODULES[mod_key]
             for art_type, art_config in mod_config.get('artifacts', {}).items():
@@ -1750,6 +1778,9 @@ def main():
 
     # Phase 3: Git
     print('\n[Phase 3] Git 提交...')
+    if os.environ.get('SYNC_SKIP_GIT') == '1':
+        print('  [跳过] 按调用方要求保留 Git 提交步骤，稍后按模块范围提交')
+        return
     os.chdir(REPO_DIR)
     status = subprocess.run(['git', 'status', '--porcelain'], capture_output=True, text=True)
     if status.stdout.strip():
