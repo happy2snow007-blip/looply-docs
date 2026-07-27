@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>looply PC 商详页 — 营销模块改动效果稿（基于 v3 定稿）</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* === Host page reset === */
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+
+/* === Layout === */
+.host-layout{display:flex;height:100vh;width:100vw}
+.page-frame{flex:1;overflow-y:auto;overflow-x:hidden;transition:margin-right .35s ease}
+.page-frame.panel-open{margin-right:400px}
+
+/* === Toggle Button === */
+.toggle-btn{position:fixed;top:80px;right:16px;z-index:9999;width:44px;height:44px;border-radius:50%;background:#6432FC;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(100,50,252,.4);transition:all .25s;font-size:18px}
+.toggle-btn:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(100,50,252,.5)}
+.toggle-btn.active{background:#1e293b;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+.toggle-btn .icon-open,.toggle-btn .icon-close{position:absolute;transition:opacity .2s}
+.toggle-btn .icon-close{opacity:0}
+.toggle-btn.active .icon-open{opacity:0}
+.toggle-btn.active .icon-close{opacity:1}
+
+/* === Annotation Panel === */
+.anno-panel{position:fixed;top:0;right:-400px;width:400px;height:100vh;background:#0f172a;overflow-y:auto;overflow-x:hidden;z-index:9998;transition:right .35s ease;box-shadow:-4px 0 24px rgba(0,0,0,.3);scrollbar-width:thin}
+.anno-panel.open{right:0}
+.anno-panel::-webkit-scrollbar{width:5px}
+.anno-panel::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}
+
+/* === Panel inner styles (from 交互说明.html) === */
+.anno-panel .page-header{padding:24px 20px 16px;max-width:100%}
+.anno-panel .page-header h1{font-size:18px;font-weight:700;color:#fff;margin-bottom:4px}
+.anno-panel .page-header .meta{font-size:12px;color:#94a3b8;margin-bottom:10px}
+.anno-panel .page-header .ref{font-size:11px;color:#64748b;margin-bottom:12px}
+.anno-panel .page-header .ref a{color:#6432FC;text-decoration:underline}
+.anno-panel .diff-box{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:12px 14px;margin-bottom:8px;font-size:11px;color:#94a3b8;line-height:1.7}
+.anno-panel .diff-box strong{color:#f1f5f9}
+.anno-panel .diff-box .tag-pc{color:#3b82f6;font-weight:600}
+.anno-panel .diff-box .tag-app{color:#a78bfa;font-weight:600}
+.anno-panel .legend{display:flex;flex-wrap:wrap;gap:10px;padding:10px 14px;background:#1e293b;border-radius:8px;border:1px solid #334155;margin:0 20px 16px}
+.anno-panel .legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:#94a3b8;font-weight:500}
+.anno-panel .zones{padding:0 20px 40px}
+.anno-panel .zone{margin-bottom:20px}
+.anno-panel .preview-box{display:none}
+.anno-panel .module{background:#1e293b;border:1px solid #334155;border-radius:12px;overflow:hidden;transition:all .2s}
+.anno-panel .module:hover{border-color:#6432FC}
+.anno-panel .module-header{display:flex;align-items:center;gap:8px;padding:12px 14px;cursor:pointer;user-select:none}
+.anno-panel .module-num{width:24px;height:24px;border-radius:6px;background:#6432FC;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.anno-panel .module-title{font-size:13px;font-weight:700;color:#f1f5f9;flex:1}
+.anno-panel .module-badge{font-size:9px;font-weight:600;padding:2px 6px;border-radius:99px}
+.anno-panel .badge-core{background:#dcfce7;color:#166534}
+.anno-panel .badge-info{background:#e0e7ff;color:#3730a3}
+.anno-panel .badge-trust{background:#fef3c7;color:#92400e}
+.anno-panel .badge-nav{background:#f1f5f9;color:#475569}
+.anno-panel .module-chevron{color:#64748b;font-size:12px;transition:transform .2s}
+.anno-panel .module.open .module-chevron{transform:rotate(180deg)}
+.anno-panel .module-body{display:none;border-top:1px solid #293548;padding:12px 14px}
+.anno-panel .module.open .module-body{display:block}
+.anno-panel .ix{margin-bottom:12px}
+.anno-panel .ix:last-child{margin-bottom:0}
+.anno-panel .ix-label{font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;display:flex;align-items:center;gap:5px}
+.anno-panel .ix-label .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.anno-panel .dot-hover{background:#6432FC}
+.anno-panel .dot-click{background:#3b82f6}
+.anno-panel .dot-state{background:#f59e0b}
+.anno-panel .dot-edge{background:#ef4444}
+.anno-panel .dot-key{background:#06b6d4}
+.anno-panel .ix-content{font-size:12px;color:#cbd5e1;line-height:1.6}
+.anno-panel .ix-content code{background:#293548;padding:1px 4px;border-radius:3px;font-size:10px;color:#94a3b8;font-family:"SF Mono","Fira Code",monospace}
+.anno-panel .ix-content strong{color:#f1f5f9;font-weight:600}
+.anno-panel .ix-content .val{color:#6432FC;font-weight:500}
+.anno-panel .ix-sub{margin-top:3px;padding-left:10px;border-left:2px solid #293548;font-size:11px;color:#94a3b8;line-height:1.5}
+.anno-panel .section-divider{text-align:center;padding:14px 0 6px;font-size:10px;color:#475569;font-weight:600;letter-spacing:1px;text-transform:uppercase}
+
+/* Hide preview-related styles in panel */
+.anno-panel .pv-header,.anno-panel .pv-breadcrumb,.anno-panel .pv-gallery,
+.anno-panel .pv-info,.anno-panel .pv-desc-cta,.anno-panel .pv-accordion,
+.anno-panel .pv-section,.anno-panel .pv-footer,.anno-panel .pv-lightbox,
+.anno-panel .preview-label{display:none}
+</style>
+</head>
+<body>
+
+<div class="host-layout">
+<!-- Original PC Page -->
+<div class="page-frame panel-open" id="pageFrame">
+
+
+<!-- original head start -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Silver Tone Metal Silver Necklace - Looply</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;color:#1A1A1A;background:#fff;line-height:1.5}
+a{text-decoration:none;color:inherit}
+button{cursor:pointer;border:none;background:none;font-family:inherit}
+img{max-width:100%;display:block}
+
+/* Header */
+.header{border-bottom:1px solid #E5E7EB;position:sticky;top:0;background:#fff;z-index:100}
+.header__inner{max-width:1440px;margin:0 auto;padding:0 80px;height:64px;display:flex;align-items:center;justify-content:space-between}
+.header__logo{font-size:24px;font-weight:700;letter-spacing:-0.5px;color:#1A1A1A;display:flex;align-items:center;gap:2px}
+.header__logo svg{height:28px;width:auto}
+.header__nav{display:flex;gap:32px}
+.header__nav a{font-size:14px;font-weight:500;color:#1A1A1A;transition:color .2s}
+.header__nav a:hover{color:#6B7280}
+.header__right{display:flex;align-items:center;gap:20px}
+.header__lang{display:flex;align-items:center;gap:4px;font-size:13px;font-weight:500;color:#1A1A1A;cursor:pointer}
+.header__lang svg{width:14px;height:14px}
+.header__icon-btn{display:flex;align-items:center;justify-content:center;color:#1A1A1A;transition:color .2s}
+.header__icon-btn:hover{color:#6B7280}
+.header__icon-btn svg{width:20px;height:20px}
+
+/* Cart Badge */
+.cart-badge{display:none;position:absolute;top:-4px;right:-6px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#6432FC;color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center}
+.cart-badge.visible{display:block}
+
+/* Mini Cart Popup */
+.mini-cart{position:fixed;width:320px;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.15);padding:20px;z-index:200;opacity:0;transform:translateY(-8px);pointer-events:none;transition:opacity .3s,transform .3s}
+.mini-cart.active{opacity:1;transform:translateY(0);pointer-events:auto}
+.mini-cart__header{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#16A34A;margin-bottom:16px}
+.mini-cart__product{display:flex;gap:12px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #F3F4F6}
+.mini-cart__img{width:48px;height:48px;border-radius:6px;object-fit:cover;background:#F3F4F6;flex-shrink:0}
+.mini-cart__info{min-width:0}
+.mini-cart__brand{font-size:11px;font-weight:700;color:#6B7280;letter-spacing:0.5px;text-transform:uppercase}
+.mini-cart__name{font-size:13px;color:#1A1A1A;line-height:1.4;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mini-cart__price{font-size:14px;font-weight:600;color:#1A1A1A}
+.mini-cart__actions{display:flex;flex-direction:column;gap:8px}
+.mini-cart__btn-view{display:block;text-align:center;padding:12px;background:#6432FC;color:#fff;font-size:14px;font-weight:600;border-radius:8px;transition:background .2s;text-decoration:none}
+.mini-cart__btn-view:hover{background:#5228D4;color:#fff}
+.mini-cart__btn-continue{padding:8px;font-size:13px;font-weight:500;color:#6B7280;background:none;border:none;cursor:pointer;transition:color .2s}
+.mini-cart__btn-continue:hover{color:#1A1A1A}
+
+/* Breadcrumb */
+.breadcrumb{max-width:1440px;margin:0 auto;padding:12px 80px;font-size:12px;color:#6B7280;border-bottom:1px solid #F3F4F6}
+.breadcrumb a{color:#6B7280;text-decoration:underline;transition:color .2s}
+.breadcrumb a:hover{color:#1A1A1A}
+.breadcrumb__sep{margin:0 6px;color:#9CA3AF}
+
+/* Product Layout */
+.product{max-width:1440px;margin:0 auto;padding:32px 80px 64px;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start}
+
+/* Gallery */
+.gallery{position:sticky;top:80px}
+.gallery__main-wrap{position:relative}
+.gallery__main{width:100%;aspect-ratio:1;overflow:hidden;background:#FAFAFA;display:flex;align-items:center;justify-content:center;cursor:zoom-in}
+.gallery__main img{width:100%;height:100%;object-fit:contain;transition:transform .4s ease}
+.gallery__main:hover img{transform:scale(1.08)}
+.gallery__wish{position:absolute;top:16px;right:16px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2}
+.gallery__wish svg{width:22px;height:22px;color:#9CA3AF;fill:none;stroke:currentColor;stroke-width:1.5;transition:all .2s}
+.gallery__wish:hover svg{color:#1A1A1A}
+.gallery__wish.active svg{color:#EF4444;fill:#EF4444}
+.gallery__dots{display:flex;justify-content:center;gap:8px;margin-top:16px}
+.gallery__dot{width:32px;height:32px;border-radius:50%;border:1.5px solid #D1D5DB;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s}
+.gallery__dot:hover{border-color:#1A1A1A}
+.gallery__dot svg{width:14px;height:14px;color:#374151}
+.gallery__thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
+.gallery__thumb{aspect-ratio:1;overflow:hidden;cursor:pointer;transition:all .2s;opacity:.7;border:2px solid transparent}
+.gallery__thumb.active,.gallery__thumb:hover{opacity:1;border-color:#1A1A1A}
+.gallery__thumb img{width:100%;height:100%;object-fit:cover}
+
+/* Product Info */
+.product-info{padding-top:0}
+.product-info__brand{font-size:14px;font-weight:700;color:#1A1A1A;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px}
+.product-info__title{font-size:16px;font-weight:400;color:#374151;margin-bottom:16px;line-height:1.4}
+.product-info__price-row{display:flex;align-items:baseline;gap:10px;margin-bottom:4px;flex-wrap:wrap}
+.product-info__original{font-size:20px;font-weight:500;color:#9CA3AF;text-decoration:line-through}
+.product-info__price{font-size:28px;font-weight:700;color:#1A1A1A}
+.product-info__save{font-size:14px;font-weight:600;color:#DC2626}
+.product-info__tax{font-size:12px;color:#6B7280;margin-bottom:16px}
+.product-info__desc{font-size:14px;color:#1A1A1A;line-height:1.7;margin-bottom:24px}
+
+/* Stock Status */
+.stock-status{display:flex;align-items:center;gap:6px;margin-bottom:16px;font-size:13px}
+.stock-dot{width:6px;height:6px;border-radius:50%;background:#F59E0B;flex-shrink:0;animation:stock-pulse 2s infinite}
+.stock-text{color:#92400E;font-weight:600}
+.stock-viewers{color:#6B7280;font-weight:400}
+@keyframes stock-pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* CTA */
+.cta-group{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.btn-cart{width:100%;padding:14px;font-size:15px;font-weight:600;border:2px solid #1A1A1A;color:#1A1A1A;background:#fff;cursor:pointer;font-family:inherit;transition:all .2s}
+.btn-cart:hover{background:#F9FAFB}
+.btn-checkout{width:100%;padding:14px;font-size:15px;font-weight:600;background:#6432FC;color:#fff;border:none;cursor:pointer;font-family:inherit;transition:background .2s}
+.btn-checkout:hover{background:#5228D4}
+
+/* Payment Icons */
+.payment-icons{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:24px}
+.payment-icon{height:24px;padding:2px 6px;background:#F3F4F6;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#374151;min-width:36px}
+.payment-icon--amex{background:#006FCF;color:#fff}
+.payment-icon--apple{background:#1A1A1A;color:#fff}
+.payment-icon--diners{background:#0079BE;color:#fff}
+.payment-icon--discover{background:#FF6600;color:#fff}
+.payment-icon--gpay{background:#fff;border:1px solid #E5E7EB}
+.payment-icon--jcb{background:#0B7BC1;color:#fff}
+.payment-icon--mc{background:#EB001B;color:#fff}
+.payment-icon--paypal{background:#003087;color:#fff}
+.payment-icon--maestro{background:#CC2131;color:#fff}
+.payment-icon--visa{background:#1A1F71;color:#fff}
+.payment-icon--unionpay{background:#D7000F;color:#fff}
+.payment-icon--klarna{background:#FFB3C7;color:#1A1A1A}
+
+/* Accordion */
+.accordion{border-top:1px solid #E5E7EB}
+.accordion__item{border-bottom:1px solid #E5E7EB}
+.accordion__trigger{width:100%;display:flex;justify-content:space-between;align-items:center;padding:18px 0;font-size:14px;font-weight:600;text-align:left;color:#1A1A1A}
+.accordion__icon{width:18px;height:18px;transition:transform .3s;color:#6B7280;flex-shrink:0}
+.accordion__item.open .accordion__icon{transform:rotate(180deg)}
+.accordion__content{max-height:0;overflow:hidden;transition:max-height .3s ease}
+.accordion__item.open .accordion__content{max-height:600px}
+.accordion__inner{padding:0 0 18px;font-size:13px;color:#374151;line-height:1.8}
+.accordion__inner a{color:#1A1A1A;text-decoration:underline;font-weight:500}
+
+/* Certified Authentic */
+.certified-badge{display:inline-flex;align-items:center;gap:6px;margin-bottom:10px;cursor:pointer}
+.certified-badge__icon{width:20px;height:20px;flex-shrink:0}
+.certified-badge__text{font-size:14px;font-weight:600;color:#1A1A1A;text-decoration:underline}
+
+/* Desc List */
+.desc-list{list-style:none;padding:0}
+.desc-list li{padding:2px 0;font-size:13px;color:#374151}
+.desc-list li strong{font-weight:600;color:#1A1A1A}
+
+/* Section */
+.section{max-width:1440px;margin:0 auto;padding:48px 80px 56px;border-top:1px solid #E5E7EB}
+.section__header{text-align:center;margin-bottom:32px}
+.section__title{font-size:18px;font-weight:600;color:#1A1A1A;margin-bottom:8px}
+.section__line{width:40px;height:2px;background:#1A1A1A;margin:0 auto}
+
+/* Carousel */
+.carousel{position:relative}
+.carousel__track-wrap{overflow:hidden}
+.carousel__track{display:flex;gap:20px;transition:transform .35s ease;will-change:transform}
+.carousel__btn{position:absolute;top:50%;transform:translateY(-100%);width:36px;height:36px;border-radius:50%;border:1.5px solid #D1D5DB;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;z-index:2;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.carousel__btn:hover:not(:disabled){border-color:#1A1A1A}
+.carousel__btn:disabled{opacity:.3;cursor:default}
+.carousel__btn svg{width:14px;height:14px;color:#374151}
+.carousel__btn--prev{left:-18px}
+.carousel__btn--next{right:-18px}
+
+/* Product Card */
+.product-card{flex:0 0 calc(16.666% - 16.666px);min-width:0;display:block;transition:transform .2s}
+.product-card:hover{transform:translateY(-2px)}
+.product-card__img-wrap{position:relative;aspect-ratio:1;background:#FAFAFA;overflow:hidden;margin-bottom:10px}
+.product-card__img-wrap img{width:100%;height:100%;object-fit:cover}
+.product-card__wish{position:absolute;top:8px;right:8px;display:flex;align-items:center;gap:2px;cursor:pointer}
+.product-card__wish svg{width:16px;height:16px;color:#9CA3AF;fill:none;stroke:currentColor;stroke-width:1.5}
+.product-card__wish:hover svg{color:#1A1A1A}
+.product-card__wish-count{font-size:10px;color:#9CA3AF}
+.product-card__brand{font-size:11px;font-weight:700;color:#1A1A1A;text-transform:uppercase;letter-spacing:.3px;text-align:center}
+.product-card__name{font-size:12px;color:#374151;margin-top:4px;text-align:center;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.product-card__price-row{display:flex;justify-content:center;align-items:center;gap:6px;margin-top:6px}
+.product-card__price{font-size:14px;font-weight:700;color:#1A1A1A}
+.product-card__original{font-size:12px;color:#9CA3AF;text-decoration:line-through}
+.product-card__save{font-size:10px;color:#fff;background:#1A1A1A;padding:2px 6px;border-radius:2px;font-weight:600}
+
+/* Recently Viewed - wider cards */
+.section--recent .product-card{flex:0 0 calc(25% - 15px)}
+
+/* Footer */
+.footer{background:#1A1A1A;color:#fff;padding:56px 0 0}
+.footer__inner{max-width:1440px;margin:0 auto;padding:0 80px;display:grid;grid-template-columns:1.2fr 1fr 1.5fr;gap:48px}
+.footer__col h4{font-size:14px;font-weight:600;margin-bottom:16px;color:#fff}
+.footer__col p,.footer__col a{font-size:13px;color:#9CA3AF;display:block;margin-bottom:8px;transition:color .2s}
+.footer__col a:hover{color:#fff}
+.footer__payments{display:flex;flex-wrap:wrap;gap:4px;margin-top:16px;margin-bottom:16px}
+.footer__pay-icon{height:22px;padding:2px 6px;background:#374151;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:#9CA3AF;min-width:32px}
+.footer__certified{margin-top:12px}
+.footer__certified-label{font-size:13px;color:#9CA3AF;margin-bottom:8px}
+.footer__certified-logos{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.footer__certified-logo{font-size:11px;font-weight:600;color:#9CA3AF;padding:4px 8px;background:#374151;border-radius:4px}
+.footer__logistics{margin-top:4px}
+.footer__logistics-label{font-size:13px;color:#9CA3AF;margin-bottom:8px}
+.footer__logistics-logo{font-size:12px;font-weight:700;color:#FF6200;padding:4px 8px;background:#374151;border-radius:4px;display:inline-block}
+.footer__newsletter{margin-top:16px;display:flex;gap:0;border:1px solid #374151;border-radius:0;overflow:hidden}
+.footer__newsletter input{flex:1;padding:10px 14px;border:none;background:transparent;color:#fff;font-size:13px;font-family:inherit}
+.footer__newsletter input::placeholder{color:#6B7280}
+.footer__newsletter button{padding:10px 16px;background:transparent;color:#9CA3AF;border:none;border-left:1px solid #374151;cursor:pointer;font-size:16px;transition:color .2s;display:flex;align-items:center}
+.footer__newsletter button:hover{color:#fff}
+.footer__social{display:flex;gap:20px;margin-top:20px}
+.footer__social a{color:#9CA3AF;transition:color .2s;display:flex;align-items:center}
+.footer__social a:hover{color:#fff}
+.footer__social a svg{width:20px;height:20px}
+.footer__bottom{max-width:1440px;margin:40px auto 0;padding:20px 80px;border-top:1px solid #374151;display:flex;justify-content:center;gap:24px;font-size:12px;color:#6B7280;flex-wrap:wrap}
+.footer__bottom a{color:#6B7280;transition:color .2s}
+.footer__bottom a:hover{color:#fff}
+.footer__disclaimer{max-width:1440px;margin:0 auto;padding:12px 80px 24px;text-align:center;font-size:10px;color:#4B5563;line-height:1.5}
+
+/* Lightbox */
+.lightbox{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.9);align-items:center;justify-content:center;cursor:zoom-out}
+.lightbox.active{display:flex}
+.lightbox__img{max-width:90vw;max-height:90vh;object-fit:contain}
+.lightbox__close{position:absolute;top:20px;right:20px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.12);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.lightbox__close:hover{background:rgba(255,255,255,.25)}
+.lightbox__close svg{width:20px;height:20px;color:#fff}
+.lightbox__nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.12);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.lightbox__nav:hover{background:rgba(255,255,255,.25)}
+.lightbox__nav svg{width:18px;height:18px;color:#fff}
+.lightbox__nav--prev{left:20px}
+.lightbox__nav--next{right:20px}
+.lightbox__counter{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.6);font-size:13px;font-weight:500}
+
+/* Responsive */
+@media(max-width:1024px){
+.product{grid-template-columns:1fr;gap:32px}
+.gallery{position:static}
+.product-card{flex:0 0 calc(33.333% - 13.333px)!important}
+.footer__inner{grid-template-columns:1fr 1fr}
+.header__inner,.breadcrumb,.product,.section,.footer__inner,.footer__bottom,.footer__disclaimer{padding-left:48px;padding-right:48px}
+}
+@media(max-width:640px){
+.header__inner,.breadcrumb,.product,.section,.footer__inner,.footer__bottom,.footer__disclaimer{padding-left:16px;padding-right:16px}
+.header__nav{display:none}
+.product-card{flex:0 0 calc(50% - 10px)!important}
+.footer__inner{grid-template-columns:1fr}
+.gallery__thumbs{grid-template-columns:repeat(3,1fr)}
+}
+</style>
+<!-- original head end -->
+<style>
+/* ===== 营销模块改动标注（效果稿专用） ===== */
+.mkt-mark{position:relative;outline:2px dashed #DC2626;outline-offset:3px}
+.mkt-tag{position:absolute;top:-10px;right:-2px;background:#DC2626;color:#fff;font-size:10px;font-weight:600;line-height:1;padding:2px 6px;border-radius:2px;z-index:60;white-space:nowrap;font-family:'DM Sans',-apple-system,sans-serif}
+.mkt-banner{background:#FFFBEB;border-bottom:1px solid #FDE68A;color:#92400E;font-size:12px;font-weight:500;text-align:center;padding:8px 16px;font-family:'DM Sans',-apple-system,sans-serif}
+/* ===== ① 促销价格区 ===== */
+.promo-pill{display:inline-flex;align-items:center;gap:5px;background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;line-height:1.3}
+.promo-pill svg{width:12px;height:12px;flex-shrink:0}
+.promo-off-tag{display:inline-block;background:#DC2626;color:#fff;font-size:12px;font-weight:700;padding:2px 7px;border-radius:3px;line-height:1.4}
+.promo-price{color:#DC2626!important}
+.promo-ftc-note{font-size:11px;color:#9CA3AF;line-height:1.5}
+.promo-retail-ref{font-size:12px;color:#6B7280}
+/* ===== ③ 用码另减提示条 ===== */
+.promo-code-bar{display:flex;align-items:center;gap:8px;background:#F5F3FF;border:1px dashed #C4B5FD;border-radius:6px;padding:9px 12px;font-size:12px;color:#5B21B6;line-height:1.5}
+.promo-code-bar svg{width:14px;height:14px;flex-shrink:0;color:#6432FC}
+.promo-code-bar code{background:#fff;border:1px solid #DDD6FE;border-radius:4px;padding:1px 6px;font-weight:700;font-size:11px;color:#6432FC;font-family:inherit}
+/* ===== ④ 推荐卡片促销样例 ===== */
+.card-off-tag{font-size:10px;color:#DC2626;border:1px solid #DC2626;padding:0 4px;border-radius:2px;font-weight:700;line-height:1.5}
+</style>
+<body>
+
+<!-- 营销改动效果稿说明横幅 -->
+<div class="mkt-banner">营销模块 C 端改动效果稿（PC） · 红色虚线框 = 本次新增/改动 · 基于 looply-商详页-PC-v3 定稿</div>
+<!-- Header -->
+<header class="header">
+<div class="header__inner">
+<a href="#" class="header__logo">
+<img src="./logo-new.png" alt="Looply" style="height:28px;object-fit:contain">
+</a>
+<nav class="header__nav">
+<a href="#">New Arrivals</a>
+<a href="#">Brands</a>
+<a href="#">Bags</a>
+<a href="#">Jewelry &amp; Accessories</a>
+<a href="#">Electronics</a>
+</nav>
+<div class="header__right">
+<button class="header__lang">English <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
+<button class="header__icon-btn" aria-label="Account"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></button>
+<button class="header__icon-btn" aria-label="Search"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></button>
+<button class="header__icon-btn" aria-label="Wishlist"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+<button class="header__icon-btn header__cart-btn" aria-label="Cart" style="position:relative"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span class="cart-badge" id="cartBadge"></span></button>
+</div>
+</div>
+</header>
+<!-- Mini Cart Popup (positioned via JS under Cart icon) -->
+<div class="mini-cart" id="miniCart">
+<div class="mini-cart__header"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="8" fill="#16A34A"/><path d="M5 8.5 7 10.5 11 6" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Added to Cart</span></div>
+<div class="mini-cart__product">
+<img class="mini-cart__img" src="https://placehold.co/96x96/F3F4F6/9CA3AF?text=LV" alt="">
+<div class="mini-cart__info">
+<div class="mini-cart__brand">LOUIS VUITTON</div>
+<div class="mini-cart__name">Silver Tone Metal Silver Necklace</div>
+<!-- 营销改动⑤ Mini Cart 加购浮层价格同步到手价 -->
+<div class="mini-cart__price">$522 <span style="font-size:11px;color:#9CA3AF;text-decoration:line-through;font-weight:400">$652</span></div>
+</div>
+</div>
+<div class="mini-cart__actions">
+<a class="mini-cart__btn-view" href="#">View Cart (<span id="miniCartCount">1</span>)</a>
+<button class="mini-cart__btn-continue" onclick="closeMiniCart()">Continue Shopping</button>
+</div>
+</div>
+
+<!-- Breadcrumb -->
+<nav class="breadcrumb">
+<a href="#">LOUIS VUITTON</a><span class="breadcrumb__sep">&rsaquo;</span>
+<a href="#">Necklace</a><span class="breadcrumb__sep">&rsaquo;</span>
+<span>Silver Tone Metal Silver Necklace</span>
+</nav>
+
+<!-- Product -->
+<section class="product">
+<div class="gallery">
+<div class="gallery__main-wrap">
+<div class="gallery__main" id="mainImage" onclick="openLightbox()">
+<img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/001_cd443847-229b-45ca-bf86-122d7b8af10e.png?v=1778472154&width=1200" alt="Silver Tone Metal Silver Necklace" id="mainImg">
+</div>
+<button class="gallery__wish" id="galleryWish" onclick="toggleGalleryWish(this)">
+<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+</button>
+</div>
+<div class="gallery__dots">
+<button class="gallery__dot" onclick="navImage(-1)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+<button class="gallery__dot" onclick="navImage(1)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+</div>
+<div class="gallery__thumbs">
+<div class="gallery__thumb active" onclick="switchImage(0)"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/001_cd443847-229b-45ca-bf86-122d7b8af10e.png?v=1778472154&width=200" alt=""></div>
+<div class="gallery__thumb" onclick="switchImage(1)"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/002_695d5fdf-4436-4f02-9788-f23ac7a8f904.png?v=1778472157&width=200" alt=""></div>
+<div class="gallery__thumb" onclick="switchImage(2)"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/003_e1e89a6f-d30f-4d72-a261-ef7e61ae556d.png?v=1778472161&width=200" alt=""></div>
+<div class="gallery__thumb" onclick="switchImage(3)"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/002_695d5fdf-4436-4f02-9788-f23ac7a8f904.png?v=1778472157&width=200" alt=""></div>
+<div class="gallery__thumb" onclick="switchImage(4)"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/003_e1e89a6f-d30f-4d72-a261-ef7e61ae556d.png?v=1778472161&width=200" alt=""></div>
+<div class="gallery__thumb" onclick="switchImage(5)"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/001_cd443847-229b-45ca-bf86-122d7b8af10e.png?v=1778472154&width=200" alt=""></div>
+</div>
+</div>
+
+<div class="product-info">
+<div class="product-info__brand">LOUIS VUITTON</div>
+<div class="product-info__title">Silver Tone Metal Silver Necklace</div>
+<!-- 营销改动① 促销价格区：Summer Sale 自动折扣 -20%，到手价=平台售价$652×80%=$522；划线价=平台售价$652（FTC）；$785 保留为零售参考价（不划线、不参与促销计算） -->
+<div class="mkt-mark" style="margin:2px 0 18px;padding:6px 8px 8px 2px">
+<span class="mkt-tag">营销新增</span>
+<div class="product-info__price-row" style="margin-bottom:6px">
+<span class="promo-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41 12 22 2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none"/></svg>Summer Sale &middot; Auto applied</span>
+<span class="promo-off-tag">-20%</span>
+</div>
+<div class="product-info__price-row">
+<span class="product-info__price promo-price">$522</span>
+<span class="product-info__original">$652</span>
+<span class="product-info__save">Save $130</span>
+</div>
+<!-- 营销改动② FTC 合规说明：划线价=平台标准售价 -->
+<div class="promo-ftc-note mkt-mark" style="display:inline-block;margin:10px 2px 4px;padding:1px 4px">Original price is our standard listed price for this item<span class="mkt-tag" style="top:-14px">营销新增</span></div>
+<div class="promo-retail-ref" style="margin-top:6px">Est. Retail $785 <span style="color:#9CA3AF">&middot; reference only</span></div>
+</div>
+<div class="product-info__tax">No extra sales tax added at checkout.</div>
+
+<!-- 营销改动③ 用码另减提示条：券在结算页输入，不计入页面展示价 -->
+<div class="mkt-mark" style="margin:0 0 20px">
+<span class="mkt-tag">营销新增</span>
+<div class="promo-code-bar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41 12 22 2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none"/></svg>Extra $10 off with code <code>WELCOME10</code> at checkout &middot; not included in price shown</div>
+</div>
+
+<p class="product-info__desc">This LOUIS VUITTON Silver Tone Metal Silver Necklace showcases refined craftsmanship with a sleek, minimalist design. The silver-tone finish pairs effortlessly with both casual and formal looks, making it a versatile addition to any jewelry collection. Showing good pre-owned character, it remains a timeless accessory with understated elegance.</p>
+
+<div class="stock-status">
+<span class="stock-dot"></span>
+<span class="stock-text">Only 1 available</span>
+<span class="stock-viewers">&middot; 4 people are viewing this</span>
+</div>
+
+<div class="cta-group">
+<!-- 营销改动⑤ CTA 按钮价格同步促销到手价 -->
+<div class="mkt-mark">
+<span class="mkt-tag">营销新增</span>
+<button class="btn-cart" id="addToCartBtn" style="display:block">Add to Cart &middot; $522</button>
+</div>
+<!-- Add to Cart 按钮价格取当前展示价（promotion_price 存在时用 promotion_price） -->
+<button class="btn-checkout" id="checkoutBtn">Checkout</button>
+</div>
+
+<div class="payment-icons">
+<span class="payment-icon payment-icon--amex">AMEX</span>
+<span class="payment-icon payment-icon--apple">Pay</span>
+<span class="payment-icon payment-icon--diners">DC</span>
+<span class="payment-icon payment-icon--discover">DISC</span>
+<span class="payment-icon payment-icon--gpay">GPay</span>
+<span class="payment-icon payment-icon--jcb">JCB</span>
+<span class="payment-icon payment-icon--maestro">Maestro</span>
+<span class="payment-icon payment-icon--mc">MC</span>
+<span class="payment-icon payment-icon--paypal">PayPal</span>
+<span class="payment-icon payment-icon--unionpay">UnionPay</span>
+<span class="payment-icon payment-icon--visa">VISA</span>
+<span class="payment-icon payment-icon--klarna">Klarna</span>
+</div>
+
+<div class="accordion">
+<!-- Condition -->
+<div class="accordion__item open">
+<button class="accordion__trigger" onclick="toggleAccordion(this)">Condition: Very Good<svg class="accordion__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
+<div class="accordion__content"><div class="accordion__inner">
+<a href="#" class="certified-badge">
+<svg class="certified-badge__icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#16A34A" opacity="0.15"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="#16A34A"/><path d="M10 16.4l-3.7-3.7 1.4-1.4 2.3 2.3 4.8-4.8 1.4 1.4L10 16.4z" fill="#fff"/></svg>
+<span class="certified-badge__text">Certified Authentic</span>
+</a>
+<p>Very good condition, with slight signs of wear</p>
+<p>Chain: Minor tarnish, Moderate wear;</p>
+<p>Clasp: Minor wear</p>
+<p style="margin-top:8px">Original Accessories: Receipt; Dust Bag; Box; Information Card</p>
+</div></div>
+</div>
+
+<!-- Description -->
+<div class="accordion__item open">
+<button class="accordion__trigger" onclick="toggleAccordion(this)">Description<svg class="accordion__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
+<div class="accordion__content"><div class="accordion__inner">
+<ul class="desc-list">
+<li>jewelry item #: 1010701657</li>
+<li>Material: Silver-tone Metal</li>
+<li>Pendant Material: Silver-tone Metal</li>
+<li>Color: Silver</li>
+<li>Size: <a href="#">Size Guide</a></li>
+<li>Length: 22.8 in,</li>
+</ul>
+</div></div>
+</div>
+
+<!-- Shipping & Returns -->
+<div class="accordion__item open">
+<button class="accordion__trigger" onclick="toggleAccordion(this)">Shipping &amp; Returns<svg class="accordion__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
+<div class="accordion__content"><div class="accordion__inner">
+<p><strong>Free Shipping:</strong></p>
+<p>Free standard shipping on all U.S. orders, except for select non-serviceable addresses. Orders are typically shipped within 1-3 business days after payment, with delivery in 3-7 business days after shipment. Tracking information will be provided once available.</p>
+<p style="margin-top:12px"><strong>Easy Returns:</strong></p>
+<p>15-day return. Original condition required. Final Sale items are not eligible for return. A $9.99 return processing fee applies.</p>
+<p style="margin-top:8px">View full Return &amp; Refund Policy <a href="#">here.</a></p>
+</div></div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- You May Also Like -->
+<section class="section" id="recommendations">
+<div class="section__header">
+<h2 class="section__title">You may also like</h2>
+<div class="section__line"></div>
+</div>
+<div class="carousel">
+<button class="carousel__btn carousel__btn--prev" aria-label="Previous"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+<div class="carousel__track-wrap">
+<div class="carousel__track">
+<a href="#" class="product-card">
+<div class="product-card__img-wrap"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/001_cd443847-229b-45ca-bf86-122d7b8af10e.png?v=1778472154&width=400" alt=""><div class="product-card__wish" onclick="event.preventDefault()"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div></div>
+<div class="product-card__brand">LOUIS VUITTON</div>
+<div class="product-card__name">Essential V Gold Metal Necklace</div>
+<!-- 营销改动④ 推荐卡片促销样例：$833×80%=$666（四舍五入） -->
+<div class="product-card__price-row mkt-mark" style="padding:2px 4px;margin-top:8px"><span class="mkt-tag">营销新增</span><span class="product-card__price promo-price">$666</span><span class="product-card__original">$833</span><span class="card-off-tag">-20%</span></div>
+</a>
+<a href="#" class="product-card">
+<div class="product-card__img-wrap"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/002_695d5fdf-4436-4f02-9788-f23ac7a8f904.png?v=1778472157&width=400" alt=""><div class="product-card__wish" onclick="event.preventDefault()"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div></div>
+<div class="product-card__brand">LOUIS VUITTON</div>
+<div class="product-card__name">Gold-tone Metal Earring</div>
+<div class="product-card__price-row"><span class="product-card__price">$841</span></div>
+</a>
+<a href="#" class="product-card">
+<div class="product-card__img-wrap"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/003_e1e89a6f-d30f-4d72-a261-ef7e61ae556d.png?v=1778472161&width=400" alt=""><div class="product-card__wish" onclick="event.preventDefault()"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div></div>
+<div class="product-card__brand">LOUIS VUITTON</div>
+<div class="product-card__name">Blooming Gold Tone Metal Enamel Resin Gold Bracelet</div>
+<div class="product-card__price-row"><span class="product-card__price">$813</span></div>
+</a>
+<a href="#" class="product-card">
+<div class="product-card__img-wrap"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/001_cd443847-229b-45ca-bf86-122d7b8af10e.png?v=1778472154&width=400" alt=""><div class="product-card__wish" onclick="event.preventDefault()"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div></div>
+<div class="product-card__brand">LOUIS VUITTON</div>
+<div class="product-card__name">Gold-tone Metal Bag Charm</div>
+<div class="product-card__price-row"><span class="product-card__price">$281</span></div>
+</a>
+<a href="#" class="product-card">
+<div class="product-card__img-wrap"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/002_695d5fdf-4436-4f02-9788-f23ac7a8f904.png?v=1778472157&width=400" alt=""><div class="product-card__wish" onclick="event.preventDefault()"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div></div>
+<div class="product-card__brand">CHANEL</div>
+<div class="product-card__name">Gold-Tone Metal Necklace</div>
+<div class="product-card__price-row"><span class="product-card__price">$1,228</span></div>
+</a>
+<a href="#" class="product-card">
+<div class="product-card__img-wrap"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/003_e1e89a6f-d30f-4d72-a261-ef7e61ae556d.png?v=1778472161&width=400" alt=""><div class="product-card__wish" onclick="event.preventDefault()"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div></div>
+<div class="product-card__brand">DIOR</div>
+<div class="product-card__name">Silver-tone Metal Silver Necklace</div>
+<div class="product-card__price-row"><span class="product-card__price">$403</span></div>
+</a>
+<a href="#" class="product-card">
+<div class="product-card__img-wrap"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/001_cd443847-229b-45ca-bf86-122d7b8af10e.png?v=1778472154&width=400" alt=""><div class="product-card__wish" onclick="event.preventDefault()"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div></div>
+<div class="product-card__brand">GUCCI</div>
+<div class="product-card__name">Interlocking G Pendant Necklace</div>
+<div class="product-card__price-row"><span class="product-card__price">$560</span></div>
+</a>
+<a href="#" class="product-card">
+<div class="product-card__img-wrap"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/002_695d5fdf-4436-4f02-9788-f23ac7a8f904.png?v=1778472157&width=400" alt=""><div class="product-card__wish" onclick="event.preventDefault()"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div></div>
+<div class="product-card__brand">BVLGARI</div>
+<div class="product-card__name">B.zero1 Pendant Necklace</div>
+<div class="product-card__price-row"><span class="product-card__price">$980</span></div>
+</a>
+</div>
+</div>
+<button class="carousel__btn carousel__btn--next" aria-label="Next"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+</div>
+</section>
+
+<!-- Recently Viewed -->
+<section class="section section--recent" id="recently-viewed">
+<div class="section__header">
+<h2 class="section__title">Recently viewed</h2>
+<div class="section__line"></div>
+</div>
+<div class="carousel">
+<div class="carousel__track-wrap">
+<div class="carousel__track">
+<a href="#" class="product-card">
+<div class="product-card__img-wrap"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/003_e1e89a6f-d30f-4d72-a261-ef7e61ae556d.png?v=1778472161&width=400" alt=""><div class="product-card__wish" onclick="event.preventDefault()"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span class="product-card__wish-count">1</span></div></div>
+<div class="product-card__brand">PRADA</div>
+<div class="product-card__name">Diagramme Calfskin Pink</div>
+<div class="product-card__price-row"><span class="product-card__price">$817</span><span class="product-card__original">$838</span><span class="product-card__save">Save $21</span></div>
+</a>
+<a href="#" class="product-card">
+<div class="product-card__img-wrap"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/002_695d5fdf-4436-4f02-9788-f23ac7a8f904.png?v=1778472157&width=400" alt=""><div class="product-card__wish" onclick="event.preventDefault()"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span class="product-card__wish-count">1</span></div></div>
+<div class="product-card__brand">BALENCIAGA</div>
+<div class="product-card__name">Hourglass XS Quilted Calfskin Red</div>
+<div class="product-card__price-row"><span class="product-card__price">$976</span></div>
+</a>
+<a href="#" class="product-card">
+<div class="product-card__img-wrap"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/001_cd443847-229b-45ca-bf86-122d7b8af10e.png?v=1778472154&width=400" alt=""><div class="product-card__wish" onclick="event.preventDefault()"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div></div>
+<div class="product-card__brand">HERMES</div>
+<div class="product-card__name">Garden Party 36 Canvas Pink</div>
+<div class="product-card__price-row"><span class="product-card__price">$1,860</span><span class="product-card__original">$2,087</span><span class="product-card__save">Save $227</span></div>
+</a>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+<div class="footer__inner">
+<div class="footer__col">
+<h4>About</h4>
+<a href="#">About Looply</a>
+<a href="#">Secure Payments</a>
+<div class="footer__payments">
+<span class="footer__pay-icon">AMEX</span>
+<span class="footer__pay-icon">Pay</span>
+<span class="footer__pay-icon">DISC</span>
+<span class="footer__pay-icon">GPay</span>
+<span class="footer__pay-icon">JCB</span>
+<span class="footer__pay-icon">MC</span>
+<span class="footer__pay-icon">PayPal</span>
+<span class="footer__pay-icon">Shop</span>
+<span class="footer__pay-icon">VISA</span>
+<span class="footer__pay-icon">Klarna</span>
+</div>
+<div class="footer__certified">
+<div class="footer__certified-label">Certified by</div>
+<div class="footer__certified-logos">
+<span class="footer__certified-logo">LEGITAPP</span>
+<span class="footer__certified-logo">Phonecheck</span>
+</div>
+</div>
+<div class="footer__logistics">
+<div class="footer__logistics-label">Logistics Partners</div>
+<span class="footer__logistics-logo">FedEx</span>
+</div>
+</div>
+<div class="footer__col">
+<h4>Customer Service</h4>
+<a href="#">Contact Us</a>
+<a href="#">My Account</a>
+<a href="#">Shipping</a>
+<a href="#">Returns</a>
+</div>
+<div class="footer__col">
+<h4>Contact</h4>
+<p>service@looply.com</p>
+<p style="margin-top:16px;margin-bottom:8px;font-size:13px;color:#9CA3AF">Get exclusive offers, new arrivals in advance.</p>
+<div class="footer__newsletter"><input type="email" placeholder="Email"><button>&rarr;</button></div>
+<div class="footer__social">
+<a href="#" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></a>
+<a href="#" aria-label="TikTok"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1 0-5.78 2.92 2.92 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 3 15.57 6.33 6.33 0 0 0 9.37 22a6.33 6.33 0 0 0 6.37-6.23V9.34a8.16 8.16 0 0 0 3.85.97V6.69z"/></svg></a>
+<a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg></a>
+<a href="#" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19.1c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="#1A1A1A"/></svg></a>
+</div>
+</div>
+</div>
+<div class="footer__bottom">
+<span>&copy; Looply 2026</span>
+<a href="#">Accessibility Statement</a>
+<a href="#">Privacy Policy</a>
+<a href="#">Terms of Service</a>
+</div>
+<div class="footer__disclaimer">Looply is an independent resale platform, not affiliated with, endorsed, or sponsored by any brand owner. Trademarks belong to their owners and are used for identification only.</div>
+</footer>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+<button class="lightbox__close" onclick="closeLightbox(event,true)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+<button class="lightbox__nav lightbox__nav--prev" onclick="lightboxNav(event,-1)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+<img class="lightbox__img" id="lightboxImg" src="" alt="">
+<button class="lightbox__nav lightbox__nav--next" onclick="lightboxNav(event,1)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+<div class="lightbox__counter" id="lightboxCounter"></div>
+</div>
+
+<script>
+const images=[
+'https://cdn.shopify.com/s/files/1/0807/6725/4757/files/001_cd443847-229b-45ca-bf86-122d7b8af10e.png?v=1778472154&width=1200',
+'https://cdn.shopify.com/s/files/1/0807/6725/4757/files/002_695d5fdf-4436-4f02-9788-f23ac7a8f904.png?v=1778472157&width=1200',
+'https://cdn.shopify.com/s/files/1/0807/6725/4757/files/003_e1e89a6f-d30f-4d72-a261-ef7e61ae556d.png?v=1778472161&width=1200',
+'https://cdn.shopify.com/s/files/1/0807/6725/4757/files/002_695d5fdf-4436-4f02-9788-f23ac7a8f904.png?v=1778472157&width=1200',
+'https://cdn.shopify.com/s/files/1/0807/6725/4757/files/003_e1e89a6f-d30f-4d72-a261-ef7e61ae556d.png?v=1778472161&width=1200',
+'https://cdn.shopify.com/s/files/1/0807/6725/4757/files/001_cd443847-229b-45ca-bf86-122d7b8af10e.png?v=1778472154&width=1200'
+];
+let currentImg=0;
+
+function switchImage(i){
+  currentImg=i;
+  document.getElementById('mainImg').src=images[i];
+  document.querySelectorAll('.gallery__thumb').forEach((t,idx)=>t.classList.toggle('active',idx===i));
+}
+
+function navImage(dir){
+  currentImg=(currentImg+dir+images.length)%images.length;
+  switchImage(currentImg);
+}
+
+/* Accordion */
+function toggleAccordion(trigger){
+  const item=trigger.parentElement;
+  item.classList.toggle('open');
+}
+
+/* Add to Cart + Mini Cart */
+let cartCount=0;
+let miniCartTimer=null;
+function closeMiniCart(){
+  document.getElementById('miniCart').classList.remove('active');
+  clearTimeout(miniCartTimer);
+}
+document.getElementById('addToCartBtn').addEventListener('click',function(){
+  const orig=this.textContent;
+  this.textContent='Added \u2713';
+  setTimeout(()=>{this.textContent=orig},2000);
+  cartCount++;
+  const badge=document.getElementById('cartBadge');
+  badge.textContent=cartCount;
+  badge.classList.add('visible');
+  document.getElementById('miniCartCount').textContent=cartCount;
+  const mc=document.getElementById('miniCart');
+  const cartBtn=document.querySelector('.header__cart-btn');
+  const rect=cartBtn.getBoundingClientRect();
+  mc.style.top=(rect.bottom+8)+'px';
+  mc.style.right=(window.innerWidth-rect.right)+'px';
+  mc.classList.add('active');
+  clearTimeout(miniCartTimer);
+  miniCartTimer=setTimeout(closeMiniCart,5000);
+});
+document.addEventListener('click',function(e){
+  const mc=document.getElementById('miniCart');
+  if(!mc.classList.contains('active'))return;
+  if(!mc.contains(e.target)&&!e.target.closest('#addToCartBtn')){closeMiniCart()}
+});
+
+/* Gallery Wishlist */
+function toggleGalleryWish(btn){
+  btn.classList.toggle('active');
+}
+
+/* Lightbox */
+function openLightbox(){
+  document.getElementById('lightboxImg').src=images[currentImg];
+  document.getElementById('lightboxCounter').textContent=(currentImg+1)+' / '+images.length;
+  document.getElementById('lightbox').classList.add('active');
+  document.body.style.overflow='hidden';
+}
+function closeLightbox(e,force){
+  if(force||e.target===document.getElementById('lightbox')){
+    document.getElementById('lightbox').classList.remove('active');
+    document.body.style.overflow='';
+  }
+}
+function lightboxNav(e,dir){
+  e.stopPropagation();
+  currentImg=(currentImg+dir+images.length)%images.length;
+  document.getElementById('lightboxImg').src=images[currentImg];
+  document.getElementById('lightboxCounter').textContent=(currentImg+1)+' / '+images.length;
+  switchImage(currentImg);
+}
+document.addEventListener('keydown',function(e){
+  if(!document.getElementById('lightbox').classList.contains('active'))return;
+  if(e.key==='Escape')closeLightbox(e,true);
+  if(e.key==='ArrowLeft')lightboxNav(e,-1);
+  if(e.key==='ArrowRight')lightboxNav(e,1);
+});
+
+/* Carousel */
+function initCarousel(sectionId){
+  const section=document.getElementById(sectionId);
+  const track=section.querySelector('.carousel__track');
+  const prevBtn=section.querySelector('.carousel__btn--prev');
+  const nextBtn=section.querySelector('.carousel__btn--next');
+  if(!track)return;
+  const cards=track.querySelectorAll('.product-card');
+  let current=0;
+  const total=cards.length;
+
+  function getVisible(){
+    const w=window.innerWidth;
+    if(w<=640)return 2;
+    if(w<=1024)return 3;
+    return sectionId==='recently-viewed'?4:6;
+  }
+
+  function getCardWidth(){
+    const wrap=track.parentElement;
+    const gap=20;
+    const visible=getVisible();
+    return(wrap.offsetWidth-gap*(visible-1))/visible;
+  }
+
+  function update(){
+    const cardWidth=getCardWidth();
+    const visible=getVisible();
+    track.style.transform='translateX(-'+(current*(cardWidth+20))+'px)';
+    if(prevBtn)prevBtn.disabled=current===0;
+    if(nextBtn)nextBtn.disabled=current>=total-visible;
+  }
+
+  if(prevBtn)prevBtn.addEventListener('click',()=>{if(current>0){current--;update();}});
+  if(nextBtn)nextBtn.addEventListener('click',()=>{if(current<total-getVisible()){current++;update();}});
+  window.addEventListener('resize',()=>{current=0;update();});
+  update();
+}
+
+initCarousel('recommendations');
+initCarousel('recently-viewed');
+</script>
+</body>
+
+
+</div>
+</div>
+
+<!-- Toggle Button -->
+<button class="toggle-btn active" id="toggleBtn" onclick="togglePanel()" title="显示/隐藏交互说明">
+<span class="icon-open"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6"/><path d="M9 16h6"/></svg></span>
+<span class="icon-close"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+</button>
+
+<!-- Annotation Panel -->
+<div class="anno-panel open" id="annoPanel">
+<div class="page-header">
+  <h1>looply PC 商详页 — 交互说明文档</h1>
+  <div class="meta">Version 3.0 &nbsp;|&nbsp; 2026-06-08 &nbsp;|&nbsp; 12 Modules</div>
+  <div class="ref">原始设计稿：<a href="./looply-商详页-PC-v1.3.html">looply-商详页-PC-v1.3.html</a> &nbsp;&nbsp; APP 版交互说明：<a href="./looply-商详页-APP-v3.html">looply-商详页-APP-v3.html</a></div>
+  <div class="diff-box">
+    <strong>PC vs APP 关键差异：</strong><br>
+    <span class="tag-pc">PC</span> 鼠标悬停缩放主图 &nbsp;/&nbsp; <span class="tag-app">APP</span> 左右滑动切换<br>
+    <span class="tag-pc">PC</span> 页面内 CTA 按钮 &nbsp;/&nbsp; <span class="tag-app">APP</span> Sticky 底部购买栏<br>
+    <span class="tag-pc">PC</span> 全部 Accordion 默认展开 &nbsp;/&nbsp; <span class="tag-app">APP</span> Shipping 默认折叠<br>
+    <span class="tag-pc">PC</span> Carousel 左右箭头按钮 &nbsp;/&nbsp; <span class="tag-app">APP</span> 水平滑动<br>
+    <span class="tag-pc">PC</span> 描述全文展示 &nbsp;/&nbsp; <span class="tag-app">APP</span> 2 行截断 + Read more<br>
+    <span class="tag-pc">PC</span> 有 Breadcrumb &nbsp;/&nbsp; <span class="tag-app">APP</span> 无<br>
+    <span class="tag-pc">PC</span> Lightbox 支持键盘导航 &nbsp;/&nbsp; <span class="tag-app">APP</span> 手势操作<br>
+    <span class="tag-pc">PC</span> 加购反馈：右上角 Mini Cart 浮层 &nbsp;/&nbsp; <span class="tag-app">APP</span> 加购反馈：Bottom Sheet 确认
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="dot dot-hover"></div>Hover</div>
+  <div class="legend-item"><div class="dot dot-click"></div>Click</div>
+  <div class="legend-item"><div class="dot dot-key"></div>Keyboard</div>
+  <div class="legend-item"><div class="dot dot-state"></div>State</div>
+  <div class="legend-item"><div class="dot dot-edge"></div>Edge</div>
+</div>
+
+<div class="zones">
+
+<!-- ═══ 1. Header ═══ -->
+<section class="zone" id="z1">
+<div class="preview-box">
+  <div class="preview-inner">
+    <div class="pv-header">
+      <span class="logo">looply</span>
+      <div class="nav"><span>New Arrivals</span><span>Brands</span><span>Bags</span><span>Jewelry &amp; Accessories</span><span>Electronics</span></div>
+      <div class="icons">
+        <span>English &#9662;</span>
+        <span class="icon-circle"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+        <span class="icon-circle"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
+        <span class="icon-circle"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>
+        <span class="icon-circle"><svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="module open">
+  <div class="module-header" onclick="this.parentElement.classList.toggle('open')">
+    <span class="module-num">1</span>
+    <span class="module-title">Header 顶部导航栏</span>
+    <span class="module-badge badge-nav">导航</span>
+    <span class="module-chevron">&#9662;</span>
+  </div>
+  <div class="module-body">
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>Logo</div>
+      <div class="ix-content">点击跳转<strong>首页</strong>。Logo 使用品牌图片（logo-new.png），高度 28px。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>导航链接</div>
+      <div class="ix-content">点击跳转对应<strong>品类列表页</strong>（New Arrivals / Brands / Bags / Jewelry / Electronics）。本期跳转规则写死，默认跳转 <code>www.looply.com</code>。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-hover"></div>导航链接 Hover</div>
+      <div class="ix-content">文字颜色从 <code>#1A1A1A</code> 过渡到 <code>#6B7280</code>（0.2s transition）。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>Language 选择器</div>
+      <div class="ix-content">点击弹出下拉菜单切换语言。当前展示当前语言名称（如 "English &#9662;"）。默认语言 = 当前 Market 的默认语言，语言列表根据 Market 配置动态获取。切换后整站内容翻译为目标语言。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>Currency 选择器</div>
+      <div class="ix-content">点击弹出下拉菜单切换货币。默认货币 = 当前 Market 的默认货币，货币列表根据 Market 配置动态获取（<code>market_currency</code> + <code>currency</code>）。切换后整站价格按汇率换算为目标货币展示（含尾数适配）。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>图标按钮</div>
+      <div class="ix-content">
+        <strong>Account</strong>：跳转账户页（未登录跳登录页）<br>
+        <strong>Search</strong>：打开搜索 Overlay / 搜索页<br>
+        <strong>Wishlist</strong>：跳转收藏列表页<br>
+        <strong>Cart</strong>：跳转购物车页（角标展示商品数量，0 时不显示）
+      </div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-state"></div>Sticky 行为</div>
+      <div class="ix-content">Header 固定在页面顶部（<code>position: sticky; top: 0; z-index: 100</code>），滚动时始终可见。高度 64px。</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ 2. Breadcrumb ═══ -->
+<section class="zone" id="z2">
+<div class="preview-box">
+  <div class="preview-inner">
+    <div class="pv-breadcrumb">
+      <a href="#">LOUIS VUITTON</a><span class="sep">&rsaquo;</span>
+      <a href="#">Necklace</a><span class="sep">&rsaquo;</span>
+      <span style="color:#1A1A1A">Silver Tone Metal Silver Necklace</span>
+    </div>
+  </div>
+</div>
+<div class="module">
+  <div class="module-header" onclick="this.parentElement.classList.toggle('open')">
+    <span class="module-num">2</span>
+    <span class="module-title">Breadcrumb 面包屑导航</span>
+    <span class="module-badge badge-nav">导航</span>
+    <span class="module-chevron">&#9662;</span>
+  </div>
+  <div class="module-body">
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>品牌链接</div>
+      <div class="ix-content">第一段，点击跳转该品牌的<strong>品牌聚合页</strong>。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>品类链接</div>
+      <div class="ix-content">第二段，点击跳转该品类的<strong>商品列表页</strong>。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-state"></div>当前页</div>
+      <div class="ix-content">最后一段为当前商品名称，<strong>不可点击</strong>，颜色为 <code>#1A1A1A</code>（前面链接为 <code>#6B7280</code>）。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-edge"></div>边界情况</div>
+      <div class="ix-content">品类层级 > 3 层时，只展示最后 3 级，首段以 "..." 替代。商品名过长时文本自然换行（不截断）。</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ 3. Gallery ═══ -->
+<section class="zone" id="z3">
+<div class="preview-box">
+  <div class="preview-inner">
+    <div class="pv-gallery">
+      <div class="pv-gallery-main">
+        <img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/001_cd443847-229b-45ca-bf86-122d7b8af10e.png?v=1778472154&width=800" alt="">
+        <div class="pv-gallery-wish"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+      </div>
+      <div class="pv-gallery-dots">
+        <div class="pv-gallery-dot"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></div>
+        <div class="pv-gallery-dot"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
+      </div>
+      <div class="pv-gallery-thumbs">
+        <div class="pv-gallery-thumb active"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/001_cd443847-229b-45ca-bf86-122d7b8af10e.png?v=1778472154&width=200" alt=""></div>
+        <div class="pv-gallery-thumb"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/002_695d5fdf-4436-4f02-9788-f23ac7a8f904.png?v=1778472157&width=200" alt=""></div>
+        <div class="pv-gallery-thumb"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/003_e1e89a6f-d30f-4d72-a261-ef7e61ae556d.png?v=1778472161&width=200" alt=""></div>
+        <div class="pv-gallery-thumb"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/002_695d5fdf-4436-4f02-9788-f23ac7a8f904.png?v=1778472157&width=200" alt=""></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="module open">
+  <div class="module-header" onclick="this.parentElement.classList.toggle('open')">
+    <span class="module-num">3</span>
+    <span class="module-title">Gallery 商品图片区</span>
+    <span class="module-badge badge-core">核心</span>
+    <span class="module-chevron">&#9662;</span>
+  </div>
+  <div class="module-body">
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-hover"></div>主图悬停缩放</div>
+      <div class="ix-content">鼠标悬停在主图区域时，图片<strong>缓慢放大至 1.08 倍</strong>（transition: transform 0.4s ease），光标变为 <code>cursor: zoom-in</code>。移出后恢复原始大小。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>点击主图 → Lightbox</div>
+      <div class="ix-content">点击主图进入<strong>全屏灯箱模式</strong>（黑色半透明遮罩，图片居中展示）。详见 Module 12。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>点击缩略图</div>
+      <div class="ix-content">点击任意缩略图切换主图。当前选中缩略图有 <strong>2px 深色边框</strong> + 透明度从 0.7 恢复为 1。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>Prev / Next 圆形按钮</div>
+      <div class="ix-content">主图下方的左右圆形箭头按钮，点击切换前/后一张图。按钮有 <code>border: 1.5px solid #D1D5DB</code>，hover 时边框变为 <code>#1A1A1A</code>。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>收藏按钮</div>
+      <div class="ix-content">主图右上角心形图标。点击切换收藏状态：<strong>未收藏</strong> 空心灰色 → <strong>已收藏</strong> 实心红色（<code>#EF4444</code>）。hover 时图标变为 <code>#1A1A1A</code>。未登录时触发登录流程。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-state"></div>Sticky 定位</div>
+      <div class="ix-content">Gallery 区域设置 <code>position: sticky; top: 80px</code>（Header 高度 64px + 16px 间距），当用户滚动右侧信息区时，Gallery <strong>固定在视口</strong>不随页面滚动。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-edge"></div>边界情况</div>
+      <div class="ix-content">
+        · 仅 1 张图：隐藏缩略图行和 Prev/Next 按钮<br>
+        · 图片加载失败：显示灰色占位图 + 品牌 Logo 水印<br>
+        · 图片数量 > 6：缩略图区域自动换行为两行
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ 4. Product Info ═══ -->
+<section class="zone" id="z4">
+<div class="preview-box">
+  <div class="preview-inner">
+    <div class="pv-info">
+      <div class="pv-brand">LOUIS VUITTON</div>
+      <div class="pv-title">Silver Tone Metal Silver Necklace</div>
+      <div class="pv-price-row">
+        <span class="pv-price-orig">$785</span>
+        <span class="pv-price-cur">$652</span>
+        <span class="pv-price-save">Save $133</span>
+      </div>
+      <div class="pv-tax">No extra sales tax added at checkout.</div>
+    </div>
+  </div>
+</div>
+<div class="module open">
+  <div class="module-header" onclick="this.parentElement.classList.toggle('open')">
+    <span class="module-num">4</span>
+    <span class="module-title">商品信息区（品牌 / 标题 / 价格）</span>
+    <span class="module-badge badge-core">核心</span>
+    <span class="module-chevron">&#9662;</span>
+  </div>
+  <div class="module-body">
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>品牌名</div>
+      <div class="ix-content">14px 粗体大写字母。点击跳转该品牌的<strong>品牌聚合页</strong>（筛选该品牌下所有在售商品）。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-state"></div>价格展示逻辑</div>
+      <div class="ix-content">
+        <strong>有促销价时</strong>：划线原价（20px 灰色删除线）+ 现价（28px 黑色粗体）+ <span style="color:#dc2626">Save $差值</span>（14px 红色）<br>
+        <strong>无促销价时</strong>：仅展示现价，划线价和 Save 隐藏<br>
+        <strong>币种转换</strong>：当用户选择的货币 ≠ listing 定价货币时，所有金额做汇率换算 + 尾数规则适配后再计算 Save。<strong>注意</strong>：Save = 转换后划线价 − 转换后现价，Save 差值本身不做尾数处理
+      </div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-state"></div>Tax 提示</div>
+      <div class="ix-content">"No extra sales tax added at checkout." — 12px 灰色，固定文案。按 Market 税务政策可能变化（如含税市场显示 "Includes VAT"）。</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ 5. Description & CTA ═══ -->
+<section class="zone" id="z5">
+<div class="preview-box">
+  <div class="preview-inner">
+    <div class="pv-desc-cta">
+      <div class="pv-desc-text">This LOUIS VUITTON Silver Tone Metal Silver Necklace showcases refined craftsmanship with a sleek, minimalist design. The silver-tone finish pairs effortlessly with both casual and formal looks, making it a versatile addition to any jewelry collection.</div>
+      <button class="pv-btn-cart">Add to Cart &middot; $652</button>
+      <button class="pv-btn-checkout">Checkout</button>
+      <div class="pv-pay-row">
+        <span class="pv-pay" style="background:#006FCF;color:#fff">AMEX</span>
+        <span class="pv-pay" style="background:#1A1A1A;color:#fff">Pay</span>
+        <span class="pv-pay" style="background:#0079BE;color:#fff">DC</span>
+        <span class="pv-pay" style="background:#FF6600;color:#fff">DISC</span>
+        <span class="pv-pay" style="background:#fff;border:1px solid #E5E7EB;color:#374151">GPay</span>
+        <span class="pv-pay" style="background:#0B7BC1;color:#fff">JCB</span>
+        <span class="pv-pay" style="background:#CC2131;color:#fff">Maestro</span>
+        <span class="pv-pay" style="background:#EB001B;color:#fff">MC</span>
+        <span class="pv-pay" style="background:#003087;color:#fff">PayPal</span>
+        <span class="pv-pay" style="background:#D7000F;color:#fff">UnionPay</span>
+        <span class="pv-pay" style="background:#1A1F71;color:#fff">VISA</span>
+        <span class="pv-pay" style="background:#FFB3C7;color:#1A1A1A">Klarna</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="module open">
+  <div class="module-header" onclick="this.parentElement.classList.toggle('open')">
+    <span class="module-num">5</span>
+    <span class="module-title">商品描述 & 库存状态 & CTA & 支付方式</span>
+    <span class="module-badge badge-core">核心</span>
+    <span class="module-chevron">&#9662;</span>
+  </div>
+  <div class="module-body">
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-state"></div>描述展示</div>
+      <div class="ix-content">PC 端<strong>全文展示</strong>，不做截断（与 APP 端 2 行截断不同）。14px，行高 1.7，颜色 <code>#1A1A1A</code>。</div>
+    </div>
+    <div class="section-divider" style="padding:8px 0 4px;font-size:9px">库存状态</div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-state"></div>库存状态展示</div>
+      <div class="ix-content">位于描述段落下方、CTA 按钮上方。展示格式：<strong>琥珀色脉冲圆点</strong>（6px, #F59E0B, 2s 呼吸动画）+ 库存文案 + 浏览人数。<br>
+      <div class="ix-sub">· 有库存（<code>available_quantity &gt; 0</code>）：显示 "<strong>Only 1 available</strong> · X people are viewing this"<br>· 已售罄（<code>available_quantity = 0</code>）：库存状态行隐藏，CTA 按钮统一变灰色 "Sold Out"（见下方）<br>· 浏览人数取实时数据（WebSocket 或轮询），无数据时隐藏 " · X people viewing" 部分<br>· 二手商品绝大多数为单库存（quantity = 1），文案固定 "Only 1 available"；若 quantity &gt; 1 则显示 "Only N available"</div></div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-state"></div>Sold Out 状态</div>
+      <div class="ix-content">当商品已售罄时：<br>· 库存状态行隐藏<br>· Add to Cart 和 Checkout 两个按钮均变灰色禁用，文字变为 "Sold Out"<br>· 按钮下方出现 "<strong>Notify me when similar items arrive</strong>" 链接（紫色，点击弹出邮箱输入弹窗）</div>
+    </div>
+    <div class="section-divider" style="padding:8px 0 4px;font-size:9px">CTA 按钮</div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>Add to Cart 按钮</div>
+      <div class="ix-content">黑色描边次级按钮，展示 "Add to Cart &middot; $价格"。点击加入购物车。<br>
+      <strong>加购反馈（Mini Cart 浮层）</strong>：点击后，页面右上角 Cart 图标下方弹出 mini 确认浮层（宽 320px, 圆角 12px, 白色卡片 + 阴影），内容包含：<br>
+      <div class="ix-sub">· 顶部：绿色 ✓ + "Added to Cart"<br>· 中间：商品缩略图（48x48）+ 品牌 + 商品名 + 价格<br>· 底部：两个按钮 — "View Cart (N)" 紫色实心按钮 + "Continue Shopping" 灰色文字链接<br>· 自动收起：5 秒后自动消失（淡出 0.3s），点击任意外部区域也可关闭<br>· Cart 图标角标数字同步 +1</div>
+      <div class="ix-sub" style="margin-top:6px">· 若 <code>listing_status = active</code> 但库存已预留/已售出，按钮变灰色 "Sold Out"，不可点击<br>· 若 <code>listing_status = inactive / draft</code>，页面显示"商品已下架"提示（非按钮状态）<br>· 若未登录，先触发登录流程</div></div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>Checkout 按钮</div>
+      <div class="ix-content">紫色实心主按钮（<code>#6432FC</code>），视觉层级最高。点击直接进入<strong>结算流程</strong>（跳过购物车，直接结算当前商品）。同样受库存状态约束。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-hover"></div>按钮 Hover</div>
+      <div class="ix-content">Add to Cart：背景从 <code>#fff</code> → <code>#F9FAFB</code>。<br>Checkout：背景从 <code>#6432FC</code> → <code>#5228D4</code>。两者均有 0.2s transition。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-state"></div>支付方式图标</div>
+      <div class="ix-content">共 12 个支付图标（AMEX / Apple Pay / Diners / Discover / GPay / JCB / Maestro / MC / PayPal / UnionPay / VISA / Klarna），自动换行。纯展示，不可点击。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-edge"></div>边界情况</div>
+      <div class="ix-content">· 描述为空时：描述段落隐藏，CTA 按钮上移<br>· Sold Out 时两个按钮均禁用，Checkout 变灰色</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ 6. Condition Accordion ═══ -->
+<section class="zone" id="z6">
+<div class="preview-box">
+  <div class="preview-inner">
+    <div class="pv-accordion" style="border-top:1px solid #E5E7EB">
+      <div class="pv-acc-item">
+        <button class="pv-acc-trigger">Condition: Very Good<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
+        <div class="pv-acc-inner">
+          <div class="pv-certified">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#16A34A" opacity=".15"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="#16A34A"/><path d="M10 16.4l-3.7-3.7 1.4-1.4 2.3 2.3 4.8-4.8 1.4 1.4L10 16.4z" fill="#fff"/></svg>
+            <span>Certified Authentic</span>
+          </div>
+          <p>Very good condition, with slight signs of wear</p>
+          <p>Chain: Minor tarnish, Moderate wear; Clasp: Minor wear</p>
+          <p style="margin-top:6px">Original Accessories: Receipt; Dust Bag; Box; Information Card</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="module open">
+  <div class="module-header" onclick="this.parentElement.classList.toggle('open')">
+    <span class="module-num">6</span>
+    <span class="module-title">Condition 成色折叠区</span>
+    <span class="module-badge badge-trust">信任</span>
+    <span class="module-chevron">&#9662;</span>
+  </div>
+  <div class="module-body">
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>折叠 / 展开</div>
+      <div class="ix-content">点击标题行切换折叠状态。<strong>默认展开</strong>（核心二手差异信息，用户最关注）。箭头图标随折叠状态旋转 180&#176;（0.3s transition）。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>Certified Authentic 徽章</div>
+      <div class="ix-content">绿色实心圆形盾牌 &#10003; 图标 (20px) + 带下划线的 "Certified Authentic" 文字。点击跳转至<strong>鉴定说明页面</strong>（<code>https://looply.com/pages/authenticity</code>）。<br>
+      <div class="ix-sub">当 <code>product.is_authenticated = false</code> 时隐藏。鉴定机构取 <code>product.authenticator</code>。</div></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ 7. Description Accordion ═══ -->
+<section class="zone" id="z7">
+<div class="preview-box">
+  <div class="preview-inner">
+    <div class="pv-accordion">
+      <div class="pv-acc-item">
+        <button class="pv-acc-trigger">Description<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
+        <div class="pv-acc-inner">
+          <ul class="pv-desc-list">
+            <li>jewelry item #: 1010701657</li>
+            <li>Material: Silver-tone Metal</li>
+            <li>Pendant Material: Silver-tone Metal</li>
+            <li>Color: Silver</li>
+            <li>Size: <a href="#">Size Guide</a></li>
+            <li>Length: 22.8 in</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="module open">
+  <div class="module-header" onclick="this.parentElement.classList.toggle('open')">
+    <span class="module-num">7</span>
+    <span class="module-title">Description 描述折叠区</span>
+    <span class="module-badge badge-info">信息</span>
+    <span class="module-chevron">&#9662;</span>
+  </div>
+  <div class="module-body">
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>折叠 / 展开</div>
+      <div class="ix-content"><strong>默认展开</strong>。行为同 Condition 折叠区。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-state"></div>属性列表布局</div>
+      <div class="ix-content">每行一条属性，格式 "Label: Value"。13px，行高 1.8。属性名均通过 <code>attribute_def</code> 获取，走翻译。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>Size Guide（尺寸测量方法）</div>
+      <div class="ix-content">黑色带下划线文字，点击打开<strong>尺寸标注弹窗</strong>。展示逻辑分两种模式：<br>
+      <div class="ix-sub">
+        <strong>有 SVG 模板时（Template Mode）</strong>：<br>
+        · 后台按<strong>末级类目</strong>配置 SVG 示意图模板（设计师出图，预留 <code>data-slot</code> 标记位置）<br>
+        · 前端根据当前商品所属类目查找模板 → 用 SKU 实测值替换 <code>data-slot</code> 占位符 → 拼接单位后渲染标注图<br>
+        · 单位由前端根据类目适用单位 + 用户 Market 偏好自动处理（如美国市场显示 inch）<br><br>
+        <strong>无模板时（Fallback）</strong>：<br>
+        · 退化为纯文字列表：属性名: 值（如 Length: 12.2 in, Width: 5.5 in）<br>
+        · 仅展示 <code>display_group = dimension</code> 的属性
+      </div></div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-edge"></div>边界情况</div>
+      <div class="ix-content">· 属性值为空时：该行不展示<br>· 当前类目未配置尺寸测量方法模板：Size Guide 退化为文字列表<br>· 当前类目无任何 dimension 属性：隐藏 "Size Guide" 链接<br>· 属性值带特殊字符：做 HTML 转义</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ 8. Shipping & Returns ═══ -->
+<section class="zone" id="z8">
+<div class="preview-box">
+  <div class="preview-inner">
+    <div class="pv-accordion">
+      <div class="pv-acc-item">
+        <button class="pv-acc-trigger">Shipping &amp; Returns<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
+        <div class="pv-acc-inner">
+          <p><strong>Free Shipping:</strong></p>
+          <p>Free standard shipping on all U.S. orders. Orders are typically shipped within 1-3 business days after payment, with delivery in 3-7 business days after shipment.</p>
+          <p style="margin-top:8px"><strong>Easy Returns:</strong></p>
+          <p>15-day return. Original condition required. A $9.99 return processing fee applies.</p>
+          <p style="margin-top:6px">View full Return &amp; Refund Policy <a href="#">here.</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="module">
+  <div class="module-header" onclick="this.parentElement.classList.toggle('open')">
+    <span class="module-num">8</span>
+    <span class="module-title">Shipping &amp; Returns 折叠区</span>
+    <span class="module-badge badge-info">信息</span>
+    <span class="module-chevron">&#9662;</span>
+  </div>
+  <div class="module-body">
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>折叠 / 展开</div>
+      <div class="ix-content">PC 端<strong>默认展开</strong>（与 APP 端默认折叠不同，PC 屏幕空间充裕，信息全展开减少操作步骤）。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-state"></div>内容结构</div>
+      <div class="ix-content">两个信息块：<strong>Free Shipping</strong>（标题 + 完整文案）和 <strong>Easy Returns</strong>（标题 + 完整文案）。PC 端文案比 APP 端更详细。底部附 "View full Return &amp; Refund Policy" 链接。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>Policy 链接</div>
+      <div class="ix-content">黑色带下划线文字，点击跳转完整退换货政策页面（新标签页打开）。</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<div class="section-divider">推荐 & 浏览历史</div>
+
+<!-- ═══ 9. You May Also Like ═══ -->
+<section class="zone" id="z9">
+<div class="preview-box">
+  <div class="preview-inner">
+    <div class="pv-section">
+      <div class="pv-section-header">
+        <div class="pv-section-title">You may also like</div>
+        <div class="pv-section-line"></div>
+      </div>
+      <div style="position:relative">
+        <div class="pv-carousel-btn pv-carousel-prev"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></div>
+        <div class="pv-cards">
+          <div class="pv-card">
+            <div class="pv-card-img"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/001_cd443847-229b-45ca-bf86-122d7b8af10e.png?v=1778472154&width=400" alt=""><div class="pv-card-wish"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div></div>
+            <div class="pv-card-brand">LOUIS VUITTON</div>
+            <div class="pv-card-name">Essential V Gold Metal Necklace</div>
+            <div class="pv-card-price">$833</div>
+          </div>
+          <div class="pv-card">
+            <div class="pv-card-img"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/002_695d5fdf-4436-4f02-9788-f23ac7a8f904.png?v=1778472157&width=400" alt=""><div class="pv-card-wish"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div></div>
+            <div class="pv-card-brand">LOUIS VUITTON</div>
+            <div class="pv-card-name">Gold-tone Metal Earring</div>
+            <div class="pv-card-price">$841</div>
+          </div>
+          <div class="pv-card">
+            <div class="pv-card-img"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/003_e1e89a6f-d30f-4d72-a261-ef7e61ae556d.png?v=1778472161&width=400" alt=""><div class="pv-card-wish"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div></div>
+            <div class="pv-card-brand">LOUIS VUITTON</div>
+            <div class="pv-card-name">Blooming Gold Bracelet</div>
+            <div class="pv-card-price">$813</div>
+          </div>
+          <div class="pv-card">
+            <div class="pv-card-img"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/001_cd443847-229b-45ca-bf86-122d7b8af10e.png?v=1778472154&width=400" alt=""><div class="pv-card-wish"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div></div>
+            <div class="pv-card-brand">LOUIS VUITTON</div>
+            <div class="pv-card-name">Gold-tone Metal Bag Charm</div>
+            <div class="pv-card-price">$281</div>
+          </div>
+          <div class="pv-card">
+            <div class="pv-card-img"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/002_695d5fdf-4436-4f02-9788-f23ac7a8f904.png?v=1778472157&width=400" alt=""><div class="pv-card-wish"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div></div>
+            <div class="pv-card-brand">CHANEL</div>
+            <div class="pv-card-name">Gold-Tone Metal Necklace</div>
+            <div class="pv-card-price">$1,228</div>
+          </div>
+          <div class="pv-card">
+            <div class="pv-card-img"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/003_e1e89a6f-d30f-4d72-a261-ef7e61ae556d.png?v=1778472161&width=400" alt=""><div class="pv-card-wish"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div></div>
+            <div class="pv-card-brand">DIOR</div>
+            <div class="pv-card-name">Silver-tone Metal Necklace</div>
+            <div class="pv-card-price">$403</div>
+          </div>
+        </div>
+        <div class="pv-carousel-btn pv-carousel-next"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="module open">
+  <div class="module-header" onclick="this.parentElement.classList.toggle('open')">
+    <span class="module-num">9</span>
+    <span class="module-title">You May Also Like 推荐区</span>
+    <span class="module-badge badge-core">核心</span>
+    <span class="module-chevron">&#9662;</span>
+  </div>
+  <div class="module-body">
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>Carousel 左右箭头</div>
+      <div class="ix-content">圆形按钮（36px, <code>border: 1.5px solid #D1D5DB</code>），点击平移一张卡片（transition 0.35s ease）。起始位置 Prev 按钮 disabled（opacity 0.3），末尾 Next 按钮 disabled。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-hover"></div>箭头 Hover</div>
+      <div class="ix-content">非 disabled 状态下 hover 时边框变为 <code>#1A1A1A</code>。带 box-shadow: 0 1px 3px rgba(0,0,0,.08)。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>商品卡片</div>
+      <div class="ix-content">点击整张卡片跳转对应商品的<strong>商详页</strong>。PC 端每行展示 <strong>6 张卡片</strong>（1024px 以下变 3 张，640px 以下变 2 张）。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-hover"></div>卡片 Hover</div>
+      <div class="ix-content">整卡上移 2px（<code>transform: translateY(-2px)</code>, 0.2s transition），增加轻微阴影感。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>卡片收藏按钮</div>
+      <div class="ix-content">图片区右上角心形图标 + 收藏数。点击直接收藏/取消收藏（无需进入详情页）。hover 时图标从 <code>#9CA3AF</code> → <code>#1A1A1A</code>。未登录时触发登录流程。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-state"></div>卡片价格逻辑</div>
+      <div class="ix-content"><strong>有促销价时</strong>：现价（14px 粗体）+ 划线原价（12px）+ Save 标签（黑底白字 10px 胶囊）<br><strong>无促销价时</strong>：仅展示现价。所有金额均做币种转换 + 尾数适配。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-edge"></div>边界情况</div>
+      <div class="ix-content">· 推荐 &lt; 6 张：隐藏 Next 按钮，卡片不足一排时靠左对齐<br>· 无推荐数据：整个区域隐藏<br>· 卡片标题超 2 行：文本截断（-webkit-line-clamp: 2）</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ 10. Recently Viewed ═══ -->
+<section class="zone" id="z10">
+<div class="preview-box">
+  <div class="preview-inner">
+    <div class="pv-section pv-recent">
+      <div class="pv-section-header">
+        <div class="pv-section-title">Recently viewed</div>
+        <div class="pv-section-line"></div>
+      </div>
+      <div class="pv-cards">
+        <div class="pv-card">
+          <div class="pv-card-img"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/003_e1e89a6f-d30f-4d72-a261-ef7e61ae556d.png?v=1778472161&width=400" alt=""><div class="pv-card-wish"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div></div>
+          <div class="pv-card-brand">PRADA</div>
+          <div class="pv-card-name">Diagramme Calfskin Pink</div>
+          <div class="pv-card-price">$817 <span style="font-size:10px;color:#9CA3AF;text-decoration:line-through;font-weight:400;margin-left:4px">$838</span> <span style="font-size:9px;color:#fff;background:#1A1A1A;padding:1px 5px;border-radius:2px;font-weight:600;margin-left:2px">Save $21</span></div>
+        </div>
+        <div class="pv-card">
+          <div class="pv-card-img"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/002_695d5fdf-4436-4f02-9788-f23ac7a8f904.png?v=1778472157&width=400" alt=""><div class="pv-card-wish"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div></div>
+          <div class="pv-card-brand">BALENCIAGA</div>
+          <div class="pv-card-name">Hourglass XS Quilted Calfskin Red</div>
+          <div class="pv-card-price">$976</div>
+        </div>
+        <div class="pv-card">
+          <div class="pv-card-img"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/001_cd443847-229b-45ca-bf86-122d7b8af10e.png?v=1778472154&width=400" alt=""><div class="pv-card-wish"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div></div>
+          <div class="pv-card-brand">HERMES</div>
+          <div class="pv-card-name">Garden Party 36 Canvas Pink</div>
+          <div class="pv-card-price">$1,860 <span style="font-size:10px;color:#9CA3AF;text-decoration:line-through;font-weight:400;margin-left:4px">$2,087</span> <span style="font-size:9px;color:#fff;background:#1A1A1A;padding:1px 5px;border-radius:2px;font-weight:600;margin-left:2px">Save $227</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="module">
+  <div class="module-header" onclick="this.parentElement.classList.toggle('open')">
+    <span class="module-num">10</span>
+    <span class="module-title">Recently Viewed 最近浏览</span>
+    <span class="module-badge badge-info">信息</span>
+    <span class="module-chevron">&#9662;</span>
+  </div>
+  <div class="module-body">
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-state"></div>展示逻辑</div>
+      <div class="ix-content">交互行为同 "You May Also Like"（卡片点击、hover、收藏）。PC 端每行展示 <strong>4 张卡片</strong>（比推荐区更宽，突出浏览记录）。无 Carousel 箭头按钮（卡片数量较少，一般一行展示完）。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-edge"></div>边界情况</div>
+      <div class="ix-content">· 无浏览历史时：整个区域隐藏<br>· 浏览记录中的商品已下架：标记 "Sold" 标签或从列表移除</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<div class="section-divider">页脚 & 灯箱</div>
+
+<!-- ═══ 11. Footer ═══ -->
+<section class="zone" id="z11">
+<div class="preview-box">
+  <div class="preview-inner">
+    <div class="pv-footer">
+      <div class="pv-footer-grid">
+        <div>
+          <h4>About</h4>
+          <a>About Looply</a>
+          <a>Secure Payments</a>
+          <div class="pv-footer-pays">
+            <span class="pv-footer-pay">AMEX</span>
+            <span class="pv-footer-pay">Pay</span>
+            <span class="pv-footer-pay">DISC</span>
+            <span class="pv-footer-pay">GPay</span>
+            <span class="pv-footer-pay">MC</span>
+            <span class="pv-footer-pay">PayPal</span>
+            <span class="pv-footer-pay">VISA</span>
+            <span class="pv-footer-pay">Klarna</span>
+          </div>
+          <p style="font-size:11px;color:#9CA3AF;margin-top:10px">Certified by</p>
+          <div style="display:flex;gap:8px;margin-top:4px"><span style="font-size:10px;font-weight:600;color:#9CA3AF;padding:3px 6px;background:#374151;border-radius:3px">LEGITAPP</span><span style="font-size:10px;font-weight:600;color:#9CA3AF;padding:3px 6px;background:#374151;border-radius:3px">Phonecheck</span></div>
+          <p style="font-size:11px;color:#9CA3AF;margin-top:10px">Logistics Partners</p>
+          <span style="font-size:11px;font-weight:700;color:#FF6200;padding:3px 6px;background:#374151;border-radius:3px;display:inline-block;margin-top:3px">FedEx</span>
+        </div>
+        <div>
+          <h4>Customer Service</h4>
+          <a>Contact Us</a>
+          <a>My Account</a>
+          <a>Shipping</a>
+          <a>Returns</a>
+        </div>
+        <div>
+          <h4>Contact</h4>
+          <p>service@looply.com</p>
+          <p style="margin-top:10px;font-size:11px;color:#9CA3AF">Get exclusive offers, new arrivals in advance.</p>
+          <div class="pv-footer-newsletter"><input type="email" placeholder="Email"><button>&rarr;</button></div>
+          <div class="pv-footer-social"><span>FB</span><span>TikTok</span><span>IG</span><span>YT</span></div>
+        </div>
+      </div>
+      <div class="pv-footer-bottom">&copy; Looply 2026 &nbsp; Accessibility Statement &nbsp; Privacy Policy &nbsp; Terms of Service</div>
+    </div>
+  </div>
+</div>
+<div class="module">
+  <div class="module-header" onclick="this.parentElement.classList.toggle('open')">
+    <span class="module-num">11</span>
+    <span class="module-title">Footer 页脚</span>
+    <span class="module-badge badge-nav">导航</span>
+    <span class="module-chevron">&#9662;</span>
+  </div>
+  <div class="module-body">
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>Newsletter 订阅</div>
+      <div class="ix-content">输入邮箱 + 点击 &rarr; 按钮提交。成功后输入框内文字替换为 "Subscribed &#10003;"（绿色），2 秒后恢复。邮箱格式校验失败时输入框<strong>抖动 + 红色边框</strong>提示。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>社交媒体图标</div>
+      <div class="ix-content">Facebook / TikTok / Instagram / YouTube。点击跳转对应平台（新标签页）。hover 时颜色从 <code>#9CA3AF</code> → <code>#fff</code>。可能按 Market 区分（如欧洲不展示 TikTok）。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>导航链接</div>
+      <div class="ix-content">About / Customer Service 栏内链接均为点击跳转对应页面。PC 端直接展示链接列表（APP 端用手风琴展开）。hover 时颜色从 <code>#9CA3AF</code> → <code>#fff</code>。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>法律链接</div>
+      <div class="ix-content">底部 Accessibility Statement / Privacy Policy / Terms of Service，点击跳转对应法律文书页面（新标签页）。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-state"></div>支付 & 认证 & 物流</div>
+      <div class="ix-content">三组信息纯展示：支付方式图标（同商品信息区）、鉴定合作机构（LEGITAPP / Phonecheck）、物流合作商（FedEx）。不可点击。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-state"></div>免责声明</div>
+      <div class="ix-content">最底部 10px 灰色文字："Looply is an independent resale platform, not affiliated with..." 标明品牌商标归属。</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ 12. Lightbox ═══ -->
+<section class="zone" id="z12">
+<div class="preview-box">
+  <div class="preview-inner">
+    <div class="pv-lightbox">
+      <div class="pv-lightbox-close"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></div>
+      <div class="pv-lightbox-nav pv-lightbox-prev"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></div>
+      <div class="pv-lightbox-img"><img src="https://cdn.shopify.com/s/files/1/0807/6725/4757/files/001_cd443847-229b-45ca-bf86-122d7b8af10e.png?v=1778472154&width=800" alt="" style="width:100%;height:100%;object-fit:contain"></div>
+      <div class="pv-lightbox-nav pv-lightbox-next"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
+      <div class="pv-lightbox-counter">2 / 6</div>
+    </div>
+  </div>
+</div>
+<div class="module open">
+  <div class="module-header" onclick="this.parentElement.classList.toggle('open')">
+    <span class="module-num">12</span>
+    <span class="module-title">Lightbox 灯箱图片查看器</span>
+    <span class="module-badge badge-core">核心</span>
+    <span class="module-chevron">&#9662;</span>
+  </div>
+  <div class="module-body">
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>打开方式</div>
+      <div class="ix-content">点击 Gallery 主图触发。全屏黑色遮罩（<code>rgba(0,0,0,.9)</code>），图片居中展示（max-width: 90vw, max-height: 90vh），<code>cursor: zoom-out</code>。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>关闭方式</div>
+      <div class="ix-content">三种关闭方式：<strong>1)</strong> 点击右上角 &#10005; 按钮；<strong>2)</strong> 点击黑色遮罩区域；<strong>3)</strong> 按 Escape 键。关闭后恢复页面滚动。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-click"></div>Prev / Next 导航</div>
+      <div class="ix-content">左右圆形半透明按钮（<code>rgba(255,255,255,.12)</code>），hover 时变为 <code>rgba(255,255,255,.25)</code>。点击切换前/后一张图，同步更新 Gallery 缩略图高亮。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-key"></div>键盘导航</div>
+      <div class="ix-content">
+        <strong>Escape</strong>：关闭 Lightbox<br>
+        <strong>ArrowLeft (&#8592;)</strong>：上一张<br>
+        <strong>ArrowRight (&#8594;)</strong>：下一张<br>
+        键盘事件仅在 Lightbox 打开时生效。
+      </div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-state"></div>计数器</div>
+      <div class="ix-content">底部居中显示 "N / Total"（如 "2 / 6"），颜色 <code>rgba(255,255,255,.6)</code>，13px。每次切换图片同步更新。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-state"></div>Body 锁定</div>
+      <div class="ix-content">Lightbox 打开时设置 <code>body.style.overflow = 'hidden'</code>，防止背景页面滚动。关闭时恢复。</div>
+    </div>
+    <div class="ix">
+      <div class="ix-label"><div class="dot dot-edge"></div>边界情况</div>
+      <div class="ix-content">· 仅 1 张图：隐藏 Prev/Next 按钮和计数器<br>· 第一张图：Prev 按钮 disabled（opacity 0.3），不循环<br>· 最后一张图：Next 按钮 disabled（opacity 0.3），不循环<br>· 图片加载慢：显示 loading spinner 占位</div>
+    </div>
+  </div>
+</div>
+</section>
+
+</div><!-- /zones -->
+
+<script>
+// Module toggle already handled by inline onclick
+// Auto-scroll to hash if present
+if(location.hash){
+  const el=document.querySelector(location.hash);
+  if(el)setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'start'}),100);
+}
+</script>
+</div>
+
+<script>
+function togglePanel(){
+  const panel = document.getElementById('annoPanel');
+  const frame = document.getElementById('pageFrame');
+  const btn = document.getElementById('toggleBtn');
+  const isOpen = panel.classList.contains('open');
+  if(isOpen){
+    panel.classList.remove('open');
+    frame.classList.remove('panel-open');
+    btn.classList.remove('active');
+  } else {
+    panel.classList.add('open');
+    frame.classList.add('panel-open');
+    btn.classList.add('active');
+  }
+}
+
+// Module toggle in annotation panel
+document.querySelectorAll('.anno-panel .module-header').forEach(h => {
+  h.addEventListener('click', function(){ this.parentElement.classList.toggle('open'); });
+});
+</script>
+</body>
+</html>

@@ -628,6 +628,32 @@ MODULES = {
             },
         },
     },
+    'marketing': {
+        'name': '营销活动',
+        'default_source': '$HOME/Desktop/海外业务/营销活动',
+        'target': 'docs-营销活动',
+        'keywords': ['营销活动', 'marketing', 'promotion', '营销'],
+        'config_key': None,
+        'artifacts': {
+            'prototype': {
+                'subdir': '原型',
+                'pattern': r'looply-营销活动-antd-原型-v(.+?)\.html',
+                'exclude': r'(backup|对比)',
+            },
+            'prd': {
+                'subdir': 'PRD',
+                'pattern': r'looply-营销活动-PRD-v(.+?)\.md',
+            },
+            'er': {
+                'subdir': '实体关系图',
+                'pattern': r'looply-营销活动实体关系图-v(.+?)\.svg',
+            },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'营销活动-交付开发 V(.+?)\.zip',
+            },
+        },
+    },
 }
 
 # ─── 自动发现新模块 ────────────────────────────────────────────────────────────────
