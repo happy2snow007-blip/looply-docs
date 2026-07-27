@@ -964,6 +964,48 @@ def update_admin_html(all_proto_keys):
             print(f'  [新增] admin.html 添加 {key_m.group(1)} 模块入口')
 
 
+# ─── 失效配置巡检 ────────────────────────────────────────────────────────────────
+
+def check_orphan_config():
+    """巡检 prototype-config.js / admin.html 中指向已删除文件的残留配置。
+
+    update_prototype_config() 与 update_admin_html() 都是「只增不删」：模块下线或
+    目录搬迁后，配置里的旧条目不会被清理，后台菜单会静默变成死链（曾出现 CMS管理、
+    翻译管理两项挂了 8 天无人发现）。这里只告警不自动删除，避免误伤——例如源文件
+    临时未同步、或某次同步只跑了单个模块。
+    """
+    problems = []
+
+    cfg_path = os.path.join(REPO_DIR, 'prototype-config.js')
+    cfg_keys = set()
+    if os.path.exists(cfg_path):
+        content = open(cfg_path, 'r', encoding='utf-8').read()
+        for key, path in re.findall(r"^\s*'([^']+)':\s*'([^']+)'", content, re.M):
+            cfg_keys.add(key)
+            if path.startswith('http'):
+                continue
+            if not os.path.isfile(os.path.join(REPO_DIR, path)):
+                problems.append(f"prototype-config.js 的 '{key}' 指向的文件不存在 → {path}")
+
+    admin_path = os.path.join(REPO_DIR, 'admin.html')
+    if os.path.exists(admin_path):
+        content = open(admin_path, 'r', encoding='utf-8').read()
+        m = re.search(r'const MODULES = \[(.*?)\];', content, re.DOTALL)
+        if m:
+            for key in re.findall(r"key:\s*'([^']+)'", m.group(1)):
+                if key == 'home' or key in cfg_keys:
+                    continue
+                problems.append(f"admin.html 的菜单项 '{key}' 在 prototype-config.js 中无对应路径")
+
+    if problems:
+        print('\n  [告警] 后台原型配置存在失效项（菜单点进去会 404，需手工清理）:')
+        for p in problems:
+            print(f'    - {p}')
+    else:
+        print('  [巡检] 后台原型配置全部有效')
+    return problems
+
+
 # ─── 路径解析 ─────────────────────────────────────────────────────────────────────
 
 def expand_path(p):
@@ -1861,6 +1903,9 @@ def main():
                     all_proto_keys.append((ck, mod_config['name']))
     if all_proto_keys:
         update_admin_html(all_proto_keys)
+
+    # 收尾巡检：暴露指向已删除文件的残留配置（只告警，不自动删）
+    check_orphan_config()
 
     # Phase 3: Git
     print('\n[Phase 3] Git 提交...')

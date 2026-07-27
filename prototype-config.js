@@ -25,5 +25,4 @@ var PROTOTYPE_CONFIG = {
   '地址库管理':          'docs-地址库管理/原型/looply-地址库管理后台原型-v5.1-antd.html',
   '收藏与浏览历史_Mobile': 'https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=1834-2&p=f&t=YcEpJNoNNe3xusbr-0',
   '收藏与浏览历史_PC':     'https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=1918-579&p=f&t=dG4XSd8pFVcE2T1Z-0',
-  '翻译管理':           'docs-翻译管理/原型/looply-多语言管理后台原型-v11-antd.html',
 };
