@@ -115,6 +115,7 @@
 以下行为真正发起搜索后，生成或更新 Recent searches：
 
 - 手动输入并提交关键词。
+- 点击 Mobile Web 首页搜索图标并提交当前轮播词。
 - 点击输入联想。
 - 点击 Popular searches、Popular brands 或 Popular categories。
 - 点击已有 Recent searches；对应记录更新时间并移动到第一位。
@@ -284,7 +285,7 @@ V1 支持通过以下业务对象搜索商品：
 
 | 状态 | 页面处理 |
 |---|---|
-| 首次加载 | 商品列表区域展示统一商品列表骨架屏，保留搜索框和结果页框架。 |
+| 首次加载 | 商品列表区域展示统一商品列表骨架屏，保留当前终端的结果页顶部和页面框架。 |
 | 首次请求失败 | 结果区域展示加载失败提示和 `Try again`，保留当前搜索词、排序与筛选条件；不展示 `No results` 或推荐商品。点击重试后按原条件重新请求。 |
 | 下一批加载失败 | 保留已加载商品，在列表底部或 `View More` 区域提供重试。 |
 | 搜索词无结果 | 保留原搜索词并显示 `Results for “{query}”, 0 items`；主体展示 `No results for “{query}”` 和修改搜索建议，其下展示独立的 `You May Also Like` 推荐商品区。PC Web 提供 `Search again` 打开搜索层；Mobile Web 通过顶部搜索入口重新搜索，不重复增加按钮。 |
