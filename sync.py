@@ -473,7 +473,13 @@ MODULES = {
         'artifacts': {
             'prototype': {
                 'subdir': '原型',
+                'source_subdir': '.',
                 'pattern': r'looply-global-search-ui-review-v(.+?)\.html',
+            },
+            'prd': {
+                'subdir': 'PRD',
+                'source_subdir': '../../docs/product',
+                'pattern': r'looply-Web全局搜索-PRD-v(.+?)\.md',
             },
         },
     },
@@ -1064,8 +1070,9 @@ def sync_module_files(source_dir, target_dir, mod_key):
     # 系统流程图
     sync_subdir(source_dir, target_dir, '系统流程图', ['.svg'])
 
-    # PRD
-    src_prd = os.path.join(source_dir, 'PRD')
+    # PRD；少数模块的源文件与原型不在同一子目录，可通过 source_subdir 指定。
+    prd_config = MODULES.get(mod_key, {}).get('artifacts', {}).get('prd', {})
+    src_prd = os.path.normpath(os.path.join(source_dir, prd_config.get('source_subdir', 'PRD')))
     if os.path.isdir(src_prd):
         dst_prd = os.path.join(REPO_DIR, target_dir, 'PRD')
         os.makedirs(dst_prd, exist_ok=True)
@@ -1075,10 +1082,15 @@ def sync_module_files(source_dir, target_dir, mod_key):
             prd_exts.append('.html')
         for ext in prd_exts:
             for f in globmod.glob(os.path.join(src_prd, f'*{ext}')):
-                if os.path.isfile(f):
+                if os.path.isfile(f) and (not prd_config.get('source_subdir') or re.match(prd_config.get('pattern', r'.*'), os.path.basename(f))):
                     smart_cp(f, dst_prd)
         # 用版本号（而非 mtime）选取最新 md 作为 latest.md
-        latest_md = find_latest_prd_md(src_prd)
+        if prd_config.get('source_subdir'):
+            matched_md = [os.path.basename(f) for f in globmod.glob(os.path.join(src_prd, '*.md'))
+                          if re.match(prd_config.get('pattern', r'.*'), os.path.basename(f))]
+            latest_md = max(matched_md, key=lambda name: parse_version(re.match(prd_config['pattern'], name).group(1))) if matched_md else None
+        else:
+            latest_md = find_latest_prd_md(src_prd)
         if latest_md:
             dst_latest = os.path.join(dst_prd, 'latest.md')
             src_latest = os.path.join(src_prd, latest_md)
@@ -1094,8 +1106,19 @@ def sync_module_files(source_dir, target_dir, mod_key):
     # UI 设计稿
     sync_subdir(source_dir, target_dir, 'UI', ['.pen', '.html'])
 
-    # 原型（HTML + 图片）
-    sync_subdir(source_dir, target_dir, '原型', ['.html', '.png', '.jpg', '.svg'])
+    # 原型（HTML + 图片）；支持模块声明独立源子目录，目标仍统一落在“原型”。
+    prototype_config = MODULES.get(mod_key, {}).get('artifacts', {}).get('prototype', {})
+    prototype_source_subdir = prototype_config.get('source_subdir')
+    if prototype_source_subdir is None:
+        sync_subdir(source_dir, target_dir, '原型', ['.html', '.png', '.jpg', '.svg'])
+    else:
+        src_proto = os.path.normpath(os.path.join(source_dir, prototype_source_subdir))
+        dst_proto = os.path.join(REPO_DIR, target_dir, '原型')
+        os.makedirs(dst_proto, exist_ok=True)
+        for ext in ['.html', '.png', '.jpg', '.svg']:
+            for f in globmod.glob(os.path.join(src_proto, f'*{ext}')):
+                if os.path.isfile(f):
+                    smart_cp(f, dst_proto)
 
     # 变更日志
     dst_root = os.path.join(REPO_DIR, target_dir)
