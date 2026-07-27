@@ -4,6 +4,7 @@
 > V1 范围：PC Web、Mobile Web  
 > 参考材料：`looply-全局搜索-核心逻辑-Checklist-v0.1.md`  
 > UI 评审版：`prototypes/search/looply-global-search-ui-review-v0.1.html`  
+> 开发评审版：`prototypes/search/looply-global-search-dev-review-v0.1.html`  
 > PC Web 原型：`prototypes/search/looply-global-search-pc-web-demo-v0.1.html`  
 > Mobile Web 原型：`prototypes/search/looply-global-search-mobile-web-demo-v0.1.html`
 
@@ -338,6 +339,7 @@ V1 支持通过以下业务对象搜索商品：
 
 | 模块 | PC Web | Mobile Web |
 |---|---|---|
+| 统一开发评审入口 | `looply-global-search-dev-review-v0.1.html`，可筛选 PC Web | `looply-global-search-dev-review-v0.1.html`，可筛选 Mobile Web |
 | 统一 UI 评审入口 | `looply-global-search-ui-review-v0.1.html`，切换至 PC Web | `looply-global-search-ui-review-v0.1.html`，切换至 Mobile Web |
 | 搜索入口与搜索发现 | `looply-global-search-pc-web-demo-v0.1.html` | `looply-global-search-mobile-web-demo-v0.1.html` |
 | Sug 及 Loading / 空结果 / 失败 | `Demo states · review only` 中的 Sug 状态 | `Demo states · review only` 中的 Sug 状态 |

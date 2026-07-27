@@ -476,6 +476,11 @@ MODULES = {
                 'source_subdir': '.',
                 'pattern': r'looply-global-search-ui-review-v(.+?)\.html',
             },
+            'dev_review': {
+                'subdir': '原型',
+                'source_subdir': '.',
+                'pattern': r'looply-global-search-dev-review-v(.+?)\.html',
+            },
             'prd': {
                 'subdir': 'PRD',
                 'source_subdir': '../../docs/product',
@@ -752,6 +757,7 @@ _CARD_META = {
     'architecture': ('产品架构图',  'icon-svg',  'S'),
     'flowchart':    ('系统流程图',  'icon-svg',  'S'),
     'prototype':    ('后台原型',    'icon-html', 'H'),
+    'dev_review':   ('开发评审版',  'icon-html', 'H'),
     'prd':          ('PRD 文档',    'icon-md',   'M'),
     'prd_md':       ('PRD 文档',    'icon-md',   'M'),
     'prd_html':     ('PRD 文档',    'icon-html', 'H'),
@@ -759,7 +765,7 @@ _CARD_META = {
 }
 
 _STAGE2_TYPES = ('er', 'architecture', 'flowchart')
-_STAGE3_TYPES = ('prototype', 'prd', 'prd_md', 'prd_html', 'delivery')
+_STAGE3_TYPES = ('prototype', 'dev_review', 'prd', 'prd_md', 'prd_html', 'delivery')
 
 
 def _gen_card(mod_name, target_dir, art_type, file_name, ver, today):
@@ -767,13 +773,15 @@ def _gen_card(mod_name, target_dir, art_type, file_name, ver, today):
     card_title, icon_cls, icon_letter = _CARD_META.get(art_type, ('文档', 'icon-md', 'D'))
     subdir = 'PRD' if art_type.startswith('prd') else {
         'er': '实体关系图', 'architecture': '产品架构图',
-        'flowchart': '系统流程图', 'prototype': '原型',
+        'flowchart': '系统流程图', 'prototype': '原型', 'dev_review': '原型',
     }.get(art_type, '')
     href = f'{target_dir}/{subdir}/{file_name}' if subdir else f'{target_dir}/{file_name}'
 
     # 文档显示名
     if art_type == 'prototype':
         doc_label = f'{mod_name}后台原型 v{ver}'
+    elif art_type == 'dev_review':
+        doc_label = f'{mod_name}开发评审版 v{ver}'
     elif art_type == 'delivery':
         doc_label = f'{mod_name}交付开发 V{ver}'
     elif art_type.startswith('prd'):
