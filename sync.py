@@ -634,6 +634,7 @@ MODULES = {
         'target': 'docs-营销活动',
         'keywords': ['营销活动', 'marketing', 'promotion', '营销'],
         'config_key': None,
+        'sidebar_group': '交易域',
         'artifacts': {
             'prototype': {
                 'subdir': '原型',
