@@ -1,6 +1,7 @@
 # Looply Your Privacy Choices PRD v0.1 写作自检
 
-> 自检日期：2026-07-24
+> 初次自检日期：2026-07-24  
+> 最新复检日期：2026-07-27
 > PRD：`looply-Your-Privacy-Choices-PRD-v0.1.md`
 > Demo：`looply-your-privacy-choices-web-demo-v0.1.html`
 
@@ -9,10 +10,10 @@
 | 检查项 | 结论 |
 |---|---|
 | 章节完整性 | 通过。轻量子模块 PRD 已包含概述、需求详细描述、依赖与风险、版本范围和 UI 索引。 |
-| 用户路径 | 通过。已覆盖 PC Web Footer 进入、面包屑返回、Manage Privacy Choices 跳转、Privacy Policy 跳转及浏览器返回。 |
+| 用户路径 | 通过。已覆盖 PC Web 与 Mobile Web Footer 进入、面包屑返回、Manage Privacy Choices 跳转、Privacy Policy 跳转及浏览器返回。 |
 | 章节归属 | 通过。当前对象为有独立页面的 Footer 合规说明子功能；下游隐私设置内部规则未重复展开。 |
-| UI 关联 | 通过。PC Web Demo 已关联；移动网页与 App 本期不涉及，Demo 已移除窄屏响应式规则。 |
-| PRD 与 Demo 字段级对照 | 通过。页面标题、引导语、卡片标题、两段说明文案、Manage Privacy Choices、Privacy Policy 与 PRD 一致。 |
+| UI 关联 | 通过。Web Demo 已关联，并通过响应式规则覆盖 PC Web 双栏与 Mobile Web 单列布局；App 本期不涉及。 |
+| PRD 与 Demo 字段级对照 | 通过。PC Web 与 Mobile Web 的页面标题、引导语、卡片标题、两段说明文案、Manage Privacy Choices、Privacy Policy 均与 PRD 一致。 |
 | 用户角色 | 通过。游客与登录用户使用相同页面和跳转路径。 |
 | 术语与正文减法 | 通过。统一使用 Your Privacy Choices、Privacy & Data、Privacy Policy；未加入 GPC 或下游设置内部逻辑。 |
 | 多语言归类 | 通过。页面文案统一归类为静态 UI 文案，使用 Web message package；具体语种总表留待最终总 PRD。 |
@@ -28,4 +29,4 @@
 
 ## 自检结论
 
-PRD 与 Demo 的当前范围、文案、角色和页面流转一致，已满足进入正式模拟评审的前置条件。
+PRD 与 Demo 的当前范围、PC Web / Mobile Web 布局、文案、角色和页面流转一致，已满足进入正式模拟评审的前置条件。

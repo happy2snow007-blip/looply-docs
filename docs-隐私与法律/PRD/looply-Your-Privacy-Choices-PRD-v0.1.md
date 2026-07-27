@@ -8,7 +8,7 @@ Your Privacy Choices。
 
 ### 1.2 功能目标
 
-为 PC Web 用户提供清晰的隐私选择说明入口，并引导用户进入个人中心已有的 `Privacy & Data` 页面管理 Cookie Preferences 及 `Do Not Sell or Share My Personal Information` 设置。
+为 Web 用户提供清晰的隐私选择说明入口，并引导用户进入个人中心已有的 `Privacy & Data` 页面管理 Cookie Preferences 及 `Do Not Sell or Share My Personal Information` 设置。
 
 ### 1.3 用户角色
 
@@ -23,7 +23,7 @@ Your Privacy Choices。
 
 ### 1.5 当前终端范围
 
-本期仅覆盖 PC Web；移动网页和 App 不属于本 PRD 范围。
+本期覆盖 PC Web 与 Mobile Web；App 不属于本 PRD 范围。
 
 ## 二、Your Privacy Choices 说明页
 
@@ -33,10 +33,10 @@ Your Privacy Choices。
 
 ### 2.2 页面布局
 
-页面使用 PC Web 全局 Header 和 Footer。主体采用左右双栏布局：
+页面复用对应 Web 终端的全局 Header 和 Footer：
 
-- 左侧展示页面标题和简短引导语；
-- 右侧使用内容卡片展示说明文案、管理入口及 Privacy Policy 入口。
+- PC Web 主体采用左右双栏布局：左侧展示页面标题和简短引导语，右侧使用内容卡片展示说明文案、管理入口及 Privacy Policy 入口；
+- Mobile Web 主体改为单列布局：页面标题、引导语和内容卡片按顺序纵向展示；卡片内容与交互不变。
 
 页面顶部展示面包屑：`Home / Your Privacy Choices`。
 
@@ -64,7 +64,7 @@ Your Privacy Choices。
 
 ### 2.5 页面状态
 
-该页面内容为固定说明内容，仅提供默认展示态。Header、Footer、面包屑及链接交互沿用 PC Web 公共组件规则。
+该页面内容为固定说明内容，仅提供默认展示态。Header、Footer、面包屑及链接交互沿用对应 Web 终端的公共组件规则。
 
 ### 2.6 UI 关联
 
@@ -78,7 +78,7 @@ Your Privacy Choices。
 
 ## 三、依赖与风险
 
-- 依赖 PC Web 全局 Header、Footer 和面包屑组件。
+- 依赖 PC Web 与 Mobile Web 的全局 Header、Footer 和面包屑组件。
 - 依赖个人中心 `Privacy & Data` 页面同时支持游客和登录用户访问。
 - 依赖 `Privacy & Data` 页面提供可稳定定位至 Privacy Choices 设置区域的页面位置。
 - 依赖 Privacy Policy 页面提供有效访问地址。
@@ -87,10 +87,10 @@ Your Privacy Choices。
 
 ## 四、版本范围
 
-v0.1 包含 PC Web `Your Privacy Choices` 说明页、Footer 入口以及向现有隐私设置区域和 Privacy Policy 的跳转。
+v0.1 包含 PC Web 与 Mobile Web 的 `Your Privacy Choices` 说明页、Footer 入口以及向现有隐私设置区域和 Privacy Policy 的跳转。
 
 ## 五、附录
 
-| 页面 | PC Web 设计稿 / Demo | 其他终端 |
+| 页面 | PC Web / Mobile Web Demo | 其他终端 |
 |---|---|---|
-| Your Privacy Choices 说明页 | `looply-your-privacy-choices-web-demo-v0.1.html` | 移动网页与 App 本期不涉及 |
+| Your Privacy Choices 说明页 | `looply-your-privacy-choices-web-demo-v0.1.html`（响应式覆盖 PC Web 与 Mobile Web） | App 本期不涉及 |
