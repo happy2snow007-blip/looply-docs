@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Looply 营销活动后台原型 v13</title>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/dayjs@1.11.21/dayjs.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/antd@6.4.3/dist/antd.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/@ant-design/icons@6.2.1/dist/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.28.4/babel.min.js"></script>
+<style>
+html,body,#root{height:100%;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937}
+#root::before{content:'正在加载 antd 原型……';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#9CA3AF;font-size:14px}
+#root:not(:empty)::before{display:none}
+.lp-kpi{background:linear-gradient(180deg,#FEFCFF 0%,#F3EEFF 100%);border:1px solid #DDD6FE;border-radius:14px;padding:14px 16px}
+.lp-kpi .num{font-size:24px;font-weight:700;color:#7C3AED;line-height:1;margin-bottom:6px;font-variant-numeric:tabular-nums}
+.lp-kpi .label{font-size:12px;color:#6B7280}
+.lp-pagination{display:flex;align-items:center;justify-content:center;gap:24px;padding:12px 16px;font-size:13px;color:#6B7280}
+.lp-pagination .divider{width:1px;height:20px;background:#E5E7EB}
+.lp-tip-trigger{cursor:help;border-bottom:1px dashed #9CA3AF;padding-bottom:1px}
+.lp-note{padding:14px;border-radius:10px;background:#F3EEFF;border:1px solid #DDD6FE;color:#6D28D9;font-size:12px;line-height:1.8}
+.lp-note-sm{padding:10px 14px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:8px;font-size:12px;color:#6D28D9}
+.lp-section-purple{font-size:14px;font-weight:700;color:#7C3AED;margin:0 0 12px}
+.lp-section{font-size:15px;font-weight:600;color:#1F2937;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #E5E7EB}
+.lp-oplog-title{font-size:14px;font-weight:700;color:#7C3AED;margin:24px 0 12px}
+.lp-empty{display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center}
+.lp-empty .icon{font-size:48px;margin-bottom:16px;color:#9CA3AF}
+.lp-empty .icon.err{color:#DC2626}
+.lp-empty .title{font-size:16px;font-weight:600;color:#1F2937;margin-bottom:8px}
+.lp-empty .desc{font-size:13px;color:#6B7280;margin-bottom:24px;max-width:360px}
+.lp-form-row{display:flex;gap:16px;margin-bottom:12px;align-items:center}
+.lp-form-row:first-of-type{margin-top:8px}
+.lp-form-row .lp-form-label{width:110px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0}
+.lp-form-row .lp-form-label .req{color:#DC2626;margin-right:4px}
+.lp-form-row .lp-form-control{flex:1}
+.lp-helper{font-size:12px;color:#9CA3AF;margin:-4px 0 12px 126px}
+.lp-detail{display:grid;grid-template-columns:130px 1fr;gap:10px 16px;font-size:13px;margin-bottom:24px}
+.lp-detail .dl{color:#6B7280}
+.lp-detail .dv{color:#1F2937}
+.lp-code{font-family:Menlo,Monaco,Consolas,monospace;font-size:12px;color:#374151;background:#F3F4F6;padding:1px 6px;border-radius:4px}
+:focus-visible{outline:none;box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo } = React;
+const {
+  ConfigProvider, Layout, Menu, Card, Table, Button, Input, InputNumber, Select, Radio,
+  Checkbox, DatePicker, Tag, Tooltip, Modal, Alert, Space, Breadcrumb, Tabs, Divider, Drawer, Badge
+} = antd;
+const {
+  AppstoreOutlined, GiftOutlined, TagsOutlined, UnorderedListOutlined, ShoppingOutlined,
+  PlusOutlined, SearchOutlined, ReloadOutlined, EllipsisOutlined, InboxOutlined,
+  ExclamationCircleOutlined, ClockCircleOutlined, DollarOutlined, GlobalOutlined,
+  PercentageOutlined, DownloadOutlined, AlertOutlined, SettingOutlined, UploadOutlined, CopyOutlined
+} = icons;
+const { Dropdown } = antd;
+
+const noop = () => {};
+const LOGO_SRC = "data:image/png;base64,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";
+
+/* ===== 主题 ===== */
+const looplyTheme = {
+  token: {
+    colorPrimary: '#7C3AED', colorInfo: '#7C3AED', colorBgLayout: '#F9FAFB',
+    colorBgContainer: '#FFFFFF', colorText: '#1F2937', colorTextSecondary: '#374151',
+    colorTextTertiary: '#4B5563', colorTextDescription: '#6B7280', colorTextPlaceholder: '#9CA3AF',
+    colorBorder: '#E5E7EB', colorBorderSecondary: '#F3F4F6', colorSuccess: '#16A34A',
+    colorWarning: '#D97706', colorError: '#DC2626', borderRadius: 8, borderRadiusLG: 14,
+    borderRadiusSM: 6, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: 14, controlHeight: 34, controlHeightSM: 28,
+  },
+  components: {
+    Layout: { headerBg: '#FFFFFF', headerHeight: 60, headerPadding: '0 24px', siderBg: '#FFFFFF', bodyBg: '#F9FAFB' },
+    Menu: { itemBg: 'transparent', subMenuItemBg: 'transparent', itemHoverBg: 'rgba(0,0,0,.03)',
+      itemSelectedBg: '#F3EEFF', itemSelectedColor: '#7C3AED', itemBorderRadius: 0, itemMarginInline: 0,
+      itemMarginBlock: 0, itemHeight: 40, subMenuItemBorderRadius: 0 },
+    Card: { borderRadiusLG: 16, paddingLG: 28 },
+    Table: { headerBg: '#FFFFFF', headerColor: '#6B7280', rowHoverBg: '#FAF5FF', borderColor: '#E5E7EB',
+      headerSplitColor: 'transparent', cellFontSize: 13, cellFontSizeMD: 13, cellFontSizeSM: 13,
+      cellPaddingBlock: 11, cellPaddingInline: 12, cellPaddingBlockSM: 9, cellPaddingInlineSM: 12,
+      headerBorderRadius: 0 },
+    Tag: { defaultBg: '#F3F4F6', defaultColor: '#6B7280' },
+    Tabs: { itemSelectedColor: '#7C3AED', itemHoverColor: '#374151', inkBarColor: '#7C3AED' },
+    Steps: { colorPrimary: '#7C3AED' },
+    Button: { controlHeight: 34, paddingInline: 14, fontSize: 13 },
+    Input: { controlHeight: 34, paddingInline: 12 }, Select: { controlHeight: 34 },
+    DatePicker: { controlHeight: 34 }, Modal: { borderRadiusLG: 16, paddingContentHorizontalLG: 28 },
+  },
+};
+const CARD_STYLE = { boxShadow: '0 10px 24px rgba(16,24,40,.06)', marginBottom: 20 };
+const TABLE_STYLES = { root: { borderRadius: 14, border: '1px solid #E5E7EB', overflow: 'hidden' } };
+const SIDER_STYLE = { boxShadow: '3px 0 12px rgba(0,0,0,0.06)', padding: '8px 0', overflowY: 'auto', height: '100%' };
+
+/* ===== 业务组件 ===== */
+const TAG_COLORS = {
+  on: { bg: '#F0FDF4', color: '#16A34A' }, sale: { bg: '#EFF6FF', color: '#2563EB' },
+  pending: { bg: '#FFFBEB', color: '#D97706' }, off: { bg: '#F3F4F6', color: '#6B7280' },
+  req: { bg: '#FEF2F2', color: '#DC2626' }, warn: { bg: '#FFF1F2', color: '#E11D48' },
+};
+function StatusTag({ variant, children }) {
+  const c = TAG_COLORS[variant] || TAG_COLORS.off;
+  return <Tag bordered={false} style={{ background: c.bg, color: c.color, borderRadius: 999,
+    padding: '2px 8px', fontSize: 12, lineHeight: '18px', marginInlineEnd: 4 }}>{children}</Tag>;
+}
+function Kpi({ num, label }) {
+  return <div className="lp-kpi"><div className="label" style={{ marginBottom: 6 }}>{label}</div>
+    <div className="num">{num}</div></div>;
+}
+function TipText({ label, tip }) {
+  return <Tooltip title={<div style={{ whiteSpace: 'pre-line', lineHeight: 1.6 }}>{tip}</div>}
+    color="#fff" styles={{ body: { color: '#374151', fontSize: 12, padding: '10px 14px' } }}>
+    <span className="lp-tip-trigger">{label}</span></Tooltip>;
+}
+function CompactPagination({ total, current = 1, pageSize = 10 }) {
+  const tp = Math.ceil(total / pageSize) || 1;
+  const pages = [];
+  pages.push({ k: 'prev', label: '<', arrow: true, disabled: current === 1 });
+  for (let i = 1; i <= tp; i++) pages.push({ k: i, label: i });
+  pages.push({ k: 'next', label: '>', arrow: true, disabled: current === tp });
+  return <div className="lp-pagination">
+    <span>共 {total.toLocaleString()} 条,每页{' '}
+      <Select size="small" value={pageSize} style={{ width: 72, marginInline: 4 }}
+        options={[{ value: 10, label: 10 }, { value: 20, label: 20 }, { value: 50, label: 50 }]} />{' '}条</span>
+    <div className="divider" />
+    <Space size={2}>{pages.map(p => <span key={p.k} style={{ minWidth: 32, height: 32, display: 'inline-flex',
+      alignItems: 'center', justifyContent: 'center', borderRadius: 8, fontSize: 13,
+      cursor: p.disabled ? 'default' : 'pointer', background: p.k === current ? '#7C3AED' : (p.arrow ? '#fff' : 'transparent'),
+      color: p.k === current ? '#fff' : '#374151', border: p.arrow ? '1px solid #E5E7EB' : 'none',
+      fontWeight: p.k === current ? 600 : 400, opacity: p.disabled ? 0.35 : 1 }}>{p.label}</span>)}</Space>
+    <div className="divider" /><span>第 {current}/{tp} 页</span></div>;
+}
+function EmptyZero({ onCta }) {
+  return <div className="lp-empty"><InboxOutlined className="icon" />
+    <div className="title">暂无促销活动</div>
+    <div className="desc">点击下方按钮创建第一个 Amount off products 折扣</div>
+    <Button type="primary" onClick={onCta}>新建折扣</Button></div>;
+}
+function EmptyNoMatch({ onClear }) {
+  return <div className="lp-empty"><SearchOutlined className="icon" />
+    <div className="title">未找到匹配结果</div>
+    <div className="desc">请尝试调整搜索关键词或筛选条件</div>
+    <Button onClick={onClear}>清除筛选条件</Button></div>;
+}
+function EmptyError({ onRetry }) {
+  return <div className="lp-empty"><ExclamationCircleOutlined className="icon err" />
+    <div className="title">加载失败</div>
+    <div className="desc">网络异常,请检查网络连接后重试</div>
+    <Button type="primary" onClick={onRetry}>重试</Button></div>;
+}
+function EmptyStateSwitcher({ mode, setMode }) {
+  return <div style={{ marginTop: 12, display: 'flex', gap: 8, justifyContent: 'center' }}>
+    {[['data', '正常数据'], ['zero', '零数据态'], ['no-match', '无匹配态'], ['error', '异常态']].map(([k, label]) =>
+      <Button key={k} type={mode === k ? 'primary' : 'default'} onClick={() => setMode(k)}>{label}</Button>)}</div>;
+}
+function FormRow({ label, required, children, helper }) {
+  return <><div className="lp-form-row">
+    <div className="lp-form-label">{required && <span className="req">*</span>}{label}</div>
+    <div className="lp-form-control">{children}</div></div>
+    {helper && <div className="lp-helper">{helper}</div>}</>;
+}
+const DEFAULT_OPLOG = [
+  { i: 1, at: '2026-07-08 15:20', who: 'Lily', type: '编辑', detail: '修改字段:最大优惠封顶 US $30 → $25' },
+  { i: 2, at: '2026-07-02 11:03', who: 'Lucy', type: '发布', detail: '状态:草稿 → 进行中' },
+  { i: 3, at: '2026-06-28 10:12', who: 'Lily', type: '创建', detail: '创建折扣活动' },
+];
+function OpLog({ data }) {
+  const list = data || DEFAULT_OPLOG;
+  return <><div className="lp-oplog-title">操作记录</div>
+    <Space size={8} wrap style={{ marginBottom: 12 }}>
+      <Select size="small" defaultValue="" style={{ width: 140 }} options={[
+        { value: '', label: '全部操作类型' }, { value: '创建', label: '创建' }, { value: '编辑', label: '编辑' },
+        { value: '发布', label: '发布' }, { value: '暂停', label: '暂停' }, { value: '结束', label: '结束' }]} />
+      <Select size="small" defaultValue="" style={{ width: 130 }} options={[
+        { value: '', label: '全部操作人' }, { value: 'a', label: 'Lily' }, { value: 'b', label: 'Lucy' }]} />
+      <DatePicker.RangePicker size="small" placeholder={['开始日期', '结束日期']} />
+      <Button size="small" icon={<SearchOutlined />}>查询</Button></Space>
+    <Table size="small" rowKey="i" pagination={false} styles={TABLE_STYLES} columns={[
+      { title: '操作时间', dataIndex: 'at', width: 160 },
+      { title: '操作人', dataIndex: 'who', width: 110 },
+      { title: '操作类型', dataIndex: 'type', width: 100,
+        render: v => <StatusTag variant={v === '创建' ? 'on' : (v === '结束' ? 'off' : 'pending')}>{v}</StatusTag> },
+      { title: '操作详情', dataIndex: 'detail' }]} dataSource={list} />
+    <CompactPagination total={list.length} pageSize={10} /></>;
+}
+
+/* ===== 静态数据 ===== */
+const MARKETS = [
+  { code: 'US', name: '美国', cur: 'USD', sym: '$', tz: '美东时区' },
+  { code: 'HK', name: '香港', cur: 'HKD', sym: 'HK$', tz: '香港时区' },
+];
+/* 商品标签:引用商品模块「标签管理」;Collection:引用 Collection 模块,自带 market_id */
+/* A1:所有引用类下拉统一「名称 + ID」展示,避免同名标签认错 */
+const PRODUCT_TAGS = [
+  { value: 'TAG10021', label: '夏季新品(TAG10021)' }, { value: 'TAG10034', label: '特价清仓(TAG10034)' },
+  { value: 'TAG10056', label: '热卖单品(TAG10056)' }, { value: 'TAG10078', label: '复古典藏(TAG10078)' },
+];
+const COLLECTIONS = [
+  { value: 'C10001', label: 'Summer Essentials(C10001)', market: '美国' },
+  { value: 'C10002', label: 'Luxury Handbags(C10002)', market: '美国' },
+  { value: 'C10003', label: 'Under $500(C10003)', market: '美国' },
+  { value: 'C20001', label: 'HK New Arrivals(C20001)', market: '香港' },
+];
+const USER_TAGS = [
+  { value: 'UT2001', label: '新客(UT2001)' }, { value: 'UT2002', label: 'VIP 会员(UT2002)' },
+  { value: 'UT2003', label: '高价值用户(UT2003)' }, { value: 'UT2004', label: '沉睡召回用户(UT2004)' },
+  { value: 'UT2005', label: 'APP 活跃用户(UT2005)' },
+];
+const STATUS_MAP = {
+  draft: { variant: 'off', label: '草稿' }, scheduled: { variant: 'sale', label: '未开始' },
+  active: { variant: 'on', label: '进行中' },
+  paused: { variant: 'pending', label: '已暂停' }, ended: { variant: 'off', label: '已结束' },
+};
+const PAUSED_TIP = '可随时恢复为进行中;如需彻底停止请用「结束活动」(不可恢复)';
+/* 列表默认按创建时间倒序(规范 A.11:数据传入时已倒序,不配 sorter) */
+const DISCOUNTS = [
+  { id: 'PMO202608001', name: '八月新品 · 鞋履 85 折', trigger: 'auto', code: '', valueType: 'percentage',
+    valueText: '85 折(-15%)', cap: '封顶 US $40', scope: '商品标签:夏季新品', market: '美国',
+    status: 'scheduled', used: 0, perUser: '每人 1 次', eligText: '全部用户', start: '2026-08-01 00:00', end: '2026-08-31 23:59',
+    createdBy: 'Lucy', createdAt: '2026-07-26 18:30' },
+  { id: 'PMO202607003', name: '品牌日 · Gucci 9 折', trigger: 'auto', code: '', valueType: 'percentage',
+    valueText: '9 折(-10%)', cap: '封顶 US $50', scope: '品牌:Gucci', market: '美国',
+    status: 'draft', used: 0, perUser: '不限', eligText: '用户标签:VIP 会员', start: '2026-07-20 00:00', end: '2026-07-27 23:59',
+    createdBy: 'Lucy', createdAt: '2026-07-12 16:22' },
+  { id: 'PMO202607002', name: '新客立减 · 优惠码 WELCOME10', trigger: 'code', code: 'WELCOME10', valueType: 'fixed',
+    valueText: 'US -$10', cap: '—', scope: '全部商品', market: '美国',
+    status: 'active', used: 356, perUser: '每人 1 次', eligText: '用户标签:新客', start: '2026-07-05 00:00', end: '2026-09-30 23:59',
+    createdBy: 'Lily', createdAt: '2026-07-03 09:40' },
+  { id: 'PMO202607001', name: '夏季大促 · 箱包 8 折', trigger: 'auto', code: '', valueType: 'percentage',
+    valueText: '8 折(-20%)', cap: '封顶 US $25', scope: '品类:箱包', market: '美国',
+    status: 'active', used: 1240, perUser: '每人 1 次', eligText: '全部用户', start: '2026-07-01 00:00', end: '2026-08-31 23:59',
+    createdBy: 'Lily', createdAt: '2026-06-28 10:12' },
+  { id: 'PMO202607008', name: '香港新客立减 · 优惠码 HKWELCOME', trigger: 'code', code: 'HKWELCOME', valueType: 'fixed',
+    valueText: 'HK -HK$78', cap: '—', scope: '全部商品', market: '香港',
+    status: 'paused', used: 820, perUser: '每人 2 次', eligText: '用户标签:新客、VIP 会员', start: '2026-06-18 00:00', end: '2026-06-25 23:59',
+    createdBy: 'Lily', createdAt: '2026-06-10 14:05' },
+  { id: 'PMO202605003', name: '春季清仓 · 指定商品直减', trigger: 'auto', code: '', valueType: 'fixed',
+    valueText: 'US -$20', cap: '—', scope: 'Collection:Under $500', market: '美国',
+    status: 'ended', used: 2103, perUser: '每人 3 次', eligText: '全部用户', start: '2026-05-01 00:00', end: '2026-05-31 23:59',
+    createdBy: 'Lucy', createdAt: '2026-04-25 10:00' },
+];
+/* 核销记录(promotion_redemption + 订单优惠金额) —— 含退款回滚状态 */
+const REDEMPTIONS = [
+  { i: 1, at: '2026-07-18 20:14', user: 'u_88213', order: 'ORD20260718A0231', amount: '-$20.00', state: 'valid' },
+  { i: 2, at: '2026-07-18 15:02', user: 'u_10592', order: 'ORD20260718A0187', amount: '-$25.00', state: 'valid' },
+  { i: 3, at: '2026-07-17 09:41', user: 'u_77410', order: 'ORD20260717A0455', amount: '-$18.50', state: 'reverted' },
+  { i: 4, at: '2026-07-16 22:30', user: 'u_23901', order: 'ORD20260716A0620', amount: '-$25.00', state: 'valid' },
+];
+
+/* ===== 共享弹窗(列表页 + 详情页复用,A.19) ===== */
+function EndPromotionModal({ open, onClose, record }) {
+  return <Modal title="结束活动" open={open} onCancel={onClose} closable={false} maskClosable={false}
+    centered width={480} footer={[
+      <Button key="c" onClick={onClose}>取消</Button>,
+      <Button key="s" type="primary" danger onClick={onClose}>确认结束</Button>]}>
+    <Alert type="warning" showIcon={false} style={{ marginBottom: 14 }}
+      message={'结束后该折扣立即停止对新订单生效,且不可恢复。已产生的核销记录与订单优惠不受影响。'} />
+    <div className="lp-detail" style={{ marginBottom: 0 }}>
+      <span className="dl">活动名称</span><span className="dv">{record ? record.name : '—'}</span>
+      <span className="dl">活动 ID</span><span className="dv"><span className="lp-code">{record ? record.id : '—'}</span></span>
+      <span className="dl">已核销次数</span><span className="dv">{record ? record.used.toLocaleString() : '—'} 次</span>
+    </div></Modal>;
+}
+function DeletePromotionModal({ open, onClose, record }) {
+  return <Modal title="删除折扣活动" open={open} onCancel={onClose} closable={false} maskClosable={false}
+    centered width={460} footer={[
+      <Button key="c" onClick={onClose}>取消</Button>,
+      <Button key="s" danger type="primary" onClick={onClose}>确认删除</Button>]}>
+    <Alert type="error" showIcon={false} style={{ marginBottom: 14 }}
+      message={'删除后不可恢复。仅草稿可删除——已发布过的活动(未开始/进行中/已暂停/已结束)一律不可删除,以保证核销记录可追溯。'} />
+    <div>确定删除「{record ? record.name : ''}」吗?</div></Modal>;
+}
+
+/* A6:暂停/恢复上线/发布生效/复制 的二次确认(结束、删除已各有专用弹窗) */
+const ACTION_CONFIRM = {
+  pause:   { title: '暂停活动', ok: '确认暂停', danger: true,
+    msg: '暂停后该折扣立即停止对新订单生效,C 端恢复原价。已产生的核销与订单优惠不受影响;后续可随时恢复上线。' },
+  resume:  { title: '恢复上线', ok: '确认恢复', danger: false,
+    msg: '恢复后该折扣立即重新对新订单生效。请确认配置已修改完毕、且当前仍在活动有效期内。' },
+  publish: { title: '发布生效', ok: '确认发布', danger: false,
+    msg: '发布后活动进入「未开始」或「进行中」(按开始时间判定)。发布后不可再删除,只能结束。' },
+  copy:    { title: '复制活动', ok: '确认复制', danger: false,
+    msg: '将以本活动为模板生成一个新草稿(名称加「副本」后缀,已核销计数归零,优惠码不复制)。所属市场可在保存前改选。' },
+};
+function ActionConfirmModal({ payload, onClose }) {
+  const cfg = payload ? ACTION_CONFIRM[payload.type] : null;
+  return <Modal title={cfg ? cfg.title : ''} open={!!payload} onCancel={onClose} closable={false}
+    maskClosable={false} centered width={460} footer={[
+      <Button key="c" onClick={onClose}>取消</Button>,
+      <Button key="s" type="primary" danger={cfg ? cfg.danger : false} onClick={onClose}>{cfg ? cfg.ok : ''}</Button>]}>
+    {cfg && <><Alert type={cfg.danger ? 'warning' : 'info'} showIcon={false} style={{ marginBottom: 14 }} message={cfg.msg} />
+      <div className="lp-detail" style={{ marginBottom: 0 }}>
+        <span className="dl">活动名称</span><span className="dv">{payload.rec ? payload.rec.name : '—'}</span>
+        <span className="dl">活动 ID</span><span className="dv"><span className="lp-code">{payload.rec ? payload.rec.id : '—'}</span></span>
+      </div></>}
+  </Modal>;
+}
+
+/* A2:商品 ID 粘贴导入——支持换行/逗号/空格分隔,解析后按有效性分组回显 */
+const IMPORT_RESULT = {
+  total: 8, valid: 5,
+  invalid: [
+    { id: 'L99001', reason: '商品不存在' },
+    { id: 'L55102', reason: '已下架' },
+    { id: 'L88213', reason: '不属于本市场' },
+  ],
+};
+function ProductIdImportModal({ open, onClose, market }) {
+  const [parsed, setParsed] = useState(false);
+  return <Modal title="按商品 ID 导入" open={open} onCancel={onClose} closable={false} maskClosable={false}
+    centered width={640} footer={[
+      <Button key="c" onClick={onClose}>取消</Button>,
+      <Button key="s" type="primary" disabled={!parsed} onClick={onClose}>
+        加入有效商品({IMPORT_RESULT.valid} 件)</Button>]}>
+    <FormRow label="商品 ID" required helper={'一行一个,也支持用逗号或空格分隔;仅支持「' + market + '」市场的在售商品'}>
+      <Input.TextArea rows={5} placeholder={'L10592\nL77410\nL23901'} onChange={() => setParsed(true)}
+        style={{ width: '100%' }} /></FormRow>
+    <Space size={8} style={{ marginBottom: 12, marginLeft: 126 }}>
+      <Button onClick={() => setParsed(true)}>解析</Button>
+      <Button onClick={() => setParsed(false)}>清空</Button></Space>
+    {parsed && <>
+      <div className="lp-note-sm" style={{ marginBottom: 12 }}>
+        识别 <strong>{IMPORT_RESULT.total}</strong> 个 ID：有效 <strong style={{ color: '#16A34A' }}>{IMPORT_RESULT.valid}</strong> 个、
+        无效 <strong style={{ color: '#DC2626' }}>{IMPORT_RESULT.invalid.length}</strong> 个。
+        仅有效商品会被加入圈选,无效的可复制出来排查。
+      </div>
+      <Table rowKey="id" size="small" pagination={false} styles={TABLE_STYLES} columns={[
+        { title: '无效商品 ID', dataIndex: 'id', width: 160, render: v => <span className="lp-code">{v}</span> },
+        { title: '原因', dataIndex: 'reason' },
+      ]} dataSource={IMPORT_RESULT.invalid} />
+      <Button size="small" icon={<CopyOutlined />} style={{ marginTop: 10 }}>复制无效 ID</Button>
+    </>}
+  </Modal>;
+}
+
+function PriceCheckModal({ open, onClose, onConfirm }) {
+  const rows = [
+    { i: 1, name: 'Gucci Marmont 小号肩背包', price: '$1,200.00', final: '$960.00', drop: '-20%', danger: false },
+    { i: 2, name: 'LV Speedy 25 手袋', price: '$850.00', final: '$680.00', drop: '-20%', danger: false },
+    { i: 3, name: 'Coach Tabby 26(单价低,同折扣力度下降幅更深)', price: '$320.00', final: '$144.00', drop: '-55%', danger: true },
+  ];
+  return <Modal title={'保存前价格试算(资损拦截)'} open={open} onCancel={onClose} closable={false}
+    maskClosable={false} centered width={560} footer={[
+      <Button key="b" onClick={onClose}>返回修改</Button>,
+      <Button key="s" type="primary" onClick={onConfirm}>确认无误,保存</Button>]}>
+    <Alert type="warning" showIcon={false} style={{ marginBottom: 14 }}
+      message={'发现 1 件商品到手价降幅超过 50% 阈值,请确认折扣力度是否配置正确(事前拦截)'} />
+    <Table rowKey="i" size="small" pagination={false} styles={TABLE_STYLES} columns={[
+      { title: '代表商品(命中 128 件,抽样展示)', dataIndex: 'name' },
+      { title: '现价', dataIndex: 'price', width: 92, align: 'right' },
+      { title: '到手价', dataIndex: 'final', width: 92, align: 'right' },
+      { title: '降幅', dataIndex: 'drop', width: 76, align: 'right',
+        render: (v, r) => <span style={{ color: r.danger ? '#DC2626' : '#16A34A', fontWeight: r.danger ? 700 : 400 }}>{v}</span> },
+    ]} dataSource={rows} />
+    <div className="lp-note-sm" style={{ marginTop: 12 }}>发布后系统持续监控到手价降幅,超阈值实时报警并可一键暂停(事中防线)</div>
+  </Modal>;
+}
+
+/* ===== 价格监控(到手价降幅告警工作台) ===== */
+const ALERT_STATUS = {
+  pending: { v: 'req', t: '待处理' }, resolved: { v: 'on', t: '已处理' }, ignored: { v: 'off', t: '已忽略' },
+};
+/* 类型不再单独占列:比较基准直接写进降幅列(较原价/较上次),只在筛选器与排查抽屉里用类型名。
+   注:v6 的 cumulative 用了 TAG_COLORS 里不存在的 'enum',标签退灰,一并修为 req(红) */
+const ALERT_CAUSE = {
+  discount: { v: 'pending', t: '折扣配置' },
+  listing_price: { v: 'sale', t: '挂牌价下调' },
+  both: { v: 'req', t: '两者叠加' },
+};
+const ALERT_TYPE = {
+  cumulative: { v: 'req', t: '比原价降太多' },
+  sudden_drop: { v: 'warn', t: '比上次降太多' },
+};
+const ALERTS = [
+  /* 本版新增:未命中任何折扣、纯挂牌价下调导致的告警——命中活动为空,链路只有一个环节 */
+  { id: 'AL20260727005', at: '2026-07-27 10:36', listing: 'Chanel Classic Flap 中号', listingId: 'L60417',
+    promos: [], market: '美国', orig: '$4,200.00', final: '$420.00',
+    prev: '$4,200.00', drop: 0, changePct: 90, threshold: 50, changeThreshold: 20, type: 'sudden_drop',
+    cause: 'listing_price', status: 'pending',
+    reason: '该商品未命中任何折扣,到手价=挂牌价;挂牌价由 $4,200 改为 $420,疑似录入少一位',
+    steps: [
+      { i: 1, step: '商品挂牌价', rule: '商品侧改价(上次扫描 $4,200.00)', chg: '—', sub: '$420.00' },
+    ] },
+  /* A8:成因=both(挂牌价下调 + 折扣配置同时变化)的样例 */
+  { id: 'AL20260727006', at: '2026-07-27 09:52', listing: 'Prada Galleria 中号', listingId: 'L71264',
+    promos: ['夏季大促 · 箱包 8 折'], market: '美国', orig: '$1,800.00', final: '$720.00',
+    prev: '$1,440.00', drop: 60, changePct: 50, threshold: 50, changeThreshold: 20, type: 'cumulative',
+    cause: 'both', status: 'pending',
+    reason: '挂牌价由 $1,800 下调至 $1,200(商品侧改价),同时折扣力度由 8 折调至 6 折——两者叠加使到手价从 $1,440 跌至 $720',
+    steps: [
+      { i: 1, step: '商品挂牌价', rule: '商品侧改价 $1,800 → $1,200', chg: '—', sub: '$1,200.00' },
+      { i: 2, step: '自动折扣', rule: '夏季大促 · 箱包 8 折 → 6 折(-40%,本次调整)', chg: '-$480.00', sub: '$720.00' },
+    ] },
+  { id: 'AL20260727001', at: '2026-07-27 08:10', listing: 'Hermès Evelyne 29 邮差包', listingId: 'L55102',
+    promos: ['夏季大促 · 箱包 8 折'], market: '美国', orig: '$1,000.00', final: '$600.00',
+    prev: '$800.00', drop: 40, changePct: 25, threshold: 50, changeThreshold: 20, type: 'sudden_drop', cause: 'discount', status: 'pending',
+    reason: '较上次扫描到手价单次下跌 25%(阈值 20%)——运营将折扣力度由 8 折上调至 6 折,累计降幅 40% 尚未超累计阈值',
+    steps: [
+      { i: 1, step: '商品原价', rule: '—', chg: '—', sub: '$1,000.00' },
+      { i: 2, step: '自动折扣', rule: '夏季大促 · 箱包 8 折 → 6 折(-40%,本次调整;调整前到手价 $800.00)', chg: '-$400.00', sub: '$600.00' },
+    ] },
+  { id: 'AL20260726003', at: '2026-07-26 10:42', listing: 'Coach Tabby 26 单肩包', listingId: 'L88213',
+    promos: ['夏季大促 · 箱包 8 折', '春季清仓 · 指定商品直减'], market: '美国', orig: '$320.00', final: '$144.00',
+    drop: 55, threshold: 50, type: 'cumulative', cause: 'discount', status: 'pending', reason: '该商品同时命中 2 条活动,按 V1 不叠加规则取优惠最大的一条生效(春季清仓 -55%),单条力度即已超阈(监控口径=到手价,仅计自动折扣、不含优惠码)',
+    steps: [
+      { i: 1, step: '商品原价', rule: '—', chg: '—', sub: '$320.00' },
+      { i: 2, step: '命中比较', rule: '夏季大促 -20%($64) vs 春季清仓 -55%($176) → 取优惠最大一条', chg: '—', sub: '$320.00' },
+      { i: 3, step: '生效折扣', rule: '春季清仓 · 指定商品直减(-$176)', chg: '-$176.00', sub: '$144.00' },
+    ] },
+  { id: 'AL20260726002', at: '2026-07-26 09:15', listing: 'Gucci Marmont 小号肩背包', listingId: 'L10592',
+    promos: ['夏季大促 · 箱包 8 折'], market: '香港', orig: 'HK$9,360.00', final: 'HK$4,492.80',
+    drop: 52, threshold: 50, type: 'cumulative', cause: 'discount', status: 'pending', reason: '固定金额折扣按币种录值疑似多录一位(HK$486.72 误录为 HK$4,867.20)',
+    steps: [
+      { i: 1, step: '商品原价', rule: '—', chg: '—', sub: 'HK$9,360.00' },
+      { i: 2, step: '固定减价', rule: '清仓直减(HK$4,867.20,疑似错录)', chg: '-HK$4,867.20', sub: 'HK$4,492.80' },
+    ] },
+  { id: 'AL20260725006', at: '2026-07-25 16:20', listing: 'LV Speedy 25 手袋', listingId: 'L77410',
+    promos: ['春季清仓 · 指定商品直减'], market: '美国', orig: '$850.00', final: '$408.00',
+    drop: 52, threshold: 50, type: 'cumulative', cause: 'discount', status: 'resolved', handledBy: 'Lily', handledAt: '2026-07-25 16:45',
+    handleAction: '暂停活动', reason: '直减金额配置过深',
+    steps: [
+      { i: 1, step: '商品原价', rule: '—', chg: '—', sub: '$850.00' },
+      { i: 2, step: '固定减价', rule: '春季清仓 · 指定商品直减(-$442)', chg: '-$442.00', sub: '$408.00' },
+    ] },
+  { id: 'AL20260724001', at: '2026-07-24 11:03', listing: 'Prada 尼龙托特包', listingId: 'L23901',
+    promos: ['品牌日 · Gucci 9 折'], market: '美国', orig: '$620.00', final: '$306.90',
+    drop: 51, threshold: 50, type: 'cumulative', cause: 'discount', status: 'ignored', handledBy: 'Lucy', handledAt: '2026-07-24 11:30',
+    handleAction: '忽略(清仓商品预期内)', reason: '清仓商品,降幅为预期让利',
+    steps: [
+      { i: 1, step: '商品原价', rule: '—', chg: '—', sub: '$620.00' },
+      { i: 2, step: '自动折扣', rule: '清仓专场(-50.5%)', chg: '-$313.10', sub: '$306.90' },
+    ] },
+];
+function MonitorSettingsModal({ open, onClose }) {
+  return <Modal title="监控设置" open={open} onCancel={onClose} closable={false} maskClosable={false}
+    centered width={640} footer={[
+      <Button key="c" onClick={onClose}>取消</Button>,
+      <Button key="s" type="primary" onClick={onClose}>保存</Button>]}>
+    <FormRow label="累计降幅阈值" required helper={'到手价相对商品原价的累计降幅超过该值触发「比原价降太多」告警;全局唯一,按活动/品类覆盖 V2'}>
+      <InputNumber min={1} max={95} defaultValue={50} addonAfter="%" style={{ width: 180 }} /></FormRow>
+    <FormRow label="环比降幅阈值" required helper={'当前到手价较上一次扫描到手价的单次降幅超过该值触发「比上次降太多」告警——捕捉折扣力度调整等配置变更导致的价格跳水'}>
+      <InputNumber min={1} max={95} defaultValue={20} addonAfter="%" style={{ width: 180 }} /></FormRow>
+    <FormRow label="监控范围"><Input value="全部进行中活动命中的在售商品" disabled /></FormRow>
+    <Divider style={{ margin: '4px 0 16px' }} dashed />
+    <FormRow label="站内提醒" helper="待处理告警数以红色角标展示在左侧「价格监控」菜单上,常开不可关">
+      <Input value="已开启" disabled style={{ width: 180 }} /></FormRow>
+    <FormRow label="飞书群通知" helper="开启后,每轮扫描若有新增告警,向指定飞书群推送一条汇总卡片">
+      <Select defaultValue="on" style={{ width: 180 }} options={[
+        { value: 'on', label: '已开启' }, { value: 'off', label: '已关闭' }]} /></FormRow>
+    <FormRow label="Webhook 地址" required helper="飞书群「设置 → 群机器人 → 添加自定义机器人」获取;加密存储,页面仅展示脱敏值">
+      <Space size={8}>
+        <Input value="https://open.feishu.cn/open-apis/bot/v2/hook/****-****-a3f1" style={{ width: 340 }} />
+        <Button>发送测试</Button></Space></FormRow>
+    <FormRow label="推送策略">
+      <Input value="每轮扫描聚合推送一条(含新增条数 + 降幅 TOP 5),本轮无新增则不推送" disabled /></FormRow>
+  </Modal>;
+}
+/* A6:告警处置动作的二次确认 */
+const ALERT_CONFIRM = {
+  pause:   { title: '暂停活动', ok: '确认暂停', danger: true, msg: '暂停后该折扣立即停止对新订单生效。告警不会自动转为已处理——商品可能仍命中其他活动,需你确认后手动标记。' },
+  resolve: { title: '标记已处理', ok: '确认标记', danger: false, msg: '标记后本条告警转为「已处理」并记录处置人与时间。请确认降幅问题已实际解决。' },
+  ignore:  { title: '忽略本条告警', ok: '确认忽略', danger: false, msg: '忽略后本条转为「已忽略」,不再出现在待处理列表,且不可撤销。适用于清仓等预期内深折。' },
+};
+function AlertActionModal({ payload, onClose }) {
+  const cfg = payload ? ALERT_CONFIRM[payload.type] : null;
+  const rec = payload ? payload.rec : null;
+  return <Modal title={cfg ? cfg.title : ''} open={!!payload} onCancel={onClose} closable={false}
+    maskClosable={false} centered width={460} footer={[
+      <Button key="c" onClick={onClose}>取消</Button>,
+      <Button key="s" type="primary" danger={cfg ? cfg.danger : false} onClick={onClose}>{cfg ? cfg.ok : ''}</Button>]}>
+    {cfg && <Alert type={cfg.danger ? 'warning' : 'info'} showIcon={false} message={cfg.msg} />}
+    {rec && <div className="lp-detail" style={{ marginTop: 12 }}>
+      <span className="dl">商品</span><span className="dv">{rec.listing} <span className="lp-code">{rec.listingId}</span></span>
+      <span className="dl">市场</span><span className="dv">{rec.market}</span>
+      <span className="dl">告警时间</span><span className="dv">{rec.at}</span>
+    </div>}
+  </Modal>;
+}
+function AlertDrawer({ rec, onClose }) {
+  const [pauseRec, setPauseRec] = useState(null);
+  const [act, setAct] = useState(null);
+  return <Drawer title={rec ? '告警排查 · ' + rec.id : '告警排查'} open={!!rec} onClose={onClose} width={580}>
+    {rec && <>
+      <div className="lp-detail" style={{ marginBottom: 16 }}>
+        <span className="dl">商品</span><span className="dv">{rec.listing} <span className="lp-code">{rec.listingId}</span></span>
+        <span className="dl">市场</span><span className="dv">{rec.market}</span>
+        <span className="dl">告警时间</span><span className="dv">{rec.at}</span>
+        <span className="dl">成因</span><span className="dv"><StatusTag variant={ALERT_CAUSE[rec.cause].v}>{ALERT_CAUSE[rec.cause].t}</StatusTag></span>
+        <span className="dl">价格对比</span><span className="dv">{rec.type === 'sudden_drop'
+          ? <span>{rec.prev} → <span style={{ color: '#DC2626', fontWeight: 700 }}>{rec.final}</span><span style={{ color: '#9CA3AF', fontSize: 12 }}>(上次到手价 → 本次;原价 {rec.orig})</span></span>
+          : <span>{rec.orig} → <span style={{ color: '#DC2626', fontWeight: 700 }}>{rec.final}</span><span style={{ color: '#9CA3AF', fontSize: 12 }}>(原价 → 当前到手价)</span></span>}</span>
+        <span className="dl">累计降幅</span><span className="dv"><span style={{ color: '#DC2626', fontWeight: 700 }}>-{rec.drop}%</span>（阈值 {rec.threshold}%）</span>
+        {rec.type === 'sudden_drop' && <><span className="dl">突降幅度</span><span className="dv">{rec.prev} → {rec.final}（单次 <span style={{ color: '#E11D48', fontWeight: 700 }}>-{rec.changePct}%</span>,阈值 {rec.changeThreshold}%）</span></>}
+        <span className="dl">状态</span><span className="dv"><StatusTag variant={ALERT_STATUS[rec.status].v}>{ALERT_STATUS[rec.status].t}</StatusTag>
+          {rec.handledBy ? ' ' + rec.handledBy + ' · ' + rec.handleAction : ''}</span>
+      </div>
+      <h4 className="lp-section-purple">价格计算链路（降幅怎么来的）</h4>
+      <Table rowKey="i" size="small" pagination={false} styles={TABLE_STYLES} columns={[
+        { title: '#', dataIndex: 'i', width: 38 },
+        { title: '环节', dataIndex: 'step', width: 96 },
+        { title: '命中规则', dataIndex: 'rule' },
+        { title: '变动', dataIndex: 'chg', width: 104, align: 'right',
+          render: v => <span style={{ color: v === '—' ? '#9CA3AF' : '#DC2626' }}>{v}</span> },
+        { title: '小计', dataIndex: 'sub', width: 104, align: 'right' },
+      ]} dataSource={rec.steps} />
+      <Alert type="error" showIcon={false} style={{ margin: '12px 0 16px' }}
+        message={'初判主因:' + rec.reason} />
+      {rec.status === 'pending' && <>
+        <h4 className="lp-section-purple">处置</h4>
+        {rec.cause === 'listing_price'
+          ? <><div className="lp-note-sm" style={{ marginBottom: 10 }}>
+              本条由<strong>挂牌价下调</strong>引起,未命中任何折扣——营销侧无法直接处理,
+              需到商品后台核实改价是否正确。</div>
+            <Space wrap size={8} style={{ marginBottom: 10 }}>
+              <Button>查看商品</Button></Space></>
+          : <><div className="lp-note-sm" style={{ marginBottom: 10 }}>
+              V1 不叠加,该商品<strong>最终只生效一条折扣</strong>——下方仅提供
+              <strong>本次实际生效、导致降幅的那一条</strong>的暂停入口;其余命中但未生效的活动不在此处操作。</div>
+            <Space wrap size={8} style={{ marginBottom: 10 }}>
+              <Button danger onClick={() => setPauseRec(rec)}>暂停「{rec.promos[0]}」</Button></Space>
+            {rec.cause === 'both' && <div className="lp-note-sm" style={{ marginBottom: 10 }}>
+              本次降幅<strong>同时含挂牌价下调</strong>,暂停活动后仍需到商品后台核实商品价。</div>}</>}
+        <Input.TextArea rows={2} placeholder="处置备注（标记已处理时必填）" style={{ marginBottom: 10 }} />
+        <Space size={8}>
+          <Button type="primary" onClick={() => setAct({ type: 'resolve' })}>标记已处理</Button>
+          <Button onClick={() => setAct({ type: 'ignore' })}>忽略本条</Button>
+        </Space></>}
+    </>}
+    <AlertActionModal payload={pauseRec ? { type: 'pause' } : act} onClose={() => { setPauseRec(null); setAct(null); }} />
+  </Drawer>;
+}
+function MonitorListPage({ go }) {
+  const [mode, setMode] = useState('data');
+  const [rec, setRec] = useState(null);
+  const [act, setAct] = useState(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const columns = [
+    { title: '告警时间', dataIndex: 'at', width: 150 },
+    { title: '商品', dataIndex: 'listing', width: 200,
+      render: (v, r) => <div><div style={{ fontWeight: 600 }}>{v}</div>
+        <div style={{ fontSize: 12, marginTop: 2 }}><span className="lp-code">{r.listingId}</span></div></div> },
+    { title: '成因', dataIndex: 'cause', width: 110,
+      render: v => <StatusTag variant={ALERT_CAUSE[v].v}>{ALERT_CAUSE[v].t}</StatusTag> },
+    /* B3:不叠加下只有第一条为实际生效,其余为"命中未生效" */
+    { title: '命中活动', dataIndex: 'promos', width: 210,
+      render: v => v.length ? <>{v.map((pn, i) => <div key={pn} style={{ fontSize: 12, color: i ? '#9CA3AF' : '#1F2937' }}>
+        {pn}{i === 0 ? <span style={{ color: '#16A34A', marginLeft: 4 }}>· 生效</span>
+                     : <span style={{ marginLeft: 4 }}>· 未生效</span>}</div>)}</>
+        : <span style={{ color: '#9CA3AF' }}>—</span> },
+    { title: '市场', dataIndex: 'market', width: 80 },
+    { title: '价格对比', key: 'price', width: 200, align: 'right',
+      render: (_, r) => r.type === 'sudden_drop'
+        ? <div><span>{r.prev} → <span style={{ color: '#DC2626', fontWeight: 600 }}>{r.final}</span></span>
+            <div style={{ fontSize: 12, color: '#9CA3AF' }}>上次到手价 → 本次(原价 {r.orig})</div></div>
+        : <div><span>{r.orig} → <span style={{ color: '#DC2626', fontWeight: 600 }}>{r.final}</span></span>
+            <div style={{ fontSize: 12, color: '#9CA3AF' }}>原价 → 当前到手价</div></div> },
+    /* 降幅列合并了原「类型」列:第一行=触发本次告警的那个降幅(含比较基准与阈值),第二行=另一维度参考值 */
+    { title: <TipText label="降幅" tip={'较原价(原「累计超阈」):到手价相对商品原价的累计降幅\n较上次(原「环比突变」):到手价相对上一次扫描的单次降幅\n超过各自阈值即触发告警'} />,
+      key: 'drop', width: 160, align: 'right',
+      render: (_, r) => r.type === 'sudden_drop'
+        ? <div><div style={{ color: '#E11D48', fontWeight: 700 }}>较上次 -{r.changePct}%
+            <span style={{ color: '#9CA3AF', fontWeight: 400, fontSize: 12 }}> /阈值{r.changeThreshold}%</span></div>
+            <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>较原价 -{r.drop}%</div></div>
+        : <div><div style={{ color: '#DC2626', fontWeight: 700 }}>较原价 -{r.drop}%
+            <span style={{ color: '#9CA3AF', fontWeight: 400, fontSize: 12 }}> /阈值{r.threshold}%</span></div></div> },
+    { title: '状态', dataIndex: 'status', width: 90,
+      render: v => <StatusTag variant={ALERT_STATUS[v].v}>{ALERT_STATUS[v].t}</StatusTag> },
+    { title: '操作', key: 'op', width: 130, fixed: 'right', render: (_, r) => <Space size={6}>
+      <Button size="small" type="primary" onClick={() => setRec(r)}>排查</Button>
+      {r.status === 'pending' && <Button size="small" onClick={() => setAct({ type: 'ignore', rec: r })}>忽略</Button>}
+    </Space> },
+  ];
+  return <Card style={CARD_STYLE}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 18 }}>
+      <div><div style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>价格监控</div>
+        <div style={{ color: '#6B7280', fontSize: 13 }}>到手价双阈值监控(比原价降太多 + 比上次降太多)——发现 → 排查 → 处置,资损事中防线</div></div>
+      <Space><Button icon={<SettingOutlined />} onClick={() => setSettingsOpen(true)}>监控设置</Button>
+        <Button icon={<DownloadOutlined />}>导出</Button></Space></div>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 18 }}>
+      <Kpi num={3} label="今日新增告警" /><Kpi num={3} label="待处理" />
+      <Kpi num={2} label="本周已处置" /><Kpi num={2} label="监控中活动" /></div>
+    <Space size={12} wrap style={{ marginBottom: 16 }}>
+      <Select defaultValue="" style={{ width: 120 }} options={[
+        { value: '', label: '全部类型' }, { value: 'cumulative', label: '比原价降太多' },
+        { value: 'sudden_drop', label: '比上次降太多' }]} />
+      <Select defaultValue="" style={{ width: 130 }} options={[
+        { value: '', label: '全部状态' }, { value: 'pending', label: '待处理' },
+        { value: 'resolved', label: '已处理' }, { value: 'ignored', label: '已忽略' }]} />
+      <Select defaultValue="" style={{ width: 130 }} options={[
+        { value: '', label: '全部成因' }, { value: 'discount', label: '折扣配置' },
+        { value: 'listing_price', label: '挂牌价下调' }, { value: 'both', label: '两者叠加' }]} />
+      <Select defaultValue="" style={{ width: 200 }} options={[
+        { value: '', label: '全部活动' }, { value: 'a', label: '夏季大促 · 箱包 8 折' },
+        { value: 'b', label: '618 返场 · 全场 95 折' }]} />
+      <Select defaultValue="" style={{ width: 120 }} options={[
+        { value: '', label: '全部市场' }, { value: 'US', label: '美国' }, { value: 'HK', label: '香港' }]} />
+      <Select defaultValue="" style={{ width: 140 }} options={[
+        { value: '', label: '全部降幅' }, { value: '50', label: '50%~60%' }, { value: '60', label: '>60%' }]} />
+      <DatePicker.RangePicker placeholder={['开始日期', '结束日期']} />
+      <Button type="primary" icon={<SearchOutlined />}>查询</Button>
+      <Button icon={<ReloadOutlined />}>重置</Button></Space>
+    {mode === 'data' && <><Table rowKey="id" columns={columns} dataSource={ALERTS} pagination={false}
+      styles={TABLE_STYLES} scroll={{ x: 'max-content' }} />
+      <CompactPagination total={ALERTS.length} pageSize={10} /></>}
+    {mode === 'zero' && <div className="lp-empty"><InboxOutlined className="icon" />
+      <div className="title">暂无告警</div>
+      <div className="desc">监控运行中,进行中活动命中的在售商品到手价降幅未超过阈值</div></div>}
+    {mode === 'no-match' && <EmptyNoMatch onClear={() => setMode('data')} />}
+    {mode === 'error' && <EmptyError onRetry={() => setMode('data')} />}
+    <EmptyStateSwitcher mode={mode} setMode={setMode} />
+    <AlertDrawer rec={rec} onClose={() => setRec(null)} />
+    <AlertActionModal payload={act} onClose={() => setAct(null)} />
+    <MonitorSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+  </Card>;
+}
+
+/* ===== 列表页 ===== */
+function PromotionListPage({ go }) {
+  const [mode, setMode] = useState('data');
+  const [endRec, setEndRec] = useState(null);
+  const [delRec, setDelRec] = useState(null);
+  const [confirm, setConfirm] = useState(null);   // A6:暂停/恢复/发布/复制 的二次确认
+  const kpis = [
+    { num: 2, label: '进行中活动' }, { num: 1, label: '草稿' },
+    { num: '3,719', label: '本月累计核销次数' }, { num: 1, label: '7 天内即将结束' },
+  ];
+  const filters = [
+    <Input key="kw" placeholder="搜索活动名称 / ID / 优惠码" prefix={<SearchOutlined style={{ color: '#9CA3AF' }} />}
+      allowClear style={{ width: 260 }} />,
+    <Select key="st" defaultValue="" style={{ width: 130 }} options={[
+      { value: '', label: '全部状态' }, { value: 'draft', label: '草稿' },
+      { value: 'scheduled', label: '未开始' }, { value: 'active', label: '进行中' },
+      { value: 'paused', label: '已暂停' }, { value: 'ended', label: '已结束' }]} />,
+    <Select key="tg" defaultValue="" style={{ width: 140 }} options={[
+      { value: '', label: '全部触发方式' }, { value: 'auto', label: '自动折扣' }, { value: 'code', label: '优惠码' }]} />,
+    <DatePicker.RangePicker key="dt" placeholder={['起始日', '结束日']} />,
+    <Button key="q" type="primary" icon={<SearchOutlined />}>查询</Button>,
+    <Button key="r" icon={<ReloadOutlined />}>重置</Button>,
+  ];
+  const columns = [
+    { title: '活动名称', dataIndex: 'name', width: 220,
+      render: (v, r) => <div><div style={{ fontWeight: 600 }}>{v}</div>
+        <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}><span className="lp-code">{r.id}</span></div></div> },
+    { title: '触发方式', dataIndex: 'trigger', width: 130,
+      render: (v, r) => v === 'code'
+        ? <div><StatusTag variant="sale">优惠码</StatusTag><div style={{ fontSize: 12, marginTop: 2 }}><span className="lp-code">{r.code}</span></div></div>
+        : <StatusTag variant="off">自动折扣</StatusTag> },
+    { title: '折扣内容', dataIndex: 'valueText', width: 150,
+      render: (v, r) => <div>{v}{r.cap !== '—' && <div style={{ fontSize: 12, color: '#D97706', marginTop: 2 }}>{r.cap}</div>}</div> },
+    { title: '适用商品', dataIndex: 'scope', width: 130 },
+    { title: '市场', dataIndex: 'market', width: 84,
+      render: v => <StatusTag variant="off">{v}</StatusTag> },
+    { title: '状态', dataIndex: 'status', width: 100,
+      render: v => v === 'paused'
+        ? <TipText label={<StatusTag variant="pending">已暂停</StatusTag>} tip={PAUSED_TIP} />
+        : <StatusTag variant={STATUS_MAP[v].variant}>{STATUS_MAP[v].label}</StatusTag> },
+    { title: <TipText label="已核销" tip={'该折扣有效核销次数(整单退款回滚后自动核减;部分退款不回滚)'} />, dataIndex: 'used', width: 90,
+      align: 'right', render: v => v.toLocaleString() },
+    { title: '生效时间', dataIndex: 'start', width: 160,
+      render: (v, r) => <div style={{ fontSize: 12 }}><div>{v}</div><div style={{ color: '#9CA3AF' }}>至 {r.end}</div></div> },
+    { title: '创建信息', key: 'created', width: 150,
+      render: (_, r) => <div style={{ fontSize: 12 }}><div>{r.createdBy}</div>
+        <div style={{ color: '#9CA3AF' }}>{r.createdAt}</div></div> },
+    /* 操作列(规范 A.1.1):按该行自身的操作数逐行判定——
+       ≤4 个 → 全部平铺;>4 个 → 前 3 个平铺、第 4 个起全部收进「更多」(可见元素恒为 4:3 按钮 + ⋯)。
+       排序优先级:详情 > 编辑 > 状态主操作(发布/暂停/恢复/结束) > 复制/操作日志 > 删除 */
+    { title: '操作', key: 'op', width: 260, fixed: 'right', render: (_, r) => {
+      const ops = [{ key: 'detail', label: '详情', onClick: () => go('promo-detail', r) }];
+      /* A5:进行中(active)不可直接编辑——须先暂停;ended 亦不可编辑 */
+      if (r.status !== 'ended' && r.status !== 'active') ops.push({ key: 'edit', label: '编辑', onClick: () => go('promo-edit', r) });
+      if (r.status === 'draft') ops.push({ key: 'start', label: '发布生效', onClick: () => setConfirm({ type: 'publish', rec: r }) });
+      if (r.status === 'active') ops.push({ key: 'pause', label: '暂停', onClick: () => setConfirm({ type: 'pause', rec: r }) });
+      if (r.status === 'paused') ops.push({ key: 'resume', label: '恢复上线', onClick: () => setConfirm({ type: 'resume', rec: r }) });
+      if (r.status === 'scheduled' || r.status === 'active' || r.status === 'paused')
+        ops.push({ key: 'end', label: '结束活动', onClick: () => setEndRec(r) });
+      /* A7:列表不再提供「操作日志」入口(详情页/编辑页仍有操作记录区) */
+      ops.push({ key: 'copy', label: '复制', onClick: () => setConfirm({ type: 'copy', rec: r }) });
+      /* A4:删除仅草稿可用——已结束活动挂着核销记录,不可删除 */
+      if (r.status === 'draft')
+        ops.push({ key: 'del', label: '删除', danger: true, onClick: () => setDelRec(r) });
+      const flat = ops.length <= 4 ? ops : ops.slice(0, 3);
+      const more = ops.length <= 4 ? [] : ops.slice(3);
+      const moreItems = [];
+      more.forEach(o => {
+        if (o.danger && moreItems.length) moreItems.push({ type: 'divider' });
+        moreItems.push({ key: o.key, label: o.label, danger: o.danger });
+      });
+      return <Space size={6}>
+        {flat.map(o => <Button key={o.key} size="small" danger={o.danger}
+          onClick={o.onClick || noop}>{o.label}</Button>)}
+        {more.length > 0 && <Dropdown trigger={['click']} menu={{ items: moreItems,
+          onClick: ({ key }) => { const o = more.find(x => x.key === key); if (o && o.onClick) o.onClick(); } }}>
+          <Button size="small" icon={<EllipsisOutlined />} /></Dropdown>}</Space>;
+    } },
+  ];
+  return <Card style={CARD_STYLE}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 18 }}>
+      <div><div style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>促销活动</div>
+        <div style={{ color: '#6B7280', fontSize: 13 }}>Amount off products —— 一个活动属于一个市场(A6);按商品/品类/品牌减价,支持自动折扣与优惠码</div></div>
+      <Space><Button icon={<DownloadOutlined />}>导出</Button>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => go('promo-create')}>新建折扣</Button></Space></div>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 18 }}>
+      {kpis.map((k, i) => <Kpi key={i} num={k.num} label={k.label} />)}</div>
+    <Space size={12} wrap style={{ marginBottom: 16 }}>{filters}</Space>
+    {mode === 'data' && <><Table rowKey="id" columns={columns} dataSource={DISCOUNTS} pagination={false}
+      styles={TABLE_STYLES} scroll={{ x: 'max-content' }} />
+      <CompactPagination total={DISCOUNTS.length} pageSize={10} /></>}
+    {mode === 'zero' && <EmptyZero onCta={() => go('promo-create')} />}
+    {mode === 'no-match' && <EmptyNoMatch onClear={() => setMode('data')} />}
+    {mode === 'error' && <EmptyError onRetry={() => setMode('data')} />}
+    <EmptyStateSwitcher mode={mode} setMode={setMode} />
+    <EndPromotionModal open={!!endRec} onClose={() => setEndRec(null)} record={endRec} />
+    <DeletePromotionModal open={!!delRec} onClose={() => setDelRec(null)} record={delRec} />
+    <ActionConfirmModal payload={confirm} onClose={() => setConfirm(null)} />
+  </Card>;
+}
+
+/* ===== 新建 / 编辑折扣表单 ===== */
+function DiscountFormPage({ go, isEdit, record }) {
+  const [trigger, setTrigger] = useState(isEdit && record ? record.trigger : 'auto');
+  const [valueType, setValueType] = useState(isEdit && record ? record.valueType : 'percentage');
+  const [scope, setScope] = useState('all');
+  const [minType, setMinType] = useState('none');
+  const [market, setMarket] = useState(isEdit && record ? (record.market === '香港' ? 'HK' : 'US') : 'US');
+  const [eligType, setEligType] = useState('all');
+  const [eligTags, setEligTags] = useState([]);
+  const [precheckOpen, setPrecheckOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);   // A2:商品 ID 粘贴导入
+  const mkt = MARKETS.find(m => m.code === market);
+
+  return <Card style={CARD_STYLE}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 6 }}>
+      <div><Breadcrumb items={[{ title: <a onClick={() => go('promo-list')}>促销活动</a> },
+        { title: isEdit ? '编辑折扣' : '新建折扣' }]} style={{ marginBottom: 8 }} />
+        <div style={{ fontSize: 20, fontWeight: 700 }}>{isEdit ? '编辑折扣' : '新建折扣'}</div>
+        <div style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>类型:Amount off products(按商品减价)</div></div>
+      <Button onClick={() => go('promo-list')}>返回列表</Button></div>
+
+    {/* 基本信息 */}
+    <div style={{ marginTop: 18, marginBottom: 24 }}>
+      <h4 className="lp-section">基本信息</h4>
+      <FormRow label="所属市场" required helper={isEdit ? '所属市场创建后锁定,不可更改' : '第一步先选市场(A6):所有金额按该市场币种录入,起止时间按该市场本地时区判定;创建后不可更改'}>
+        <Space size={12}>
+          <Select value={market} onChange={isEdit ? noop : setMarket} disabled={isEdit} style={{ width: 240 }}
+            options={MARKETS.map(m => ({ value: m.code, label: m.name + ' / ' + m.cur }))} />
+          <span style={{ fontSize: 12, color: '#6B7280' }}>金额以 {mkt.sym} 录入 · 按{mkt.tz}判定生效</span>
+        </Space></FormRow>
+      <FormRow label="活动名称" required>
+        <Input placeholder="如:夏季大促 · 箱包 8 折" style={{ maxWidth: 420 }}
+          defaultValue={isEdit && record ? record.name : ''} /></FormRow>
+      <FormRow label="触发方式" required helper={trigger === 'code'
+        ? '需买家在结算页输入优惠码才生效' : '命中适用商品即自动减价,无需输码'}>
+        <Radio.Group value={trigger} onChange={e => setTrigger(e.target.value)} options={[
+          { value: 'auto', label: '自动折扣' }, { value: 'code', label: '优惠码' }]} /></FormRow>
+      {trigger === 'code' && <FormRow label="优惠码" required helper={'优惠码全局唯一,不同活动不可重复;支持手动输入或系统随机生成;手动码防猜校验:长度≥8、字母数字混合、禁纯连续序列'}>
+        <Space><Input placeholder="如:WELCOME10" style={{ width: 240 }}
+          defaultValue={isEdit && record ? record.code : ''} />
+          <Button icon={<ReloadOutlined />}>随机生成</Button></Space></FormRow>}
+    </div>
+
+    {/* 折扣内容 */}
+    <div style={{ marginBottom: 24 }}>
+      <h4 className="lp-section">折扣内容</h4>
+      <FormRow label="折扣值类型" required>
+        <Radio.Group value={valueType} onChange={e => setValueType(e.target.value)} options={[
+          { value: 'percentage', label: '按百分比' }, { value: 'fixed', label: '固定金额' }]} /></FormRow>
+      {valueType === 'percentage'
+        ? <><FormRow label="折扣百分比" required>
+            <InputNumber min={1} max={100} step={1} addonAfter="% off" placeholder="如 20 表示打 8 折" style={{ width: 240 }} /></FormRow>
+          <FormRow label="最大优惠封顶" helper={'单件最多减免金额,防高价单减穿(资损防控);按所属市场币种(' + mkt.cur + '),留空=不封顶'}>
+            <InputNumber prefix={mkt.sym} min={0} placeholder="不封顶" style={{ width: 240 }} /></FormRow></>
+        : <FormRow label="固定减价金额" required helper={'按所属市场币种(' + mkt.cur + ')录入'}>
+            <InputNumber prefix={mkt.sym} min={0} placeholder="0.00" style={{ width: 240 }} /></FormRow>}
+    </div>
+
+    {/* 适用商品 */}
+    <div style={{ marginBottom: 24 }}>
+      <h4 className="lp-section">适用商品</h4>
+      <FormRow label="适用范围" required>
+        <Radio.Group value={scope} onChange={e => setScope(e.target.value)} options={[
+          { value: 'all', label: '全部商品' }, { value: 'category', label: '指定品类' },
+          { value: 'brand', label: '指定品牌' }, { value: 'tag', label: '指定商品标签' },
+          { value: 'collection', label: '指定 Collection' }, { value: 'listing', label: '指定商品' }]} /></FormRow>
+      {scope === 'category' && <FormRow label="选择品类" required>
+        <Select mode="multiple" placeholder="从商品域类目中选择" style={{ width: '100%', maxWidth: 560 }}
+          options={[{ value: 'bag', label: '箱包' }, { value: 'shoe', label: '鞋履' },
+            { value: 'watch', label: '腕表' }, { value: 'jewelry', label: '珠宝配饰' }]} /></FormRow>}
+      {scope === 'brand' && <FormRow label="选择品牌" required>
+        <Select mode="multiple" placeholder="从商品域品牌中选择" style={{ width: '100%', maxWidth: 560 }}
+          options={[{ value: 'gucci', label: 'Gucci' }, { value: 'lv', label: 'Louis Vuitton' },
+            { value: 'chanel', label: 'Chanel' }, { value: 'prada', label: 'Prada' }]} /></FormRow>}
+      {scope === 'tag' && <FormRow label="选择商品标签" required helper={'引用商品模块「标签管理」中的标签,可多选(命中任一标签即适用);标签的定义与打标归商品模块,营销侧仅引用不定义'}>
+        <Select mode="multiple" placeholder="从商品标签中选择" style={{ width: '100%', maxWidth: 560 }}
+          options={PRODUCT_TAGS} /></FormRow>}
+      {scope === 'collection' && <FormRow label="选择 Collection" required helper={'仅可选「' + mkt.name + '」市场下已上线(active)的 Collection,可多选(命中任一即适用);商品池由 Collection 模块维护(手动选品+规则选品),池内商品变化时命中范围实时跟随'}>
+        <Select mode="multiple" placeholder={'从「' + mkt.name + '」市场的 Collection 中选择'} style={{ width: '100%', maxWidth: 560 }}
+          options={COLLECTIONS.filter(c => c.market === mkt.name)} /></FormRow>}
+      {scope === 'listing' && <><FormRow label="选择商品" required helper={'按在售商品圈选;售出/下架后暂不可享、回到可售自动恢复,不会被移出活动'}>
+        <Space size={8}>
+          <Button icon={<PlusOutlined />}>从商品库选择商品</Button>
+          <Button icon={<UploadOutlined />} onClick={() => setImportOpen(true)}>按商品 ID 导入</Button>
+          <span style={{ fontSize: 12, color: '#6B7280' }}>已选 12 件</span>
+        </Space></FormRow>
+        <ProductIdImportModal open={importOpen} onClose={() => setImportOpen(false)} market={mkt.name} /></>}
+    </div>
+
+    {/* 使用条件 */}
+    <div style={{ marginBottom: 24 }}>
+      <h4 className="lp-section">使用条件</h4>
+      <div className="lp-note-sm" style={{ marginBottom: 12, marginLeft: 126 }}>
+        满额 / 满件是<strong>门槛</strong>,不是减免方式：达标后命中的<strong>每件</strong>商品各按折扣值减免。
+        「整单只减一次」属订单级折扣,本期不做。
+      </div>
+      <FormRow label="使用门槛" required>
+        <Radio.Group value={minType} onChange={e => setMinType(e.target.value)} options={[
+          { value: 'none', label: '无门槛' }, { value: 'amount', label: '满额可用' },
+          { value: 'quantity', label: '满件可用' }]} /></FormRow>
+      {minType === 'quantity' && <FormRow label="满件数量" required helper="全部市场统一件数门槛;**最小 2 件**——满 1 件等同无门槛,不符合业务预期;达标后命中的每件商品各减,非整单减一次">
+        <InputNumber min={2} step={1} addonAfter="件" placeholder="如 2" style={{ width: 200 }} /></FormRow>}
+      {minType === 'amount' && <FormRow label="满额门槛" required helper={'按所属市场币种(' + mkt.cur + ');达标后命中的每件商品各减,非整单减一次'}>
+        <InputNumber prefix={mkt.sym} min={0} placeholder="0.00" style={{ width: 200 }} /></FormRow>}
+      <Divider style={{ margin: '4px 0 16px' }} dashed />
+      <FormRow label="总使用次数" helper="所有买家累计可核销次数,达上限自动停止。留空=不限(资损防控)">
+        <InputNumber min={1} step={1} addonAfter="次" placeholder="不限" style={{ width: 200 }} /></FormRow>
+      <FormRow label="每人使用次数" helper="单个买家可核销次数,防多账号薅羊毛。留空=不限(资损防控)">
+        <InputNumber min={1} step={1} addonAfter="次/人" placeholder="不限" style={{ width: 200 }}
+          defaultValue={1} /></FormRow>
+    </div>
+
+    {/* 生效时间 */}
+    <div style={{ marginBottom: 24 }}>
+      <h4 className="lp-section">生效时间</h4>
+      <FormRow label="起止时间" required helper="按所属市场本地时区判定生效/失效">
+        <DatePicker.RangePicker showTime placeholder={['开始时间', '结束时间']} style={{ width: 380 }} /></FormRow>
+    </div>
+
+    {/* 适用用户(V1:全部/指定用户标签;新客为标签之一,由用户管理模块打标) */}
+    <div style={{ marginBottom: 24 }}>
+      <h4 className="lp-section">适用用户</h4>
+      <FormRow label="适用用户" required helper={'限定哪些用户可享本折扣(自动折扣与优惠码均受约束);标签由用户管理模块维护(含"新客"等),营销侧仅引用不定义'}>
+        <Radio.Group value={eligType} onChange={e => setEligType(e.target.value)} options={[
+          { value: 'all', label: '全部用户(默认)' }, { value: 'tag', label: '指定用户标签' }]} /></FormRow>
+      {eligType === 'tag' && <FormRow label="用户标签" required helper="引用用户管理模块已有标签,可多选(命中任一标签即适用);标签的定义与打标规则由用户管理模块负责">
+        <Select mode="multiple" placeholder="选择用户标签" value={eligTags} onChange={setEligTags}
+          style={{ width: '100%', maxWidth: 560 }} options={USER_TAGS} /></FormRow>}
+    </div>
+
+    {isEdit && <OpLog />}
+
+    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, padding: '16px 0',
+      borderTop: '1px solid #E5E7EB', marginTop: 8 }}>
+      <Button onClick={() => go('promo-list')}>取消</Button>
+      {!isEdit && <Button>存为草稿</Button>}
+      <Button type="primary" onClick={() => setPrecheckOpen(true)}>{isEdit ? '保存' : '保存并发布'}</Button></div>
+    <PriceCheckModal open={precheckOpen} onClose={() => setPrecheckOpen(false)}
+      onConfirm={() => { setPrecheckOpen(false); go('promo-list'); }} />
+  </Card>;
+}
+
+/* ===== 详情页 ===== */
+function PromotionDetailPage({ go, record }) {
+  const r = record || DISCOUNTS[0];
+  const [endOpen, setEndOpen] = useState(false);
+  const [delOpen, setDelOpen] = useState(false);
+  const redemptionCols = [
+    { title: '核销时间', dataIndex: 'at', width: 160 },
+    { title: '用户', dataIndex: 'user', width: 120, render: v => <span className="lp-code">{v}</span> },
+    { title: '订单号', dataIndex: 'order', width: 190, render: v => <span className="lp-code">{v}</span> },
+    { title: '优惠金额', dataIndex: 'amount', width: 110, align: 'right',
+      render: (v, row) => <span style={{ color: row.state === 'reverted' ? '#9CA3AF' : '#DC2626',
+        textDecoration: row.state === 'reverted' ? 'line-through' : 'none' }}>{v}</span> },
+    { title: <TipText label="状态" tip={'整单退款后核销自动回滚(次数-1、限次释放);部分退款不回滚不重算(D3 口径)'} />,
+      dataIndex: 'state', width: 100,
+      render: v => v === 'valid' ? <StatusTag variant="on">有效</StatusTag> : <StatusTag variant="off">已回滚</StatusTag> },
+  ];
+  const basicTab = <div>
+    <div className="lp-detail">
+      <span className="dl">活动 ID</span><span className="dv"><span className="lp-code">{r.id}</span></span>
+      <span className="dl">活动名称</span><span className="dv">{r.name}</span>
+      <span className="dl">触发方式</span><span className="dv">{r.trigger === 'code'
+        ? <>优惠码 <span className="lp-code">{r.code}</span></> : '自动折扣'}</span>
+      <span className="dl">状态</span><span className="dv"><StatusTag variant={STATUS_MAP[r.status].variant}>{STATUS_MAP[r.status].label}</StatusTag></span>
+      <span className="dl">折扣类型</span><span className="dv">{r.valueType === 'percentage' ? '按百分比' : '固定金额'}</span>
+      <span className="dl">折扣内容</span><span className="dv">{r.valueText}</span>
+      <span className="dl">最大优惠封顶</span><span className="dv" style={{ color: r.cap !== '—' ? '#D97706' : '#9CA3AF' }}>{r.cap}</span>
+      <span className="dl">适用用户</span><span className="dv">{r.eligText || '全部用户'}</span>
+      <span className="dl">适用商品</span><span className="dv">{r.scope}</span>
+      <span className="dl">所属市场</span><span className="dv"><StatusTag variant="off">{r.market}</StatusTag></span>
+      <span className="dl">每人限用</span><span className="dv">{r.perUser}</span>
+      <span className="dl">已核销次数</span><span className="dv">{r.used.toLocaleString()} 次</span>
+      <span className="dl">生效时间</span><span className="dv">{r.start} 至 {r.end}</span>
+      <span className="dl">创建信息</span><span className="dv">{r.createdBy} · {r.createdAt}</span>
+    </div>
+    <OpLog />
+  </div>;
+  const redemptionTab = <div>
+    <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+      <Kpi num={r.used.toLocaleString()} label="累计有效核销" />
+      <Kpi num="1" label="已回滚(退款)" />
+      <Kpi num="$1,247.50" label="累计优惠金额(数据来自订单)" />
+    </div>
+    <Space size={8} wrap style={{ marginBottom: 12 }}>
+      <Select size="small" defaultValue="" style={{ width: 130 }} options={[
+        { value: '', label: '全部状态' }, { value: 'valid', label: '有效' }, { value: 'reverted', label: '已回滚' }]} />
+      <DatePicker.RangePicker size="small" placeholder={['开始日期', '结束日期']} />
+      <Button size="small" icon={<SearchOutlined />}>查询</Button>
+      <Button size="small" icon={<DownloadOutlined />}>导出</Button></Space>
+    <Table rowKey="i" size="small" pagination={false} styles={TABLE_STYLES}
+      columns={redemptionCols} dataSource={REDEMPTIONS} />
+    <CompactPagination total={REDEMPTIONS.length} pageSize={10} />
+    <div className="lp-note-sm" style={{ marginTop: 12 }}>
+      核销层仅计数;分摊金额由营销计算、随订单落 order_discount。整单退款触发核销回滚(次数-1、限次释放),部分退款不回滚不重算。</div>
+  </div>;
+  return <Card style={CARD_STYLE}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 18 }}>
+      <div><Breadcrumb items={[{ title: <a onClick={() => go('promo-list')}>促销活动</a> }, { title: '活动详情' }]}
+        style={{ marginBottom: 8 }} />
+        <div style={{ fontSize: 20, fontWeight: 700 }}>{r.name}</div>
+        <div style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>
+          <span className="lp-code">{r.id}</span> · Amount off products</div></div>
+      <Space>
+        {r.status !== 'ended' && r.status !== 'active' && <Button onClick={() => go('promo-edit', r)}>编辑</Button>}
+        {(r.status === 'active' || r.status === 'paused') && <Button danger onClick={() => setEndOpen(true)}>结束活动</Button>}
+        {r.status === 'draft' && <Button danger onClick={() => setDelOpen(true)}>删除</Button>}
+        <Button onClick={() => go('promo-list')}>返回列表</Button></Space></div>
+    <Tabs defaultActiveKey="basic" items={[
+      { key: 'basic', label: '基本信息', children: basicTab },
+      { key: 'redemption', label: '核销记录', children: redemptionTab }]} />
+    <EndPromotionModal open={endOpen} onClose={() => setEndOpen(false)} record={r} />
+    <DeletePromotionModal open={delOpen} onClose={() => setDelOpen(false)} record={r} />
+  </Card>;
+}
+
+/* ===== App ===== */
+function App() {
+  const [currentPage, setCurrentPage] = useState('promo-list');
+  const [record, setRecord] = useState(null);
+  const go = (key, rec) => { if (rec !== undefined) setRecord(rec); setCurrentPage(key); window.scrollTo(0, 0); };
+  const activeKey = currentPage.startsWith('monitor') ? 'monitor' : 'promo';
+  const subLabel = (text, key) => <span style={{ fontWeight: activeKey === key ? 600 : 400 }}>{text}</span>;
+  /* 待处理告警从列表页 Alert 条改为菜单角标引导(角标为 0 时不显示)
+     价格监控提为一级菜单(与「营销中心」分组平级),营销中心分组保留、当前仅含促销活动 */
+  const pendingAlerts = ALERTS.filter(a => a.status === 'pending').length;
+  const menuItems = [
+    { key: 'marketing', icon: <GiftOutlined />, label: '营销中心',
+      children: [
+        { key: 'promo', icon: <TagsOutlined />, label: subLabel('促销活动', 'promo') },
+      ] },
+    { key: 'monitor', icon: <AlertOutlined />,
+      label: <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 4 }}>
+        {subLabel('价格监控', 'monitor')}
+        <Badge count={pendingAlerts} style={{ backgroundColor: '#DC2626' }} /></span> },
+  ];
+  const crumbMap = {
+    'promo-list': '促销活动', 'promo-create': '促销活动 / 新建折扣',
+    'promo-edit': '促销活动 / 编辑折扣', 'promo-detail': '促销活动 / 活动详情',
+    'monitor-list': '价格监控',
+  };
+  return <ConfigProvider theme={looplyTheme}>
+    <Layout style={{ height: '100vh' }}>
+      <Layout.Header style={{ borderBottom: '1px solid #E5E7EB', display: 'flex', alignItems: 'center' }}>
+        <img src={LOGO_SRC} alt="Looply" style={{ height: 32, display: 'block' }} />
+        <div style={{ width: 1, height: 20, background: '#E5E7EB', margin: '0 16px' }} />
+        <span style={{ fontSize: 14, fontWeight: 500, color: '#6B7280' }}>营销管理后台</span>
+        <span style={{ marginLeft: 'auto', color: '#9CA3AF', fontSize: 13 }}>{crumbMap[currentPage]}</span>
+      </Layout.Header>
+      <Layout>
+        <Layout.Sider width={220} theme="light" style={SIDER_STYLE}>
+          <Menu mode="inline" items={menuItems} selectedKeys={[activeKey]} defaultOpenKeys={['marketing']}
+            style={{ borderInlineEnd: 'none' }}
+            onClick={({ key }) => go(key === 'monitor' ? 'monitor-list' : 'promo-list')} /></Layout.Sider>
+        <Layout.Content style={{ padding: 28, overflow: 'auto' }}>
+          {currentPage === 'promo-list' && <PromotionListPage go={go} />}
+          {currentPage === 'promo-create' && <DiscountFormPage go={go} isEdit={false} record={null} />}
+          {currentPage === 'promo-edit' && <DiscountFormPage go={go} isEdit={true} record={record} />}
+          {currentPage === 'promo-detail' && <PromotionDetailPage go={go} record={record} />}
+          {currentPage === 'monitor-list' && <MonitorListPage go={go} />}
+        </Layout.Content>
+      </Layout>
+    </Layout>
+  </ConfigProvider>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
