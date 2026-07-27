@@ -104,20 +104,24 @@ looply 作为面向美国+香港市场的二手奢侈品 B2C 平台(三方+自�
 
 | resource_type | display_name | domain | group_code | key_type | storage_mode | 配置粒度 |
 |---|---|---|---|---|---|---|
-| `page-marketing` | 营销-页面文案 | 前端页面 | `marketing` | `static_content` | `language_pack` | 页面级(即 A 段静态文案) |
-| `promotion` | 营销-促销活动 | 前端页面 | `marketing` | `entity_field` | `translation_table` | 活动实例级 |
-| `promotion_code` | 营销-优惠码 | 前端页面 | `marketing` | `entity_field` | `translation_table` | 码实例级(判不翻译,仅登记) |
+| `page-promo` | 营销-页面文案 | 前端页面 | `promo` | `static_content` | `language_pack` | 页面级(即 A 段静态文案) |
+| `promotion` | 营销-促销活动 | 前端页面 | `promo` | `entity_field` | `translation_table` | 活动实例级 |
+| `promotion_code` | 营销-优惠码 | 前端页面 | `promo` | `entity_field` | `translation_table` | 码实例级(判不翻译,仅登记) |
 
-**B-3 「营销」聚合组声明(resource_group)**
+**B-3 「营销活动」聚合组声明(resource_group)**
 
-上述 3 张卡按 v3.2 声明为**一个页面聚合组**,避免零散扔在"前端页面"域里运营认不出同属营销:
+上述 3 张卡按 v3.2 声明为**一个聚合组**,避免零散扔在"前端页面"域里运营认不出同属营销:
 
-- **group_code**:`marketing` ｜ **group_name**:营销活动 ｜ **domain**:前端页面 ｜ **成员数**:3
+- **group_code**:`promo` ｜ **group_name**:营销活动 ｜ **domain**:前端页面 ｜ **成员数**:3
 - 数据层仍是 3 张独立卡片(各自建卡、各自注册字段);聚合只发生在导航展示层——多语言后台显示一张聚合卡 + 3 个分组子导航
+
+> **为什么用 `promo` 而不是 `marketing`**:①**避免与 market(主数据)模块混淆**——`marketing` 与 `market` 只差两个字母,运营在翻译中心的导航里极易看错、开发在配置时也容易串;②与既有惯例一致——商详用的是 `pdp` 这类**短缩写**,不是模块全名。`promo` 无歧义且足够短。
+>
+> **与 resource_type 的层级区分**:`promo` 是**聚合组**(导航层),`promotion` / `promotion_code` 是**卡片**(数据层),两者不同层不冲突。
 
 | sort | 成员(子导航名) | resource_type |
 |---|---|---|
-| 1 | 页面文案 | `page-marketing` |
+| 1 | 页面文案 | `page-promo` |
 | 2 | 促销活动 | `promotion` |
 | 3 | 优惠码 | `promotion_code` |
 
