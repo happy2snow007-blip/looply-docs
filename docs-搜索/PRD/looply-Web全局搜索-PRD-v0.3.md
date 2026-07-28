@@ -5,28 +5,24 @@
 > 参考材料：`looply-全局搜索-核心逻辑-Checklist-v0.1.md`  
 > UI 评审版：`prototypes/search/looply-global-search-ui-review-v0.1.html`  
 > 开发评审版：`prototypes/search/looply-global-search-dev-review-v0.1.html`  
+> 统一交互 Demo：`prototypes/search/looply-global-search-web-demo-v0.1.html`  
 > PC Web 原型：`prototypes/search/looply-global-search-pc-web-demo-v0.1.html`  
 > Mobile Web 原型：`prototypes/search/looply-global-search-mobile-web-demo-v0.1.html`
 
-> 本文是 Web V1 的现行规则；与历史搜索子模块 PRD 或早期 Demo 不一致时，以本文和最新 Checklist 的已确认项为准。
+> 本 PRD 是 Web V1 开发与测试基线；Checklist 保留决策过程和待确认项，Demo 应与本 PRD 保持一致。
 
 ## 1. 产品范围与共用原则
 
 ### 1.1 V1 范围
 
-- 全局搜索是 Web 端公共能力，可由 Home、Shop、Collection、Favorites 等页面接入。
-- V1 同时覆盖 PC Web 和 Mobile Web。
+- 全局搜索是 Web 端公共能力，由 Home、Shop、Collection 和 Favorites 接入。
+- V1 覆盖 PC Web 和 Mobile Web；App 搜索不属于本次范围。
 - PC Web 与 Mobile Web 共用搜索业务逻辑、数据来源和服务能力，分别定义页面布局与终端交互。
-- 本 PRD 和 V1 交付仅定义 Web 搜索；App 搜索在后续 App 项目启动时单独讨论和设计。
 
-### 1.2 身份规则
+### 1.2 登录状态与数据归属
 
-- 游客和登录用户均可完整使用搜索入口、搜索发现、搜索执行、排序和筛选，不要求先登录。
-- 游客和登录用户使用相同的搜索召回、结果处理及 Popular content 规则。
-- 身份差异只影响 Recent searches 的保存位置、账号跨设备同步，以及 Wishlist 等主体数据的归属。
-- 未登录时，Recent searches 按当前 `anonymous_id` 读取和写入；登录后，按当前 `user_id` 读取和写入。
-- 登录、退出、切换账号或匿名主体变化后，停止展示旧主体的 Recent searches，并按新主体重新读取；旧请求和缓存不得进入新主体页面。
-- 游客在搜索结果页触发收藏时，复用统一 Wishlist 规则；基于当前匿名主体写入，不触发登录硬拦截。
+- 搜索不要求登录。游客与登录用户使用相同的搜索执行、召回、结果处理、Popular content、排序和筛选规则。
+- 登录状态只影响搜索相关用户数据的归属：Recent searches 和 Search event 记录到当前 `anonymous_id` 或 `user_id`；Recent searches 的登录合并、跨设备同步和主体切换按第 4.5 节执行。
 
 ### 1.3 搜推能力边界
 
@@ -36,6 +32,7 @@
 
 ### 1.4 多语言内容归属
 
+- Web 搜索的 locale 范围继承当前 Web 全局 locale 范围。
 - 本模块的静态 UI 文案统一接入 Web i18n 能力。
 - 用户输入的关键词、Recent searches 中的普通关键词及 Popular searches 不自动翻译；Popular searches 的数据维度按第 5.3 节执行。
 - 品牌、品类和商品名称不由搜索模块单独维护翻译；页面通过业务对象 ID 读取品牌域、品类域和商品域在当前 locale 下的名称，并复用各业务域统一的缺失翻译兜底。
@@ -44,37 +41,37 @@
 
 ### 2.1 搜索入口共用规则
 
-- Home、Shop、Collection、Favorites 等来源页接入同一全局搜索能力；打开搜索时传递来源页，搜索发现页和结果页返回时回到该来源页。
-- PC Web Header 仅展示搜索图标。
-- Mobile Web 首页展示入口型搜索框，搜索框内轮播底纹词，右侧展示搜索图标；V1 冷启动阶段的底纹词与当前市场和 locale 的 Popular searches 共用同一份列表和顺序。
-- 点击 Mobile Web 首页搜索框进入全屏搜索页；全屏搜索页输入框保持空值，并沿用点击当下的底纹词作为当前 placeholder。
-- Mobile Web 首页搜索框为入口型控件，不接收真实输入；当前轮播词有效时，点击右侧搜索图标直接以该词提交搜索。轮播词缺失或不可用时不发起搜索，展示轻量 Toast `Enter what you're looking for.`，并保持当前页面。
-- Mobile Web Favorites 页顶部展示全局搜索入口框；点击后进入同一全屏搜索页。该入口搜索全站商品，不筛选当前 Wishlist 或 Recently Viewed。
+- Home、Shop、Collection 和 Favorites 共用搜索执行、Sug、结果页、Recent searches 和异常处理规则。退出未提交的搜索状态时恢复来源页及原状态；结果页返回复用 Web 全局导航规则。
+- PC Web 通过 Header 搜索图标打开搜索层。
+- Mobile Web 的 Home、Shop 和 Favorites 使用入口型搜索框，轮播词按第 5.2 节执行。点击入口后进入全屏搜索发现页；有效轮播词作为当前 placeholder，否则使用 `Search by brand or item`。Favorites 入口搜索全站商品，不限定当前 Wishlist 或 Recently Viewed。
+- Home 右侧同时展示搜索图标：存在有效轮播词时直接提交该词；展示固定 placeholder 时进入全屏搜索页，不发起搜索或展示 Toast。
+- Home、Shop 和 Favorites 有轮播词缓存时首屏直接展示；无缓存加载中、空数据、失败或词条不可用时展示固定 placeholder。加载成功后切换为第一条有效词并开始轮播。
+- Mobile Web 点击 Collection Header 的搜索入口后，当前 Header 切换为内联搜索态，自动聚焦并唤起键盘，使用固定 placeholder `Search by brand or item`。空输入时保留原商品列表、筛选、排序和滚动位置，不展示搜索发现内容。
 
 ### 2.2 搜索发现页面形态
 
 - PC Web 点击 Header 搜索入口后，在 Header 下方展开搜索层；未输入时按单列纵向顺序展示 Recent searches 和 Popular searches。
 - PC Web 搜索层固定吸附在全局导航栏下方；搜索层内容超出可视高度时，输入框保持可见，Recent searches 和 Popular searches 在搜索层内部滚动。
-- Mobile Web 使用全屏搜索页；未输入时按顺序展示 Recent searches、Popular searches、Popular brands 和 Popular categories。
+- Mobile Web 的 Home、Shop 和 Favorites 使用全屏搜索发现页；未输入时按顺序展示 Recent searches、Popular searches、Popular brands 和 Popular categories。
 - 当前没有 Recent searches 时隐藏整个模块，后续内容自动上移；PC Web 中 Popular searches 直接承接搜索框下方的内容位置。
 
 ### 2.3 搜索输入状态
 
-- PC Web 搜索输入框为空时展示固定提示文案 `Search by brand or item`；Mobile Web 搜索输入框为空时展示从首页带入的当前底纹词 placeholder。页面同时展示当前终端对应的搜索发现内容。
-- 用户开始输入真实内容后，隐藏搜索发现内容，并以当前输入请求 Sug；输入变化时只展示与最新输入对应的 Sug 状态和结果。
-- Sug 请求中、正常返回、空结果和失败时的用户可见状态按第 3 章执行，以上状态均不阻止用户直接提交当前输入。
-- 用户清空输入后，隐藏 Sug 并恢复搜索发现内容；之前输入对应的迟到结果不得重新覆盖搜索发现内容。
-- PC Web 搜索层和 Mobile Web 全屏搜索页提交真实输入时，先去除首尾空格并将连续空格归一；处理后为空则不发起搜索，展示轻量 Toast `Enter what you're looking for.`，并保留当前页面和搜索发现内容。
+- PC Web 输入框使用固定 placeholder `Search by brand or item`；Mobile Web 全屏搜索页的初始 placeholder 按第 2.1 节的入口规则执行，Collection 内联搜索使用固定 placeholder。各入口的输入框初始保持空值。
+- 用户开始输入有效真实内容后，隐藏搜索发现内容，并以当前输入请求 Sug；输入变化时只展示与最新输入对应的 Sug 状态和结果。
+- 用户清空输入后隐藏 Sug，并按来源页恢复第 2.1 节定义的空输入状态；Collection 继续保留原页内容和位置，不转为搜索发现页。迟到的 Sug 结果不得覆盖当前状态。
+- PC Web 搜索层、Mobile Web 全屏搜索页和 Collection 内联搜索先对输入执行 Unicode 规范化、去除首尾空格并将连续空格归一。处理后的内容必须至少包含一个 Unicode 字母或数字；为空、纯空格、纯标点或仅包含其他非字母数字字符时，不请求 Sug、不发起搜索，展示轻量 Toast `Please enter a brand or item.`，并保留当前搜索状态。包含字母或数字的词可以同时包含标点，例如 `A.P.C.`、`M&M`。该 Toast 不用于 Mobile Web 首页固定 placeholder 状态。
 
 ### 2.4 打开与退出
 
-- 打开搜索发现层后自动聚焦搜索输入框；Mobile Web 同时唤起系统键盘。
+- 打开 PC Web 搜索层、Mobile Web 全屏搜索页或 Collection 内联搜索态后，自动聚焦搜索输入框；Mobile Web 同时唤起系统键盘。
 - Mobile Web 中，历史和 Popular content 保留为键盘上方的可滚动内容；用户收起键盘后可完整浏览。
 - PC Web 支持按键盘 `Enter` 或点击搜索框内的搜索图标提交当前输入。
-- Mobile Web 全屏搜索页顶部由返回按钮、搜索框和搜索图标组成；点击搜索图标或系统键盘 `Search` 使用相同规则提交。存在有效输入时提交当前输入；未输入或仅输入空格时按第 2.3 节展示 Toast。
+- Mobile Web 全屏搜索页顶部由返回按钮、搜索框和搜索图标组成；Collection 内联搜索的搜索图标放在输入框内右侧。两处点击搜索图标或系统键盘 `Search` 时使用相同提交规则：有有效输入时提交当前输入，无有效输入时按第 2.3 节展示 Toast。
 - PC Web 支持按 `Esc` 或点击搜索层外遮罩关闭搜索发现层。
-- Mobile Web 点击顶部返回按钮或触发浏览器返回时，关闭全屏搜索页并返回来源页。
-- 退出时直接清空未提交输入，不弹出确认；下次打开时重新进入搜索发现初始状态。
+- Mobile Web 点击顶部返回按钮或触发浏览器返回时，关闭全屏搜索页并恢复进入搜索前的页面及状态。
+- Collection 内联搜索态点击返回时，恢复 Collection 原 Header，并保留原商品列表、筛选、排序和滚动位置。
+- 退出时清空未提交输入，不弹出确认；下次打开时按来源页进入第 2.1 节定义的初始状态。
 
 ### 2.5 搜索发现模块状态
 
@@ -84,12 +81,11 @@
 - 没有可用缓存且服务返回空数据或请求失败时，隐藏对应模块，后续模块自动上移。
 - Recent searches 缓存按游客域或登录账号隔离；Popular searches 和 Popular brands 缓存按已确认的市场及 locale 维度隔离。登录、退出、切换账号、市场或 locale 后，不展示上一身份或上一语境的缓存内容。
 - 单个或多个搜索发现模块不可用时，搜索框、手动输入、输入联想及其他成功模块继续正常使用。
-- 只有搜索页公共框架和关键公共依赖均不可用时，才展示整页错误状态。
+- 只有搜索页公共框架、关键公共依赖或页面全部内容不可用时，才展示整页错误状态。
 
 ## 3. 输入联想
 
-- 搜索页面接入现有 Sug 服务，Web 前端按本章规则实现联想内容的展示与状态处理。
-- Sug 候选来源、数量、匹配和相关性排序由现有搜推方案维护。Sug 服务返回一份最终有序列表；Web 前端不对候选分组，也不重新排序。
+- Sug 候选来源、数量、匹配和相关性排序由现有搜推方案维护。Web 按服务返回顺序展示单列候选，不分组或重排。
 
 | 状态 | 触发条件 | 用户可见处理 |
 |---|---|---|
@@ -99,6 +95,7 @@
 | 请求失败 | Sug 请求失败或服务不可用 | 保留当前输入，静默收起联想区域，搜索发现内容继续隐藏；不展示错误或重试入口，用户可继续输入或直接提交当前输入。 |
 
 - 用户点击 Sug 后，提交对应搜索。
+- Collection 有效输入后在当前页面 Header 下展示同一 Sug；提交当前输入或 Sug 后进入全局搜索结果页。
 
 ## 4. Recent searches 与 Search event
 
@@ -116,11 +113,11 @@
 以下行为真正发起搜索后，生成或更新 Recent searches：
 
 - 手动输入并提交关键词。
-- 点击 Mobile Web 首页搜索图标并提交当前轮播词。
+- 点击 Mobile Web 首页搜索图标并成功提交当前有效轮播词；固定 placeholder 状态下进入全屏搜索页不生成记录。
 - 点击输入联想。
 - 点击 Popular searches、Popular brands 或 Popular categories。
 - 点击已有 Recent searches；对应记录更新时间并移动到第一位。
-- 点击搜推返回的纠错词、推荐词，或无结果状态中的相关品牌、品类入口。
+- 点击搜推返回的纠错词或推荐词。
 
 搜索结果为 0 或搜索请求失败时仍记录。仅打开搜索、输入但未提交或直接退出时不记录。
 
@@ -158,6 +155,7 @@
 每次实际提交搜索时单独生成 Search event；该事件与 Recent searches 分别记录，不受其数量上限、去重或覆盖影响。
 
 - 搜索结果为 0 或搜索请求失败时仍生成 Search event，并记录本次结果状态。
+- 登录用户的 Search event 同步失败时进入绑定原 `user_id` 的待同步队列；网络恢复、页面重新可见或同一账号再次登录时重试，不转为游客或其他账号的事件。
 - 刷新结果页、打开分享链接及浏览器前进或后退触发的状态恢复不属于新的搜索提交，不重复生成 Recent searches 或 Search event。
 
 ## 5. Popular content
@@ -192,12 +190,12 @@
 - 榜单不按 PC Web 与 Mobile Web 分别计算；符合市场和语言规则的 Web 有效行为统一参与计算。
 - 真实榜单为空、过期、生成失败或没有有效结果时，服务端自动回退种子清单。
 - 终端只消费最终有序结果，不判断数据来自种子清单还是真实榜单。
-- V1 冷启动阶段，Mobile Web 首页底纹词与搜索发现页 Popular searches 共用同一份最终列表和顺序；首页不单独计算或维护另一套词表。
+- V1 冷启动阶段，Mobile Web 的 Home、Shop、Favorites 入口轮播词与搜索发现页 Popular searches 共用同一份最终列表和顺序；三个入口不分别计算或维护独立词表。
 
 ### 5.3 市场与多语言
 
 - Popular searches 与 Popular brands 请求携带当前 `market_id` 和 `locale`。
-- Popular searches 按 `market_id + locale` 分别维护种子清单和真实榜单；例如美国市场的 `US + en-US` 与 `US + es-US` 使用不同的热门词榜。
+- Popular searches 按 `market_id + locale` 分别维护种子清单和真实榜单。
 - 用户切换 locale 后，重新读取新 `market_id + locale` 对应的 Popular searches。
 - 当前 `market_id + locale` 的真实榜单无有效数据时，回退到同一 `market_id + locale` 的种子清单；不使用其他 locale 的榜单替代，也不对热门词进行机器翻译。
 - Popular brands 按 `market_id` 使用统一排名，不按 locale 分别计算；服务端返回 10 个有序品牌 ID，品牌名称读取当前 locale 对应名称，图片复用品牌已有图片。
@@ -222,22 +220,20 @@ V1 支持通过以下业务对象搜索商品：
 ### 6.2 市场与 locale
 
 - 每次搜索使用当前 `market_id`、渠道、locale 和展示货币作为上下文。
-- 搜索结果和关键词无结果下的 `You May Also Like` 仅包含当前市场可见、渠道 listing 为 `active` 且可售的商品；Sold Out、下架及其他不可公开状态直接排除，不进入结果数量、排序、筛选候选数量或分页。
+- 搜索结果仅包含当前市场可见、渠道 listing 为 `active` 且可售的商品；Sold Out、下架及其他不可公开状态直接排除，不进入结果数量、排序、筛选候选数量或分页。
 - locale 控制搜索词处理、输入联想及品牌、品类和商品名称的展示语言。
 - 展示货币只影响价格显示，不影响召回和排序。
 
 ### 6.3 结果页公共信息
 
-- 从搜索发现页提交搜索后，关闭搜索发现层并进入搜索结果页。
+- 从统一搜索输入层提交搜索后，关闭当前搜索层并进入搜索结果页。
 - PC Web 搜索结果页保留全局 Header、导航栏和搜索图标，不增加结果页第二套返回按钮、可编辑搜索框或 `Search` 按钮；点击 Header 搜索图标后，在导航栏下方展开搜索层，提交新词后替换当前结果。
 - Mobile Web 结果页顶部提供返回按钮、当前搜索词入口框和搜索图标。点击入口框或搜索图标后，打开统一全屏搜索层并带入当前搜索词；结果页本身不直接编辑搜索词或展示 Sug。
 - 全屏搜索层打开后自动聚焦输入框，用户修改内容时按第 3 章展示 Sug；关闭或返回时保留原搜索结果、排序、筛选和滚动位置，不生成新的 Recent searches 或 Search event。
 - 用户在全屏搜索层提交新搜索后，关闭搜索层并用新结果替换当前结果；新搜索使用默认排序和未筛选状态，并按普通搜索提交规则生成 Recent searches 与 Search event。
-- Mobile Web 点击结果页返回按钮时，直接返回发起搜索的来源页。
+- Mobile Web 点击结果页返回按钮时，复用 Web 全局导航规则。
 - 结果信息按 `Results for “{搜索词}”, {结果数量} items` 展示，并提供排序、筛选入口。
-- PC Web 商品列表直接复用 Collection 的统一商品卡组件及字段、价格、折扣和收藏规则；搜索模块只传入已过滤的可售结果及排列顺序，不单独裁剪或新增卡片信息。
-- Mobile Web 商品列表直接复用 Collection 的移动端双列商品卡组件及字段、价格、折扣和收藏规则；搜索模块只传入已过滤的可售结果，不展示 Sold Out 卡片。
-- Mobile Web 商品列表使用双列统一商品卡布局。
+- PC Web 与 Mobile Web 分别复用 Collection 对应终端的商品卡、字段、价格、折扣和收藏规则；Mobile Web 使用双列布局。搜索模块只传入已过滤的可售结果及排列顺序，不单独裁剪或新增卡片信息。
 - 仅当搜推服务返回纠错词或推荐词时展示轻量提示；服务未返回时不占位。
 - 系统不自动替换当前搜索词或重新搜索；用户点击纠错词或推荐词后才提交新搜索。
 
@@ -256,25 +252,18 @@ V1 支持通过以下业务对象搜索商品：
 
 **筛选**
 
-- 搜索接口随当前结果返回可用筛选维度、各维度候选值及对应结果数量；前端不根据当前已加载商品自行统计。
-- PC Web 与 Mobile Web 使用同一份接口返回的有序筛选维度；两端均不由前端自行补充、删除或重新排序。
-- Collection 提供统一筛选维度定义、展示组件和交互规则；搜索接口返回的数据决定当前搜索结果页实际展示哪些维度、候选值和数量。
-- 筛选采用非收缩候选项模型：本次搜索词对应的筛选维度和候选值在筛选过程中保持稳定；选择一个维度后，其他维度及其候选值不因当前组合无结果而消失。
-- 用户调整筛选后，各候选值的结果数量随当前条件更新；数量为 0 的未选候选值保留展示但置灰。已选候选值始终保留，供用户取消。
-- 用户提交新搜索词，或切换 `market_id`、渠道、locale 后，使用新搜索响应重新确定筛选维度、候选值和数量。
-- V1 核心筛选维度为 Category、Brand、Condition 和 Price；搜索接口未返回有效候选值的维度不展示。
-- Series、Color、Material、Size、Tag 等其他维度从 Collection 全局筛选维度池复用，仅在搜索接口返回有效候选值时展示。
-- 筛选维度顺序以搜索接口返回顺序为准；各维度的展示形态和交互样式复用 Collection 全局筛选定义，搜索模块不维护独立样式。
-- 各筛选组的默认展开与折叠、长选项列表的组内搜索及查看更多等交互，复用 Collection 统一筛选组件的默认规则。
+- 搜索接口返回有序的筛选维度、候选值及对应数量。PC Web 与 Mobile Web 使用同一份响应；前端不根据已加载商品自行统计、补充、删除或重排。
+- 展示维度从 Collection 全局筛选维度池中取得；Category、Brand、Condition 和 Price 为 V1 核心维度，Series、Color、Material、Size、Tag 等其他维度仅在接口返回有效候选值时展示。维度样式、默认展开收起、组内搜索及查看更多等交互复用 Collection 组件规则。
+- 筛选采用非收缩候选项模型：本次搜索内候选集合保持稳定，只更新数量；数量为 0 的未选项保留但置灰，已选项保留供取消。提交新搜索词或切换 `market_id`、渠道、locale 后，按新响应重建候选集合。
 - 维度间使用 AND，同一维度多值使用 OR。
-- 用户应用筛选后，前端将当前搜索条件和已选筛选提交给搜索接口，并使用最新响应刷新商品结果、结果总数及各候选值数量；不得因最新数量为 0 删除本次搜索已有的筛选候选值。
+- 应用筛选后，使用最新响应刷新商品、结果总数及候选值数量。
 - PC Web 直接复用 Collection 的 240px 左侧筛选栏、维度展示样式、展开收起、内部滚动和即时筛选规则；按接口顺序展示全部有效筛选维度，结果数量和 `Sort By` 保留在搜索结果区顶部。
 - Mobile Web 直接复用 Collection 的移动端横向筛选栏和完整 Filter 抽屉组件：横向栏固定展示 `Filter`、`Sort By`，其后按接口顺序展示全部有效筛选维度，超出屏幕时横向滑动；Filter 抽屉按同一顺序展示同一套完整维度，用户点击 `Apply` 后应用。
-- Mobile Web Filter 抽屉复用 Collection 的宽度、维度展示形态、Reset、`Apply · N items`、点击右侧露出区关闭及筛选状态联动规则。
+- Mobile Web Filter 抽屉复用 Collection 的宽度、Reset、`Apply · N items`、点击右侧露出区关闭及状态联动规则。
 - Mobile Web 筛选后的预估结果数为 0 时，`Apply` 按钮置灰并展示 `No items match`；用户需调整或重置筛选后再应用。
+- 已应用的筛选条件在刷新、分享 URL 恢复、结果数据变化或服务端实际返回 0 时，进入筛选后无结果状态并提供 `Clear filters`。
 - 搜索结果页不复用 Collection 的图文筛、Collection 运营配置的快筛、Banner 及其专属滚动交互。
 - 切换排序或应用筛选后，商品列表回到顶部。
-- 提交新搜索词时清除旧筛选。
 
 ### 6.5 终端加载差异
 
@@ -286,14 +275,16 @@ V1 支持通过以下业务对象搜索商品：
 
 | 状态 | 页面处理 |
 |---|---|
-| 首次加载 | 商品列表区域展示统一商品列表骨架屏，保留当前终端的结果页顶部和页面框架。 |
-| 首次请求失败 | 结果区域展示加载失败提示和 `Try again`，保留当前搜索词、排序与筛选条件；不展示 `No results` 或推荐商品。点击重试后按原条件重新请求。 |
+| 首次加载 | 结果信息区仅展示 `Results for “{query}”`，暂不展示结果数量；商品列表区域展示统一商品列表骨架屏，保留当前终端的结果页顶部和页面框架。 |
+| 首次请求失败 | 结果信息区仅展示 `Results for “{query}”`，不展示结果数量；结果区域展示加载失败提示和 `Try again`，保留当前搜索词、排序与筛选条件，不展示 `No results` 或推荐商品。点击重试后按原条件重新请求；成功返回后补充 `{结果数量} items`。 |
 | 下一批加载失败 | 保留已加载商品，在列表底部或 `View More` 区域提供重试。 |
-| 搜索词无结果 | 保留原搜索词并显示 `Results for “{query}”, 0 items`；主体展示 `No results for “{query}”` 和修改搜索建议，其下展示独立的 `You May Also Like` 推荐商品区。PC Web 提供 `Search again` 打开搜索层；Mobile Web 通过顶部搜索入口重新搜索，不重复增加按钮。 |
-| 筛选后无结果 | 明确提示当前筛选组合没有匹配商品，并提供 `Clear filters`；保留筛选入口，不展示关键词无结果文案或 `You May Also Like`。 |
+| 搜索词无结果 | 保留原搜索词并显示 `Results for “{query}”, 0 items`；顶部空态标题为 `We couldn’t find any matches`，说明为 `Try searching for a different brand or item.`，不展示 `Search again`。空态下方展示 `You May Also Like` 推荐商品模块；用户通过结果页已有搜索入口重新搜索。 |
+| 筛选后无结果 | 明确提示当前筛选组合没有匹配商品，并提供 `Clear filters`；保留筛选入口，不展示关键词无结果文案。 |
 
-- 关键词无结果时隐藏结果排序和筛选控件；`You May Also Like` 与搜索结果分区展示，不计入搜索结果数量，也不应用本次搜索的排序和筛选条件。
-- `You May Also Like` 复用 Collection 对应终端的统一商品卡和列表布局；推荐服务返回为空或请求失败时静默隐藏该模块，关键词无结果提示继续展示。
+- 关键词无结果时隐藏结果排序、筛选控件和搜索结果商品列表；推荐商品不计入搜索结果数量，不参与本次搜索的排序或筛选。
+- `You May Also Like` 由推荐能力返回最多 8 件最终有序商品，PC Web 与 Mobile Web 分别复用 Collection 对应端的统一商品卡和网格。推荐商品必须符合当前市场、渠道及可售规则，Sold Out、下架及其他不可公开状态不展示。
+- 推荐模块独立加载：首次请求时在模块内展示与商品卡一致的轻量骨架；返回空数据或请求失败时隐藏整个推荐模块，顶部关键词无结果空态继续展示，不升级为整页失败。
+- 筛选后无结果、搜索请求失败和下一批加载失败均不展示 `You May Also Like`。
 - 从商品详情返回搜索结果页时，恢复搜索词、排序、筛选和列表位置。
 
 ### 6.7 Web 结果 URL 与浏览器行为
@@ -302,46 +293,35 @@ V1 支持通过以下业务对象搜索商品：
 - 搜索结果 URL 保存搜索类型、关键词或品牌/品类目标 ID、非默认排序及已选筛选条件。
 - 用户刷新页面、打开分享链接或使用浏览器前进与后退时，根据 URL 恢复搜索类型、关键词或品牌/品类目标、排序和筛选。
 - 滚动位置及已加载批次不写入分享 URL。
-- 返回来源页后再次打开搜索时，进入搜索发现初始状态，不恢复上一次搜索结果页。
+- 离开结果页后再次打开搜索时，按来源页进入第 2.1 节定义的初始状态，不恢复上一次搜索结果页。
 
-## 7. PC Web 与 Mobile Web 已确认差异
-
-| 能力 | PC Web | Mobile Web |
-|---|---|---|
-| 首页/Header 搜索入口 | Header 固定展示导航栏和搜索图标 | 首页展示入口型搜索框、轮播底纹词和右侧搜索图标；点击搜索框进入全屏搜索页，点击图标直接提交当前有效轮播词，轮播词不可用时展示空输入 Toast |
-| 结果页顶部 | 保留全局 Header、导航栏和搜索图标；点击图标在导航栏下方展开搜索层 | 返回按钮 + 当前搜索词入口框 + 搜索图标；点击后进入统一全屏搜索层 |
-| 搜索发现形态 | Header 下方展开搜索层 | 全屏搜索页 |
-| 搜索提交 | 键盘 `Enter` 或搜索框内图标；未输入或仅输入空格时展示 Toast | 首页搜索图标提交当前有效轮播词；全屏搜索页使用搜索图标或系统键盘 `Search` 提交真实输入，未输入或仅输入空格时展示 Toast |
-| 未输入时的内容 | Recent searches、Popular searches | Recent searches、Popular searches、Popular brands、Popular categories |
-| 商品卡 | 复用统一 PC Web 商品卡 | 复用统一 Mobile Web 商品卡，列表采用双列布局 |
-| 结果加载 | `View More`，每次追加 40 个 | 无限滚动，每页最多 40 个 |
-| 无更多结果 | `View More` 消失 | 系统原生 overscroll 回弹 |
-
-## 8. 依赖与风险
+## 7. 依赖与风险
 
 | 依赖 | 本模块要求 |
 |---|---|
-| 搜推与推荐服务 | 提供 Sug、最终有序搜索结果、结果总数、可用筛选维度、候选值与数量、分页信息，以及关键词无结果时独立展示的 `You May Also Like` 有序商品列表；推荐商品需符合当前市场可见性和可售规则。 |
-| 统一身份与账号数据 | 提供当前 `anonymous_id` / `user_id`，并支持账号 Recent searches 的跨设备读取、合并和待同步队列隔离。 |
+| 搜推服务 | 提供 Sug、最终有序搜索结果、结果总数、可用筛选维度、候选值与数量及分页信息。 |
+| 统一身份与账号数据 | 提供当前 `anonymous_id` / `user_id`，并支持 Recent searches 与 Search event 的账号归属、跨设备合并和待同步队列隔离。 |
 | Market、商品与 listing | 提供当前 `market_id`、渠道可见性、listing 状态及统一商品卡所需字段。 |
 | 品牌、品类与商品域 | 通过稳定 ID 提供当前 locale 下的名称、已有图片及统一缺译兜底。 |
 | Collection 与公共商品列表 | 提供统一筛选维度池、PC/Mobile 筛选交互、商品卡和列表加载规则。 |
 | Popular searches 与 Popular brands 数据 | 按第 5 章维度返回最终有序内容，并支持种子清单、真实榜单及异常回退。 |
+| 推荐能力 | 在关键词无结果时提供最多 8 件最终有序且当前可售的推荐商品；空数据或失败时允许页面隐藏推荐模块。 |
 
 - Recent searches 的登录复制、保存边界与清除方式需纳入 Privacy Policy / Notice at Collection；数据保留、注销及 DSAR 删除复用全局隐私规则。
 - SEO 收录、canonical 和 Sitemap 由 SEO 产品统一定义；搜索结果 URL 按第 6.7 节提供可恢复的页面状态。
 
-## 9. 版本规划
+## 8. 版本规划
 
-- Web V1 覆盖 PC Web 和 Mobile Web，范围以第 1.1 节及本 PRD 章节为准。
+- 当前版本为 Web V1，覆盖 PC Web 和 Mobile Web；App 搜索在后续 App 项目中单独定义。
 
-## 10. 原型索引
+## 9. 原型索引
 
 | 模块 | PC Web | Mobile Web |
 |---|---|---|
 | 统一开发评审入口 | `looply-global-search-dev-review-v0.1.html`，可筛选 PC Web | `looply-global-search-dev-review-v0.1.html`，可筛选 Mobile Web |
 | 统一 UI 评审入口 | `looply-global-search-ui-review-v0.1.html`，切换至 PC Web | `looply-global-search-ui-review-v0.1.html`，切换至 Mobile Web |
-| 搜索入口与搜索发现 | `looply-global-search-pc-web-demo-v0.1.html` | `looply-global-search-mobile-web-demo-v0.1.html` |
+| 统一交互基线 | `looply-global-search-web-demo-v0.1.html`，PC 视口 | `looply-global-search-web-demo-v0.1.html`，Mobile 视口 |
+| 独立终端原型 | `looply-global-search-pc-web-demo-v0.1.html` | `looply-global-search-mobile-web-demo-v0.1.html` |
 | Sug 及 Loading / 空结果 / 失败 | `Demo states · review only` 中的 Sug 状态 | `Demo states · review only` 中的 Sug 状态 |
 | Recent searches 与 Popular content | 搜索发现层 | 全屏搜索发现页 |
 | 搜索结果、排序、筛选与状态 | 搜索结果页与状态控件 | 搜索结果页、抽屉与状态控件 |
