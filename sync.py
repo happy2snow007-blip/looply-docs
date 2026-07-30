@@ -536,6 +536,22 @@ MODULES = {
             },
         },
     },
+    'account_center': {
+        'name': '个人中心',
+        'default_source': '$HOME/Desktop/个人中心',
+        'target': 'docs-个人中心',
+        'keywords': ['个人中心', 'account center', 'account'],
+        # 当前前端设计稿以 Figma 为唯一入口，不从本地原型文件选版。
+        'config_key': None,
+        # 此目录也承载收藏与浏览历史；个人中心仅发布自身 PRD。
+        'sync_prd_only': True,
+        'artifacts': {
+            'prd': {
+                'subdir': 'PRD',
+                'pattern': r'looply-个人中心-PRD-v(.+?)\.md',
+            },
+        },
+    },
     'collection': {
         'name': 'Collection管理',
         'prd_variants': {
@@ -1195,6 +1211,26 @@ def sync_subdir(source_dir, target_dir, subdir, extensions):
 
 def sync_module_files(source_dir, target_dir, mod_key):
     """复制模块的所有产物文件到 looply-docs 目标目录。"""
+
+    # 个人中心与收藏/浏览历史共用源目录，按模块白名单隔离发布范围。
+    if MODULES[mod_key].get('sync_prd_only'):
+        src_prd = os.path.join(source_dir, 'PRD')
+        if not os.path.isdir(src_prd):
+            return
+        dst_prd = os.path.join(REPO_DIR, target_dir, 'PRD')
+        os.makedirs(dst_prd, exist_ok=True)
+        for f in globmod.glob(os.path.join(src_prd, '*.md')):
+            if os.path.isfile(f) and re.fullmatch(
+                MODULES[mod_key]['artifacts']['prd']['pattern'], os.path.basename(f)
+            ):
+                smart_cp(f, dst_prd)
+        latest_md = find_latest_prd_md(dst_prd)
+        if latest_md:
+            src_latest = os.path.join(dst_prd, latest_md)
+            dst_latest = os.path.join(dst_prd, 'latest.md')
+            if not os.path.isfile(dst_latest) or not files_equal(src_latest, dst_latest):
+                shutil.copy2(src_latest, dst_latest)
+        return
 
     # 调研
     sync_subdir(source_dir, target_dir, '调研', ['.md'])
