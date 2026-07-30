@@ -38,6 +38,7 @@
   - 2026-07-30：最终确认当前版本不使用任何 CAPTCHA；删除 PRD、Checklist、主原型和 PC 视觉稿中的验证码声明、验证流程、状态、异常、埋点及依赖。
   - 2026-07-30：同步修正默认态描述，游客字段为空，登录用户自动带入 Full Name 和 Email，Message 为空。
   - 2026-07-30：确认 UI 为最终展示基线；仅保留 Email 与 Email Response Time，删除电话和地址；邮箱校验提示改为 `Incorrect email`，提交中 Send 置灰，成功提示改为 `Thanks for contacting us. We’ll get back to you as soon as possible.`，失败提示改为 `Submit failed, please try again.`。
+  - 2026-07-30：确认提交成功后不跳转；游客和登录用户均清空 Full Name、Email、Message，再展示 4 秒成功 Toast；清空后的空白字段作为新的离开确认基线。
 
 ### 影响范围
 

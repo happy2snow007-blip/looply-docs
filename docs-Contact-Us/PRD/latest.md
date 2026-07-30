@@ -112,13 +112,15 @@ Mobile 个人中心的 Contact Us 入口在游客态与登录态均展示。游�
 | 默认态 | 页面正常打开 | 游客三个字段为空；登录用户自动带入 Full Name 和 Email，Message 为空；同时展示完整联系信息 | 填写、提交、点击客服邮箱 |
 | 字段错误态 | 输入未通过校验 | 对应字段显示错误提示，保留其他已填内容 | 修改后重新提交 |
 | 提交中 | 字段校验通过，正在提交 | Send 置灰不可点击，全部字段保留并暂不可再次提交 | 等待提交结果 |
-| 提交成功 | 邮件服务确认已受理发往 `service@looply.com` 的邮件 | 页面内显示成功提示；游客清空三个字段，登录用户清空 Message 并将 Full Name、Email 恢复为账户初始值 | 可重新填写新咨询 |
+| 提交成功 | 邮件服务确认已受理发往 `service@looply.com` 的邮件 | 不跳转；游客和登录用户均清空 Full Name、Email、Message，并显示成功 Toast | 可重新填写新咨询 |
 | 提交失败 | 网络、邮件服务或系统异常 | 页面内显示失败提示，保留三个字段内容 | 点击 Send 重试 |
 | 离开确认 | 当前字段值与页面初始值不同，用户点击页面返回或发起站内跳转 | 显示离开确认弹窗 | 留在页面或确认离开 |
 
 成功提示：`Thanks for contacting us. We’ll get back to you as soon as possible.`
 
 提交失败提示：`Submit failed, please try again.`
+
+成功 Toast 持续展示 4 秒后自动消失；页面保持当前位置。失败提示不清空字段，用户可直接修改或重试。
 
 离开确认弹窗：
 
@@ -134,7 +136,7 @@ Mobile 个人中心的 Contact Us 入口在游客态与登录态均展示。游�
 3. 用户点击 Send，系统校验三个字段。
 4. 校验失败时，系统显示字段错误且不提交。
 5. 校验通过后，由 Looply 服务端将 Full Name、Email、Message 发送至 `service@looply.com`。
-6. 邮件服务确认已受理发送请求后，显示成功提示并清空表单。
+6. 邮件服务确认已受理发送请求后，页面保持当前位置，清空 Full Name、Email、Message，并显示成功 Toast。
 7. 提交失败时，保留用户输入并允许重试。
 
 提交成功后，本流程以页面内成功提示结束。客服后续从 `service@looply.com` 人工回复用户填写的 Email。
@@ -147,7 +149,7 @@ Looply 服务端不将 Full Name、Email 或 Message 写入独立的 Contact Us 
 2. 当前任一字段值与对应初始值不同时，页面进入“有未提交修改”状态。
 3. 用户点击页面返回或发起站内跳转时，显示离开确认弹窗。
 4. 点击 Stay，关闭弹窗并保留全部内容；点击 Leave，清空本次内容并继续原离开动作。
-5. 提交成功并重置字段后，页面退出“有未提交修改”状态，再次离开时不提示。
+5. 提交成功并清空三个字段后，将空白字段更新为新的页面初始值，页面退出“有未提交修改”状态，再次离开时不提示。
 6. 关闭浏览器、App 被系统终止或跨设备访问时不保存、不恢复草稿。
 
 #### 2.1.7 异常处理
@@ -171,7 +173,7 @@ Looply 服务端不将 Full Name、Email 或 Message 写入独立的 Contact Us 
 | Contact Us 默认态 | Figma《Looply v1.0》 | Figma node 6772:3636 |
 | 字段错误态 | Figma《Looply v1.0》 | Figma node 6772:3636 |
 | 提交中 | Figma《Looply v1.0》；Send 置灰 | Figma node 6772:3636；Send 置灰 |
-| 提交成功 | Figma《Looply v1.0》 | Figma node 6772:3636 |
+| 提交成功 | Figma《Looply v1.0》；提交成功后清空三个字段并展示 Toast | Figma node 6772:3636；字段清空规则以本 PRD 为准 |
 | 提交失败 | Figma《Looply v1.0》 | Figma node 6772:3636 |
 | 离开确认 | 按本 PRD 弹窗文案与触发规则补齐 | 按本 PRD 弹窗文案与触发规则补齐 |
 

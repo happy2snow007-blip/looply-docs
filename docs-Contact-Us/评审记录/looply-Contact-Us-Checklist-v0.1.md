@@ -54,7 +54,8 @@
 - 三个字段均为必填，并在失焦和点击 Send 时校验；
 - 提交中禁止重复点击；
 - 提交中 Send 置灰；
-- 提交成功后显示 `Thanks for contacting us. We’ll get back to you as soon as possible.`，并按用户状态重置表单；
+- 提交成功后不跳转；游客和登录用户均清空 Full Name、Email、Message，再显示 `Thanks for contacting us. We’ll get back to you as soon as possible.`；
+- 成功 Toast 展示 4 秒后自动消失；
 - 提交失败时显示 `Submit failed, please try again.`，保留内容并允许重试；
 - 邮箱格式错误提示为 `Incorrect email`；
 - PC 与 Mobile 均不接入 hCaptcha、Google reCAPTCHA 或其他 CAPTCHA，也不展示第三方验证码声明。
@@ -86,13 +87,13 @@
 - 登录用户可修改自动带入的姓名和邮箱；
 - 修改后的邮箱只作为本次客服回复地址，不回写账户邮箱；
 - 账户姓名或邮箱缺失、读取失败时，对应字段保持空白并允许手动填写；
-- 提交成功后，登录用户清空 Message 并恢复账户姓名和邮箱，游客清空三个字段。
+- 提交成功后，游客和登录用户均清空 Full Name、Email、Message；登录用户停留在当前页面时不重新带入账户姓名和邮箱。
 
 ### 3.6 未提交内容与离开确认
 
 - 当前任一字段值与页面初始值不同时，点击页面返回或站内跳转显示 `Leave without sending?`；
 - 点击 Stay 留在页面并保留内容，点击 Leave 清空内容并继续离开；
-- 提交成功并重置字段后，离开页面不再提示；
+- 提交成功并清空字段后，以空白字段作为新的页面初始值，离开页面不再提示；
 - 关闭浏览器、App 被系统终止或跨设备访问时，不保存、不恢复草稿。
 
 ## 四、上线依赖
@@ -100,6 +101,7 @@
 - 技术配置服务端邮件发送能力，并确保 `service@looply.com` 可正常收信；
 - 客服与运营复核客服邮箱和响应时效；
 - 开发按 Figma《Looply v1.0》实现 PC 与 Mobile 的字段错误、提交中、成功和失败状态。
+- 设计将 Figma 成功态同步为 Full Name、Email、Message 均已清空。
 
 ## 五、产出文件
 

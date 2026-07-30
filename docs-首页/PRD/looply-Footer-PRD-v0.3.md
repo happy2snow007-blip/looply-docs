@@ -122,7 +122,7 @@ Mobile 与 PC 使用相同字段、联系信息和提交规则。
 2. 页面校验三个必填字段；校验通过后进入提交中状态，禁止重复提交。
 3. Looply 服务端将三个字段发送至 `service@looply.com`；用户浏览器不直接发送邮件。
 4. 仅在邮件服务确认已受理发送请求后，页面显示成功提示。
-5. 提交成功后，游客清空三个字段；登录用户清空 Message，并将 Full Name 和 Email 恢复为账户初始值。
+5. 提交成功后不跳转；游客和登录用户均清空 Full Name、Email、Message，并显示成功 Toast。
 6. 客服后续从 `service@looply.com` 人工回复用户填写的 Email。
 
 邮件是当前版本唯一业务记录。Looply 不建立独立的 Contact Us 业务记录或用户侧咨询历史，不向用户自动发送确认邮件；必要技术日志不记录 Full Name、Email 或 Message 原文。
@@ -136,11 +136,13 @@ Mobile 与 PC 使用相同字段、联系信息和提交规则。
 | 默认态 | 页面正常打开 | 游客三个字段为空；登录用户自动带入 Full Name 和 Email；完整联系信息正常展示 | 填写、提交、点击客服邮箱 |
 | 字段错误态 | 输入未通过校验 | 对应字段显示错误，保留全部已填内容 | 修改后重新提交 |
 | 提交中 | 字段校验通过，正在提交 | `Send` 置灰不可点击，字段保留并暂不可再次提交 | 等待结果 |
-| 提交成功 | 邮件服务确认已受理发送请求 | 显示 `Thanks for contacting us. We’ll get back to you as soon as possible.`，并按用户状态重置字段 | 可重新填写 |
+| 提交成功 | 邮件服务确认已受理发送请求 | 页面保持当前位置，清空 Full Name、Email、Message，显示 `Thanks for contacting us. We’ll get back to you as soon as possible.` | 可重新填写 |
 | 提交失败 | 网络、邮件服务或系统异常 | 显示 `Submit failed, please try again.`，保留三个字段 | 点击 Send 重试 |
 | 离开确认 | 当前字段值与页面初始值不同，用户返回或发起站内跳转 | 显示 `Leave without sending?` 弹窗 | `Stay` 保留内容；`Leave` 放弃内容并继续离开 |
 
 局部异常按模块降级：表单加载失败时 Email 与 Email Response Time 继续展示，表单区域提供 Retry；联系信息加载失败时表单继续可用，联系信息区域提供 Retry。登录用户账户信息读取失败时，Full Name 和 Email 保持空白，由用户手动填写。
+
+成功 Toast 持续展示 4 秒后自动消失；清空后的空白字段作为新的页面初始值，用户离开时不触发未提交内容确认。失败提示不清空字段。
 
 关闭浏览器、App 被系统终止或跨设备访问时，不保存、不恢复未提交内容。
 
@@ -214,7 +216,7 @@ If you visit our website with the Global Privacy Control opt-out preference sign
 | 页面 / 模块 | 当前依据 | 发布前要求 |
 |---|---|---|
 | Footer | 用户提供的 PC Footer 截图及本 PRD 跳转规则 | UI 提供正式 Footer 样式 |
-| Contact Us | Figma《Looply v1.0》及 Mobile Contact Us 状态节点；本 PRD 第五节 | 上线前复核客服邮箱与响应时效，并完成服务端邮件发送能力 |
+| Contact Us | Figma《Looply v1.0》及 Mobile Contact Us 状态节点；本 PRD 第五节 | Figma 成功态同步为三字段清空；上线前复核客服邮箱与响应时效，并完成服务端邮件发送能力 |
 | About Looply | 需求待定 | PRD、UI、路径及接入方式确认后再发布 |
 | Authenticity | 需求待定 | PRD、UI、路径及接入方式确认后再发布 |
 | Your Privacy Choices | Your Privacy Choices Web Demo v0.1；本 PRD 已确认英文文案 | UI 提供正式稿；补充正式站内路由；验证 Global Privacy Control 处理能力与文案一致 |
