@@ -1,17 +1,19 @@
 # Looply Contact Us 设计 Checklist v0.1
 
-> 状态：已生成 PRD v0.2 工作稿
+> 状态：Contact Us 需求已确认，已生成 PRD v0.2 并合并至 Footer PRD v0.3
 > 更新日期：2026-07-30
-> 当前参考页：[Looply Contact Us](https://looply.com/pages/contact)
+> 当前 UI：[Looply v1.0](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?t=VQDfvElDOm7kMhSj-0)
+> Mobile 状态稿：[Looply v1.0 · node 6772:3636](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=6772-3636&t=pVFMkiNnle3oB3B1-0)
 
 ## 一、输入源盘点
 
 | 输入源 | 当前情况 | 处理方式 |
 |---|---|---|
-| Looply 现有 PC 页面 | 已提供，包含联系表单、客服联系方式及注册地址说明 | 作为当前页面内容和字段的主要参考；现有验证码方案不纳入当前版本 |
+| Figma《Looply v1.0》 | 已提供设计文件和 Mobile Contact Us 状态节点 | 作为当前 UI、联系信息和状态文案基线 |
+| Looply 现有 PC 页面 | 已提供历史页面 | 仅作为早期输入，不覆盖当前 Figma 设计 |
 | PC 端入口 | 已确认：首页 Footer → Contact Us | 纳入当前版本 |
 | Mobile 端入口 | 已确认：个人中心 → Contact Us | 纳入当前版本 |
-| Mobile 端设计稿 | 暂未提供 | 后续页面结构收口后补齐或确认沿用统一移动端页面样式 |
+| Mobile 端设计稿 | 已提供 | 节点覆盖默认、邮箱校验错误、填写完成、提交成功和提交失败 |
 | 产品架构图 | 暂未发现 Contact Us 专项内容 | 当前不阻塞轻量页面方案讨论 |
 | 系统流程图 | 暂未发现 | 当前提交与邮件发送流程已在 PRD 2.1.6 闭合 |
 | ER 图 | 本页面无专项输入源 | 本期不建立独立 Contact Us 业务记录，无需新增对应业务实体 |
@@ -38,14 +40,23 @@
 
 提交操作文案沿用 `Send`。
 
+### 2.3 联系信息
+
+- 页面仅展示 Email 和 Email Response Time；
+- Email：`service@looply.com`；
+- Email Response Time：`We generally respond to customer inquiries within 1–2 business days.`；
+- 电话、注册地址及退货地址提示不属于当前设计。
+
 ## 三、已收口的提交规则
 
 ### 3.1 提交校验与结果反馈
 
 - 三个字段均为必填，并在失焦和点击 Send 时校验；
 - 提交中禁止重复点击；
-- 提交成功后显示页面内提示并按用户状态重置表单；
-- 提交失败时保留内容并允许重试；
+- 提交中 Send 置灰；
+- 提交成功后显示 `Thanks for contacting us. We’ll get back to you as soon as possible.`，并按用户状态重置表单；
+- 提交失败时显示 `Submit failed, please try again.`，保留内容并允许重试；
+- 邮箱格式错误提示为 `Incorrect email`；
 - PC 与 Mobile 均不接入 hCaptcha、Google reCAPTCHA 或其他 CAPTCHA，也不展示第三方验证码声明。
 
 ### 3.2 留言接收渠道
@@ -87,20 +98,21 @@
 ## 四、上线依赖
 
 - 技术配置服务端邮件发送能力，并确保 `service@looply.com` 可正常收信；
-- 客服、运营与法务复核邮箱、电话、注册地址、响应时效和退货地址提示；
-- 设计补齐 PC 与 Mobile 的字段错误、提交中、成功和失败状态。
+- 客服与运营复核客服邮箱和响应时效；
+- 开发按 Figma《Looply v1.0》实现 PC 与 Mobile 的字段错误、提交中、成功和失败状态。
 
 ## 五、产出文件
 
 - `docs/product/looply-Contact-Us-PRD-v0.2.md`
 - `docs/product/looply-Contact-Us-PRD-修订记录.md`
+- `docs/product/looply-Footer-PRD-v0.3.md`
 - `prototypes/contact-us/looply-contact-us-prototype-v0.1.html`
 
 ## 六、原型一致性检查
 
 - 已覆盖 PC 首页 Footer → Contact Us，以及 Mobile 游客态 / 登录态个人中心 → Contact Us；
 - 已覆盖游客空白字段、登录用户账户姓名与邮箱自动带入且可编辑；
-- 当前原型覆盖字段错误、提交中、成功、提交失败和未提交离开确认；
+- Figma 状态稿覆盖字段错误、填写完成、提交成功和提交失败；PRD 补充提交中和未提交离开规则；
 - 已验证 Stay 保留内容，Leave 清空内容并离开，Mobile 返回后回到个人中心；
-- 当前原型的 PC 与 Mobile 均不展示验证码及第三方验证码声明，联系邮箱及表单接收邮箱为 `service@looply.com`；
-- 2026-07-30 已重新完成浏览器验收：PC 与 Mobile 默认态无验证码声明或遗留空白区，提交中按钮禁用，提交失败提示正常展示。
+- 当前版本不展示验证码及第三方验证码声明，联系邮箱及表单接收邮箱为 `service@looply.com`；
+- 本地原型 v0.1 与 PC 视觉稿 v0.2 属于历史评审产物，仍包含已删除的电话、地址或旧状态文案，不作为当前 UI 验收基线。
