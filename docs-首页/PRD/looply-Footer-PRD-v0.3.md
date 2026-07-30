@@ -20,7 +20,7 @@ Contact Us、Shipping、Returns、Authenticity 及个人中心 `Privacy & Data` 
 
 | 区域 | 入口 | 点击后跳转至 | 路径 / 地址 | 打开方式 |
 |---|---|---|---|---|
-| Support | My Account | 游客进入登录页；登录用户进入个人中心默认页 | `/login`；已登录用户由账户模块重定向 | 当前标签页 |
+| Support | My Account | 个人中心；游客展示未登录态，登录用户展示登录态 | 个人中心统一路由（正式路径由账户模块确认） | 当前标签页 |
 | Support | Shipping | Shipping 页面 | `/shipping` | 当前标签页 |
 | Support | Returns | Returns 页面 | `/returns` | 当前标签页 |
 | Support | Contact Us | Contact Us 页面 | `/contact-us` | 当前标签页 |
@@ -47,7 +47,7 @@ Accessibility Statement、Privacy Policy、Terms of Service 均由 Looply 自行
 
 | 入口 | 开发处理 |
 |---|---|
-| My Account | 接入现有登录 / 个人中心能力，按第三节路径跳转 |
+| My Account | 接入现有个人中心能力；打开统一个人中心页面，并按当前登录状态展示未登录态或登录态 |
 | Facebook | 直接接入已提供的外部地址 |
 | TikTok | 直接接入已提供的外部地址 |
 | Instagram | 直接接入已提供的外部地址 |
