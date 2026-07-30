@@ -1,20 +1,20 @@
 # Looply Contact Us 设计 Checklist v0.1
 
-> 状态：已生成 PRD v0.1
-> 更新日期：2026-07-24
+> 状态：已生成 PRD v0.2 工作稿
+> 更新日期：2026-07-30
 > 当前参考页：[Looply Contact Us](https://looply.com/pages/contact)
 
 ## 一、输入源盘点
 
 | 输入源 | 当前情况 | 处理方式 |
 |---|---|---|
-| Looply 现有 PC 页面 | 已提供，包含联系表单、hCaptcha、客服联系方式及注册地址说明 | 作为当前页面内容和字段的主要参考 |
+| Looply 现有 PC 页面 | 已提供，包含联系表单、客服联系方式及注册地址说明 | 作为当前页面内容和字段的主要参考；现有验证码方案不纳入当前版本 |
 | PC 端入口 | 已确认：首页 Footer → Contact Us | 纳入当前版本 |
 | Mobile 端入口 | 已确认：个人中心 → Contact Us | 纳入当前版本 |
 | Mobile 端设计稿 | 暂未提供 | 后续页面结构收口后补齐或确认沿用统一移动端页面样式 |
 | 产品架构图 | 暂未发现 Contact Us 专项内容 | 当前不阻塞轻量页面方案讨论 |
-| 系统流程图 | 暂未发现 | 根据后续确认的提交规则判断是否需要补充 |
-| ER 图 | 暂未发现 | 联系表单的数据去向和保存方式待后续确认 |
+| 系统流程图 | 暂未发现 | 当前提交与邮件发送流程已在 PRD 2.1.6 闭合 |
+| ER 图 | 本页面无专项输入源 | 本期不建立独立 Contact Us 业务记录，无需新增对应业务实体 |
 | 竞品调研 | 本次不单独开展 | 用户确认直接参考 Looply 现有页面 |
 
 ## 二、已确认设计
@@ -43,15 +43,17 @@
 ### 3.1 提交校验与结果反馈
 
 - 三个字段均为必填，并在失焦和点击 Send 时校验；
-- 验证中和提交中禁止重复点击；
+- 提交中禁止重复点击；
 - 提交成功后显示页面内提示并按用户状态重置表单；
 - 提交失败时保留内容并允许重试；
-- PC 与 Mobile 均保留 Invisible hCaptcha 及第三方隐私与服务条款声明。
+- PC 与 Mobile 均不接入 hCaptcha、Google reCAPTCHA 或其他 CAPTCHA，也不展示第三方验证码声明。
 
 ### 3.2 留言接收渠道
 
 - Contact Us 表单由 Looply 服务端发送至 `service@looply.com`；
 - 邮件内容包含用户提交的 Full Name、Email 和 Message；
+- 邮件为当前版本唯一业务记录，不建立独立 Contact Us 业务记录或用户侧咨询历史；
+- 必要技术日志不记录 Full Name、Email 或 Message 原文；
 - 用户浏览器不直接发送邮件；
 - 仅在邮件服务确认已受理发送请求后，页面显示提交成功。
 
@@ -80,19 +82,17 @@
 - 当前任一字段值与页面初始值不同时，点击页面返回或站内跳转显示 `Leave without sending?`；
 - 点击 Stay 留在页面并保留内容，点击 Leave 清空内容并继续离开；
 - 提交成功并重置字段后，离开页面不再提示；
-- hCaptcha Privacy Policy 与 Terms of Service 在外部浏览器或新页面打开，不关闭当前表单页；
 - 关闭浏览器、App 被系统终止或跨设备访问时，不保存、不恢复草稿。
 
 ## 四、上线依赖
 
 - 技术配置服务端邮件发送能力，并确保 `service@looply.com` 可正常收信；
 - 客服、运营与法务复核邮箱、电话、注册地址、响应时效和退货地址提示；
-- 完成 hCaptcha 站点配置、服务端验证及 Looply Privacy Policy 披露；
-- 设计补齐 PC 与 Mobile 的字段错误、验证中、提交中、成功和失败状态。
+- 设计补齐 PC 与 Mobile 的字段错误、提交中、成功和失败状态。
 
 ## 五、产出文件
 
-- `docs/product/looply-Contact-Us-PRD-v0.1.md`
+- `docs/product/looply-Contact-Us-PRD-v0.2.md`
 - `docs/product/looply-Contact-Us-PRD-修订记录.md`
 - `prototypes/contact-us/looply-contact-us-prototype-v0.1.html`
 
@@ -100,7 +100,7 @@
 
 - 已覆盖 PC 首页 Footer → Contact Us，以及 Mobile 游客态 / 登录态个人中心 → Contact Us；
 - 已覆盖游客空白字段、登录用户账户姓名与邮箱自动带入且可编辑；
-- 已覆盖字段错误、hCaptcha 验证中、提交中、成功、提交失败、hCaptcha 失败和未提交离开确认；
+- 当前原型覆盖字段错误、提交中、成功、提交失败和未提交离开确认；
 - 已验证 Stay 保留内容，Leave 清空内容并离开，Mobile 返回后回到个人中心；
-- 已验证 PC 与 Mobile 均展示 hCaptcha 声明和外链，联系邮箱为 `service@looply.com`；
-- 2026-07-24 浏览器交互验收通过，未发现控制台错误；原型与 PRD 当前版本的字段、入口和核心可见状态一致。
+- 当前原型的 PC 与 Mobile 均不展示验证码及第三方验证码声明，联系邮箱及表单接收邮箱为 `service@looply.com`；
+- 2026-07-30 已重新完成浏览器验收：PC 与 Mobile 默认态无验证码声明或遗留空白区，提交中按钮禁用，提交失败提示正常展示。
