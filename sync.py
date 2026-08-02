@@ -666,6 +666,37 @@ MODULES = {
             },
         },
     },
+    'aftersale': {
+        'name': '售后',
+        'default_source': '$HOME/Desktop/海外业务/售后',
+        'target': 'docs-售后',
+        'keywords': ['售后', 'aftersale', 'after_sale', 'aftersales'],
+        'config_key': 'aftersale',
+        'sidebar_group': '交易域',
+        'artifacts': {
+            'prototype': {
+                'subdir': '原型',
+                'pattern': r'looply-售后管理后台原型-v(.+?)\.html',
+                'exclude': r'(backup|对比)',
+            },
+            'prd': {
+                'subdir': 'PRD',
+                'pattern': r'looply-售后-PRD-v(.+?)\.md',
+            },
+            'er': {
+                'subdir': '实体关系图',
+                'pattern': r'looply-售后模块实体关系图-v(.+?)\.svg',
+            },
+            'flowchart': {
+                'subdir': '系统流程图',
+                'pattern': r'looply-售后系统流程图-v(.+?)\.svg',
+            },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'售后-交付开发 V(.+?)\.zip',
+            },
+        },
+    },
 }
 
 # ─── 自动发现新模块 ────────────────────────────────────────────────────────────────

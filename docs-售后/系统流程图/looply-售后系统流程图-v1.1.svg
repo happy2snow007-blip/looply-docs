@@ -1,0 +1,1561 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="4038" height="10750" viewBox="0 0 4038 10750" font-family="'PingFang SC','Microsoft YaHei','Helvetica Neue',Arial,sans-serif">
+<metadata>
+<![CDATA[
+# looply &#183; 售后模块系统流程图 V1.1 &#183; 2026.07（G3 决策落地）
+# 研发编码参考数据，从 SVG <metadata> 提取
+
+swimlanes:
+  - key: "B"
+    name: "C 端买家"
+  - key: "O"
+    name: "运营端（售后工单台）"
+  - key: "A"
+    name: "售后域服务（本模块）"
+  - key: "L"
+    name: "物流信息服务"
+  - key: "M"
+    name: "消息通知（仅邮件通道）"
+  - key: "R"
+    name: "订单域"
+  - key: "P"
+    name: "支付域"
+  - key: "F"
+    name: "线下作业（仓 / 网点）· 系统外"
+
+sections:
+  - name: "① 资格判定与申请提交"
+    steps:
+      - type: start_end
+        text: "买家在订单详情点击申请售后"
+      - type: process
+        lane: "B"
+        text: "打开售后申请入口"
+      - type: cross_lane
+        from: "B"
+        to: "A"
+        text: "请求本单可申请商品行与资格"
+      - type: cross_lane
+        from: "A"
+        to: "R"
+        text: "读订单商品行：发货/签收·实付·成色"
+      - type: process
+        lane: "A"
+        text: "按 market→品类→商品匹配政策(priority 大者优先)"
+      - type: decision
+        lane: "A"
+        text: "该商品行已发货?"
+        on_no: "未发货→走订单取消/发货前退款"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "仍在售后时效窗口内?"
+        on_no: "已超期→C 端不可申请"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "无进行中的售后单?"
+        on_no: "同商品行已有在途单"
+        yes_label: "是"
+        no_label: "否"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "返回可申请清单+剩余天数+服务费告知(取政策配置值)"
+      - type: condition_branch
+        lane: "B"
+        text: "买家选择：货已收到?"
+        yes_label: "是"
+        no_label: "否"
+        yes_branch:
+          - text: "诉求可选 退货退款 / 仅退款"
+        no_branch:
+          - text: "诉求仅可选 仅退款(货未到手)"
+      - type: process
+        lane: "B"
+        text: "勾选商品(可多件)·选原因码·传举证·填说明"
+      - type: cross_lane
+        from: "B"
+        to: "A"
+        text: "提交售后申请"
+      - type: decision
+        lane: "A"
+        text: "必传举证已上传?"
+        on_no: "退回补充举证"
+        yes_label: "是"
+        no_label: "否"
+      - type: condition_branch
+        lane: "A"
+        text: "诉求为退货退款?"
+        yes_label: "是"
+        no_label: "否"
+        yes_branch:
+          - text: "校验商品行 is_returnable=true"
+        no_branch:
+          - text: "仅退款不受 is_returnable 约束(7.3)"
+      - type: process
+        lane: "A"
+        text: "A1 拆单：每个商品行生成一张独立售后单"
+      - type: process
+        lane: "A"
+        text: "写入售后单：as_status=待审核 · policy_snapshot 政策快照 · service_fee_quoted 取政策配置值"
+      - type: cross_lane
+        from: "A"
+        to: "M"
+        text: "受理确认邮件(按 market 语言)"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "C 端展示售后单与时间线"
+      - type: start_end
+        text: "售后单进入待审核（撤销旁支见⑩）"
+      - type: note
+        title: "本段口径"
+        lines:
+          - "【7.1】发货后即可申请，不以签收为门槛；C 端申请页新增「是否已收到货」选择项，由它引导诉求类型"
+          - "【7.3】is_returnable=false 只约束退货退款，不约束仅退款——货没收到时该约束不适用（否则 Final Sale 丢件即钱货两空）"
+          - "【1.2/1.4】申请时告知的服务费 = 政策配置值，不与原因码挂钩、不做豁免推算；C 端文案须写明「最终金额以审核结果为准」"
+          - "【2.1】建单即对命中的整条政策做快照存 policy_snapshot（不是只存服务费），避免运营改政策追溯改掉在途单"
+          - "A1 一单一行：C 端一次勾选 N 件 → 系统拆成 N 张售后单，各自独立走完整流程"
+          - "1.8 互斥：同一 order_item_id 同时只允许存在一张非终态售后单"
+          - "1.7 超期人工特批：运营后台可对超期订单强制建单（留痕 + 特批原因），不走 C 端——与 3.2「关单后重新申请不必特批」不冲突"
+          - "时效天数 / 服务费金额均为 market 级运营配置项（after_sale_policy），本图不写死具体数值；A17 美国站与香港站独立配置"
+          - "⚠ 待确认①：未签收就申请时，售后时效从哪个时点起算——8.1 定起算点取订单域 order_package.received_at，"
+          - "   但 7.1 允许未签收即申请，此时 received_at 为空、上方「仍在时效窗口内?」无输入。已提交决策，不得自行落定"
+  - name: "② 运营审核（本段不判责）"
+    steps:
+      - type: start_end
+        text: "待审核单进入运营工单台"
+      - type: process
+        lane: "O"
+        text: "查看原因码 / 买家举证 / 订单商品行"
+      - type: process
+        lane: "O"
+        text: "对照单据上的 policy_snapshot 核对政策口径"
+      - type: decision
+        lane: "O"
+        text: "材料齐全可判定?"
+        on_no: "线下联系买家补材料"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "O"
+        text: "审核通过?"
+        on_no: "驳回→已驳回(终态)"
+        yes_label: "是"
+        no_label: "否"
+      - type: cross_lane
+        from: "O"
+        to: "A"
+        text: "提交审核结论（仅通过/驳回，不含责任判定）"
+      - type: process
+        lane: "A"
+        text: "写 audit_result / audit_note / audited_at"
+      - type: condition_branch
+        lane: "A"
+        text: "诉求为仅退款?"
+        yes_label: "是"
+        no_label: "否"
+        yes_branch:
+          - text: "as_status=待退款 → 转⑥"
+        no_branch:
+          - text: "as_status=待寄回 → 转③"
+      - type: cross_lane
+        from: "A"
+        to: "M"
+        text: "审核通过通知邮件"
+      - type: start_end
+        text: "审核环节结束（责任归属尚未判定）"
+      - type: note
+        title: "审核口径（★V1.1 判责与服务费已移出本段）"
+        lines:
+          - "★【1.3】本段不再判定责任归属：原因码不能直接确定判责，最终判责必须在验货后（段④）才能决定。"
+          - "   运营端审核区去掉责任判定控件；本段不写 liability_party"
+          - "★【1.1/1.4/1.5】本段不再有任何服务费自动判定：不按责任自动豁免、不按包裹分摊、系统不计算。"
+          - "   实扣金额统一由运营在退款方案区手动填写（段⑤）。ER 已删 is_service_fee_waived，「豁免」不再是独立状态"
+          - "驳回路径：写 audit_result=驳回 + audit_note(驳回原因) → 邮件告知 → as_status=已驳回（终态）"
+          - "3.5 V1 无 C 端申诉交互：驳回后买家只能重新发起申请（仍受时效判定）或联系客服"
+          - "3.4 协商改方案 V1 走线下：运营可调退款金额与服务费，调整结果 C 端可见，但协商确认本身走邮件/客服"
+          - "3.6 审核 SLA 只做后台超时标记与筛选，不自动通过"
+          - "★ 责任归属二分类【平台责任 / 买家责任】：不设「物流责任」——物流出问题属平台与物流商之间的事，"
+          - "   对买家而言即平台责任。原因码记「为什么」（after_sale_reason），liability_party 记「谁承担」"
+  - name: "③ 面单与交寄"
+    steps:
+      - type: start_end
+        text: "售后单状态 = 待寄回"
+      - type: process
+        lane: "O"
+        text: "线下向承运商预约取回面单"
+      - type: cross_lane
+        from: "O"
+        to: "F"
+        text: "承运商出具面单并给出运单号"
+      - type: cross_lane
+        from: "F"
+        to: "O"
+        text: "运营取得退货运单号"
+      - type: process
+        lane: "O"
+        text: "在售后单回填运单号 + 承运商"
+      - type: cross_lane
+        from: "O"
+        to: "A"
+        text: "提交运单信息"
+      - type: cross_lane
+        from: "A"
+        to: "L"
+        text: "注册退货运单(business_order_no 传订单号)"
+      - type: process
+        lane: "L"
+        text: "订阅轨迹，返回 shipment_id"
+      - type: cross_lane
+        from: "L"
+        to: "A"
+        text: "回写 shipment_ref_id(不冗余运单号与承运商)"
+      - type: cross_lane
+        from: "A"
+        to: "M"
+        text: "邮件告知运单号与退货地址"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "C 端同步展示运单号与退货地址"
+      - type: process
+        lane: "A"
+        text: "★记录「运单号告知买家」时点 = 交寄时限起算点(3.1)"
+      - type: process
+        lane: "A"
+        text: "交寄截止时点 = 告知时点 + policy.return_ship_days"
+      - type: process
+        lane: "B"
+        text: "买家持运单号到承运商网点交寄"
+      - type: cross_lane
+        from: "B"
+        to: "F"
+        text: "网点揽收包裹"
+      - type: cross_lane
+        from: "F"
+        to: "L"
+        text: "揽收轨迹上报"
+      - type: process
+        lane: "L"
+        text: "internal_status 推进为运输中"
+      - type: cross_lane
+        from: "L"
+        to: "A"
+        text: "轨迹通知：已揽收"
+      - type: process
+        lane: "A"
+        text: "as_status = 退货在途"
+      - type: start_end
+        text: "进入退货在途（途中丢件见⑨）"
+      - type: note
+        title: "逆向物流口径"
+        lines:
+          - "★【3.1】return_ship_days 自「运单号告知买家」起算，不自审核通过起算——审核通过到线下拿到面单之间的"
+          - "   等待时间不该算在买家头上。C 端与邮件双渠道同时告知，两者取先发生者为起算时点"
+          - "A8 面单走线下：物流信息服务 §1.2 明列「面单生成不在本期范围」，售后同样不做 → V1 线下是唯一可行路径，非权宜"
+          - "A8/4.3 录入人是运营，且时序上先于买家寄出（与常规「买家自寄后回填」相反）"
+          - "8.9 邮件 + C 端双渠道并行告知运单号，买家不必等邮件"
+          - "A1 多件同包裹寄回时，多张售后单共用一个退货运单号；注册追踪传订单号，复用物流服务「1 订单号 = N 运单」模型"
+          - "A15 售后只存 shipment_id，不冗余承运商与运单号（运单号可被 PATCH 修正、改承运商会切平台清轨迹，冗余必脏）"
+          - "4.6/【4.2】退回途中丢件：不再走验货，走段⑨「退货在途 → 直达待退款」这条状态机边"
+          - "⚠ Q2 待物流侧确认：逆向运单注册传订单号的方案，物流信息服务侧是否认可"
+  - name: "④ 到仓与验货（★判责在此定案）"
+    steps:
+      - type: start_end
+        text: "退货包裹在途"
+      - type: decision
+        lane: "L"
+        text: "轨迹正常推进至已送达?"
+        on_no: "丢件/灭失→转⑨"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "L"
+        text: "轨迹更新至 internal_status = 已送达"
+      - type: cross_lane
+        from: "L"
+        to: "A"
+        text: "主动通知：已送达(到仓时点唯一来源)"
+      - type: process
+        lane: "A"
+        text: "自动推进 as_status=待验货(无人工签收登记)"
+      - type: cross_lane
+        from: "A"
+        to: "M"
+        text: "邮件告知平台已收到退货"
+      - type: process
+        lane: "F"
+        text: "线下仓收货→拆包→拍照→验瑕疵"
+      - type: process
+        lane: "F"
+        text: "结果回传在线表格(V1 不对接)"
+      - type: process
+        lane: "O"
+        text: "运营核对在线表格"
+      - type: decision
+        lane: "O"
+        text: "实物与售后单一致?"
+        on_no: "不符/空包→转⑧"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "O"
+        text: "录入验货结论(一致/附件缺失/成色下降/破损)"
+      - type: condition_branch
+        lane: "O"
+        text: "存在缺件或成色下降?"
+        yes_label: "是"
+        no_label: "否"
+        yes_branch:
+          - text: "填扣减金额与扣减原因"
+      - type: process
+        lane: "O"
+        text: "★判定责任归属：平台责任 / 买家责任（终判·1.3）"
+      - type: process
+        lane: "O"
+        text: "上传瑕疵照片到售后单留档"
+      - type: cross_lane
+        from: "O"
+        to: "A"
+        text: "提交验货结论与责任判定"
+      - type: process
+        lane: "A"
+        text: "写 after_sale_inspection(结论/扣减/操作人/时间)"
+      - type: process
+        lane: "A"
+        text: "回写 after_sale_order.liability_party（验货后终判）"
+      - type: process
+        lane: "A"
+        text: "as_status = 待退款"
+      - type: cross_lane
+        from: "A"
+        to: "M"
+        text: "邮件告知验货结果与扣减"
+      - type: start_end
+        text: "进入待退款"
+      - type: note
+        title: "验货与判责口径（★V1.1 判责时点变更）"
+        lines:
+          - "★【1.3】责任归属在本段定案：原因码只描述「为什么」，不能直接确定判责；实物验过之后才知道买家主张是否成立。"
+          - "   典型场景：原因码写「描述不符」（听起来该平台担责），验货结论却是「与申请一致」（商品没问题）→ 判买家责任"
+          - "★【1.1/1.5】责任判定本期不再联动任何金额：不触发豁免、不触发系统计算。它只是一条留痕结论，"
+          - "   实扣服务费仍由运营在段⑤手填。判责与扣钱在本期是两件事，不要在原型上做联动只读值"
+          - "5.1 到仓自动识别：物流服务「已送达」是到仓时点的唯一来源，无人工签收登记环节，仓库不碰系统"
+          - "A16 验货作业在线下当地仓完成（收货→拍照→验瑕疵→回传在线表格）；系统边界从「运营核对表格后录入」开始"
+          - "A16 V1 不对接在线表格（人工看着填），但录入表单需按表格字段设计，以便后续对接不重构"
+          - "5.4 举证必须跟单走且带审计——扣款/拒退可能被买家质疑，照片不能只留在外部表格"
+          - "★ S1 真伪复核 V1 不做：无「真伪存疑」结论值、无挂起态；发现可疑只能写 inspection_note，退款流程照常推进"
+          - "★ A3 / 组 9 本期退货只放在仓内：不做库存回流、不做重新上架、不下发处置指令。售后单只记客观验货结果，"
+          - "   处置决策（能否再售/降级/报废）与执行均归商品域与库存域"
+  - name: "⑤ 退款执行（★服务费改运营手填）"
+    steps:
+      - type: start_end
+        text: "售后单状态 = 待退款"
+      - type: process
+        lane: "A"
+        text: "取退款基准 = 商品行实付金额(已扣优惠分摊)"
+      - type: process
+        lane: "O"
+        text: "★运营在退款方案区手动填写退货服务费实扣金额"
+      - type: process
+        lane: "O"
+        text: "（系统不计算 · 不按责任自动豁免 · 不按包裹分摊）"
+      - type: cross_lane
+        from: "O"
+        to: "A"
+        text: "提交退款方案(实扣服务费金额)"
+      - type: process
+        lane: "A"
+        text: "扣验货扣减金额(缺件 / 成色下降)"
+      - type: process
+        lane: "A"
+        text: "计算随退销售税"
+      - type: cross_lane
+        from: "A"
+        to: "R"
+        text: "按 order_id 汇总本单已退税费"
+      - type: decision
+        lane: "A"
+        text: "已退税费 + 本次 ≤ 原订单税额?"
+        on_no: "拦截并告警→运营核对"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "定案 refund_amount，写 after_sale_refund"
+      - type: cross_lane
+        from: "A"
+        to: "R"
+        text: "反写商品行 refund_status = 退款中"
+      - type: cross_lane
+        from: "A"
+        to: "P"
+        text: "创建退款单(原路退回)"
+      - type: decision
+        lane: "P"
+        text: "退款单受理成功?"
+        on_no: "受理失败→停在待退款"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "P"
+        text: "原路退回买家支付账户"
+      - type: cross_lane
+        from: "P"
+        to: "A"
+        text: "退款结果回调"
+      - type: decision
+        lane: "A"
+        text: "支付域退款单终态 = 成功?"
+        on_no: "失败→展示支付域结果·不进终态"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "写 refund_ref_no / refunded_at，refund_status=成功"
+      - type: cross_lane
+        from: "A"
+        to: "R"
+        text: "反写商品行 refund_status = 已退款"
+      - type: process
+        lane: "A"
+        text: "as_status = 已完成，completed_at"
+      - type: cross_lane
+        from: "A"
+        to: "M"
+        text: "邮件告知退款完成与金额明细"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "C 端时间线显示已完成与明细"
+      - type: start_end
+        text: "售后单已完成"
+      - type: note
+        title: "退款金额与失败处理口径（★V1.1 两处变更）"
+        lines:
+          - "★【1.1/1.4】退款额 = 商品行实付金额 − 运营手填的退货服务费实扣额 − 验货扣减 + 随退销售税。"
+          - "   V1.0 的「责任方为买家?→扣 / 平台责任→豁免」条件分支已删除：系统不再按责任自动决定服务费"
+          - "★【4.1】不新增「退款失败」状态：支付域退款单失败时，售后单主状态仍停在「待退款」，"
+          - "   运营端详情页的退款区展示支付域退款单的实时状态（含失败态与失败原因），失败处理仍在支付域完成"
+          - "★ S3 税费必须按 order_id 做已退税费累计校验：支付域只校验「已退 + 本次 ≤ 原支付金额」、不拆税，"
+          - "   一单一行下同一订单的多张售后单各退各的税，无累计校验会退超原税额；并发场景需按 order_id 加锁"
+          - "9.1 商品行 refund_status 只在走到退款环节才置「退款中」，不在申请或审核通过时置——那时金额还没定死，"
+          - "   且订单域「退款中」现有定义是「退款审批通过，该商品不得发货」，提前置会语义错位（写入时机需与订单域两侧对齐）"
+          - "A11 优惠不追回：退哪件退哪件的实付金额，剩余商品继续享受已分摊优惠"
+          - "S3 V1 不出 credit memo；Q1 已答：本期不考虑商品类目税率差异"
+  - name: "⑥ 仅退款分支"
+    steps:
+      - type: start_end
+        text: "审核通过 且 as_type = 仅退款（接②）"
+      - type: process
+        lane: "A"
+        text: "不生成退货运单 · 不建验货记录"
+      - type: process
+        lane: "A"
+        text: "as_status = 待退款"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "C 端时间线显示已受理，等待退款"
+      - type: start_end
+        text: "转⑤ 退款执行（服务费仍由运营手填 · 无验货扣减）"
+      - type: note
+        title: "仅退款口径（★V1.1 删除自动豁免与恒定判责）"
+        lines:
+          - "A13 走同一张售后单，靠 as_type 区分；适用场景：丢件、空包、投递异常等「货没到」"
+          - "★ V1.0 的两个节点已删除：「责任归属恒为平台责任(货没到)」与「退货服务费自动豁免(无需运营操作)」——"
+          - "   前者与【1.3】判责须验货后冲突，后者被【1.1/1.5】推翻（本期无任何自动豁免）"
+          - "★ 服务费：本期没有任何自动豁免规则，仅退款单的实扣金额同样由运营手填（可以填 0，但那是人的决定不是系统的）"
+          - "⚠ 待确认②：仅退款分支的判责时点——【1.3】定「最终判责必须验货后」，但仅退款不走验货，"
+          - "   本分支的 liability_party 何时、由谁、依据什么落定尚未拍板。已提交决策，不得自行落定"
+          - "状态机（仅退款分支）：待审核 → 待退款 → 已完成；旁支 已驳回 / 已关闭（含 7.2 买家撤销）"
+          - "跳过段③逆向物流与段④验货：既不注册退货运单，也不产生 after_sale_inspection 记录"
+  - name: "⑦ 逾期未交寄自动关单"
+    steps:
+      - type: start_end
+        text: "定时任务扫描 as_status=待寄回 的单"
+      - type: process
+        lane: "A"
+        text: "按「运单号告知时点 + return_ship_days」算交寄截止时点(3.1)"
+      - type: cross_lane
+        from: "A"
+        to: "L"
+        text: "查询退货运单揽收轨迹"
+      - type: decision
+        lane: "L"
+        text: "仍无揽收轨迹?"
+        on_no: "已交寄→转④"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "已过关单前提醒时点?"
+        on_no: "未到提醒时点·继续等待"
+        yes_label: "是"
+        no_label: "否"
+      - type: cross_lane
+        from: "A"
+        to: "M"
+        text: "关单前提醒邮件(未交寄将关单)"
+      - type: decision
+        lane: "A"
+        text: "已过交寄截止时点?"
+        on_no: "未到截止时点·继续等待"
+        yes_label: "是"
+        no_label: "否"
+      - type: cross_lane
+        from: "A"
+        to: "L"
+        text: "再次确认仍无揽收轨迹"
+      - type: process
+        lane: "A"
+        text: "as_status=已关闭 · close_reason=逾期未交寄"
+      - type: cross_lane
+        from: "A"
+        to: "M"
+        text: "关单通知邮件"
+      - type: process
+        lane: "A"
+        text: "释放商品行互斥占用(1.8)：不再阻塞新申请"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "★C 端提示：仍在时效内可重新申请（不写「请联系客服」）"
+      - type: start_end
+        text: "已关闭（终态）· 重新申请按时效严格判定"
+      - type: note
+        title: "关单与重新申请口径（★V1.1 出口变更）"
+        lines:
+          - "★【3.2】关单后的出口不再是「必走人工特批」：申请流程按时效严格判断、与申请次数无关——"
+          - "   第一次申请关单了，第二次申请只要仍在售后时效窗口内，就走段①的正常申请路径，不需要任何特批"
+          - "★ C 端关单提示文案随之改写：不写「请联系客服」，要写清「仍在时效内可重新申请」"
+          - "★ 已知后果（不是矛盾，是决策的必然结果）：逾期未交寄本身要耗掉 return_ship_days，"
+          - "   走到关单时售后时效窗口大概率已过 → 段①的时效判定会拒掉。此时只剩 1.7 运营后台特批一条路，"
+          - "   但那是运营侧动作，不是 C 端流程；本图不给关单场景任何时效豁免窗口"
+          - "判定依据是物流揽收轨迹，不是买家点「我已寄出」——运单由运营预先注册到物流服务，轨迹是唯一客观来源"
+          - "关单天数为 market 级运营配置项（after_sale_policy.return_ship_days），本图不写死具体数值"
+          - "关单会释放 1.8 的互斥占用，否则买家永远无法对该商品行再次发起售后"
+  - name: "⑧ 拒退（验货不符 / 空包）"
+    steps:
+      - type: start_end
+        text: "验货判定实物与售后单不符 / 空包（接④）"
+      - type: process
+        lane: "O"
+        text: "录入 inspection_result = 不符 / 空包"
+      - type: process
+        lane: "O"
+        text: "上传取证照片 + 填写拒退原因（暂写 inspection_note）"
+      - type: cross_lane
+        from: "O"
+        to: "A"
+        text: "提交拒退决定"
+      - type: process
+        lane: "A"
+        text: "写 after_sale_inspection(客观结果·不含处置决策)"
+      - type: process
+        lane: "A"
+        text: "as_status = 已拒退（终态）· 不创建退款单"
+      - type: cross_lane
+        from: "A"
+        to: "F"
+        text: "运营线下安排退回买家（不进系统）"
+      - type: cross_lane
+        from: "A"
+        to: "M"
+        text: "邮件告知拒退结果与取证说明"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "C 端显示已拒退与取证材料（不展示回寄单号）"
+      - type: start_end
+        text: "已拒退（终态）"
+      - type: note
+        title: "拒退口径"
+        lines:
+          - "★【5.1】拒退后回寄买家的这一程完全走线下：不在系统内建单、不注册物流追踪、C 端不展示回寄单号，"
+          - "   shipment_ref_id 维持单值（只承载「买家寄回平台」这一程）。图中「运营线下安排把货退回买家」这条箭头"
+          - "   终点在「线下作业·系统外」泳道，不是系统内流程节点"
+          - "⚠ 待确认③：拒退原因写进哪个字段——【5.2】已定不新增 deny_reason 字段，"
+          - "   本图暂用 inspection_note 承载并标注「字段归属待定」。已提交决策，不得自行落定"
+          - "5.5 验货结论 → 退款方案联动：一致 → 按运营手填的服务费扣后退剩余；缺件/成色下降 → 服务费之外再按验货结果扣减；"
+          - "   不符 / 空包 → 拒退并把货退回买家"
+          - "5.6 买家不认可结论时线下协商；V1 无 C 端申诉交互，也无系统内争议工单"
+          - "S1 真伪存疑不构成拒退理由——V1 无该结论值，可疑情况只写 inspection_note，流程照常推进"
+  - name: "⑨ 退回途中丢件 · 跳过验货直达待退款（★V1.1 新增）"
+    steps:
+      - type: start_end
+        text: "退货包裹在途中出现追踪异常（接③/④）"
+      - type: process
+        lane: "L"
+        text: "轨迹长时间无更新 / 承运商判定包裹丢失或灭失"
+      - type: cross_lane
+        from: "L"
+        to: "A"
+        text: "追踪异常通知"
+      - type: process
+        lane: "A"
+        text: "标记异常并暂停段⑦的交寄超时关单扫描"
+      - type: cross_lane
+        from: "A"
+        to: "O"
+        text: "异常单推送到运营工单台"
+      - type: process
+        lane: "O"
+        text: "线下向承运商核实包裹状态"
+      - type: decision
+        lane: "O"
+        text: "确认包裹已丢失 / 灭失?"
+        on_no: "仍可送达→回④等到仓"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "O"
+        text: "在售后单登记丢件结论 · 责任归属 = 平台责任(4.2)"
+      - type: cross_lane
+        from: "O"
+        to: "A"
+        text: "提交丢件结论"
+      - type: process
+        lane: "A"
+        text: "★状态机边：退货在途 → 待退款（跳过待验货）"
+      - type: process
+        lane: "A"
+        text: "不生成 after_sale_inspection 记录 · 无验货扣减"
+      - type: cross_lane
+        from: "A"
+        to: "M"
+        text: "邮件告知：途中丢件按平台责任处理"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "C 端时间线显示丢件与处理结论"
+      - type: start_end
+        text: "转⑤ 退款执行（无验货扣减）"
+      - type: note
+        title: "丢件跳验货口径（★V1.1 新增，对应决策 4.2）"
+        lines:
+          - "★【4.2】补的就是这条状态机边：单子当时在「退货在途」，货已经不可能到仓，不能卡在等验货，"
+          - "   直接跳到「待退款」。这是 V1.0 状态机骨架里缺失的一条边（4.6 定了处理方式却没落到状态机上）"
+          - "★【4.2】此场景归平台责任：物流出问题属平台与物流商之间的事，对买家而言即平台责任，"
+          - "   平台先足额赔付买家，再线下向物流商索赔"
+          - "★ 服务费：决策 4.2 原推荐里的「自动豁免服务费」已被【1.1/1.5】推翻——本期没有自动豁免，"
+          - "   实扣金额仍由运营在段⑤手填（丢件场景通常填 0，但那是人的决定，系统不代劳）"
+          - "⚠ 与【1.3】的时点冲突（本图不抹平，如实标出）：1.3 定「最终判责必须验货后」，本分支跳过验货，"
+          - "   却由 4.2 直接定死平台责任。两条决策在「判责时点」上不自洽，与待确认②（仅退款判责时点）同源。"
+          - "   本图按 4.2 画「运营登记时判平台责任」；若后续拍板另有口径，本段与段⑥须同步改"
+          - "异常判定依据是物流信息服务的追踪异常通知，不是买家自述；核实动作走线下，系统只登记结论"
+  - name: "⑩ 待审核期买家撤销申请（★V1.1 新增）"
+    steps:
+      - type: start_end
+        text: "买家在 C 端售后详情点击「撤销申请」"
+      - type: cross_lane
+        from: "B"
+        to: "A"
+        text: "提交撤销请求"
+      - type: decision
+        lane: "A"
+        text: "当前 as_status = 待审核?"
+        on_no: "非待审核→不展示撤销入口"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "as_status=已关闭 · close_reason=买家撤销(7.2)"
+      - type: process
+        lane: "A"
+        text: "释放商品行互斥占用(1.8)：可再次发起申请"
+      - type: cross_lane
+        from: "A"
+        to: "M"
+        text: "撤销确认邮件"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "C 端显示已关闭(买家撤销) · 仍在时效内可重新申请"
+      - type: start_end
+        text: "已关闭 · 买家撤销（终态）"
+      - type: note
+        title: "撤销口径（★V1.1 新增，对应决策 7.2）"
+        lines:
+          - "★【7.2】撤销只在「待审核」状态开放：一旦运营已给出审核结论（通过/驳回），撤销入口即关闭。"
+          - "   代价只是 close_reason 多一个枚举取值「买家撤销」，却能消掉一类必然发生的客诉"
+          - "★ 不给撤销的后果（这是加它的原因）：买家误提交后会被 1.8「同一商品行只允许一张非终态售后单」锁死，"
+          - "   只能干等运营驳回才能重新申请"
+          - "★ 撤销后同样释放 1.8 互斥占用；重新申请与【3.2】口径一致——按时效严格判定，与申请次数无关"
+          - "撤销是终态，不是暂停：已关闭的单不可恢复，买家只能重新发起新申请"
+]]>
+</metadata>
+<defs>
+<marker id="arr" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#475569"/></marker>
+<marker id="arr-r" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#DC2626"/></marker>
+</defs>
+<rect width="4038" height="10750" fill="#F8FAFC"/>
+<rect width="4038" height="46" fill="#1E1F2E"/>
+<text x="2019" y="30" text-anchor="middle" fill="#fff" font-size="17" font-weight="600">looply &#183; 售后模块系统流程图</text>
+<text x="4008" y="30" text-anchor="end" fill="rgba(255,255,255,0.5)" font-size="10">V1.1 &#183; 2026.07（G3 决策落地）</text>
+<rect x="40" y="46" width="756" height="24" fill="#10B981" opacity="0.85"/>
+<text x="418" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">C 端买家</text>
+<rect x="796" y="46" width="532" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="1062" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">运营端（售后工单台）</text>
+<rect x="1328" y="46" width="846" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="1751" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">售后域服务（本模块）</text>
+<rect x="2174" y="46" width="482" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="2415" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">物流信息服务</text>
+<rect x="2656" y="46" width="300" height="24" fill="#EC4899" opacity="0.85"/>
+<text x="2806" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">消息通知（仅邮件通道）</text>
+<rect x="2956" y="46" width="300" height="24" fill="#0EA5E9" opacity="0.85"/>
+<text x="3106" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">订单域</text>
+<rect x="3256" y="46" width="502" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="3507" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">支付域</text>
+<rect x="3758" y="46" width="280" height="24" fill="#64748B" opacity="0.85"/>
+<text x="3898" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">线下作业（仓 / 网点）· 系统外</text>
+<rect x="40" y="46" width="756" height="1492" fill="rgba(16,185,129,0.04)"/>
+<rect x="796" y="46" width="532" height="1492" fill="rgba(139,92,246,0.04)"/>
+<line x1="796" y1="46" x2="796" y2="1538" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1328" y="46" width="846" height="1492" fill="rgba(74,108,247,0.05)"/>
+<line x1="1328" y1="46" x2="1328" y2="1538" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2174" y="46" width="482" height="1492" fill="rgba(245,158,11,0.04)"/>
+<line x1="2174" y1="46" x2="2174" y2="1538" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2656" y="46" width="300" height="1492" fill="rgba(236,72,153,0.04)"/>
+<line x1="2656" y1="46" x2="2656" y2="1538" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2956" y="46" width="300" height="1492" fill="rgba(14,165,233,0.04)"/>
+<line x1="2956" y1="46" x2="2956" y2="1538" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="3256" y="46" width="502" height="1492" fill="rgba(239,68,68,0.04)"/>
+<line x1="3256" y1="46" x2="3256" y2="1538" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="3758" y="46" width="280" height="1492" fill="rgba(100,116,139,0.05)"/>
+<line x1="3758" y1="46" x2="3758" y2="1538" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="1538" x2="4038" y2="1538" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="46" width="40" height="1492" fill="#DBEAFE" rx="0"/>
+<text x="20" y="716" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">①</text>
+<text x="20" y="734" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">资</text>
+<text x="20" y="752" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">格</text>
+<text x="20" y="770" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">判</text>
+<text x="20" y="788" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">定</text>
+<text x="20" y="806" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">与</text>
+<text x="20" y="824" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">申</text>
+<text x="20" y="842" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">请</text>
+<text x="20" y="860" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">提</text>
+<text x="20" y="878" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">交</text>
+<rect x="40" y="1546" width="756" height="24" fill="#10B981" opacity="0.85"/>
+<text x="418" y="1563" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">C 端买家</text>
+<rect x="796" y="1546" width="532" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="1062" y="1563" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">运营端（售后工单台）</text>
+<rect x="1328" y="1546" width="846" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="1751" y="1563" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">售后域服务（本模块）</text>
+<rect x="2174" y="1546" width="482" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="2415" y="1563" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">物流信息服务</text>
+<rect x="2656" y="1546" width="300" height="24" fill="#EC4899" opacity="0.85"/>
+<text x="2806" y="1563" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">消息通知（仅邮件通道）</text>
+<rect x="2956" y="1546" width="300" height="24" fill="#0EA5E9" opacity="0.85"/>
+<text x="3106" y="1563" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">订单域</text>
+<rect x="3256" y="1546" width="502" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="3507" y="1563" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">支付域</text>
+<rect x="3758" y="1546" width="280" height="24" fill="#64748B" opacity="0.85"/>
+<text x="3898" y="1563" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">线下作业（仓 / 网点）· 系统外</text>
+<rect x="40" y="1546" width="756" height="914" fill="rgba(16,185,129,0.04)"/>
+<rect x="796" y="1546" width="532" height="914" fill="rgba(139,92,246,0.04)"/>
+<line x1="796" y1="1546" x2="796" y2="2460" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1328" y="1546" width="846" height="914" fill="rgba(74,108,247,0.05)"/>
+<line x1="1328" y1="1546" x2="1328" y2="2460" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2174" y="1546" width="482" height="914" fill="rgba(245,158,11,0.04)"/>
+<line x1="2174" y1="1546" x2="2174" y2="2460" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2656" y="1546" width="300" height="914" fill="rgba(236,72,153,0.04)"/>
+<line x1="2656" y1="1546" x2="2656" y2="2460" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2956" y="1546" width="300" height="914" fill="rgba(14,165,233,0.04)"/>
+<line x1="2956" y1="1546" x2="2956" y2="2460" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="3256" y="1546" width="502" height="914" fill="rgba(239,68,68,0.04)"/>
+<line x1="3256" y1="1546" x2="3256" y2="2460" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="3758" y="1546" width="280" height="914" fill="rgba(100,116,139,0.05)"/>
+<line x1="3758" y1="1546" x2="3758" y2="2460" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="2460" x2="4038" y2="2460" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="1546" width="40" height="914" fill="#DBEAFE" rx="0"/>
+<text x="20" y="1909" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">②</text>
+<text x="20" y="1927" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">运</text>
+<text x="20" y="1945" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">营</text>
+<text x="20" y="1963" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">审</text>
+<text x="20" y="1981" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">核</text>
+<text x="20" y="1999" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">（</text>
+<text x="20" y="2017" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">本</text>
+<text x="20" y="2035" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">段</text>
+<text x="20" y="2053" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">不</text>
+<text x="20" y="2071" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">判</text>
+<text x="20" y="2089" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">责</text>
+<text x="20" y="2107" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">）</text>
+<rect x="40" y="2468" width="756" height="24" fill="#10B981" opacity="0.85"/>
+<text x="418" y="2485" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">C 端买家</text>
+<rect x="796" y="2468" width="532" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="1062" y="2485" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">运营端（售后工单台）</text>
+<rect x="1328" y="2468" width="846" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="1751" y="2485" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">售后域服务（本模块）</text>
+<rect x="2174" y="2468" width="482" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="2415" y="2485" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">物流信息服务</text>
+<rect x="2656" y="2468" width="300" height="24" fill="#EC4899" opacity="0.85"/>
+<text x="2806" y="2485" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">消息通知（仅邮件通道）</text>
+<rect x="2956" y="2468" width="300" height="24" fill="#0EA5E9" opacity="0.85"/>
+<text x="3106" y="2485" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">订单域</text>
+<rect x="3256" y="2468" width="502" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="3507" y="2485" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">支付域</text>
+<rect x="3758" y="2468" width="280" height="24" fill="#64748B" opacity="0.85"/>
+<text x="3898" y="2485" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">线下作业（仓 / 网点）· 系统外</text>
+<rect x="40" y="2468" width="756" height="1300" fill="rgba(16,185,129,0.04)"/>
+<rect x="796" y="2468" width="532" height="1300" fill="rgba(139,92,246,0.04)"/>
+<line x1="796" y1="2468" x2="796" y2="3768" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1328" y="2468" width="846" height="1300" fill="rgba(74,108,247,0.05)"/>
+<line x1="1328" y1="2468" x2="1328" y2="3768" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2174" y="2468" width="482" height="1300" fill="rgba(245,158,11,0.04)"/>
+<line x1="2174" y1="2468" x2="2174" y2="3768" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2656" y="2468" width="300" height="1300" fill="rgba(236,72,153,0.04)"/>
+<line x1="2656" y1="2468" x2="2656" y2="3768" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2956" y="2468" width="300" height="1300" fill="rgba(14,165,233,0.04)"/>
+<line x1="2956" y1="2468" x2="2956" y2="3768" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="3256" y="2468" width="502" height="1300" fill="rgba(239,68,68,0.04)"/>
+<line x1="3256" y1="2468" x2="3256" y2="3768" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="3758" y="2468" width="280" height="1300" fill="rgba(100,116,139,0.05)"/>
+<line x1="3758" y1="2468" x2="3758" y2="3768" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="3768" x2="4038" y2="3768" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="2468" width="40" height="1300" fill="#DBEAFE" rx="0"/>
+<text x="20" y="3078" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">③</text>
+<text x="20" y="3096" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">面</text>
+<text x="20" y="3114" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">单</text>
+<text x="20" y="3132" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">与</text>
+<text x="20" y="3150" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">交</text>
+<text x="20" y="3168" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">寄</text>
+<rect x="40" y="3776" width="756" height="24" fill="#10B981" opacity="0.85"/>
+<text x="418" y="3793" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">C 端买家</text>
+<rect x="796" y="3776" width="532" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="1062" y="3793" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">运营端（售后工单台）</text>
+<rect x="1328" y="3776" width="846" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="1751" y="3793" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">售后域服务（本模块）</text>
+<rect x="2174" y="3776" width="482" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="2415" y="3793" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">物流信息服务</text>
+<rect x="2656" y="3776" width="300" height="24" fill="#EC4899" opacity="0.85"/>
+<text x="2806" y="3793" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">消息通知（仅邮件通道）</text>
+<rect x="2956" y="3776" width="300" height="24" fill="#0EA5E9" opacity="0.85"/>
+<text x="3106" y="3793" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">订单域</text>
+<rect x="3256" y="3776" width="502" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="3507" y="3793" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">支付域</text>
+<rect x="3758" y="3776" width="280" height="24" fill="#64748B" opacity="0.85"/>
+<text x="3898" y="3793" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">线下作业（仓 / 网点）· 系统外</text>
+<rect x="40" y="3776" width="756" height="1440" fill="rgba(16,185,129,0.04)"/>
+<rect x="796" y="3776" width="532" height="1440" fill="rgba(139,92,246,0.04)"/>
+<line x1="796" y1="3776" x2="796" y2="5216" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1328" y="3776" width="846" height="1440" fill="rgba(74,108,247,0.05)"/>
+<line x1="1328" y1="3776" x2="1328" y2="5216" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2174" y="3776" width="482" height="1440" fill="rgba(245,158,11,0.04)"/>
+<line x1="2174" y1="3776" x2="2174" y2="5216" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2656" y="3776" width="300" height="1440" fill="rgba(236,72,153,0.04)"/>
+<line x1="2656" y1="3776" x2="2656" y2="5216" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2956" y="3776" width="300" height="1440" fill="rgba(14,165,233,0.04)"/>
+<line x1="2956" y1="3776" x2="2956" y2="5216" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="3256" y="3776" width="502" height="1440" fill="rgba(239,68,68,0.04)"/>
+<line x1="3256" y1="3776" x2="3256" y2="5216" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="3758" y="3776" width="280" height="1440" fill="rgba(100,116,139,0.05)"/>
+<line x1="3758" y1="3776" x2="3758" y2="5216" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="5216" x2="4038" y2="5216" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="3776" width="40" height="1440" fill="#DBEAFE" rx="0"/>
+<text x="20" y="4375" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">④</text>
+<text x="20" y="4393" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">到</text>
+<text x="20" y="4411" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">仓</text>
+<text x="20" y="4429" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">与</text>
+<text x="20" y="4447" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">验</text>
+<text x="20" y="4465" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">货</text>
+<text x="20" y="4483" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">（</text>
+<text x="20" y="4501" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">★</text>
+<text x="20" y="4519" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">判</text>
+<text x="20" y="4537" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">责</text>
+<text x="20" y="4555" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">在</text>
+<text x="20" y="4573" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">此</text>
+<text x="20" y="4591" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">定</text>
+<text x="20" y="4609" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">案</text>
+<text x="20" y="4627" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">）</text>
+<rect x="40" y="5224" width="756" height="24" fill="#10B981" opacity="0.85"/>
+<text x="418" y="5241" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">C 端买家</text>
+<rect x="796" y="5224" width="532" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="1062" y="5241" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">运营端（售后工单台）</text>
+<rect x="1328" y="5224" width="846" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="1751" y="5241" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">售后域服务（本模块）</text>
+<rect x="2174" y="5224" width="482" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="2415" y="5241" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">物流信息服务</text>
+<rect x="2656" y="5224" width="300" height="24" fill="#EC4899" opacity="0.85"/>
+<text x="2806" y="5241" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">消息通知（仅邮件通道）</text>
+<rect x="2956" y="5224" width="300" height="24" fill="#0EA5E9" opacity="0.85"/>
+<text x="3106" y="5241" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">订单域</text>
+<rect x="3256" y="5224" width="502" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="3507" y="5241" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">支付域</text>
+<rect x="3758" y="5224" width="280" height="24" fill="#64748B" opacity="0.85"/>
+<text x="3898" y="5241" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">线下作业（仓 / 网点）· 系统外</text>
+<rect x="40" y="5224" width="756" height="1458" fill="rgba(16,185,129,0.04)"/>
+<rect x="796" y="5224" width="532" height="1458" fill="rgba(139,92,246,0.04)"/>
+<line x1="796" y1="5224" x2="796" y2="6682" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1328" y="5224" width="846" height="1458" fill="rgba(74,108,247,0.05)"/>
+<line x1="1328" y1="5224" x2="1328" y2="6682" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2174" y="5224" width="482" height="1458" fill="rgba(245,158,11,0.04)"/>
+<line x1="2174" y1="5224" x2="2174" y2="6682" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2656" y="5224" width="300" height="1458" fill="rgba(236,72,153,0.04)"/>
+<line x1="2656" y1="5224" x2="2656" y2="6682" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2956" y="5224" width="300" height="1458" fill="rgba(14,165,233,0.04)"/>
+<line x1="2956" y1="5224" x2="2956" y2="6682" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="3256" y="5224" width="502" height="1458" fill="rgba(239,68,68,0.04)"/>
+<line x1="3256" y1="5224" x2="3256" y2="6682" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="3758" y="5224" width="280" height="1458" fill="rgba(100,116,139,0.05)"/>
+<line x1="3758" y1="5224" x2="3758" y2="6682" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="6682" x2="4038" y2="6682" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="5224" width="40" height="1458" fill="#DBEAFE" rx="0"/>
+<text x="20" y="5823" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">⑤</text>
+<text x="20" y="5841" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">退</text>
+<text x="20" y="5859" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">款</text>
+<text x="20" y="5877" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">执</text>
+<text x="20" y="5895" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">行</text>
+<text x="20" y="5913" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">（</text>
+<text x="20" y="5931" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">★</text>
+<text x="20" y="5949" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">服</text>
+<text x="20" y="5967" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">务</text>
+<text x="20" y="5985" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">费</text>
+<text x="20" y="6003" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">改</text>
+<text x="20" y="6021" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">运</text>
+<text x="20" y="6039" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">营</text>
+<text x="20" y="6057" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">手</text>
+<text x="20" y="6075" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">填</text>
+<text x="20" y="6093" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">）</text>
+<rect x="40" y="6690" width="756" height="24" fill="#10B981" opacity="0.85"/>
+<text x="418" y="6707" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">C 端买家</text>
+<rect x="796" y="6690" width="532" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="1062" y="6707" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">运营端（售后工单台）</text>
+<rect x="1328" y="6690" width="846" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="1751" y="6707" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">售后域服务（本模块）</text>
+<rect x="2174" y="6690" width="482" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="2415" y="6707" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">物流信息服务</text>
+<rect x="2656" y="6690" width="300" height="24" fill="#EC4899" opacity="0.85"/>
+<text x="2806" y="6707" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">消息通知（仅邮件通道）</text>
+<rect x="2956" y="6690" width="300" height="24" fill="#0EA5E9" opacity="0.85"/>
+<text x="3106" y="6707" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">订单域</text>
+<rect x="3256" y="6690" width="502" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="3507" y="6707" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">支付域</text>
+<rect x="3758" y="6690" width="280" height="24" fill="#64748B" opacity="0.85"/>
+<text x="3898" y="6707" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">线下作业（仓 / 网点）· 系统外</text>
+<rect x="40" y="6690" width="756" height="508" fill="rgba(16,185,129,0.04)"/>
+<rect x="796" y="6690" width="532" height="508" fill="rgba(139,92,246,0.04)"/>
+<line x1="796" y1="6690" x2="796" y2="7198" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1328" y="6690" width="846" height="508" fill="rgba(74,108,247,0.05)"/>
+<line x1="1328" y1="6690" x2="1328" y2="7198" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2174" y="6690" width="482" height="508" fill="rgba(245,158,11,0.04)"/>
+<line x1="2174" y1="6690" x2="2174" y2="7198" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2656" y="6690" width="300" height="508" fill="rgba(236,72,153,0.04)"/>
+<line x1="2656" y1="6690" x2="2656" y2="7198" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2956" y="6690" width="300" height="508" fill="rgba(14,165,233,0.04)"/>
+<line x1="2956" y1="6690" x2="2956" y2="7198" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="3256" y="6690" width="502" height="508" fill="rgba(239,68,68,0.04)"/>
+<line x1="3256" y1="6690" x2="3256" y2="7198" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="3758" y="6690" width="280" height="508" fill="rgba(100,116,139,0.05)"/>
+<line x1="3758" y1="6690" x2="3758" y2="7198" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="7198" x2="4038" y2="7198" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="6690" width="40" height="508" fill="#DBEAFE" rx="0"/>
+<text x="20" y="6904" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">⑥</text>
+<text x="20" y="6922" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">仅</text>
+<text x="20" y="6940" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">退</text>
+<text x="20" y="6958" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">款</text>
+<text x="20" y="6976" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">分</text>
+<text x="20" y="6994" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">支</text>
+<rect x="40" y="7206" width="756" height="24" fill="#10B981" opacity="0.85"/>
+<text x="418" y="7223" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">C 端买家</text>
+<rect x="796" y="7206" width="532" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="1062" y="7223" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">运营端（售后工单台）</text>
+<rect x="1328" y="7206" width="846" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="1751" y="7223" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">售后域服务（本模块）</text>
+<rect x="2174" y="7206" width="482" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="2415" y="7223" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">物流信息服务</text>
+<rect x="2656" y="7206" width="300" height="24" fill="#EC4899" opacity="0.85"/>
+<text x="2806" y="7223" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">消息通知（仅邮件通道）</text>
+<rect x="2956" y="7206" width="300" height="24" fill="#0EA5E9" opacity="0.85"/>
+<text x="3106" y="7223" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">订单域</text>
+<rect x="3256" y="7206" width="502" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="3507" y="7223" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">支付域</text>
+<rect x="3758" y="7206" width="280" height="24" fill="#64748B" opacity="0.85"/>
+<text x="3898" y="7223" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">线下作业（仓 / 网点）· 系统外</text>
+<rect x="40" y="7206" width="756" height="990" fill="rgba(16,185,129,0.04)"/>
+<rect x="796" y="7206" width="532" height="990" fill="rgba(139,92,246,0.04)"/>
+<line x1="796" y1="7206" x2="796" y2="8196" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1328" y="7206" width="846" height="990" fill="rgba(74,108,247,0.05)"/>
+<line x1="1328" y1="7206" x2="1328" y2="8196" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2174" y="7206" width="482" height="990" fill="rgba(245,158,11,0.04)"/>
+<line x1="2174" y1="7206" x2="2174" y2="8196" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2656" y="7206" width="300" height="990" fill="rgba(236,72,153,0.04)"/>
+<line x1="2656" y1="7206" x2="2656" y2="8196" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2956" y="7206" width="300" height="990" fill="rgba(14,165,233,0.04)"/>
+<line x1="2956" y1="7206" x2="2956" y2="8196" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="3256" y="7206" width="502" height="990" fill="rgba(239,68,68,0.04)"/>
+<line x1="3256" y1="7206" x2="3256" y2="8196" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="3758" y="7206" width="280" height="990" fill="rgba(100,116,139,0.05)"/>
+<line x1="3758" y1="7206" x2="3758" y2="8196" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="8196" x2="4038" y2="8196" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="7206" width="40" height="990" fill="#DBEAFE" rx="0"/>
+<text x="20" y="7625" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">⑦</text>
+<text x="20" y="7643" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">逾</text>
+<text x="20" y="7661" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">期</text>
+<text x="20" y="7679" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">未</text>
+<text x="20" y="7697" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">交</text>
+<text x="20" y="7715" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">寄</text>
+<text x="20" y="7733" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">自</text>
+<text x="20" y="7751" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">动</text>
+<text x="20" y="7769" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">关</text>
+<text x="20" y="7787" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">单</text>
+<rect x="40" y="8204" width="756" height="24" fill="#10B981" opacity="0.85"/>
+<text x="418" y="8221" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">C 端买家</text>
+<rect x="796" y="8204" width="532" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="1062" y="8221" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">运营端（售后工单台）</text>
+<rect x="1328" y="8204" width="846" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="1751" y="8221" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">售后域服务（本模块）</text>
+<rect x="2174" y="8204" width="482" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="2415" y="8221" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">物流信息服务</text>
+<rect x="2656" y="8204" width="300" height="24" fill="#EC4899" opacity="0.85"/>
+<text x="2806" y="8221" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">消息通知（仅邮件通道）</text>
+<rect x="2956" y="8204" width="300" height="24" fill="#0EA5E9" opacity="0.85"/>
+<text x="3106" y="8221" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">订单域</text>
+<rect x="3256" y="8204" width="502" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="3507" y="8221" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">支付域</text>
+<rect x="3758" y="8204" width="280" height="24" fill="#64748B" opacity="0.85"/>
+<text x="3898" y="8221" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">线下作业（仓 / 网点）· 系统外</text>
+<rect x="40" y="8204" width="756" height="780" fill="rgba(16,185,129,0.04)"/>
+<rect x="796" y="8204" width="532" height="780" fill="rgba(139,92,246,0.04)"/>
+<line x1="796" y1="8204" x2="796" y2="8984" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1328" y="8204" width="846" height="780" fill="rgba(74,108,247,0.05)"/>
+<line x1="1328" y1="8204" x2="1328" y2="8984" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2174" y="8204" width="482" height="780" fill="rgba(245,158,11,0.04)"/>
+<line x1="2174" y1="8204" x2="2174" y2="8984" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2656" y="8204" width="300" height="780" fill="rgba(236,72,153,0.04)"/>
+<line x1="2656" y1="8204" x2="2656" y2="8984" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2956" y="8204" width="300" height="780" fill="rgba(14,165,233,0.04)"/>
+<line x1="2956" y1="8204" x2="2956" y2="8984" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="3256" y="8204" width="502" height="780" fill="rgba(239,68,68,0.04)"/>
+<line x1="3256" y1="8204" x2="3256" y2="8984" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="3758" y="8204" width="280" height="780" fill="rgba(100,116,139,0.05)"/>
+<line x1="3758" y1="8204" x2="3758" y2="8984" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="8984" x2="4038" y2="8984" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="8204" width="40" height="780" fill="#DBEAFE" rx="0"/>
+<text x="20" y="8500" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">⑧</text>
+<text x="20" y="8518" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">拒</text>
+<text x="20" y="8536" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">退</text>
+<text x="20" y="8554" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">（</text>
+<text x="20" y="8572" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">验</text>
+<text x="20" y="8590" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">货</text>
+<text x="20" y="8608" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">不</text>
+<text x="20" y="8626" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">符</text>
+<text x="20" y="8644" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">/</text>
+<text x="20" y="8662" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">空</text>
+<text x="20" y="8680" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">包</text>
+<text x="20" y="8698" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">）</text>
+<rect x="40" y="8992" width="756" height="24" fill="#10B981" opacity="0.85"/>
+<text x="418" y="9009" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">C 端买家</text>
+<rect x="796" y="8992" width="532" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="1062" y="9009" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">运营端（售后工单台）</text>
+<rect x="1328" y="8992" width="846" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="1751" y="9009" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">售后域服务（本模块）</text>
+<rect x="2174" y="8992" width="482" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="2415" y="9009" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">物流信息服务</text>
+<rect x="2656" y="8992" width="300" height="24" fill="#EC4899" opacity="0.85"/>
+<text x="2806" y="9009" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">消息通知（仅邮件通道）</text>
+<rect x="2956" y="8992" width="300" height="24" fill="#0EA5E9" opacity="0.85"/>
+<text x="3106" y="9009" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">订单域</text>
+<rect x="3256" y="8992" width="502" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="3507" y="9009" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">支付域</text>
+<rect x="3758" y="8992" width="280" height="24" fill="#64748B" opacity="0.85"/>
+<text x="3898" y="9009" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">线下作业（仓 / 网点）· 系统外</text>
+<rect x="40" y="8992" width="756" height="1022" fill="rgba(16,185,129,0.04)"/>
+<rect x="796" y="8992" width="532" height="1022" fill="rgba(139,92,246,0.04)"/>
+<line x1="796" y1="8992" x2="796" y2="10014" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1328" y="8992" width="846" height="1022" fill="rgba(74,108,247,0.05)"/>
+<line x1="1328" y1="8992" x2="1328" y2="10014" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2174" y="8992" width="482" height="1022" fill="rgba(245,158,11,0.04)"/>
+<line x1="2174" y1="8992" x2="2174" y2="10014" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2656" y="8992" width="300" height="1022" fill="rgba(236,72,153,0.04)"/>
+<line x1="2656" y1="8992" x2="2656" y2="10014" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2956" y="8992" width="300" height="1022" fill="rgba(14,165,233,0.04)"/>
+<line x1="2956" y1="8992" x2="2956" y2="10014" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="3256" y="8992" width="502" height="1022" fill="rgba(239,68,68,0.04)"/>
+<line x1="3256" y1="8992" x2="3256" y2="10014" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="3758" y="8992" width="280" height="1022" fill="rgba(100,116,139,0.05)"/>
+<line x1="3758" y1="8992" x2="3758" y2="10014" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="10014" x2="4038" y2="10014" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="8992" width="40" height="1022" fill="#DBEAFE" rx="0"/>
+<text x="20" y="9292" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">⑨</text>
+<text x="20" y="9310" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">退</text>
+<text x="20" y="9328" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">回</text>
+<text x="20" y="9346" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">途</text>
+<text x="20" y="9364" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">中</text>
+<text x="20" y="9382" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">丢</text>
+<text x="20" y="9400" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">件</text>
+<text x="20" y="9418" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">·</text>
+<text x="20" y="9436" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">跳</text>
+<text x="20" y="9454" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">过</text>
+<text x="20" y="9472" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">验</text>
+<text x="20" y="9490" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">货</text>
+<text x="20" y="9508" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">直</text>
+<text x="20" y="9526" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">达</text>
+<text x="20" y="9544" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">待</text>
+<text x="20" y="9562" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">退</text>
+<text x="20" y="9580" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">款</text>
+<text x="20" y="9598" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">（</text>
+<text x="20" y="9616" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">★</text>
+<text x="20" y="9634" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">V1</text>
+<text x="20" y="9652" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">.</text>
+<text x="20" y="9670" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">1</text>
+<text x="20" y="9688" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">新</text>
+<text x="20" y="9706" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">增</text>
+<text x="20" y="9724" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">）</text>
+<rect x="40" y="10022" width="756" height="24" fill="#10B981" opacity="0.85"/>
+<text x="418" y="10039" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">C 端买家</text>
+<rect x="796" y="10022" width="532" height="24" fill="#8B5CF6" opacity="0.85"/>
+<text x="1062" y="10039" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">运营端（售后工单台）</text>
+<rect x="1328" y="10022" width="846" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="1751" y="10039" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">售后域服务（本模块）</text>
+<rect x="2174" y="10022" width="482" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="2415" y="10039" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">物流信息服务</text>
+<rect x="2656" y="10022" width="300" height="24" fill="#EC4899" opacity="0.85"/>
+<text x="2806" y="10039" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">消息通知（仅邮件通道）</text>
+<rect x="2956" y="10022" width="300" height="24" fill="#0EA5E9" opacity="0.85"/>
+<text x="3106" y="10039" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">订单域</text>
+<rect x="3256" y="10022" width="502" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="3507" y="10039" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">支付域</text>
+<rect x="3758" y="10022" width="280" height="24" fill="#64748B" opacity="0.85"/>
+<text x="3898" y="10039" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">线下作业（仓 / 网点）· 系统外</text>
+<rect x="40" y="10022" width="756" height="650" fill="rgba(16,185,129,0.04)"/>
+<rect x="796" y="10022" width="532" height="650" fill="rgba(139,92,246,0.04)"/>
+<line x1="796" y1="10022" x2="796" y2="10672" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1328" y="10022" width="846" height="650" fill="rgba(74,108,247,0.05)"/>
+<line x1="1328" y1="10022" x2="1328" y2="10672" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2174" y="10022" width="482" height="650" fill="rgba(245,158,11,0.04)"/>
+<line x1="2174" y1="10022" x2="2174" y2="10672" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2656" y="10022" width="300" height="650" fill="rgba(236,72,153,0.04)"/>
+<line x1="2656" y1="10022" x2="2656" y2="10672" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="2956" y="10022" width="300" height="650" fill="rgba(14,165,233,0.04)"/>
+<line x1="2956" y1="10022" x2="2956" y2="10672" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="3256" y="10022" width="502" height="650" fill="rgba(239,68,68,0.04)"/>
+<line x1="3256" y1="10022" x2="3256" y2="10672" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="3758" y="10022" width="280" height="650" fill="rgba(100,116,139,0.05)"/>
+<line x1="3758" y1="10022" x2="3758" y2="10672" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="10672" x2="4038" y2="10672" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="10022" width="40" height="650" fill="#DBEAFE" rx="0"/>
+<text x="20" y="10190" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">⑩</text>
+<text x="20" y="10208" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">待</text>
+<text x="20" y="10226" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">审</text>
+<text x="20" y="10244" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">核</text>
+<text x="20" y="10262" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">期</text>
+<text x="20" y="10280" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">买</text>
+<text x="20" y="10298" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">家</text>
+<text x="20" y="10316" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">撤</text>
+<text x="20" y="10334" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">销</text>
+<text x="20" y="10352" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">申</text>
+<text x="20" y="10370" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">请</text>
+<text x="20" y="10388" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">（</text>
+<text x="20" y="10406" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">★</text>
+<text x="20" y="10424" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">V1</text>
+<text x="20" y="10442" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">.</text>
+<text x="20" y="10460" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">1</text>
+<text x="20" y="10478" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">新</text>
+<text x="20" y="10496" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">增</text>
+<text x="20" y="10514" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">）</text>
+<line x1="418" y1="116" x2="418" y2="132" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="418,164 418,200 1671,200" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1751,216 1751,252 3026,252" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="3106,268 3106,304 1831,304" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="320" x2="1751" y2="339" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1846" y1="364" x2="1857" y2="364" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="1852" y="357" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="1751" y1="389" x2="1751" y2="409" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1763" y="402" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="1846" y1="434" x2="1857" y2="434" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="1852" y="427" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="1751" y1="459" x2="1751" y2="479" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1763" y="472" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="1836" y1="504" x2="1847" y2="504" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="1842" y="497" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<text x="1763" y="542" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="1751,529 1751,562 498,562" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="418" y1="578" x2="418" y2="597" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="418" y1="647" x2="418" y2="664" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="430" y="660" text-anchor="middle" fill="#64748B" font-size="8">否</text>
+<polyline points="513,622 673,622 673,664" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="520" y="615" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="418" y1="696" x2="418" y2="728" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="673,696 673,744 563,744" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="418,760 418,796 1671,796" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="812" x2="1751" y2="831" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1836" y1="856" x2="1847" y2="856" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="1842" y="849" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="1751" y1="881" x2="1751" y2="901" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1763" y="894" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="1751" y1="951" x2="1751" y2="968" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1763" y="964" text-anchor="middle" fill="#64748B" font-size="8">否</text>
+<polyline points="1841,926 2041,926 2041,968" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1848" y="919" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="1751" y1="1000" x2="1751" y2="1032" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="2041,1000 2041,1048 1911,1048" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="1064" x2="1751" y2="1080" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1751,1112 1751,1148 2726,1148" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="2806,1164 2806,1200 498,1200" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="418" y1="1216" x2="1751" y2="1235" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1062" y1="1616" x2="1062" y2="1632" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1062" y1="1664" x2="1062" y2="1680" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1062" y1="1712" x2="1062" y2="1731" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1147" y1="1756" x2="1158" y2="1756" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="1153" y="1749" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="1062" y1="1781" x2="1062" y2="1801" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1074" y="1794" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="1137" y1="1826" x2="1148" y2="1826" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="1143" y="1819" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<text x="1074" y="1864" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="1062,1851 1062,1884 1671,1884" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="1900" x2="1751" y2="1920" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="1952" x2="1751" y2="1971" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="2021" x2="1751" y2="2038" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1763" y="2034" text-anchor="middle" fill="#64748B" font-size="8">否</text>
+<polyline points="1831,1996 1981,1996 1981,2038" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1838" y="1989" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="1751,2070 1751,2122 2726,2122" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1981,2070 1981,2122 2931,2122" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="2806" y1="2138" x2="1751" y2="2157" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1751,2538 1751,2570 1142,2570" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1062,2586 1062,2622 3818,2622" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="3898,2638 3898,2674 1142,2674" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1062" y1="2690" x2="1062" y2="2710" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1062,2742 1062,2778 1671,2778" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1751,2794 1751,2830 2335,2830" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="2415" y1="2846" x2="2415" y2="2866" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="2415,2898 2415,2934 1831,2934" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1751,2950 1751,2986 2726,2986" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="2806,3002 2806,3038 498,3038" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="418,3054 418,3090 1671,3090" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="3106" x2="1751" y2="3122" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1751,3154 1751,3186 498,3186" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="418,3202 418,3238 3818,3238" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="3898,3254 3898,3290 2495,3290" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="2415" y1="3306" x2="2415" y2="3326" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="2415,3358 2415,3394 1831,3394" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="3410" x2="1751" y2="3430" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="3462" x2="1751" y2="3481" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="2415" y1="3846" x2="2415" y2="3865" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="2520" y1="3890" x2="2531" y2="3890" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="2526" y="3883" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="2415" y1="3915" x2="2415" y2="3932" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="2427" y="3928" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="2415,3964 2415,4000 1831,4000" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="4016" x2="1751" y2="4036" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1751,4068 1751,4104 2726,4104" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="2806,4120 2806,4156 3818,4156" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="3898" y1="4172" x2="3898" y2="4188" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="3898,4220 3898,4252 1142,4252" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1062" y1="4268" x2="1062" y2="4287" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1147" y1="4312" x2="1158" y2="4312" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="1153" y="4305" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="1062" y1="4337" x2="1062" y2="4354" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1074" y="4350" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="1062" y1="4386" x2="1062" y2="4405" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1157,4430 1187,4430 1187,4472" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1164" y="4423" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<text x="1074" y="4468" text-anchor="middle" fill="#64748B" font-size="8">否</text>
+<line x1="1062" y1="4455" x2="1062" y2="4546" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1074" y="4468" text-anchor="middle" fill="#64748B" font-size="8">否</text>
+<polyline points="1187,4504 1187,4562 1257,4562" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1062" y1="4578" x2="1062" y2="4594" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1062,4626 1062,4662 1671,4662" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="4678" x2="1751" y2="4698" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="4730" x2="1751" y2="4746" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="4778" x2="1751" y2="4794" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1751,4826 1751,4862 2726,4862" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="2806" y1="4878" x2="1751" y2="4897" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="5294" x2="1751" y2="5310" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1751,5342 1751,5374 1142,5374" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1062" y1="5390" x2="1062" y2="5406" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1062,5438 1062,5474 1671,5474" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="5490" x2="1751" y2="5510" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="5542" x2="1751" y2="5558" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1751,5590 1751,5626 3026,5626" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="3106,5642 3106,5686 1816,5686" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1866" y1="5686" x2="1877" y2="5686" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="1872" y="5679" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="1751" y1="5711" x2="1751" y2="5728" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1763" y="5724" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="1751,5760 1751,5796 3026,5796" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="3106,5812 3106,5848 3427,5848" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="3507" y1="5864" x2="3507" y2="5883" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="3592" y1="5908" x2="3603" y2="5908" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="3598" y="5901" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="3507" y1="5933" x2="3507" y2="5950" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="3519" y="5946" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="3507,5982 3507,6018 1831,6018" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="6034" x2="1751" y2="6053" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1866" y1="6078" x2="1877" y2="6078" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="1872" y="6071" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="1751" y1="6103" x2="1751" y2="6120" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1763" y="6116" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="1751,6152 1751,6188 3026,6188" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="3106,6204 3106,6240 1831,6240" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1751,6256 1751,6292 2726,6292" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="2806,6308 2806,6344 498,6344" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="418" y1="6360" x2="1751" y2="6379" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="6760" x2="1751" y2="6776" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="6808" x2="1751" y2="6824" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1751,6856 1751,6892 498,6892" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="418" y1="6908" x2="1751" y2="6927" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="7276" x2="1751" y2="7292" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1751,7324 1751,7360 2335,7360" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="2415" y1="7376" x2="2415" y2="7395" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="2500" y1="7420" x2="2511" y2="7420" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="2506" y="7413" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<text x="2427" y="7458" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="2415,7445 2415,7490 1816,7490" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1856" y1="7490" x2="1867" y2="7490" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="1862" y="7483" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<text x="1763" y="7528" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="1751,7515 1751,7548 2726,7548" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="2806,7564 2806,7608 1816,7608" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1856" y1="7608" x2="1867" y2="7608" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="1862" y="7601" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<text x="1763" y="7646" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="1751,7633 1751,7666 2335,7666" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="2415,7682 2415,7718 1831,7718" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1751,7734 1751,7770 2726,7770" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="2806,7786 2806,7822 1831,7822" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1751,7838 1751,7874 498,7874" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="418" y1="7890" x2="1751" y2="7909" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1062" y1="8274" x2="1062" y2="8290" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1062" y1="8322" x2="1062" y2="8338" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1062,8370 1062,8406 1671,8406" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="8422" x2="1751" y2="8442" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="8474" x2="1751" y2="8490" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1751,8522 1751,8558 3818,8558" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="3898,8574 3898,8610 2886,8610" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="2806,8626 2806,8662 498,8662" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="418" y1="8678" x2="1751" y2="8697" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="2415" y1="9062" x2="2415" y2="9078" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="2415,9110 2415,9146 1831,9146" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="9162" x2="1751" y2="9182" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1751,9214 1751,9250 1142,9250" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1062" y1="9266" x2="1062" y2="9286" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1062" y1="9318" x2="1062" y2="9337" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1162" y1="9362" x2="1173" y2="9362" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="1168" y="9355" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="1062" y1="9387" x2="1062" y2="9404" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1074" y="9400" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="1062,9436 1062,9472 1671,9472" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="9488" x2="1751" y2="9508" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="9540" x2="1751" y2="9556" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1751,9588 1751,9624 2726,9624" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="2806,9640 2806,9676 498,9676" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="418" y1="9692" x2="1751" y2="9711" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="418,10092 418,10128 1671,10128" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1751" y1="10144" x2="1751" y2="10163" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1861" y1="10188" x2="1872" y2="10188" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="1867" y="10181" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="1751" y1="10213" x2="1751" y2="10230" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1763" y="10226" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="1751" y1="10262" x2="1751" y2="10278" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1751,10310 1751,10346 2726,10346" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="2806,10362 2806,10398 498,10398" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="418" y1="10414" x2="1751" y2="10433" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<rect x="338" y="87" width="160" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="418" y="104" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">买家在订单详情点击申请售后</text>
+<rect x="318" y="132" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="418" y="152" text-anchor="middle" fill="#1E293B" font-size="9.5">打开售后申请入口</text>
+<rect x="1611" y="184" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="204" text-anchor="middle" fill="#1E293B" font-size="9.5">请求本单可申请商品行与资格</text>
+<rect x="2961" y="236" width="290" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="3106" y="256" text-anchor="middle" fill="#1E293B" font-size="9.5">读订单商品行：发货/签收·实付·成色</text>
+<rect x="1581" y="288" width="340" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="308" text-anchor="middle" fill="#1E293B" font-size="9.5">按 market→品类→商品匹配政策(priority 大者优先)</text>
+<polygon points="1751,339 1846,364 1751,389 1656,364" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="1751" y="368" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">该商品行已发货?</text>
+<rect x="1858" y="351" width="200" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1958" y="368" text-anchor="middle" fill="#1E293B" font-size="9.5">未发货→走订单取消/发货前退款</text>
+<polygon points="1751,409 1846,434 1751,459 1656,434" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="1751" y="438" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">仍在售后时效窗口内?</text>
+<rect x="1858" y="421" width="170" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1943" y="438" text-anchor="middle" fill="#1E293B" font-size="9.5">已超期→C 端不可申请</text>
+<polygon points="1751,479 1836,504 1751,529 1666,504" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="1751" y="508" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">无进行中的售后单?</text>
+<rect x="1848" y="491" width="130" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1913" y="508" text-anchor="middle" fill="#1E293B" font-size="9.5">同商品行已有在途单</text>
+<rect x="228" y="546" width="380" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="418" y="566" text-anchor="middle" fill="#1E293B" font-size="9.5">返回可申请清单+剩余天数+服务费告知(取政策配置值)</text>
+<polygon points="418,597 513,622 418,647 323,622" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="418" y="626" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">买家选择：货已收到?</text>
+<rect x="298" y="664" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="418" y="684" text-anchor="middle" fill="#1E293B" font-size="9.5">诉求仅可选 仅退款(货未到手)</text>
+<rect x="558" y="664" width="230" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="673" y="684" text-anchor="middle" fill="#1E293B" font-size="9.5">诉求可选 退货退款 / 仅退款</text>
+<rect x="273" y="728" width="290" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="418" y="748" text-anchor="middle" fill="#1E293B" font-size="9.5">勾选商品(可多件)·选原因码·传举证·填说明</text>
+<rect x="1651" y="780" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="800" text-anchor="middle" fill="#1E293B" font-size="9.5">提交售后申请</text>
+<polygon points="1751,831 1836,856 1751,881 1666,856" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="1751" y="860" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">必传举证已上传?</text>
+<rect x="1848" y="843" width="110" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1903" y="860" text-anchor="middle" fill="#1E293B" font-size="9.5">退回补充举证</text>
+<polygon points="1751,901 1841,926 1751,951 1661,926" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="1751" y="930" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">诉求为退货退款?</text>
+<rect x="1606" y="968" width="290" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="988" text-anchor="middle" fill="#1E293B" font-size="9.5">仅退款不受 is_returnable 约束(7.3)</text>
+<rect x="1916" y="968" width="250" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2041" y="988" text-anchor="middle" fill="#1E293B" font-size="9.5">校验商品行 is_returnable=true</text>
+<rect x="1591" y="1032" width="320" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="1052" text-anchor="middle" fill="#1E293B" font-size="9.5">A1 拆单：每个商品行生成一张独立售后单</text>
+<rect x="1511" y="1080" width="480" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="1100" text-anchor="middle" fill="#1E293B" font-size="9.5">写入售后单：as_status=待审核 · policy_snapshot 政策快照 · service_fee_quoted 取政策配置值</text>
+<rect x="2671" y="1132" width="270" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2806" y="1152" text-anchor="middle" fill="#1E293B" font-size="9.5">受理确认邮件(按 market 语言)</text>
+<rect x="293" y="1184" width="250" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="418" y="1204" text-anchor="middle" fill="#1E293B" font-size="9.5">C 端展示售后单与时间线</text>
+<rect x="1656" y="1235" width="190" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1751" y="1252" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">售后单进入待审核（撤销旁支见⑩）</text>
+<rect x="992" y="1587" width="140" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1062" y="1604" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">待审核单进入运营工单台</text>
+<rect x="917" y="1632" width="290" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1062" y="1652" text-anchor="middle" fill="#1E293B" font-size="9.5">查看原因码 / 买家举证 / 订单商品行</text>
+<rect x="887" y="1680" width="350" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1062" y="1700" text-anchor="middle" fill="#1E293B" font-size="9.5">对照单据上的 policy_snapshot 核对政策口径</text>
+<polygon points="1062,1731 1147,1756 1062,1781 977,1756" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="1062" y="1760" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">材料齐全可判定?</text>
+<rect x="1159" y="1743" width="140" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1229" y="1760" text-anchor="middle" fill="#1E293B" font-size="9.5">线下联系买家补材料</text>
+<polygon points="1062,1801 1137,1826 1062,1851 987,1826" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="1062" y="1830" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">审核通过?</text>
+<rect x="1149" y="1813" width="140" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1219" y="1830" text-anchor="middle" fill="#1E293B" font-size="9.5">驳回→已驳回(终态)</text>
+<rect x="1576" y="1868" width="350" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="1888" text-anchor="middle" fill="#1E293B" font-size="9.5">提交审核结论（仅通过/驳回，不含责任判定）</text>
+<rect x="1586" y="1920" width="330" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="1940" text-anchor="middle" fill="#1E293B" font-size="9.5">写 audit_result / audit_note / audited_at</text>
+<polygon points="1751,1971 1831,1996 1751,2021 1671,1996" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="1751" y="2000" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">诉求为仅退款?</text>
+<rect x="1646" y="2038" width="210" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="2058" text-anchor="middle" fill="#1E293B" font-size="9.5">as_status=待寄回 → 转③</text>
+<rect x="1876" y="2038" width="210" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1981" y="2058" text-anchor="middle" fill="#1E293B" font-size="9.5">as_status=待退款 → 转⑥</text>
+<rect x="2681" y="2106" width="250" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2806" y="2126" text-anchor="middle" fill="#1E293B" font-size="9.5">审核通过通知邮件</text>
+<rect x="1656" y="2157" width="190" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1751" y="2174" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">审核环节结束（责任归属尚未判定）</text>
+<rect x="1688" y="2509" width="127" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1751" y="2526" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">售后单状态 = 待寄回</text>
+<rect x="917" y="2554" width="290" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1062" y="2574" text-anchor="middle" fill="#1E293B" font-size="9.5">线下向承运商预约取回面单</text>
+<rect x="3773" y="2606" width="250" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="3898" y="2626" text-anchor="middle" fill="#1E293B" font-size="9.5">承运商出具面单并给出运单号</text>
+<rect x="937" y="2658" width="250" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1062" y="2678" text-anchor="middle" fill="#1E293B" font-size="9.5">运营取得退货运单号</text>
+<rect x="917" y="2710" width="290" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1062" y="2730" text-anchor="middle" fill="#1E293B" font-size="9.5">在售后单回填运单号 + 承运商</text>
+<rect x="1641" y="2762" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="2782" text-anchor="middle" fill="#1E293B" font-size="9.5">提交运单信息</text>
+<rect x="2250" y="2814" width="330" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2415" y="2834" text-anchor="middle" fill="#1E293B" font-size="9.5">注册退货运单(business_order_no 传订单号)</text>
+<rect x="2285" y="2866" width="260" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2415" y="2886" text-anchor="middle" fill="#1E293B" font-size="9.5">订阅轨迹，返回 shipment_id</text>
+<rect x="1581" y="2918" width="340" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="2938" text-anchor="middle" fill="#1E293B" font-size="9.5">回写 shipment_ref_id(不冗余运单号与承运商)</text>
+<rect x="2671" y="2970" width="270" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2806" y="2990" text-anchor="middle" fill="#1E293B" font-size="9.5">邮件告知运单号与退货地址</text>
+<rect x="278" y="3022" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="418" y="3042" text-anchor="middle" fill="#1E293B" font-size="9.5">C 端同步展示运单号与退货地址</text>
+<rect x="1541" y="3074" width="420" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="3094" text-anchor="middle" fill="#1E293B" font-size="9.5">★记录「运单号告知买家」时点 = 交寄时限起算点(3.1)</text>
+<rect x="1551" y="3122" width="400" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="3142" text-anchor="middle" fill="#1E293B" font-size="9.5">交寄截止时点 = 告知时点 + policy.return_ship_days</text>
+<rect x="278" y="3170" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="418" y="3190" text-anchor="middle" fill="#1E293B" font-size="9.5">买家持运单号到承运商网点交寄</text>
+<rect x="3798" y="3222" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="3898" y="3242" text-anchor="middle" fill="#1E293B" font-size="9.5">网点揽收包裹</text>
+<rect x="2290" y="3274" width="250" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2415" y="3294" text-anchor="middle" fill="#1E293B" font-size="9.5">揽收轨迹上报</text>
+<rect x="2285" y="3326" width="260" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2415" y="3346" text-anchor="middle" fill="#1E293B" font-size="9.5">internal_status 推进为运输中</text>
+<rect x="1626" y="3378" width="250" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="3398" text-anchor="middle" fill="#1E293B" font-size="9.5">轨迹通知：已揽收</text>
+<rect x="1636" y="3430" width="230" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="3450" text-anchor="middle" fill="#1E293B" font-size="9.5">as_status = 退货在途</text>
+<rect x="1666" y="3481" width="170" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1751" y="3498" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">进入退货在途（途中丢件见⑨）</text>
+<rect x="2370" y="3817" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="2415" y="3834" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">退货包裹在途</text>
+<polygon points="2415,3865 2520,3890 2415,3915 2310,3890" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="2415" y="3894" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">轨迹正常推进至已送达?</text>
+<rect x="2532" y="3877" width="120" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2592" y="3894" text-anchor="middle" fill="#1E293B" font-size="9.5">丢件/灭失→转⑨</text>
+<rect x="2265" y="3932" width="300" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2415" y="3952" text-anchor="middle" fill="#1E293B" font-size="9.5">轨迹更新至 internal_status = 已送达</text>
+<rect x="1581" y="3984" width="340" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="4004" text-anchor="middle" fill="#1E293B" font-size="9.5">主动通知：已送达(到仓时点唯一来源)</text>
+<rect x="1581" y="4036" width="340" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="4056" text-anchor="middle" fill="#1E293B" font-size="9.5">自动推进 as_status=待验货(无人工签收登记)</text>
+<rect x="2671" y="4088" width="270" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2806" y="4108" text-anchor="middle" fill="#1E293B" font-size="9.5">邮件告知平台已收到退货</text>
+<rect x="3768" y="4140" width="260" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="3898" y="4160" text-anchor="middle" fill="#1E293B" font-size="9.5">线下仓收货→拆包→拍照→验瑕疵</text>
+<rect x="3768" y="4188" width="260" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="3898" y="4208" text-anchor="middle" fill="#1E293B" font-size="9.5">结果回传在线表格(V1 不对接)</text>
+<rect x="947" y="4236" width="230" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1062" y="4256" text-anchor="middle" fill="#1E293B" font-size="9.5">运营核对在线表格</text>
+<polygon points="1062,4287 1147,4312 1062,4337 977,4312" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="1062" y="4316" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">实物与售后单一致?</text>
+<rect x="1159" y="4299" width="120" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1219" y="4316" text-anchor="middle" fill="#1E293B" font-size="9.5">不符/空包→转⑧</text>
+<rect x="887" y="4354" width="350" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1062" y="4374" text-anchor="middle" fill="#1E293B" font-size="9.5">录入验货结论(一致/附件缺失/成色下降/破损)</text>
+<polygon points="1062,4405 1157,4430 1062,4455 967,4430" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="1062" y="4434" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">存在缺件或成色下降?</text>
+<rect x="1082" y="4472" width="210" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1187" y="4492" text-anchor="middle" fill="#1E293B" font-size="9.5">填扣减金额与扣减原因</text>
+<rect x="867" y="4546" width="390" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1062" y="4566" text-anchor="middle" fill="#1E293B" font-size="9.5">★判定责任归属：平台责任 / 买家责任（终判·1.3）</text>
+<rect x="922" y="4594" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1062" y="4614" text-anchor="middle" fill="#1E293B" font-size="9.5">上传瑕疵照片到售后单留档</text>
+<rect x="1611" y="4646" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="4666" text-anchor="middle" fill="#1E293B" font-size="9.5">提交验货结论与责任判定</text>
+<rect x="1576" y="4698" width="350" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="4718" text-anchor="middle" fill="#1E293B" font-size="9.5">写 after_sale_inspection(结论/扣减/操作人/时间)</text>
+<rect x="1551" y="4746" width="400" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="4766" text-anchor="middle" fill="#1E293B" font-size="9.5">回写 after_sale_order.liability_party（验货后终判）</text>
+<rect x="1636" y="4794" width="230" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="4814" text-anchor="middle" fill="#1E293B" font-size="9.5">as_status = 待退款</text>
+<rect x="2671" y="4846" width="270" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2806" y="4866" text-anchor="middle" fill="#1E293B" font-size="9.5">邮件告知验货结果与扣减</text>
+<rect x="1706" y="4897" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1751" y="4914" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">进入待退款</text>
+<rect x="1688" y="5265" width="127" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1751" y="5282" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">售后单状态 = 待退款</text>
+<rect x="1576" y="5310" width="350" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="5330" text-anchor="middle" fill="#1E293B" font-size="9.5">取退款基准 = 商品行实付金额(已扣优惠分摊)</text>
+<rect x="862" y="5358" width="400" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1062" y="5378" text-anchor="middle" fill="#1E293B" font-size="9.5">★运营在退款方案区手动填写退货服务费实扣金额</text>
+<rect x="862" y="5406" width="400" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1062" y="5426" text-anchor="middle" fill="#1E293B" font-size="9.5">（系统不计算 · 不按责任自动豁免 · 不按包裹分摊）</text>
+<rect x="1601" y="5458" width="300" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="5478" text-anchor="middle" fill="#1E293B" font-size="9.5">提交退款方案(实扣服务费金额)</text>
+<rect x="1601" y="5510" width="300" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="5530" text-anchor="middle" fill="#1E293B" font-size="9.5">扣验货扣减金额(缺件 / 成色下降)</text>
+<rect x="1636" y="5558" width="230" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="5578" text-anchor="middle" fill="#1E293B" font-size="9.5">计算随退销售税</text>
+<rect x="2966" y="5610" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="3106" y="5630" text-anchor="middle" fill="#1E293B" font-size="9.5">按 order_id 汇总本单已退税费</text>
+<polygon points="1751,5661 1866,5686 1751,5711 1636,5686" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="1751" y="5690" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">已退税费 + 本次 ≤ 原订单税额?</text>
+<rect x="1878" y="5673" width="150" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1953" y="5690" text-anchor="middle" fill="#1E293B" font-size="9.5">拦截并告警→运营核对</text>
+<rect x="1586" y="5728" width="330" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="5748" text-anchor="middle" fill="#1E293B" font-size="9.5">定案 refund_amount，写 after_sale_refund</text>
+<rect x="2966" y="5780" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="3106" y="5800" text-anchor="middle" fill="#1E293B" font-size="9.5">反写商品行 refund_status = 退款中</text>
+<rect x="3377" y="5832" width="260" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="3507" y="5852" text-anchor="middle" fill="#1E293B" font-size="9.5">创建退款单(原路退回)</text>
+<polygon points="3507,5883 3592,5908 3507,5933 3422,5908" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="3507" y="5912" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">退款单受理成功?</text>
+<rect x="3604" y="5895" width="150" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="3679" y="5912" text-anchor="middle" fill="#1E293B" font-size="9.5">受理失败→停在待退款</text>
+<rect x="3382" y="5950" width="250" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="3507" y="5970" text-anchor="middle" fill="#1E293B" font-size="9.5">原路退回买家支付账户</text>
+<rect x="1636" y="6002" width="230" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="6022" text-anchor="middle" fill="#1E293B" font-size="9.5">退款结果回调</text>
+<polygon points="1751,6053 1866,6078 1751,6103 1636,6078" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="1751" y="6082" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">支付域退款单终态 = 成功?</text>
+<rect x="1878" y="6065" width="210" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1983" y="6082" text-anchor="middle" fill="#1E293B" font-size="9.5">失败→展示支付域结果·不进终态</text>
+<rect x="1561" y="6120" width="380" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="6140" text-anchor="middle" fill="#1E293B" font-size="9.5">写 refund_ref_no / refunded_at，refund_status=成功</text>
+<rect x="2966" y="6172" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="3106" y="6192" text-anchor="middle" fill="#1E293B" font-size="9.5">反写商品行 refund_status = 已退款</text>
+<rect x="1606" y="6224" width="290" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="6244" text-anchor="middle" fill="#1E293B" font-size="9.5">as_status = 已完成，completed_at</text>
+<rect x="2666" y="6276" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2806" y="6296" text-anchor="middle" fill="#1E293B" font-size="9.5">邮件告知退款完成与金额明细</text>
+<rect x="278" y="6328" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="418" y="6348" text-anchor="middle" fill="#1E293B" font-size="9.5">C 端时间线显示已完成与明细</text>
+<rect x="1706" y="6379" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1751" y="6396" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">售后单已完成</text>
+<rect x="1642" y="6731" width="219" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1751" y="6748" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">审核通过 且 as_type = 仅退款（接②）</text>
+<rect x="1601" y="6776" width="300" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="6796" text-anchor="middle" fill="#1E293B" font-size="9.5">不生成退货运单 · 不建验货记录</text>
+<rect x="1636" y="6824" width="230" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="6844" text-anchor="middle" fill="#1E293B" font-size="9.5">as_status = 待退款</text>
+<rect x="278" y="6876" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="418" y="6896" text-anchor="middle" fill="#1E293B" font-size="9.5">C 端时间线显示已受理，等待退款</text>
+<rect x="1613" y="6927" width="277" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1751" y="6944" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">转⑤ 退款执行（服务费仍由运营手填 · 无验货扣减）</text>
+<rect x="1647" y="7247" width="209" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1751" y="7264" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">定时任务扫描 as_status=待寄回 的单</text>
+<rect x="1526" y="7292" width="450" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="7312" text-anchor="middle" fill="#1E293B" font-size="9.5">按「运单号告知时点 + return_ship_days」算交寄截止时点(3.1)</text>
+<rect x="2275" y="7344" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2415" y="7364" text-anchor="middle" fill="#1E293B" font-size="9.5">查询退货运单揽收轨迹</text>
+<polygon points="2415,7395 2500,7420 2415,7445 2330,7420" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="2415" y="7424" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">仍无揽收轨迹?</text>
+<rect x="2512" y="7407" width="110" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2567" y="7424" text-anchor="middle" fill="#1E293B" font-size="9.5">已交寄→转④</text>
+<polygon points="1751,7465 1856,7490 1751,7515 1646,7490" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="1751" y="7494" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">已过关单前提醒时点?</text>
+<rect x="1868" y="7477" width="160" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1948" y="7494" text-anchor="middle" fill="#1E293B" font-size="9.5">未到提醒时点·继续等待</text>
+<rect x="2666" y="7532" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2806" y="7552" text-anchor="middle" fill="#1E293B" font-size="9.5">关单前提醒邮件(未交寄将关单)</text>
+<polygon points="1751,7583 1856,7608 1751,7633 1646,7608" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="1751" y="7612" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">已过交寄截止时点?</text>
+<rect x="1868" y="7595" width="160" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1948" y="7612" text-anchor="middle" fill="#1E293B" font-size="9.5">未到截止时点·继续等待</text>
+<rect x="2275" y="7650" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2415" y="7670" text-anchor="middle" fill="#1E293B" font-size="9.5">再次确认仍无揽收轨迹</text>
+<rect x="1576" y="7702" width="350" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="7722" text-anchor="middle" fill="#1E293B" font-size="9.5">as_status=已关闭 · close_reason=逾期未交寄</text>
+<rect x="2681" y="7754" width="250" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2806" y="7774" text-anchor="middle" fill="#1E293B" font-size="9.5">关单通知邮件</text>
+<rect x="1571" y="7806" width="360" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="7826" text-anchor="middle" fill="#1E293B" font-size="9.5">释放商品行互斥占用(1.8)：不再阻塞新申请</text>
+<rect x="198" y="7858" width="440" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="418" y="7878" text-anchor="middle" fill="#1E293B" font-size="9.5">★C 端提示：仍在时效内可重新申请（不写「请联系客服」）</text>
+<rect x="1639" y="7909" width="225" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1751" y="7926" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">已关闭（终态）· 重新申请按时效严格判定</text>
+<rect x="949" y="8245" width="227" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1062" y="8262" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">验货判定实物与售后单不符 / 空包（接④）</text>
+<rect x="897" y="8290" width="330" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1062" y="8310" text-anchor="middle" fill="#1E293B" font-size="9.5">录入 inspection_result = 不符 / 空包</text>
+<rect x="852" y="8338" width="420" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1062" y="8358" text-anchor="middle" fill="#1E293B" font-size="9.5">上传取证照片 + 填写拒退原因（暂写 inspection_note）</text>
+<rect x="1641" y="8390" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="8410" text-anchor="middle" fill="#1E293B" font-size="9.5">提交拒退决定</text>
+<rect x="1566" y="8442" width="370" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="8462" text-anchor="middle" fill="#1E293B" font-size="9.5">写 after_sale_inspection(客观结果·不含处置决策)</text>
+<rect x="1576" y="8490" width="350" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="8510" text-anchor="middle" fill="#1E293B" font-size="9.5">as_status = 已拒退（终态）· 不创建退款单</text>
+<rect x="3758" y="8542" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="3898" y="8562" text-anchor="middle" fill="#1E293B" font-size="9.5">运营线下安排退回买家（不进系统）</text>
+<rect x="2666" y="8594" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2806" y="8614" text-anchor="middle" fill="#1E293B" font-size="9.5">邮件告知拒退结果与取证说明</text>
+<rect x="218" y="8646" width="400" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="418" y="8666" text-anchor="middle" fill="#1E293B" font-size="9.5">C 端显示已拒退与取证材料（不展示回寄单号）</text>
+<rect x="1701" y="8697" width="100" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1751" y="8714" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">已拒退（终态）</text>
+<rect x="2308" y="9033" width="215" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="2415" y="9050" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">退货包裹在途中出现追踪异常（接③/④）</text>
+<rect x="2215" y="9078" width="400" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2415" y="9098" text-anchor="middle" fill="#1E293B" font-size="9.5">轨迹长时间无更新 / 承运商判定包裹丢失或灭失</text>
+<rect x="1626" y="9130" width="250" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="9150" text-anchor="middle" fill="#1E293B" font-size="9.5">追踪异常通知</text>
+<rect x="1571" y="9182" width="360" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="9202" text-anchor="middle" fill="#1E293B" font-size="9.5">标记异常并暂停段⑦的交寄超时关单扫描</text>
+<rect x="922" y="9234" width="280" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1062" y="9254" text-anchor="middle" fill="#1E293B" font-size="9.5">异常单推送到运营工单台</text>
+<rect x="912" y="9286" width="300" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1062" y="9306" text-anchor="middle" fill="#1E293B" font-size="9.5">线下向承运商核实包裹状态</text>
+<polygon points="1062,9337 1162,9362 1062,9387 962,9362" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="1062" y="9366" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">确认包裹已丢失 / 灭失?</text>
+<rect x="1174" y="9349" width="150" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1249" y="9366" text-anchor="middle" fill="#1E293B" font-size="9.5">仍可送达→回④等到仓</text>
+<rect x="847" y="9404" width="430" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1062" y="9424" text-anchor="middle" fill="#1E293B" font-size="9.5">在售后单登记丢件结论 · 责任归属 = 平台责任(4.2)</text>
+<rect x="1636" y="9456" width="230" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="9476" text-anchor="middle" fill="#1E293B" font-size="9.5">提交丢件结论</text>
+<rect x="1551" y="9508" width="400" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="9528" text-anchor="middle" fill="#1E293B" font-size="9.5">★状态机边：退货在途 → 待退款（跳过待验货）</text>
+<rect x="1556" y="9556" width="390" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="9576" text-anchor="middle" fill="#1E293B" font-size="9.5">不生成 after_sale_inspection 记录 · 无验货扣减</text>
+<rect x="2656" y="9608" width="300" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2806" y="9628" text-anchor="middle" fill="#1E293B" font-size="9.5">邮件告知：途中丢件按平台责任处理</text>
+<rect x="268" y="9660" width="300" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="418" y="9680" text-anchor="middle" fill="#1E293B" font-size="9.5">C 端时间线显示丢件与处理结论</text>
+<rect x="1669" y="9711" width="165" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1751" y="9728" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">转⑤ 退款执行（无验货扣减）</text>
+<rect x="315" y="10063" width="207" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="418" y="10080" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">买家在 C 端售后详情点击「撤销申请」</text>
+<rect x="1636" y="10112" width="230" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="10132" text-anchor="middle" fill="#1E293B" font-size="9.5">提交撤销请求</text>
+<polygon points="1751,10163 1861,10188 1751,10213 1641,10188" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="1751" y="10192" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">当前 as_status = 待审核?</text>
+<rect x="1873" y="10175" width="200" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1973" y="10192" text-anchor="middle" fill="#1E293B" font-size="9.5">非待审核→不展示撤销入口</text>
+<rect x="1556" y="10230" width="390" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="10250" text-anchor="middle" fill="#1E293B" font-size="9.5">as_status=已关闭 · close_reason=买家撤销(7.2)</text>
+<rect x="1571" y="10278" width="360" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1751" y="10298" text-anchor="middle" fill="#1E293B" font-size="9.5">释放商品行互斥占用(1.8)：可再次发起申请</text>
+<rect x="2691" y="10330" width="230" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="2806" y="10350" text-anchor="middle" fill="#1E293B" font-size="9.5">撤销确认邮件</text>
+<rect x="203" y="10382" width="430" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="418" y="10402" text-anchor="middle" fill="#1E293B" font-size="9.5">C 端显示已关闭(买家撤销) · 仍在时效内可重新申请</text>
+<rect x="1671" y="10433" width="161" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="1751" y="10450" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">已关闭 · 买家撤销（终态）</text>
+<rect x="1381" y="1278" width="900" height="220" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="1831" y="1300" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">本段口径</text><text x="1831" y="1318" text-anchor="middle" fill="#7F1D1D" font-size="9">【7.1】发货后即可申请，不以签收为门槛；C 端申请页新增「是否已收到货」选择项，由它引导诉求类型</text><text x="1831" y="1334" text-anchor="middle" fill="#7F1D1D" font-size="9">【7.3】is_returnable=false 只约束退货退款，不约束仅退款——货没收到时该约束不适用（否则 Final Sale 丢件即钱货两空）</text><text x="1831" y="1350" text-anchor="middle" fill="#7F1D1D" font-size="9">【1.2/1.4】申请时告知的服务费 = 政策配置值，不与原因码挂钩、不做豁免推算；C 端文案须写明「最终金额以审核结果为准」</text><text x="1831" y="1366" text-anchor="middle" fill="#7F1D1D" font-size="9">【2.1】建单即对命中的整条政策做快照存 policy_snapshot（不是只存服务费），避免运营改政策追溯改掉在途单</text><text x="1831" y="1382" text-anchor="middle" fill="#7F1D1D" font-size="9">A1 一单一行：C 端一次勾选 N 件 → 系统拆成 N 张售后单，各自独立走完整流程</text><text x="1831" y="1398" text-anchor="middle" fill="#7F1D1D" font-size="9">1.8 互斥：同一 order_item_id 同时只允许存在一张非终态售后单</text><text x="1831" y="1414" text-anchor="middle" fill="#7F1D1D" font-size="9">1.7 超期人工特批：运营后台可对超期订单强制建单（留痕 + 特批原因），不走 C 端——与 3.2「关单后重新申请不必特批」不冲突</text><text x="1831" y="1430" text-anchor="middle" fill="#7F1D1D" font-size="9">时效天数 / 服务费金额均为 market 级运营配置项（after_sale_policy），本图不写死具体数值；A17 美国站与香港站独立配置</text><text x="1831" y="1446" text-anchor="middle" fill="#7F1D1D" font-size="9">⚠ 待确认①：未签收就申请时，售后时效从哪个时点起算——8.1 定起算点取订单域 order_package.received_at，</text><text x="1831" y="1462" text-anchor="middle" fill="#7F1D1D" font-size="9">   但 7.1 允许未签收即申请，此时 received_at 为空、上方「仍在时效窗口内?」无输入。已提交决策，不得自行落定</text>
+<rect x="1371" y="2200" width="920" height="220" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="1831" y="2222" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">审核口径（★V1.1 判责与服务费已移出本段）</text><text x="1831" y="2240" text-anchor="middle" fill="#7F1D1D" font-size="9">★【1.3】本段不再判定责任归属：原因码不能直接确定判责，最终判责必须在验货后（段④）才能决定。</text><text x="1831" y="2256" text-anchor="middle" fill="#7F1D1D" font-size="9">   运营端审核区去掉责任判定控件；本段不写 liability_party</text><text x="1831" y="2272" text-anchor="middle" fill="#7F1D1D" font-size="9">★【1.1/1.4/1.5】本段不再有任何服务费自动判定：不按责任自动豁免、不按包裹分摊、系统不计算。</text><text x="1831" y="2288" text-anchor="middle" fill="#7F1D1D" font-size="9">   实扣金额统一由运营在退款方案区手动填写（段⑤）。ER 已删 is_service_fee_waived，「豁免」不再是独立状态</text><text x="1831" y="2304" text-anchor="middle" fill="#7F1D1D" font-size="9">驳回路径：写 audit_result=驳回 + audit_note(驳回原因) → 邮件告知 → as_status=已驳回（终态）</text><text x="1831" y="2320" text-anchor="middle" fill="#7F1D1D" font-size="9">3.5 V1 无 C 端申诉交互：驳回后买家只能重新发起申请（仍受时效判定）或联系客服</text><text x="1831" y="2336" text-anchor="middle" fill="#7F1D1D" font-size="9">3.4 协商改方案 V1 走线下：运营可调退款金额与服务费，调整结果 C 端可见，但协商确认本身走邮件/客服</text><text x="1831" y="2352" text-anchor="middle" fill="#7F1D1D" font-size="9">3.6 审核 SLA 只做后台超时标记与筛选，不自动通过</text><text x="1831" y="2368" text-anchor="middle" fill="#7F1D1D" font-size="9">★ 责任归属二分类【平台责任 / 买家责任】：不设「物流责任」——物流出问题属平台与物流商之间的事，</text><text x="1831" y="2384" text-anchor="middle" fill="#7F1D1D" font-size="9">   对买家而言即平台责任。原因码记「为什么」（after_sale_reason），liability_party 记「谁承担」</text>
+<rect x="1371" y="3524" width="920" height="204" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="1831" y="3546" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">逆向物流口径</text><text x="1831" y="3564" text-anchor="middle" fill="#7F1D1D" font-size="9">★【3.1】return_ship_days 自「运单号告知买家」起算，不自审核通过起算——审核通过到线下拿到面单之间的</text><text x="1831" y="3580" text-anchor="middle" fill="#7F1D1D" font-size="9">   等待时间不该算在买家头上。C 端与邮件双渠道同时告知，两者取先发生者为起算时点</text><text x="1831" y="3596" text-anchor="middle" fill="#7F1D1D" font-size="9">A8 面单走线下：物流信息服务 §1.2 明列「面单生成不在本期范围」，售后同样不做 → V1 线下是唯一可行路径，非权宜</text><text x="1831" y="3612" text-anchor="middle" fill="#7F1D1D" font-size="9">A8/4.3 录入人是运营，且时序上先于买家寄出（与常规「买家自寄后回填」相反）</text><text x="1831" y="3628" text-anchor="middle" fill="#7F1D1D" font-size="9">8.9 邮件 + C 端双渠道并行告知运单号，买家不必等邮件</text><text x="1831" y="3644" text-anchor="middle" fill="#7F1D1D" font-size="9">A1 多件同包裹寄回时，多张售后单共用一个退货运单号；注册追踪传订单号，复用物流服务「1 订单号 = N 运单」模型</text><text x="1831" y="3660" text-anchor="middle" fill="#7F1D1D" font-size="9">A15 售后只存 shipment_id，不冗余承运商与运单号（运单号可被 PATCH 修正、改承运商会切平台清轨迹，冗余必脏）</text><text x="1831" y="3676" text-anchor="middle" fill="#7F1D1D" font-size="9">4.6/【4.2】退回途中丢件：不再走验货，走段⑨「退货在途 → 直达待退款」这条状态机边</text><text x="1831" y="3692" text-anchor="middle" fill="#7F1D1D" font-size="9">⚠ Q2 待物流侧确认：逆向运单注册传订单号的方案，物流信息服务侧是否认可</text>
+<rect x="1361" y="4940" width="940" height="236" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="1831" y="4962" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">验货与判责口径（★V1.1 判责时点变更）</text><text x="1831" y="4980" text-anchor="middle" fill="#7F1D1D" font-size="9">★【1.3】责任归属在本段定案：原因码只描述「为什么」，不能直接确定判责；实物验过之后才知道买家主张是否成立。</text><text x="1831" y="4996" text-anchor="middle" fill="#7F1D1D" font-size="9">   典型场景：原因码写「描述不符」（听起来该平台担责），验货结论却是「与申请一致」（商品没问题）→ 判买家责任</text><text x="1831" y="5012" text-anchor="middle" fill="#7F1D1D" font-size="9">★【1.1/1.5】责任判定本期不再联动任何金额：不触发豁免、不触发系统计算。它只是一条留痕结论，</text><text x="1831" y="5028" text-anchor="middle" fill="#7F1D1D" font-size="9">   实扣服务费仍由运营在段⑤手填。判责与扣钱在本期是两件事，不要在原型上做联动只读值</text><text x="1831" y="5044" text-anchor="middle" fill="#7F1D1D" font-size="9">5.1 到仓自动识别：物流服务「已送达」是到仓时点的唯一来源，无人工签收登记环节，仓库不碰系统</text><text x="1831" y="5060" text-anchor="middle" fill="#7F1D1D" font-size="9">A16 验货作业在线下当地仓完成（收货→拍照→验瑕疵→回传在线表格）；系统边界从「运营核对表格后录入」开始</text><text x="1831" y="5076" text-anchor="middle" fill="#7F1D1D" font-size="9">A16 V1 不对接在线表格（人工看着填），但录入表单需按表格字段设计，以便后续对接不重构</text><text x="1831" y="5092" text-anchor="middle" fill="#7F1D1D" font-size="9">5.4 举证必须跟单走且带审计——扣款/拒退可能被买家质疑，照片不能只留在外部表格</text><text x="1831" y="5108" text-anchor="middle" fill="#7F1D1D" font-size="9">★ S1 真伪复核 V1 不做：无「真伪存疑」结论值、无挂起态；发现可疑只能写 inspection_note，退款流程照常推进</text><text x="1831" y="5124" text-anchor="middle" fill="#7F1D1D" font-size="9">★ A3 / 组 9 本期退货只放在仓内：不做库存回流、不做重新上架、不下发处置指令。售后单只记客观验货结果，</text><text x="1831" y="5140" text-anchor="middle" fill="#7F1D1D" font-size="9">   处置决策（能否再售/降级/报废）与执行均归商品域与库存域</text>
+<rect x="1361" y="6422" width="940" height="220" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="1831" y="6444" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">退款金额与失败处理口径（★V1.1 两处变更）</text><text x="1831" y="6462" text-anchor="middle" fill="#7F1D1D" font-size="9">★【1.1/1.4】退款额 = 商品行实付金额 − 运营手填的退货服务费实扣额 − 验货扣减 + 随退销售税。</text><text x="1831" y="6478" text-anchor="middle" fill="#7F1D1D" font-size="9">   V1.0 的「责任方为买家?→扣 / 平台责任→豁免」条件分支已删除：系统不再按责任自动决定服务费</text><text x="1831" y="6494" text-anchor="middle" fill="#7F1D1D" font-size="9">★【4.1】不新增「退款失败」状态：支付域退款单失败时，售后单主状态仍停在「待退款」，</text><text x="1831" y="6510" text-anchor="middle" fill="#7F1D1D" font-size="9">   运营端详情页的退款区展示支付域退款单的实时状态（含失败态与失败原因），失败处理仍在支付域完成</text><text x="1831" y="6526" text-anchor="middle" fill="#7F1D1D" font-size="9">★ S3 税费必须按 order_id 做已退税费累计校验：支付域只校验「已退 + 本次 ≤ 原支付金额」、不拆税，</text><text x="1831" y="6542" text-anchor="middle" fill="#7F1D1D" font-size="9">   一单一行下同一订单的多张售后单各退各的税，无累计校验会退超原税额；并发场景需按 order_id 加锁</text><text x="1831" y="6558" text-anchor="middle" fill="#7F1D1D" font-size="9">9.1 商品行 refund_status 只在走到退款环节才置「退款中」，不在申请或审核通过时置——那时金额还没定死，</text><text x="1831" y="6574" text-anchor="middle" fill="#7F1D1D" font-size="9">   且订单域「退款中」现有定义是「退款审批通过，该商品不得发货」，提前置会语义错位（写入时机需与订单域两侧对齐）</text><text x="1831" y="6590" text-anchor="middle" fill="#7F1D1D" font-size="9">A11 优惠不追回：退哪件退哪件的实付金额，剩余商品继续享受已分摊优惠</text><text x="1831" y="6606" text-anchor="middle" fill="#7F1D1D" font-size="9">S3 V1 不出 credit memo；Q1 已答：本期不考虑商品类目税率差异</text>
+<rect x="1381" y="6970" width="900" height="188" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="1831" y="6992" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">仅退款口径（★V1.1 删除自动豁免与恒定判责）</text><text x="1831" y="7010" text-anchor="middle" fill="#7F1D1D" font-size="9">A13 走同一张售后单，靠 as_type 区分；适用场景：丢件、空包、投递异常等「货没到」</text><text x="1831" y="7026" text-anchor="middle" fill="#7F1D1D" font-size="9">★ V1.0 的两个节点已删除：「责任归属恒为平台责任(货没到)」与「退货服务费自动豁免(无需运营操作)」——</text><text x="1831" y="7042" text-anchor="middle" fill="#7F1D1D" font-size="9">   前者与【1.3】判责须验货后冲突，后者被【1.1/1.5】推翻（本期无任何自动豁免）</text><text x="1831" y="7058" text-anchor="middle" fill="#7F1D1D" font-size="9">★ 服务费：本期没有任何自动豁免规则，仅退款单的实扣金额同样由运营手填（可以填 0，但那是人的决定不是系统的）</text><text x="1831" y="7074" text-anchor="middle" fill="#7F1D1D" font-size="9">⚠ 待确认②：仅退款分支的判责时点——【1.3】定「最终判责必须验货后」，但仅退款不走验货，</text><text x="1831" y="7090" text-anchor="middle" fill="#7F1D1D" font-size="9">   本分支的 liability_party 何时、由谁、依据什么落定尚未拍板。已提交决策，不得自行落定</text><text x="1831" y="7106" text-anchor="middle" fill="#7F1D1D" font-size="9">状态机（仅退款分支）：待审核 → 待退款 → 已完成；旁支 已驳回 / 已关闭（含 7.2 买家撤销）</text><text x="1831" y="7122" text-anchor="middle" fill="#7F1D1D" font-size="9">跳过段③逆向物流与段④验货：既不注册退货运单，也不产生 after_sale_inspection 记录</text>
+<rect x="1361" y="7952" width="940" height="204" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="1831" y="7974" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">关单与重新申请口径（★V1.1 出口变更）</text><text x="1831" y="7992" text-anchor="middle" fill="#7F1D1D" font-size="9">★【3.2】关单后的出口不再是「必走人工特批」：申请流程按时效严格判断、与申请次数无关——</text><text x="1831" y="8008" text-anchor="middle" fill="#7F1D1D" font-size="9">   第一次申请关单了，第二次申请只要仍在售后时效窗口内，就走段①的正常申请路径，不需要任何特批</text><text x="1831" y="8024" text-anchor="middle" fill="#7F1D1D" font-size="9">★ C 端关单提示文案随之改写：不写「请联系客服」，要写清「仍在时效内可重新申请」</text><text x="1831" y="8040" text-anchor="middle" fill="#7F1D1D" font-size="9">★ 已知后果（不是矛盾，是决策的必然结果）：逾期未交寄本身要耗掉 return_ship_days，</text><text x="1831" y="8056" text-anchor="middle" fill="#7F1D1D" font-size="9">   走到关单时售后时效窗口大概率已过 → 段①的时效判定会拒掉。此时只剩 1.7 运营后台特批一条路，</text><text x="1831" y="8072" text-anchor="middle" fill="#7F1D1D" font-size="9">   但那是运营侧动作，不是 C 端流程；本图不给关单场景任何时效豁免窗口</text><text x="1831" y="8088" text-anchor="middle" fill="#7F1D1D" font-size="9">判定依据是物流揽收轨迹，不是买家点「我已寄出」——运单由运营预先注册到物流服务，轨迹是唯一客观来源</text><text x="1831" y="8104" text-anchor="middle" fill="#7F1D1D" font-size="9">关单天数为 market 级运营配置项（after_sale_policy.return_ship_days），本图不写死具体数值</text><text x="1831" y="8120" text-anchor="middle" fill="#7F1D1D" font-size="9">关单会释放 1.8 的互斥占用，否则买家永远无法对该商品行再次发起售后</text>
+<rect x="1361" y="8740" width="940" height="204" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="1831" y="8762" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">拒退口径</text><text x="1831" y="8780" text-anchor="middle" fill="#7F1D1D" font-size="9">★【5.1】拒退后回寄买家的这一程完全走线下：不在系统内建单、不注册物流追踪、C 端不展示回寄单号，</text><text x="1831" y="8796" text-anchor="middle" fill="#7F1D1D" font-size="9">   shipment_ref_id 维持单值（只承载「买家寄回平台」这一程）。图中「运营线下安排把货退回买家」这条箭头</text><text x="1831" y="8812" text-anchor="middle" fill="#7F1D1D" font-size="9">   终点在「线下作业·系统外」泳道，不是系统内流程节点</text><text x="1831" y="8828" text-anchor="middle" fill="#7F1D1D" font-size="9">⚠ 待确认③：拒退原因写进哪个字段——【5.2】已定不新增 deny_reason 字段，</text><text x="1831" y="8844" text-anchor="middle" fill="#7F1D1D" font-size="9">   本图暂用 inspection_note 承载并标注「字段归属待定」。已提交决策，不得自行落定</text><text x="1831" y="8860" text-anchor="middle" fill="#7F1D1D" font-size="9">5.5 验货结论 → 退款方案联动：一致 → 按运营手填的服务费扣后退剩余；缺件/成色下降 → 服务费之外再按验货结果扣减；</text><text x="1831" y="8876" text-anchor="middle" fill="#7F1D1D" font-size="9">   不符 / 空包 → 拒退并把货退回买家</text><text x="1831" y="8892" text-anchor="middle" fill="#7F1D1D" font-size="9">5.6 买家不认可结论时线下协商；V1 无 C 端申诉交互，也无系统内争议工单</text><text x="1831" y="8908" text-anchor="middle" fill="#7F1D1D" font-size="9">S1 真伪存疑不构成拒退理由——V1 无该结论值，可疑情况只写 inspection_note，流程照常推进</text>
+<rect x="1361" y="9754" width="940" height="220" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="1831" y="9776" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">丢件跳验货口径（★V1.1 新增，对应决策 4.2）</text><text x="1831" y="9794" text-anchor="middle" fill="#7F1D1D" font-size="9">★【4.2】补的就是这条状态机边：单子当时在「退货在途」，货已经不可能到仓，不能卡在等验货，</text><text x="1831" y="9810" text-anchor="middle" fill="#7F1D1D" font-size="9">   直接跳到「待退款」。这是 V1.0 状态机骨架里缺失的一条边（4.6 定了处理方式却没落到状态机上）</text><text x="1831" y="9826" text-anchor="middle" fill="#7F1D1D" font-size="9">★【4.2】此场景归平台责任：物流出问题属平台与物流商之间的事，对买家而言即平台责任，</text><text x="1831" y="9842" text-anchor="middle" fill="#7F1D1D" font-size="9">   平台先足额赔付买家，再线下向物流商索赔</text><text x="1831" y="9858" text-anchor="middle" fill="#7F1D1D" font-size="9">★ 服务费：决策 4.2 原推荐里的「自动豁免服务费」已被【1.1/1.5】推翻——本期没有自动豁免，</text><text x="1831" y="9874" text-anchor="middle" fill="#7F1D1D" font-size="9">   实扣金额仍由运营在段⑤手填（丢件场景通常填 0，但那是人的决定，系统不代劳）</text><text x="1831" y="9890" text-anchor="middle" fill="#7F1D1D" font-size="9">⚠ 与【1.3】的时点冲突（本图不抹平，如实标出）：1.3 定「最终判责必须验货后」，本分支跳过验货，</text><text x="1831" y="9906" text-anchor="middle" fill="#7F1D1D" font-size="9">   却由 4.2 直接定死平台责任。两条决策在「判责时点」上不自洽，与待确认②（仅退款判责时点）同源。</text><text x="1831" y="9922" text-anchor="middle" fill="#7F1D1D" font-size="9">   本图按 4.2 画「运营登记时判平台责任」；若后续拍板另有口径，本段与段⑥须同步改</text><text x="1831" y="9938" text-anchor="middle" fill="#7F1D1D" font-size="9">异常判定依据是物流信息服务的追踪异常通知，不是买家自述；核实动作走线下，系统只登记结论</text>
+<rect x="1371" y="10476" width="920" height="156" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="1831" y="10498" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">撤销口径（★V1.1 新增，对应决策 7.2）</text><text x="1831" y="10516" text-anchor="middle" fill="#7F1D1D" font-size="9">★【7.2】撤销只在「待审核」状态开放：一旦运营已给出审核结论（通过/驳回），撤销入口即关闭。</text><text x="1831" y="10532" text-anchor="middle" fill="#7F1D1D" font-size="9">   代价只是 close_reason 多一个枚举取值「买家撤销」，却能消掉一类必然发生的客诉</text><text x="1831" y="10548" text-anchor="middle" fill="#7F1D1D" font-size="9">★ 不给撤销的后果（这是加它的原因）：买家误提交后会被 1.8「同一商品行只允许一张非终态售后单」锁死，</text><text x="1831" y="10564" text-anchor="middle" fill="#7F1D1D" font-size="9">   只能干等运营驳回才能重新申请</text><text x="1831" y="10580" text-anchor="middle" fill="#7F1D1D" font-size="9">★ 撤销后同样释放 1.8 互斥占用；重新申请与【3.2】口径一致——按时效严格判定，与申请次数无关</text><text x="1831" y="10596" text-anchor="middle" fill="#7F1D1D" font-size="9">撤销是终态，不是暂停：已关闭的单不可恢复，买家只能重新发起新申请</text>
+<rect x="0" y="10690" width="4038" height="60" fill="#fff" stroke="#E2E8F0" stroke-width="1"/>
+<text x="20" y="10715" fill="#1E293B" font-size="12" font-weight="600">图例：</text>
+<rect x="75" y="10703" width="50" height="20" rx="10" fill="#fff" stroke="#64748B" stroke-width="1.2"/>
+<text x="100" y="10717" text-anchor="middle" fill="#64748B" font-size="8">开始/结束</text>
+<rect x="140" y="10703" width="50" height="20" rx="3" fill="#fff" stroke="#475569" stroke-width="1.2"/>
+<text x="165" y="10717" text-anchor="middle" fill="#475569" font-size="8">操作步骤</text>
+<polygon points="225,10703 240,10713 225,10723 210,10713" fill="#FEF3C7" stroke="#D97706" stroke-width="1.2"/>
+<text x="225" y="10717" text-anchor="middle" fill="#92400E" font-size="7">判断</text>
+<line x1="260" y1="10713" x2="310" y2="10713" stroke="#475569" stroke-width="1.3" marker-end="url(#arr)"/>
+<text x="285" y="10708" text-anchor="middle" fill="#475569" font-size="8">正常流向</text>
+<line x1="330" y1="10713" x2="380" y2="10713" stroke="#DC2626" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="355" y="10708" text-anchor="middle" fill="#DC2626" font-size="8">异常/回退</text>
+<rect x="420" y="10705" width="12" height="12" rx="2" fill="#10B981" opacity="0.3"/>
+<text x="438" y="10716" fill="#10B981" font-size="9">C 端买家</text>
+<rect x="520" y="10705" width="12" height="12" rx="2" fill="#8B5CF6" opacity="0.3"/>
+<text x="538" y="10716" fill="#8B5CF6" font-size="9">运营端（售后工单台）</text>
+<rect x="620" y="10705" width="12" height="12" rx="2" fill="#4A6CF7" opacity="0.3"/>
+<text x="638" y="10716" fill="#4A6CF7" font-size="9">售后域服务（本模块）</text>
+<rect x="720" y="10705" width="12" height="12" rx="2" fill="#F59E0B" opacity="0.3"/>
+<text x="738" y="10716" fill="#F59E0B" font-size="9">物流信息服务</text>
+<rect x="820" y="10705" width="12" height="12" rx="2" fill="#EC4899" opacity="0.3"/>
+<text x="838" y="10716" fill="#EC4899" font-size="9">消息通知（仅邮件通道）</text>
+<rect x="920" y="10705" width="12" height="12" rx="2" fill="#0EA5E9" opacity="0.3"/>
+<text x="938" y="10716" fill="#0EA5E9" font-size="9">订单域</text>
+<rect x="1020" y="10705" width="12" height="12" rx="2" fill="#EF4444" opacity="0.3"/>
+<text x="1038" y="10716" fill="#EF4444" font-size="9">支付域</text>
+<rect x="1120" y="10705" width="12" height="12" rx="2" fill="#64748B" opacity="0.3"/>
+<text x="1138" y="10716" fill="#64748B" font-size="9">线下作业（仓 / 网点）· 系统外</text>
+</svg>
