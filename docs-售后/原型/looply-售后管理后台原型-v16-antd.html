@@ -1,0 +1,2535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Looply 售后管理后台原型 v16</title>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/dayjs@1.11.21/dayjs.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/antd@6.4.3/dist/antd.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/@ant-design/icons@6.2.1/dist/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.28.4/babel.min.js"></script>
+<style>
+html,body,#root{height:100%;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937}
+#root::before{content:'正在加载 antd 原型……';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#9CA3AF;font-size:14px}
+#root:not(:empty)::before{display:none}
+.lp-kpi{background:linear-gradient(180deg,#FEFCFF 0%,#F3EEFF 100%);border:1px solid #DDD6FE;border-radius:14px;padding:14px 16px}
+.lp-kpi .num{font-size:24px;font-weight:700;color:#7C3AED;line-height:1;margin-bottom:6px;font-variant-numeric:tabular-nums}
+.lp-kpi .label{font-size:12px;color:#6B7280}
+.lp-pagination{display:flex;align-items:center;justify-content:center;gap:24px;padding:12px 16px;font-size:13px;color:#6B7280}
+.lp-pagination .divider{width:1px;height:20px;background:#E5E7EB}
+.lp-tip-trigger{cursor:help;border-bottom:1px dashed #9CA3AF;padding-bottom:1px}
+.lp-note{padding:14px;border-radius:10px;background:#F3EEFF;border:1px solid #DDD6FE;color:#6D28D9;font-size:12px;line-height:1.8}
+.lp-note-sm{padding:10px 14px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:8px;font-size:12px;color:#6D28D9;line-height:1.7}
+.lp-section{font-size:15px;font-weight:600;color:#1F2937;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #E5E7EB}
+.lp-empty{display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center}
+.lp-empty .icon{font-size:48px;margin-bottom:16px;color:#9CA3AF}
+.lp-empty .icon.err{color:#DC2626}
+.lp-empty .title{font-size:16px;font-weight:600;color:#1F2937;margin-bottom:8px}
+.lp-empty .desc{font-size:13px;color:#6B7280;margin-bottom:24px;max-width:360px}
+.lp-form-row{display:flex;gap:16px;margin-bottom:12px;align-items:center}
+.lp-form-row:first-of-type{margin-top:8px}
+.lp-form-row .lp-form-label{width:112px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0}
+.lp-form-row .lp-form-label .req{color:#DC2626;margin-right:4px}
+.lp-form-row .lp-form-control{flex:1}
+.lp-helper{font-size:12px;color:#9CA3AF;margin:-4px 0 12px 128px}
+/* align-content:start 是必需的,不是保险丝:两栏并排时每一栏都是外层栅格的 item,
+   默认 stretch 会把矮的那一栏拉到与高的那一栏等高,而 grid 的 align-content 默认值
+   在行高 auto 时表现为 stretch —— 于是矮栏的行被平均撑开,栏内凭空多出空隙。
+   左右两栏必须【各自独立、从上到下连续排】,短的那一栏下方自然留白,栏内不许有空位 */
+.lp-detail{display:grid;grid-template-columns:132px 1fr;gap:10px 16px;font-size:13px;margin-bottom:20px;align-content:start}
+/* 标签列右对齐(与 .lp-form-label 同一口径):标签右边缘与值左边缘各成一条竖线,
+   同一区块里长短不一的标签不会把值挤成锯齿 */
+.lp-detail .dl{color:#6B7280;text-align:right}
+.lp-detail .dv{color:#1F2937}
+/* 按行铺的两栏栅格:值与右邻标签之间只有 16px gap 会挤在一起,给值补一段右内边距 */
+.lp-detail.lp-flow-row>.dv{padding-right:20px}
+.lp-code{font-family:Menlo,Monaco,Consolas,monospace;font-size:12px;color:#374151;background:#F3F4F6;padding:1px 6px;border-radius:4px}
+.lp-thumb-grid{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:12px}
+.lp-thumb-wrap{width:104px;display:flex;flex-direction:column;gap:6px;align-items:center}
+/* 缩略图底色用白 —— 它出现在白底的详情页上，也出现在弹窗的 .lp-sub 灰底块里，
+   统一取白，灰底上再套灰块会糊成一片 */
+.lp-thumb{width:104px;height:104px;border-radius:10px;background:#FFFFFF;border:1px solid #E5E7EB;display:flex;align-items:center;justify-content:center;color:#9CA3AF;font-size:30px;cursor:pointer}
+.lp-thumb:hover{border-color:#DDD6FE;background:#FAF5FF;color:#7C3AED}
+.lp-thumb-cap{font-size:11px;color:#6B7280;text-align:center;line-height:1.4;word-break:break-all}
+.lp-bigshot{height:320px;border-radius:12px;background:#F3F4F6;border:1px solid #E5E7EB;display:flex;align-items:center;justify-content:center;color:#9CA3AF;font-size:64px;margin-bottom:14px}
+/* ===== 详情页模块语言（v15 全页统一，对齐订单管理后台详情页）==============
+   v14 的写法是「只读字段一律装进 .lp-sub 灰底块」。实测下来它比订单详情页更糊：
+   页面本来就整页只读，灰底块并没有把什么和什么分开，反而给每个模块罩了一层壳，
+   模块标题的底线、字段本身的对齐关系全被压在壳里，读起来是一坨一坨的灰。
+   订单管理后台详情页的做法是：只读字段【直接铺在白底上】，靠模块标题的底线分段。
+   v15 全页改用这一套，详情页不再有任何灰底字段块。
+
+     ① 模块外壳 = .lp-module，零视觉，只管模块间距（24）
+     ② 模块标题 = .lp-section（黑 15/600 + 1px 底线），全页只此一种，模块的分界线就是它
+     ③ 只读字段 = 【不进任何容器】，白底裸排，走 DetailGrid；标签列宽走场景常量
+     ④ 子区标题 = 卡外用 .lp-subtitle（紫竖条），卡内用 .lp-card-label（12px 灰字，照抄订单后台）
+        ⚠ 详情页当前【两种都没用到】：退货信息卡内是 .lp-card-label，判责信息已把原先
+          点名的两组（判责取证 / 退款）并回字段行。.lp-subtitle 的定义保留 —— 它仍是
+          本页「卡外子区标题」的唯一合法写法，下次要点名时用它，不要另造一种
+     ⑤ 空态     = 字段级用 dash() 的「—」；模块或子区级用 .lp-nodata 一行灰字
+     ⑥ 间距     = 模块间 24 / 模块标题下 12 / 字段组间 20 / 子区标题上 22 下 10
+   ⚠ .lp-sub 灰底块【只剩一个场景】：弹窗里【只读核对区与可编辑表单区并存】时，
+     用它给只读区划界（审核弹窗 / 判责弹窗）。纯只读弹窗与详情页都不用。
+   ====================================================================== */
+/* 模块外壳：零视觉，不是容器，只负责模块间距 + 消掉模块末尾字段组的多余底边距 */
+.lp-module{margin-bottom:24px}
+.lp-module:last-child{margin-bottom:0}
+.lp-module>.lp-detail:last-child,.lp-module>div:last-child>.lp-detail{margin-bottom:0}
+/* 只读核对区灰底块：仅用于「只读 + 表单」并存的弹窗，给两段内容划界 */
+.lp-sub{border-radius:12px;background:#FAFAFA;padding:16px 18px;margin-bottom:16px}
+.lp-sub>.lp-detail:last-child,.lp-sub>div:last-child .lp-detail{margin-bottom:0}
+/* 子区标题：比 .lp-section 低一级，无底线。全页【只有这一种】子区标题类。
+   v14 是 13/600/#374151 且上间距为 0，紧贴上方内容，视觉重量与字段值几乎相同，
+   读者看不出它已经降了一级；去掉灰底块后它更要独自扛起模块内的分层，故加重：
+     · 上间距 22px —— 先在空间上与上方字段组断开
+     · 字重 700 + 正文黑 #1F2937 —— 比字段值（13/400）明确重，比模块标题（15/600 + 底线）明确小
+     · 3px 主色竖条 —— 只是一个层级记号，不是彩色标题文字；文字仍是黑的 */
+.lp-subtitle{position:relative;font-size:13px;font-weight:700;color:#1F2937;margin:22px 0 10px;padding-left:10px}
+.lp-subtitle::before{content:'';position:absolute;left:0;top:2px;bottom:2px;width:3px;border-radius:2px;background:#7C3AED}
+/* 模块 / 子区级空态：一行灰字。不再用虚线空框 —— 空框比它要说的那句话占的地方还大 */
+.lp-nodata{font-size:13px;color:#9CA3AF;padding:2px 0 10px}
+/* ===== 边框卡（形制整套照抄订单管理后台详情页「包裹物流」）=========================
+   边框 1px #E5E7EB / 圆角 14 / 灰底头条 #FAFAFA + 14-20 内边距 / 分区 16-20 内边距，
+   分区之间 1px #F3F4F6 分隔线 —— 数值一个都不自己定，两个后台的这张卡长得完全一样。
+   头条 = 左（主标识 + 状态 tag）/ 右（次要标识），分区 = 一段内容一格，靠分隔线划开。
+   ⚠ 适用场景写在 AfterSaleDetailPage 的模块注释里，不在这里重复。 */
+.lp-card{border:1px solid #E5E7EB;border-radius:14px;overflow:hidden;margin-bottom:24px}
+.lp-card:last-child{margin-bottom:0}
+.lp-card-head{padding:14px 20px;background:#FAFAFA;border-bottom:1px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.lp-card-head .main{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:14px;font-weight:600;color:#1F2937;flex-shrink:0}
+/* 头条右槽:放次要标识(本页放退货地址)。【不加 white-space:nowrap】——
+   美国仓地址约 90 字符,nowrap 会把它顶出卡外;允许折行 + 右对齐,窄屏时它自己折成两行,
+   左侧标识组 flex-shrink:0 保证运单号 / 状态 tag 永远不被挤压 */
+.lp-card-head .side{font-size:13px;color:#6B7280;text-align:right;min-width:0}
+.lp-card-part{padding:16px 20px;border-bottom:1px solid #F3F4F6}
+.lp-card-part:last-child{border-bottom:none}
+/* 卡内分组标签:形制照抄订单管理后台详情页「包裹物流」卡内的「包裹商品」「物流轨迹」
+   (12px / #9CA3AF / 下间距 12),色值字号一个没自己定。
+   ⚠ 它【不是】.lp-subtitle:卡的分区分隔线已经把这一层的边界划出来了,再叠一条紫色竖条
+     等于给同一个边界画两遍,而且竖条的 padding-left 会把标签推离左边线。
+     这是 A.21-3「子区标题只有 .lp-subtitle 一种」在【卡内】的例外场景 */
+.lp-card-label{font-size:12px;color:#9CA3AF;margin-bottom:12px}
+/* 判责说明这一行专用：值本身是内部原文，值尾再挂一句灰字提醒它不对买家展示。
+   与标签里的「(内部)」是双重标注 —— 标签说明字段属性，尾注说明外露边界，两处都要 */
+.lp-inner-flag{margin-left:10px;font-size:12px;color:#9CA3AF;white-space:nowrap}
+/* 金额值：只有「最终退款金额」这一个数用强调色；扣减用红色负数。都走等宽数字 */
+.lp-amt{font-size:15px;font-weight:700;color:#7C3AED;font-variant-numeric:tabular-nums}
+.lp-minus{color:#E11D48;font-variant-numeric:tabular-nums}
+.lp-num{font-variant-numeric:tabular-nums}
+:focus-visible{outline:none;box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+const {
+  ConfigProvider, Layout, Menu, Card, Table, Button, Input, InputNumber, Select, Radio, Checkbox,
+  DatePicker, Tag, Tooltip, Modal, Alert, Space, Breadcrumb, Tabs, Dropdown, Upload, Timeline, Badge, Divider, message
+} = antd;
+/* 原型交互反馈:凡是本原型不做真实提交的按钮,统一用 message 给一个可见反馈,避免"点了没反应" */
+const toast = (t) => message.success(t);
+const toastInfo = (t) => message.info(t);
+const {
+  CustomerServiceOutlined, ProfileOutlined, SettingOutlined, FileProtectOutlined, BookOutlined,
+  PlusOutlined, SearchOutlined, ReloadOutlined, EllipsisOutlined, InboxOutlined, PictureOutlined,
+  ExclamationCircleOutlined, ClockCircleOutlined, DollarOutlined, GlobalOutlined, CarOutlined,
+  AuditOutlined, UploadOutlined, DownloadOutlined, CheckCircleOutlined, CloseCircleOutlined,
+  EnvironmentOutlined, UnorderedListOutlined
+} = icons;
+
+const LOGO_SRC = "data:image/png;base64,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";
+
+/* ===== 主题(theme.md B 段,整段复用)===== */
+const looplyTheme = {
+  token: {
+    colorPrimary: '#7C3AED', colorInfo: '#7C3AED', colorBgLayout: '#F9FAFB',
+    colorBgContainer: '#FFFFFF', colorText: '#1F2937', colorTextSecondary: '#374151',
+    colorTextTertiary: '#4B5563', colorTextDescription: '#6B7280', colorTextPlaceholder: '#9CA3AF',
+    colorBorder: '#E5E7EB', colorBorderSecondary: '#F3F4F6', colorSuccess: '#16A34A',
+    colorWarning: '#D97706', colorError: '#DC2626', borderRadius: 8, borderRadiusLG: 14,
+    borderRadiusSM: 6, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: 14, controlHeight: 34, controlHeightSM: 28,
+  },
+  components: {
+    Layout: { headerBg: '#FFFFFF', headerHeight: 60, headerPadding: '0 24px', siderBg: '#FFFFFF', bodyBg: '#F9FAFB' },
+    Menu: { itemBg: 'transparent', subMenuItemBg: 'transparent', itemHoverBg: 'rgba(0,0,0,.03)',
+      itemSelectedBg: '#F3EEFF', itemSelectedColor: '#7C3AED', itemBorderRadius: 0, itemMarginInline: 0,
+      itemMarginBlock: 0, itemHeight: 40, subMenuItemBorderRadius: 0 },
+    Card: { borderRadiusLG: 16, paddingLG: 28 },
+    Table: { headerBg: '#FFFFFF', headerColor: '#6B7280', rowHoverBg: '#FAF5FF', borderColor: '#E5E7EB',
+      headerSplitColor: 'transparent', cellFontSize: 13, cellFontSizeMD: 13, cellFontSizeSM: 13,
+      cellPaddingBlock: 11, cellPaddingInline: 12, cellPaddingBlockSM: 9, cellPaddingInlineSM: 12,
+      headerBorderRadius: 0 },
+    Tag: { defaultBg: '#F3F4F6', defaultColor: '#6B7280' },
+    Tabs: { itemSelectedColor: '#7C3AED', itemHoverColor: '#374151', inkBarColor: '#7C3AED' },
+    Steps: { colorPrimary: '#7C3AED' },
+    Button: { controlHeight: 34, paddingInline: 14, fontSize: 13 },
+    Input: { controlHeight: 34, paddingInline: 12 }, Select: { controlHeight: 34 },
+    DatePicker: { controlHeight: 34 }, Modal: { borderRadiusLG: 16, paddingContentHorizontalLG: 28 },
+  },
+};
+const CARD_STYLE = { boxShadow: '0 10px 24px rgba(16,24,40,.06)', marginBottom: 20 };
+const TABLE_STYLES = { root: { borderRadius: 14, border: '1px solid #E5E7EB', overflow: 'hidden' } };
+const SIDER_STYLE = { boxShadow: '3px 0 12px rgba(0,0,0,0.06)', padding: '8px 0', overflowY: 'auto', height: '100%' };
+
+/* ===== 业务组件(components.md B 段)===== */
+const TAG_COLORS = {
+  on: { bg: '#F0FDF4', color: '#16A34A' }, sale: { bg: '#EFF6FF', color: '#2563EB' },
+  pending: { bg: '#FFFBEB', color: '#D97706' }, off: { bg: '#F3F4F6', color: '#6B7280' },
+  req: { bg: '#FEF2F2', color: '#DC2626' }, warn: { bg: '#FFF1F2', color: '#E11D48' },
+};
+function StatusTag({ variant, children }) {
+  const c = TAG_COLORS[variant] || TAG_COLORS.off;
+  return <Tag bordered={false} style={{ background: c.bg, color: c.color, borderRadius: 999,
+    padding: '2px 8px', fontSize: 12, lineHeight: '18px', marginInlineEnd: 4 }}>{children}</Tag>;
+}
+function Kpi({ num, label, onClick }) {
+  return <div className="lp-kpi" style={onClick ? { cursor: 'pointer' } : null} onClick={onClick}>
+    <div className="label" style={{ marginBottom: 6 }}>{label}</div>
+    <div className="num">{num}</div></div>;
+}
+function TipText({ label, tip }) {
+  return <Tooltip title={<div style={{ whiteSpace: 'pre-line', lineHeight: 1.6 }}>{tip}</div>}
+    color="#fff" styles={{ body: { color: '#374151', fontSize: 12, padding: '10px 14px' } }}>
+    <span className="lp-tip-trigger">{label}</span></Tooltip>;
+}
+function CompactPagination({ total, current = 1, pageSize = 10 }) {
+  const tp = Math.ceil(total / pageSize) || 1;
+  const pages = [];
+  pages.push({ k: 'prev', label: '<', arrow: true, disabled: current === 1 });
+  for (let i = 1; i <= tp; i++) pages.push({ k: i, label: i });
+  pages.push({ k: 'next', label: '>', arrow: true, disabled: current === tp });
+  return <div className="lp-pagination">
+    <span>共 {total.toLocaleString()} 条,每页{' '}
+      <Select size="small" value={pageSize} style={{ width: 72, marginInline: 4 }}
+        onChange={v => toast('每页显示改为 ' + v + ' 条')}
+        options={[{ value: 10, label: 10 }, { value: 20, label: 20 }, { value: 50, label: 50 }]} />{' '}条</span>
+    <div className="divider" />
+    <Space size={2}>{pages.map(p => <span key={p.k}
+      onClick={() => { if (!p.disabled) toast(p.arrow ? (p.k === 'prev' ? '已翻到上一页' : '已翻到下一页') : '已跳转到第 ' + p.k + ' 页'); }}
+      style={{ minWidth: 32, height: 32, display: 'inline-flex',
+      alignItems: 'center', justifyContent: 'center', borderRadius: 8, fontSize: 13,
+      cursor: p.disabled ? 'default' : 'pointer', background: p.k === current ? '#7C3AED' : (p.arrow ? '#fff' : 'transparent'),
+      color: p.k === current ? '#fff' : '#374151', border: p.arrow ? '1px solid #E5E7EB' : 'none',
+      fontWeight: p.k === current ? 600 : 400, opacity: p.disabled ? 0.35 : 1 }}>{p.label}</span>)}</Space>
+    <div className="divider" /><span>第 {current}/{tp} 页</span></div>;
+}
+function EmptyZero({ entity, cta, onCta }) {
+  return <div className="lp-empty"><InboxOutlined className="icon" />
+    <div className="title">暂无{entity}</div>
+    <div className="desc">点击下方按钮创建第一个{entity}</div>
+    {cta && <Button type="primary" onClick={onCta}>{cta}</Button>}</div>;
+}
+function EmptyNoMatch({ onClear }) {
+  return <div className="lp-empty"><SearchOutlined className="icon" />
+    <div className="title">未找到匹配结果</div>
+    <div className="desc">请尝试调整搜索关键词或筛选条件</div>
+    <Button onClick={onClear}>清除筛选条件</Button></div>;
+}
+function EmptyError({ onRetry }) {
+  return <div className="lp-empty"><ExclamationCircleOutlined className="icon err" />
+    <div className="title">加载失败</div>
+    <div className="desc">网络异常,请检查网络连接后重试</div>
+    <Button type="primary" onClick={onRetry}>重试</Button></div>;
+}
+function EmptyStateSwitcher({ mode, setMode }) {
+  return <div style={{ marginTop: 12, display: 'flex', gap: 8, justifyContent: 'center' }}>
+    {[['data', '正常数据'], ['zero', '零数据态'], ['no-match', '无匹配态'], ['error', '异常态']].map(([k, label]) =>
+      <Button key={k} type={mode === k ? 'primary' : 'default'} onClick={() => setMode(k)}>{label}</Button>)}</div>;
+}
+function FormRow({ label, required, children, helper }) {
+  return <><div className="lp-form-row">
+    <div className="lp-form-label">{required && <span className="req">*</span>}{label}</div>
+    <div className="lp-form-control">{children}</div></div>
+    {helper && <div className="lp-helper">{helper}</div>}</>;
+}
+/* 信息类区块默认多列排布(cols),避免几十行标签值竖排成一条长队。
+   rows 里的 key 用显式 rk(有 JSX 标签时 k 不能当 key)。
+   labelWidth:标签列宽,不传时按列数取默认值。上下堆叠的两个 DetailGrid 若列数不同,
+   必须显式传同一个 labelWidth,否则两块的「值」左边缘会差出 28px(默认 132 与 104 之差) */
+function DetailGrid({ rows, cols, labelWidth, flow, groups }) {
+  const list = (rows || []).filter(Boolean);
+  const n = groups ? groups.length : (cols || 1);
+  const lw = (labelWidth || (n === 1 ? 132 : 104)) + 'px 1fr';
+  const cell = (x, i) => <React.Fragment key={x.rk || i}>
+    <div className="dl">{x.k}</div><div className="dv">{x.v}</div></React.Fragment>;
+  if (!groups && n === 1) return <div className="lp-detail" style={{ gridTemplateColumns: lw }}>{list.map(cell)}</div>;
+  /* flow='row':一张真正的多栏栅格,字段按「左 → 右 → 换行」铺,适合
+     「一批同类字段摆不下要折行」的场景(弹窗里的快照核对区)。
+     ⚠ 它铺出来的左右两项【只是排版上的相邻】,不表示语义上成对。
+       想让「每一栏各自是一条独立的语义序列」(判责信息的判定 / 算账 / 执行)——
+       用 groups,不要用 flow='row' 再手工交错写:交错写法一旦某栏多一行就全串位 */
+  if (!groups && flow === 'row') return <div className="lp-detail lp-flow-row"
+    style={{ gridTemplateColumns: (labelWidth || 104) + 'px 1fr ' + ((labelWidth || 104) + 'px 1fr ').repeat(n - 1) }}>
+    {list.map(cell)}</div>;
+  /* 分栏渲染。两个来源:
+     ① groups —— 调用方显式指定「每一栏各放哪些字段」,按【字段性质】分栏而不是按行数机械切。
+        栏数由 groups.length 决定,不限两栏:基本信息用 2 栏(左「是什么」/ 右「时间线」),
+        判责信息用 3 栏(判定 / 算账 / 执行)。各栏长短不一是预期结果,
+        不补占位行凑等高(A.21-6:没有内容就不占位置)。
+        ⚠ 整栏没有内容时,调用方应在传入前把该栏 filter 掉 —— 传空数组会留一个空格子,
+          栅格仍按原栏数分宽,剩下的栏会挤在左边。
+     ② 不传 groups 时按行数均分(旧口径,保留给按数量切分的调用方) */
+  let cg;
+  if (groups) {
+    cg = groups.map(g => (g || []).filter(Boolean));
+  } else {
+    const per = Math.ceil(list.length / n);
+    cg = [];
+    for (let i = 0; i < n; i++) cg.push(list.slice(i * per, (i + 1) * per));
+  }
+  return <div style={{ display: 'grid', gridTemplateColumns: 'repeat(' + n + ',1fr)', gap: 0 }}>
+    {cg.map((g, gi) => <div className="lp-detail" key={'g' + gi}
+      style={{ gridTemplateColumns: lw, paddingRight: gi < n - 1 ? 20 : 0 }}>
+      {g.map(cell)}</div>)}</div>;
+}
+/* 五个标签列宽常量,一个场景一个,禁止现场写数字(A.21-5):
+   · SUB_LABEL_W   = 94  仅用于【只读 + 表单并存】弹窗里被 .lp-sub 灰底块包住的只读区。
+                          灰底容器自带 18px 左内边距,94+18=112 才与表单区
+                          (.lp-form-label 宽 112、右对齐)落在同两条竖线上
+   · MODAL_LABEL_W = 112 弹窗里【不在灰底块内】的只读区(纯只读弹窗 / 大图弹窗 / 建单快照)
+   · DETAIL_LABEL_W     = 116 详情页【1~2 栏 / 整行】的 DetailGrid
+   · DETAIL_LABEL_W_3COL= 108 详情页【3 栏,以及紧跟在 3 栏下方的整行】的 DetailGrid(判责信息)
+   ⚠ 曾有第五个 CARD_LABEL_W=96(退货信息卡内分区的字段)。退货地址移进头条后卡内已无字段,
+     该常量随之删除 —— 不留没有场景的常量,否则下次有人会拿它去凑一个新场景 */
+const SUB_LABEL_W = 94;
+const MODAL_LABEL_W = 112;
+/* 详情页标签列宽:1~2 栏与整行的 DetailGrid 都传它,基本信息 / 判责信息的标签
+   右边缘落在同一条竖线上。取 116 是因为最长标签「最近一次驳回原因」「异常结论处理出口」
+   都是 8 个汉字 ≈ 104px,再留一点余量才不会折行 */
+const DETAIL_LABEL_W = 116;
+/* 三栏场景专用:每栏净宽只有整幅的 1/3(1280 视口下约 296px),标签列每多占 1px
+   值就少 1px,116 的余量在这里是浪费。中日文字形宽度恒为 1em,13px 字号下
+   最长标签「异常结论处理出口」8 字 = 104px 是确定值,取 108 留 4px 即够,不会折行 */
+const DETAIL_LABEL_W_3COL = 108;
+const DEFAULT_OPLOG = [
+  { i: 1, at: '2026-07-27 16:08', who: 'Lily', type: '编辑', detail: '修改字段:售后时效天数 14 → 30', vis: false },
+  { i: 2, at: '2026-07-20 10:31', who: 'Ken', type: '启用', detail: '状态:停用 → 启用', vis: false },
+  { i: 3, at: '2026-07-12 09:04', who: 'Ken', type: '创建', detail: '创建记录', vis: false },
+];
+function OpLog({ data, types }) {
+  const list = data || DEFAULT_OPLOG;
+  /* 标题走全局唯一的模块标题 .lp-section —— 原先这里是一条紫色微标题,
+     和同页其他模块的黑色标题不是一个层级,视觉上像另一个页面的东西 */
+  return <><h4 className="lp-section" style={{ marginTop: 24 }}>操作记录</h4>
+    <Space size={8} wrap style={{ marginBottom: 12 }}>
+      <Select size="small" defaultValue="" style={{ width: 150 }} options={[{ value: '', label: '全部操作类型' },
+        ...(types || ['创建', '编辑', '启用', '停用']).map(x => ({ value: x, label: x }))]} />
+      <Select size="small" defaultValue="" style={{ width: 130 }} options={[{ value: '', label: '全部操作人' },
+        { value: 'a', label: 'Lily' }, { value: 'b', label: 'Ken' }, { value: 'c', label: '系统' }]} />
+      <DatePicker.RangePicker size="small" placeholder={['开始日期', '结束日期']} />
+      <Button size="small" icon={<SearchOutlined />} onClick={() => toast('已按当前条件查询操作记录')}>查询</Button></Space>
+    <Table size="small" rowKey="i" pagination={false} styles={TABLE_STYLES} columns={[
+      { title: '操作时间', dataIndex: 'at', width: 160 },
+      { title: '操作人', dataIndex: 'who', width: 100 },
+      { title: '操作类型', dataIndex: 'type', width: 110,
+        render: v => <StatusTag variant={v === '创建' ? 'on' : (v === '停用' ? 'off' : 'pending')}>{v}</StatusTag> },
+      { title: '操作详情', dataIndex: 'detail' },
+      { title: '买家可见', dataIndex: 'vis', width: 110, align: 'center',
+        render: v => v ? <StatusTag variant="sale">可见</StatusTag> : <span style={{ color: '#9CA3AF' }}>—</span> }]}
+      dataSource={list} />
+    <CompactPagination total={list.length} pageSize={10} /></>;
+}
+
+/* ===== 枚举与字典 ===== */
+const MARKETS = [
+  { value: 'US', label: '美国站(US)', cur: 'USD', sym: '$' },
+  { value: 'HK', label: '香港站(HK)', cur: 'HKD', sym: 'HK$' },
+];
+/* 售后单主状态机:7 个取值,终态 2 个(已完成 / 已关闭)
+   待审核 ─通过·货已收到→ 待寄回 ─揽收→ 退货在途 ─判责→ 退款中 ─退款成功回调→ 已完成
+                                                └─判责(拒退)→ 已关闭(拒退关单)
+   待审核 ─通过·货没收到────────────────→ 待判责 ─判责→ 退款中 → 已完成
+   ⚠ 走上下哪一条,【看售后原因所属分组】,不看售后类型(类型本期恒为「退货」)
+   待审核 ─驳回→ 待审核(等买家修改)   待审核 ─买家撤销→ 已关闭
+   待审核 / 待寄回 / 退货在途 ─运营关闭→ 已关闭   退货在途 ─已送达→ 待判责 */
+const AS_STATUS = {
+  pending_audit: { label: '待审核', variant: 'pending' },
+  to_ship: { label: '待寄回', variant: 'sale' },
+  in_transit: { label: '退货在途', variant: 'sale' },
+  to_adjudicate: { label: '待判责', variant: 'pending' },
+  refunding: { label: '退款中', variant: 'sale' },
+  completed: { label: '已完成', variant: 'on' },
+  closed: { label: '已关闭', variant: 'off' },
+};
+const STATUS_ORDER = ['pending_audit', 'to_ship', 'in_transit', 'to_adjudicate', 'refunding', 'completed', 'closed'];
+const TERMINAL_STATUS = ['completed', 'closed'];
+/* 判责入口开放的两个状态:退货在途(货已寄出,可判丢件/提前判责)+ 待判责 */
+const ADJUDICATE_STATUS = ['in_transit', 'to_adjudicate'];
+/* 判过责 = 有判责结论 或 退款单已产生(不寄回的单没有验货结论,退款已发起即判过) */
+const isJudged = (r) => !!r.inspect || !!(r.refund && r.refund.refNo);
+/* 判责入口的唯一判据:状态允许【且这单还没判过责】。
+   ⚠ 判责【不可修改、不可重做】—— 判责提交 = 定死退款金额 + 当场调支付域打款,是终局动作,
+     提交完钱已经在路上,系统里不存在「改判责结论 / 改退款金额」的窗口。
+     打款失败的单也不回头改判责:它的出口是「重新发起退款」(金额沿用成交值、只读),见 RetryRefundModal。
+   本判据由列表页行操作与详情页页头【共用这一个函数】,不允许任一侧自己再写一遍 */
+const canAdjudicate = (r) => ADJUDICATE_STATUS.indexOf(r.status) >= 0 && !isJudged(r);
+/* 拒退不是一个独立动作,也不占用独立状态:它是判责的一个出口,
+   落 as_status = 已关闭 + close_reason =「拒退关单」,差异由 close_reason 承载 */
+/* 订单侧「售后中」= 本域全部非终态售后单的实时聚合,订单表不为售后新增状态字段;
+   订单详情页展示「售后中」时按商品行实时查本域聚合(需 order_id、order_item_id 建索引)。
+   该口径是对订单域的承诺,与运营端是否设「售后中」视图无关 */
+const ACTIVE_STATUS = STATUS_ORDER.filter(k => TERMINAL_STATUS.indexOf(k) < 0);
+/* 售后类型:维度保留(为 V2 换货 / 部分补偿留位),本期只有「退货」一个取值。
+   一张单要不要走寄回环节【不看类型、看售后原因码本身】—— 见 NOT_RECEIVED_CODES 与 needReturn() */
+const AS_TYPE = { return_refund: '退货' };
+const LIABILITY = { platform: '平台责任', buyer: '买家责任' };
+/* 责任归属只二分类,不设物流责任;物流原因由原因码承载。
+   任何分支都不预填、不由原因码带出 —— 「售后原因」字典无默认责任方字段;
+   判定结果统一写 after_sale_order.liability_party */
+const LIABILITY_OPTIONS = [{ value: 'platform', label: '平台责任' }, { value: 'buyer', label: '买家责任' }];
+/* 判责落点文案(列表列与详情页共用,避免两处写法分叉):
+   两条分支【统一】在判责环节判定 —— 审核弹窗不再有责任归属控件,
+   货没收到的单也一样,照样在判责环节录责任(它只是没有验货结论可录) */
+const LIABILITY_STAGE_TIP = '判责时判定';
+/* 责任归属【为空】时怎么展示,分两种情况 ——
+   · 单子还在流程里(待审核 / 待寄回 / 退货在途 / 待判责):确实还在等判责 → 出「判责时判定」提示
+   · 单子已到终态却从未判责(买家撤销、运营关闭):永远不会再录入 → 出「—」,
+     再写「尚未录入」会让运营以为这单还有一步没做
+   TERMINAL_STATUS = 已完成 / 已关闭;已完成与拒退关单的单都已录过责任,不走这个分支 */
+const liabNeverJudged = (r) => TERMINAL_STATUS.indexOf(r.status) >= 0;
+/* 判责结论(需寄回的分支;货没收到的单无实物可验,无本项)。
+   「退回途中丢件」是其中一个结论 —— 不设独立的「标记丢件」动作,选中该结论必须写明认定依据 */
+const LOST_RESULT = '退回途中丢件';
+const INSPECT_RESULTS = ['与申请一致', '附件缺失', '成色下降', '退回件与订单不符', '空包或无实物', '退回途中破损', LOST_RESULT];
+/* 判责结论的可选范围【按入口状态收敛】—— 判责入口开在两个状态,两个入口面对的是两种相反的现实,
+   不能一律甩同一份 7 条出来让运营自己挑:
+   · 待判责(to_adjudicate)= 货已到仓、拆得开验得了 → 给 6 条,【排除「退回途中丢件」】。
+     货就躺在仓库桌上,还判「途中丢件」是自相矛盾
+   · 退货在途(in_transit)= 货没到仓、运营根本没见着这件东西 → 【锁定为「退回途中丢件」,不可改选】。
+     没见到货却能出具「与申请一致 / 成色下降」这类【验货结论】,等于没验货就下了验货结论;
+     而判责提交即调支付域打款(见 canAdjudicate),那就是没见到货就把钱打出去了
+   落地形态:待判责 → 常规下拉 6 项;退货在途 → 下拉里只有这一项且 disabled(值展示得出来、改不动) */
+const inspectOptionsFor = (status) => status === 'in_transit'
+  ? [LOST_RESULT] : INSPECT_RESULTS.filter(x => x !== LOST_RESULT);
+/* 异常结论:录入后运营须在同一步内选择处理出口(线下人工核实后录入,系统不设「待人工处理」挂起态) */
+const ABNORMAL_RESULTS = ['退回件与订单不符', '空包或无实物'];
+const OUTLETS = {
+  full: { label: '全额退款', desc: '按退款基准全额退还买家,不做退货扣减' },
+  partial: { label: '部分退款', desc: '退多少由运营在下方退款方案里填写' },
+  deny: { label: '不退并关闭(拒退关单)', desc: '不退款,售后单直接关闭;商品线下回寄买家' },
+};
+const OUTLET_OPTIONS = Object.keys(OUTLETS).map(k => ({ value: k, label: OUTLETS[k].label }));
+const ABNORMAL_TIP = '判责结论为异常(' + ABNORMAL_RESULTS.join(' / ') + '):须在下方选择处理出口';
+/* 售后单主状态机不含「退款失败」:失败以支付域退款单结果展示,主状态停在「退款中」等运营重新发起 */
+const REFUND_STATUS = {
+  none: { label: '待发起', variant: 'off' }, processing: { label: '退款处理中', variant: 'pending' },
+  done: { label: '退款成功', variant: 'on' }, failed: { label: '退款失败', variant: 'req' },
+};
+const isRetry = (r) => r.status === 'refunding' && r.refund && r.refund.status === 'failed';
+/* 「已关闭」共三种来源,靠 close_reason 区分(状态机只有一个 closed):
+   ① 买家撤销 —— 待审核阶段买家自行在 C 端撤销
+   ② 运营关闭 —— 待审核 / 待寄回 / 退货在途 三个阶段运营手动关单(以 OPS_CLOSE_STATUS 为准)
+   ③ 拒退关单 —— 判责异常结论经人工核实后选择「不退并关闭」 */
+const CLOSE_REASONS = {
+  buyer_withdraw: { label: '买家撤销', variant: 'pending' },
+  ops_close: { label: '运营关闭', variant: 'off' },
+  deny_close: { label: '拒退关单', variant: 'req' },
+};
+const REAPPLY_NOTE = '仍在售后时效内的,买家可以重新申请。';
+
+/* 运营侧「关闭售后单」手动动作:买家不响应时的唯一出口。
+   单子停在非终态,该商品行的互斥占用就一直不释放,买家既退不成也无法重新申请 —— 故关闭必须释放占用。
+   待审核也开放:驳回是回环(回到待审核等买家修改),买家不改也不撤销就会永久停在待审核。 */
+const OPS_CLOSE_STATUS = ['pending_audit', 'to_ship', 'in_transit'];
+const OPS_CLOSE_RELEASE_TIP = '关闭后买家可以对该商品行重新申请售后。';
+const DENY_REAPPLY_NOTE = '仍在售后时效内的,买家可以对该商品行重新申请。';
+const CLOSE_NOTIFY_TIP = '取消勾选后,买家收不到关单通知邮件。';
+const SCOPE_TYPE = { market: '全市场', category: '品类', product: '商品' };
+const PRIORITY_TIP = '同层级有多条政策命中时,数值大的优先。';
+/* 售后单自己登记退货运单号与承运商编码(after_sale_order.return_tracking_no / return_carrier_code),
+   是运营登记时的业务留痕:让售后单自身可读、可线下追查,不依赖实时调物流服务。
+   轨迹与实时物流状态仍只从物流服务取,本域不冗余。承运商库里只存 code,展示名由下面这张字典映射 */
+const CARRIERS = {
+  UPS: 'UPS',
+  USPS: 'USPS',
+  FEDEX: 'FedEx',
+  SF: 'SF Express(顺丰)',
+  HKPOST: 'Hongkong Post',
+};
+const CARRIER_OPTIONS = Object.keys(CARRIERS).map(k => ({ value: k, label: CARRIERS[k] + '(' + k + ')' }));
+const carrierName = (code) => (code && CARRIERS[code]) ? CARRIERS[code] : (code || '');
+/* 脏数据口径:本域这两个字段记录的是「当时登记了什么」——
+   运单号若在物流侧被修正、或改承运商切了追踪平台,本域登记值不自动同步 */
+const REG_VS_LIVE_TIP = '本单登记的运单号与物流侧当前值不一致,轨迹请以物流侧为准。';
+
+/* ===== 售后原因(after_sale_reason)=====
+   一张单要不要走寄回环节,判据是【买家选中的那条原因码本身】——
+   字典上【没有任何标识收货与否的字段】(原 received 维度已删:一个 code 能识别的事不该再挂字段)。
+   系统侧维护一份固定的【未收到货码表】NOT_RECEIVED_CODES(白名单,运营不可编辑):
+     · code ∈ 白名单     → 手上没有货可寄,审核通过后直接进「待判责」
+     · 其余任何 code     → 正常退货流程(待寄回 → 退货在途 → 到仓验货 → 判责)
+   判定的默认方向是【走寄回】:只有命中白名单才不寄回,运营后来新增的原因码一律按已收到货处理。
+   ⚠「其他」(ASR_OTHER)【不进白名单】:买家选「其他」有可能是货收到了、只是原因不在列表里,
+     放进白名单会让这类买家永远走不到寄回分支,而他手上是有货的。故「其他」走寄回。
+   ⚠ preset:true 的那几条合起来是流程分岔的唯一判据 —— 每一条都不可删除、不可改 code、不可停用;
+     运营能改的只有展示文案 / 排序 / 举证要求(改这三项不影响流程走向)。
+     配置页对这几行禁用「停用」入口,编辑页禁用「启用状态」。
+   ⚠ 原因码统一用中性前缀 ASR_(After-Sale Reason),前缀【不携带任何分组含义】。
+     历史上曾用 RO_(Refund Only)/ RR_(Return & Refund)区分两个售后类型,该类型二分已取消,
+     前缀却留着 —— 那等于把「未收到货」这个分组从字段挪进了命名约定,字段并没真正删掉。
+     ⚠ 判断走不走寄回【只能查 NOT_RECEIVED_CODES 白名单】,禁止 startsWith / 通配符 / 字符串匹配 */
+const NOT_RECEIVED_CODES = [
+  'ASR_MARKED_DELIVERED_NOT_RECEIVED',
+  'ASR_LOST_IN_TRANSIT',
+  'ASR_EMPTY_PACKAGE',
+  'ASR_DELIVERY_FAILED',
+];
+const REASONS = [
+  { id: 'RS01', code: 'ASR_NOT_AS_DESCRIBED', text: 'Item not as described', cn: '描述不符', ev: true, sort: 10, status: 'on', at: '2026-07-28 11:02' },
+  { id: 'RS02', code: 'ASR_CONDITION_WORSE', text: 'Condition worse than described', cn: '成色比描述差', ev: true, sort: 20, status: 'on', at: '2026-07-28 11:02' },
+  { id: 'RS03', code: 'ASR_ARRIVED_DAMAGED', text: 'Arrived damaged', cn: '到货即损', ev: true, sort: 30, status: 'on', at: '2026-07-28 11:02' },
+  { id: 'RS04', code: 'ASR_WRONG_ITEM', text: 'Received wrong item', cn: '收到错误商品', ev: true, sort: 40, status: 'on', at: '2026-07-28 11:02' },
+  { id: 'RS05', code: 'ASR_MISSING_PARTS', text: 'Missing accessories', cn: '缺少配件', ev: true, sort: 50, status: 'on', at: '2026-07-28 11:02' },
+  /* 本条停用:保留一个「停用」态样例,供列表状态列与启停弹窗的启用路径点测 */
+  { id: 'RS06', code: 'ASR_DAMAGED_IN_TRANSIT', text: 'Damaged in transit', cn: '运输中破损', ev: true, sort: 60, status: 'off', at: '2026-07-29 09:41' },
+  { id: 'RS07', code: 'ASR_SIZE_NOT_SUITABLE', text: 'Size not suitable', cn: '尺寸不合适', ev: false, sort: 70, status: 'on', at: '2026-07-28 11:02' },
+  { id: 'RS08', code: 'ASR_CHANGED_MIND', text: 'Changed my mind', cn: '改变主意', ev: false, sort: 80, status: 'on', at: '2026-07-28 11:02' },
+  { id: 'RS09', code: 'ASR_OTHER', text: 'Other', cn: '其他', ev: true, sort: 90, status: 'on', at: '2026-07-28 11:02' },
+  /* 以下四条 = 未收到货白名单(NOT_RECEIVED_CODES),系统预置、逐条不可删 / 不可改 code / 不可停用 */
+  { id: 'RS10', code: 'ASR_MARKED_DELIVERED_NOT_RECEIVED', text: 'Marked delivered but not received', cn: '显示已送达但未收到', ev: false, sort: 110, status: 'on', preset: true, at: '2026-07-28 11:05' },
+  { id: 'RS11', code: 'ASR_LOST_IN_TRANSIT', text: 'Lost in transit', cn: '运输中丢件', ev: false, sort: 120, status: 'on', preset: true, at: '2026-07-28 11:05' },
+  { id: 'RS12', code: 'ASR_EMPTY_PACKAGE', text: 'Empty package', cn: '包裹为空', ev: true, sort: 130, status: 'on', preset: true, at: '2026-07-28 11:05' },
+  { id: 'RS13', code: 'ASR_DELIVERY_FAILED', text: 'Delivery failed and returned', cn: '投递失败退回', ev: false, sort: 140, status: 'on', preset: true, at: '2026-07-28 11:05' },
+];
+const REASON_OPTIONS = REASONS.filter(x => x.status === 'on').map(x => ({ value: x.code,
+  label: x.cn + ' / ' + x.text }));
+
+/* ===== 售后政策(after_sale_policy)===== */
+const US_ADDR = 'Looply Returns Center, 2450 Logistics Way Dock 7, City of Industry, CA 91745, United States';
+const HK_ADDR = 'Looply 香港退货仓,新界葵涌葵昌路 26 号 3 楼 A 室';
+/* priority 只做同层级定序:同层只有一条政策时填多少都不影响结果(故全市场 / 商品层均为 10);
+   US 的两条品类政策可能同时命中同一件商品(手袋 + 特价清仓),故用 priority 分出先后:特价清仓 20 > 手袋 10 */
+const POLICIES = [
+  { id: 'POL-US-ALL', market: 'US', scopeType: 'market', scopeValue: '', priority: 10, returnable: true, validDays: 14, fee: 15, cur: 'USD', addr: US_ADDR, status: 'on', at: '2026-07-28 14:20' },
+  { id: 'POL-US-BAG', market: 'US', scopeType: 'category', scopeValue: '手袋(CAT1002)', priority: 10, returnable: true, validDays: 30, fee: 15, cur: 'USD', addr: US_ADDR, status: 'on', at: '2026-07-28 14:26' },
+  { id: 'POL-US-CLR', market: 'US', scopeType: 'category', scopeValue: '特价清仓(CAT1099)', priority: 20, returnable: false, validDays: 0, fee: 0, cur: 'USD', addr: '', status: 'on', at: '2026-07-28 14:31' },
+  { id: 'POL-US-P1009921', market: 'US', scopeType: 'product', scopeValue: 'P1009921 定制刻字款手环', priority: 10, returnable: false, validDays: 0, fee: 0, cur: 'USD', addr: '', status: 'on', at: '2026-07-29 10:02' },
+  { id: 'POL-HK-ALL', market: 'HK', scopeType: 'market', scopeValue: '', priority: 10, returnable: true, validDays: 7, fee: 120, cur: 'HKD', addr: HK_ADDR, status: 'on', at: '2026-07-29 15:48' },
+  { id: 'POL-HK-WATCH', market: 'HK', scopeType: 'category', scopeValue: '腕表(CAT1005)', priority: 10, returnable: true, validDays: 14, fee: 120, cur: 'HKD', addr: HK_ADDR, status: 'off', at: '2026-07-29 16:10' },
+];
+
+/* ===== 售后单(after_sale_order + 关联)===== */
+const AS_ORDERS = [
+  {
+    id: 'AS20260727001', orderNo: 'ORD20260714029', orderItemId: 'OI7823001',
+    item: { name: 'CHANEL Classic Flap 中号 · 黑色荔枝皮', pid: 'P1002381', grade: '95新(A)', paid: 3280 },
+    user: 'U88213 · Emma W.', market: 'US', cur: 'USD', sym: '$',
+    email: 'emma.whitfield@gmail.com',
+    asType: 'return_refund', reasonCode: 'ASR_CONDITION_WORSE', note: '实物五金有明显划痕,与描述的 95 新不符,收到后未使用。',
+    /* 点测:退货 + 货已送达 → 待判责,「判责」按钮应可用 */
+    status: 'to_adjudicate', liability: '', feeQuoted: 15, policyId: 'POL-US-BAG',
+    taxOrigin: 0, taxRefunded: 0, overdue: false, overdueNote: '',
+    audits: [{ result: '通过', innerNote: '买家举证清晰,先受理进入退货流程;责任归属与退货扣减待到仓验货后判定', by: 'Lily', byType: '运营', at: '2026-07-24 15:40' }],
+    /* ER 新增(11.3):售后单自己登记退货运单号与承运商编码,不依赖实时调物流服务 */
+    returnTrackingNo: '1Z999AA10123456784', returnCarrierCode: 'UPS',
+    ship: { sid: 'shp_7d41e9c0-1a2b-4c55-9f30-8ab5c2d61e77', no: '1Z999AA10123456784', carrierCode: 'UPS',
+      internal: '已送达', regAt: '2026-07-24 15:42',
+      track: [{ i: 1, at: '2026-07-27 16:05', st: '已送达', desc: 'Delivered — City of Industry, CA, signed by DOCK7' },
+        { i: 2, at: '2026-07-26 08:12', st: '运输中', desc: 'In transit — Ontario, CA' },
+        { i: 3, at: '2026-07-25 09:20', st: '已揽收', desc: 'Picked up — Brooklyn, NY' }] },
+    inspect: null, refund: null,
+    ev: [{ i: 1, name: 'IMG_2201.jpg 五金划痕', by: '买家', at: '2026-07-24 10:12' },
+      { i: 2, name: 'IMG_2202.jpg 内衬磨损', by: '买家', at: '2026-07-24 10:12' },
+      { i: 3, name: 'IMG_2203.jpg 商品全貌', by: '买家', at: '2026-07-24 10:13' }],
+    appliedAt: '2026-07-24 10:12', completedAt: '', closedAt: '', closeReason: '',
+    operator: 'Lily', operatorType: '运营',
+  },
+  {
+    id: 'AS20260728006', orderNo: 'ORD20260719041', orderItemId: 'OI7901004',
+    item: { name: 'LOUIS VUITTON Neverfull MM · 老花', pid: 'P1004417', grade: '9成新(B)', paid: 1450 },
+    user: 'U90112 · Sophia L.', market: 'US', cur: 'USD', sym: '$',
+    email: 'sophia.lam88@outlook.com',
+    asType: 'return_refund', reasonCode: 'ASR_SIZE_NOT_SUITABLE', note: '容量比预期大很多,不适合日常通勤。',
+    status: 'in_transit', liability: '', feeQuoted: 15, policyId: 'POL-US-BAG',
+    taxOrigin: 0, taxRefunded: 0, overdue: false, overdueNote: '',
+    /* 点测:历次审核记录结论混合 —— 先驳回、买家改后重新提交、再审通过并已推进到退货在途。
+       用来验证两件事:①审核区把历次记录全列出来(拆表前只留得下最近一次)
+       ②「这单被驳回过」与「当前正等待买家修改」是两个口径,本单前者成立、后者不成立 */
+    audits: [
+      { result: '驳回', note: '举证只有商品原包装照,看不出容量与商详描述不符;请补拍商品内部与随身物品的对比照',
+        innerNote: '该买家本月第 2 次以「与描述不符」发起售后,先要举证,再受理时留意成色快照比对',
+        by: 'Ken', byType: '运营', at: '2026-07-26 09:48' },
+      { result: '通过', innerNote: '时效内受理,已告知运单号;责任归属待判责环节判定', by: 'Ken', byType: '运营', at: '2026-07-26 11:20' },
+    ],
+    resubmittedAt: '2026-07-26 10:31',
+    /* ER 新增(11.3):售后单自己登记退货运单号与承运商编码,不依赖实时调物流服务 */
+    /* 【脏数据口径演示 · A15】本域登记值 = 当时登记了什么;物流侧后来把运单号修正为 9405511899223197428491,
+       本域【不自动同步】。详情页会并排展示两者并提示以物流服务实时数据为准 */
+    returnTrackingNo: '9405511899223197428490', returnCarrierCode: 'USPS',
+    ship: { sid: 'shp_2b8f4471-77aa-4d21-8bd0-1e6c93f0aa15', no: '9405511899223197428491', carrierCode: 'USPS',
+      internal: '运输中', regAt: '2026-07-26 11:25',
+      track: [{ i: 1, at: '2026-07-28 07:40', st: '运输中', desc: 'In transit to next facility — Memphis, TN' },
+        { i: 2, at: '2026-07-27 18:02', st: '已揽收', desc: 'Accepted at USPS Origin Facility — Austin, TX' }] },
+    inspect: null, refund: null,
+    ev: [{ i: 1, name: 'IMG_7781.jpg 商品原包装', by: '买家', at: '2026-07-26 09:05' },
+      { i: 2, name: 'IMG_7782.jpg 内部容量与随身物对比(驳回后补传)', by: '买家', at: '2026-07-26 10:31' }],
+    appliedAt: '2026-07-26 09:05', completedAt: '', closedAt: '', closeReason: '',
+    operator: 'Ken', operatorType: '运营',
+  },
+  {
+    id: 'AS20260726004', orderNo: 'ORD20260722058', orderItemId: 'OI8010002',
+    item: { name: 'HERMES Twilly 丝巾 · 蓝色', pid: 'P1007725', grade: '全新(S)', paid: 210 },
+    user: 'U91884 · Chloe T.', market: 'US', cur: 'USD', sym: '$',
+    email: 'chloe.tran@gmail.com',
+    asType: 'return_refund', reasonCode: 'ASR_NOT_AS_DESCRIBED', note: '颜色与商详图差别很大,实物偏灰。',
+    status: 'pending_audit', liability: '', feeQuoted: 15, policyId: 'POL-US-ALL',
+    taxOrigin: 0, taxRefunded: 0, overdue: false, overdueNote: '',
+    audits: [], ship: null, inspect: null, refund: null,
+    ev: [{ i: 1, name: 'IMG_3310.jpg 实物色差', by: '买家', at: '2026-07-26 20:41' },
+      { i: 2, name: 'IMG_3311.jpg 与商详图对比', by: '买家', at: '2026-07-26 20:41' }],
+    appliedAt: '2026-07-26 20:41', completedAt: '', closedAt: '', closeReason: '',
+    operator: '', operatorType: '',
+  },
+  {
+    id: 'AS20260725002', orderNo: 'ORD20260720011', orderItemId: 'OI7955001',
+    item: { name: 'ROLEX Datejust 36 · 银盘', pid: 'P1009104', grade: '9成新(B)', paid: 62000 },
+    user: 'U77320 · Wing C.', market: 'HK', cur: 'HKD', sym: 'HK$',
+    email: 'wing.cheung@hkbn.net',
+    asType: 'return_refund', reasonCode: 'ASR_MISSING_PARTS', note: '缺少原厂保卡与调节链节。',
+    status: 'to_ship', liability: '', feeQuoted: 120, policyId: 'POL-HK-ALL',
+    taxOrigin: 0, taxRefunded: 0, overdue: false, overdueNote: '',
+    audits: [{ result: '通过', innerNote: '买家反馈发货漏发配件,先受理并告知运单号;责任归属待判责环节判定', by: 'Ken', byType: '运营', at: '2026-07-25 14:02' }],
+    /* ER 新增(11.3):售后单自己登记退货运单号与承运商编码,不依赖实时调物流服务 */
+    returnTrackingNo: 'SF7712004488113', returnCarrierCode: 'SF',
+    ship: { sid: 'shp_5c93aa20-6e11-49f8-b7d4-3a10f6cc9d02', no: 'SF7712004488113', carrierCode: 'SF',
+      internal: '已注册待揽收', regAt: '2026-07-25 14:30', track: [] },
+    inspect: null, refund: null,
+    ev: [{ i: 1, name: 'IMG_5502.jpg 开箱清单', by: '买家', at: '2026-07-25 10:20' }],
+    appliedAt: '2026-07-25 10:20', completedAt: '', closedAt: '', closeReason: '',
+    operator: 'Ken', operatorType: '运营',
+  },
+  {
+    id: 'AS20260723008', orderNo: 'ORD20260709017', orderItemId: 'OI7788003',
+    item: { name: 'GUCCI Marmont 小方包 · 红色', pid: 'P1003390', grade: '95新(A)', paid: 980 },
+    user: 'U85507 · Nina P.', market: 'US', cur: 'USD', sym: '$',
+    email: 'nina.petrova@icloud.com',
+    asType: 'return_refund', reasonCode: 'ASR_CHANGED_MIND', note: '买重复了,想退掉其中一个。',
+    /* 点测主场景:已判责并已调退款接口 → 退款中;支付域回传失败 → 本单是「退款失败待重试」 */
+    status: 'refunding', liability: 'buyer', feeQuoted: 15, policyId: 'POL-US-BAG',
+    taxOrigin: 0, taxRefunded: 0, overdue: false, overdueNote: '',
+    audits: [{ result: '通过', innerNote: '时效内受理,已告知运单号;责任归属待判责环节判定', by: 'Lily', byType: '运营', at: '2026-07-19 10:11' }],
+    /* ER 新增(11.3):售后单自己登记退货运单号与承运商编码,不依赖实时调物流服务 */
+    returnTrackingNo: '1Z999AA10987654321', returnCarrierCode: 'UPS',
+    ship: { sid: 'shp_9a17bb31-45d0-4a67-9c22-77e1b0f4a3de', no: '1Z999AA10987654321', carrierCode: 'UPS',
+      internal: '已送达', regAt: '2026-07-19 10:20',
+      track: [{ i: 1, at: '2026-07-22 14:31', st: '已送达', desc: 'Delivered — City of Industry, CA' },
+        { i: 2, at: '2026-07-20 09:02', st: '已揽收', desc: 'Picked up — Chicago, IL' }] },
+    inspect: { result: '与申请一致', note: '外观无新增瑕疵,配件齐全,成色与订单快照 95新(A) 一致', deduct: 0,
+      deductReason: '', by: 'Lily', byType: '运营', at: '2026-07-23 11:40',
+      photos: [{ i: 1, name: 'CHK_8801.jpg 到仓全貌', by: '运营', at: '2026-07-23 11:38' },
+        { i: 2, name: 'CHK_8802.jpg 配件清点', by: '运营', at: '2026-07-23 11:39' }] },
+    /* 支付域退款单失败,售后单主状态仍停在「退款中」,不新增售后单状态 */
+    refund: { base: 980, fee: 15, deduct: 0, tax: 0, amount: 965, cur: 'USD', payTo: 'Visa ····4242',
+      refNo: 'RFD20260730000412', status: 'failed',
+      failReason: 'card_expired — 原支付卡片已过期,原路退回被发卡行拒绝(支付域回传)',
+      failAt: '2026-07-30 03:12', by: 'Lily', byType: '运营', at: '2026-07-30 02:55' },
+    ev: [{ i: 1, name: 'IMG_6120.jpg 未拆吊牌', by: '买家', at: '2026-07-19 08:44' }],
+    appliedAt: '2026-07-19 08:44', completedAt: '', closedAt: '', closeReason: '',
+    operator: 'Lily', operatorType: '运营',
+  },
+  {
+    id: 'AS20260729012', orderNo: 'ORD20260713027', orderItemId: 'OI7860002',
+    item: { name: 'FENDI Baguette 腋下包 · 米色', pid: 'P1004102', grade: '9成新(B)', paid: 1620 },
+    user: 'U87745 · Lara D.', market: 'US', cur: 'USD', sym: '$',
+    email: 'lara.dimitrova@gmail.com',
+    asType: 'return_refund', reasonCode: 'ASR_ARRIVED_DAMAGED', note: '开箱发现包身正面有明显压痕。',
+    /* 点测:已判责(异常结论 + 部分退款出口)并已调退款接口 → 退款中,支付域正常处理中 */
+    status: 'refunding', liability: 'buyer', feeQuoted: 15, policyId: 'POL-US-BAG',
+    taxOrigin: 0, taxRefunded: 0, overdue: false, overdueNote: '',
+    audits: [{ result: '通过', innerNote: '先受理,以到仓验货结论为准;责任归属待判责环节判定', by: 'Ken', byType: '运营', at: '2026-07-21 09:15' }],
+    /* ER 新增(11.3):售后单自己登记退货运单号与承运商编码,不依赖实时调物流服务 */
+    returnTrackingNo: '1Z999AA13344556677', returnCarrierCode: 'UPS',
+    ship: { sid: 'shp_63de1180-8f22-4a70-91c6-5d0b7e4a2c88', no: '1Z999AA13344556677', carrierCode: 'UPS',
+      internal: '已送达', regAt: '2026-07-21 09:20',
+      track: [{ i: 1, at: '2026-07-28 11:44', st: '已送达', desc: 'Delivered — City of Industry, CA' },
+        { i: 2, at: '2026-07-24 10:05', st: '已揽收', desc: 'Picked up — Denver, CO' }] },
+    /* 判责异常出口②:部分退款 —— 经线下人工核实后由运营手填退多少,提交时调支付域退款接口。
+       界面上退款方案只展示「退款基准 − 退货扣减 = 最终退款金额」,故本单的部分退款金额
+       由运营在退货扣减栏填 820 达成(1620 − 820 = 800) */
+    inspect: { result: '空包或无实物', outlet: 'partial',
+      note: '拆包后箱内仅有填充物,无商品实物,外箱封条完好。已线下核实承运商称重记录,确认交寄时即为空包;' +
+        '经主管核实后选择「部分退款」,退款金额由运营在退款方案上手填 $800。',
+      deduct: 0, deductReason: '',
+      by: 'Lily', byType: '运营', at: '2026-07-29 10:40',
+      photos: [{ i: 1, name: 'CHK_9901.jpg 拆包全过程', by: '运营', at: '2026-07-29 10:36' },
+        { i: 2, name: 'CHK_9902.jpg 箱内填充物', by: '运营', at: '2026-07-29 10:38' }] },
+    refund: { base: 1620, fee: 820, deduct: 0, tax: 0, amount: 800, cur: 'USD', payTo: 'Mastercard ····8813',
+      refNo: 'RFD20260729000501', status: 'processing',
+      failReason: '', failAt: '', by: 'Lily', byType: '运营', at: '2026-07-29 10:42' },
+    ev: [{ i: 1, name: 'IMG_2288.jpg 包身压痕', by: '买家', at: '2026-07-21 08:02' }],
+    appliedAt: '2026-07-21 08:02', completedAt: '', closedAt: '', closeReason: '',
+    operator: 'Lily', operatorType: '运营',
+  },
+  {
+    id: 'AS20260722011', orderNo: 'ORD20260702009', orderItemId: 'OI7601002',
+    item: { name: 'PRADA Re-Edition 2005 尼龙包 · 黑', pid: 'P1006612', grade: '95新(A)', paid: 1180 },
+    user: 'U80231 · Ava R.', market: 'US', cur: 'USD', sym: '$',
+    email: 'ava.rodriguez@yahoo.com',
+    asType: 'return_refund', reasonCode: 'ASR_CONDITION_WORSE', note: '肩带有明显开裂,商详未提及。',
+    status: 'completed', liability: 'platform', feeQuoted: 15, policyId: 'POL-US-BAG',
+    taxOrigin: 0, taxRefunded: 0, overdue: false, overdueNote: '',
+    audits: [{ result: '通过', innerNote: '商详未披露肩带开裂,先受理进入退货流程;责任归属待判责环节判定', by: 'Lily', byType: '运营', at: '2026-07-11 09:30' }],
+    /* ER 新增(11.3):售后单自己登记退货运单号与承运商编码,不依赖实时调物流服务 */
+    returnTrackingNo: '1Z999AA11122233344', returnCarrierCode: 'UPS',
+    ship: { sid: 'shp_1f0c7742-9d3b-4b8e-9e51-6cc2a5713b90', no: '1Z999AA11122233344', carrierCode: 'UPS',
+      internal: '已送达', regAt: '2026-07-11 09:35',
+      track: [{ i: 1, at: '2026-07-16 10:55', st: '已送达', desc: 'Delivered — City of Industry, CA' },
+        { i: 2, at: '2026-07-13 07:20', st: '已揽收', desc: 'Picked up — Seattle, WA' }] },
+    inspect: { result: '成色下降', note: '除买家申报的肩带开裂外,包体正面新增一道 2cm 压痕,成色由 95新(A) 降为 9成新(B)',
+      deduct: 0, deductReason: '', by: 'Ken', byType: '运营', at: '2026-07-18 15:22',
+      photos: [{ i: 1, name: 'CHK_7710.jpg 新增压痕', by: '运营', at: '2026-07-18 15:20' }] },
+    /* fee 由运营在单据上手填 0(系统不按责任自动算),申请时告知买家的参考值仍是 $15 */
+    refund: { base: 1180, fee: 0, deduct: 0, tax: 0, amount: 1180, cur: 'USD', payTo: 'Visa ····1180',
+      refNo: 'RFD20260719000318', status: 'done', failReason: '', failAt: '', by: 'Ken', byType: '运营', at: '2026-07-20 02:11' },
+    ev: [{ i: 1, name: 'IMG_4402.jpg 肩带开裂', by: '买家', at: '2026-07-10 21:15' },
+      { i: 2, name: 'IMG_4403.jpg 商详截图', by: '运营', at: '2026-07-11 09:12' }],
+    appliedAt: '2026-07-10 21:15', completedAt: '2026-07-20 02:11', closedAt: '', closeReason: '',
+    operator: 'Ken', operatorType: '运营',
+  },
+  {
+    /* 点测:退货 + 待判责 —— 判责弹窗的服务费应预填【政策快照值 $12】
+       而非政策当前值 $15(POL-US-BAG 建单后已从 12 调到 15),且可手动改写 */
+    id: 'AS20260731016', orderNo: 'ORD20260717038', orderItemId: 'OI7889002',
+    item: { name: 'BALENCIAGA Hourglass 小号 · 黑色', pid: 'P1005877', grade: '95新(A)', paid: 1890 },
+    user: 'U86620 · Hana S.', market: 'US', cur: 'USD', sym: '$',
+    email: 'hana.sato@outlook.com',
+    asType: 'return_refund', reasonCode: 'ASR_WRONG_ITEM', note: '下单的是黑色,收到的是深棕色。',
+    status: 'to_adjudicate', liability: '', feeQuoted: 12, policyId: 'POL-US-BAG',
+    /* 快照演示:建单时 POL-US-BAG 服务费还是 $12,之后政策已调为 $15;本单预填与告知值都沿用快照 $12 */
+    policySnapDiff: { fee: 12 },
+    taxOrigin: 0, taxRefunded: 0, overdue: false, overdueNote: '',
+    audits: [{ result: '通过', innerNote: '商详与实物颜色不符,先受理进入退货流程;责任归属待判责环节判定', by: 'Ken', byType: '运营', at: '2026-07-25 10:05' }],
+    returnTrackingNo: '1Z999AA17788990011', returnCarrierCode: 'UPS',
+    ship: { sid: 'shp_71ce0042-5a19-4d63-8f27-c40b9e15a7d2', no: '1Z999AA17788990011', carrierCode: 'UPS',
+      internal: '已送达', regAt: '2026-07-25 10:12',
+      track: [{ i: 1, at: '2026-07-30 09:18', st: '已送达', desc: 'Delivered — City of Industry, CA' },
+        { i: 2, at: '2026-07-27 11:40', st: '已揽收', desc: 'Picked up — Portland, OR' }] },
+    inspect: null,
+    refund: null,
+    ev: [{ i: 1, name: 'IMG_3390.jpg 收到实物', by: '买家', at: '2026-07-24 20:31' }],
+    appliedAt: '2026-07-24 20:31', completedAt: '', closedAt: '', closeReason: '',
+    operator: 'Ken', operatorType: '运营',
+  },
+  {
+    /* 点测:原因属「未收到货」+ 待审核 —— 类型同为「退货」,但本单不用寄回,
+       审核通过后应直接推进到「待判责」(审核弹窗两条分支都不出责任归属控件) */
+    id: 'AS20260731014', orderNo: 'ORD20260724052', orderItemId: 'OI8155002',
+    item: { name: 'DIOR Book Tote 中号 · 藍色刺绣', pid: 'P1008843', grade: '9成新(B)', paid: 2260 },
+    user: 'U83119 · Mia K.', market: 'US', cur: 'USD', sym: '$',
+    email: 'mia.k@northwind-partners.com',
+    asType: 'return_refund', reasonCode: 'ASR_MARKED_DELIVERED_NOT_RECEIVED', note: '系统显示已投递,但门口与前台都没有,邻居也未代收。',
+    status: 'pending_audit', liability: '', feeQuoted: 0, policyId: 'POL-US-BAG',
+    taxOrigin: 0, taxRefunded: 0, overdue: false, overdueNote: '',
+    audits: [], ship: null, inspect: null, refund: null,
+    ev: [{ i: 1, name: 'IMG_9902.jpg 门口现场照', by: '买家', at: '2026-07-31 08:36' }],
+    appliedAt: '2026-07-31 08:36', completedAt: '', closedAt: '', closeReason: '',
+    operator: '', operatorType: '',
+  },
+  {
+    /* 点测:原因属「未收到货」+ 待判责 —— 审核不判责任,故本单责任归属【为空】,判责弹窗里首次录入;
+       「待判责」对这类单的语义是【核实中】:运营要联系承运商、等轨迹核查结果,可能挂几天,
+       核实完在判责弹窗一次性定责任 + 定金额 + 发起退款。
+       服务费【预填为空、由运营手填】(不寄回的单不取政策快照值) */
+    id: 'AS20260731015', orderNo: 'ORD20260723047', orderItemId: 'OI8133001',
+    item: { name: 'JIMMY CHOO Bon Bon 手拿包 · 香槟金', pid: 'P1007401', grade: '95新(A)', paid: 760 },
+    user: 'U93318 · Elena V.', market: 'US', cur: 'USD', sym: '$',
+    email: 'elena.vasquez@gmail.com',
+    asType: 'return_refund', reasonCode: 'ASR_EMPTY_PACKAGE', note: '签收后拆开只有气泡膜,没有商品。',
+    status: 'to_adjudicate', liability: '', feeQuoted: 0, policyId: 'POL-US-BAG',
+    taxOrigin: 0, taxRefunded: 0, overdue: false, overdueNote: '',
+    audits: [{ result: '通过', innerNote: '正向包裹重量记录与商品重量不符,判定发货环节漏装,予以受理;责任归属留到判责环节录入',
+      by: 'Lily', byType: '运营', at: '2026-07-31 09:50' }],
+    ship: null, inspect: null, refund: null,
+    ev: [{ i: 1, name: 'IMG_8140.jpg 拆包视频截帧', by: '买家', at: '2026-07-30 19:22' }],
+    appliedAt: '2026-07-30 19:22', completedAt: '', closedAt: '', closeReason: '',
+    operator: 'Lily', operatorType: '运营',
+  },
+  {
+    id: 'AS20260720003', orderNo: 'ORD20260712033', orderItemId: 'OI7840001',
+    item: { name: 'CELINE Triomphe 太阳镜', pid: 'P1005520', grade: '全新(S)', paid: 340 },
+    user: 'U89004 · Zoe H.', market: 'US', cur: 'USD', sym: '$',
+    email: 'zoe.hamilton@outlook.com',
+    asType: 'return_refund', reasonCode: 'ASR_LOST_IN_TRANSIT', note: '轨迹停在中转仓 8 天,一直没收到。',
+    status: 'completed', liability: 'platform', feeQuoted: 0, policyId: 'POL-US-ALL',
+    taxOrigin: 0, taxRefunded: 0, overdue: false, overdueNote: '',
+    /* 不寄回分支②:天然不走验货,但责任归属仍在【判责】环节落定(与需寄回的单同一落点) */
+    audits: [{ result: '通过', innerNote: '正向运单追踪异常确认丢件,予以受理;责任归属留到判责环节录入', by: 'Lily', byType: '运营', at: '2026-07-19 11:02' }],
+    ship: null, inspect: null,
+    refund: { base: 340, fee: 0, deduct: 0, tax: 0, amount: 340, cur: 'USD', payTo: 'Amex ····3005',
+      refNo: 'RFD20260719000297', status: 'done', failReason: '', failAt: '', by: 'Lily', byType: '运营', at: '2026-07-20 01:30' },
+    ev: [],
+    appliedAt: '2026-07-19 09:22', completedAt: '2026-07-20 01:30', closedAt: '', closeReason: '',
+    operator: 'Lily', operatorType: '运营',
+  },
+  {
+    id: 'AS20260716005', orderNo: 'ORD20260701014', orderItemId: 'OI7520002',
+    item: { name: 'BOTTEGA VENETA Cassette · 焦糖', pid: 'P1002088', grade: '95新(A)', paid: 15800 },
+    user: 'U76610 · Ka Yan L.', market: 'HK', cur: 'HKD', sym: 'HK$',
+    email: 'kayan.leung@netvigator.com',
+    asType: 'return_refund', reasonCode: 'ASR_CHANGED_MIND', note: '想换个颜色。',
+    status: 'to_ship', liability: '', feeQuoted: 100, policyId: 'POL-HK-ALL',
+    /* 快照演示:建单时 HK 政策服务费还是 HK$100、时效 5 天,之后政策已改为 HK$120 / 7 天;本单沿用快照 */
+    policySnapDiff: { fee: 100, validDays: 5 },
+    taxOrigin: 0, taxRefunded: 0, overdue: false, overdueNote: '',
+    audits: [{ result: '通过', innerNote: '时效内受理', by: 'Ken', byType: '运营', at: '2026-07-08 15:10' }],
+    /* ER 新增(11.3):售后单自己登记退货运单号与承运商编码,不依赖实时调物流服务 */
+    returnTrackingNo: 'SF7712009911002', returnCarrierCode: 'SF',
+    ship: { sid: 'shp_88a2fe10-3c55-4d99-8e21-2b7c4a5f6d13', no: 'SF7712009911002', carrierCode: 'SF',
+      internal: '已注册待揽收', regAt: '2026-07-08 15:20', track: [] },
+    inspect: null, refund: null, ev: [],
+    /* 本单承担「快照值 ≠ 政策当前值」的演示职责(HK$100/5天 vs 当前 HK$120/7天) */
+    appliedAt: '2026-07-08 12:03', completedAt: '',
+    closedAt: '', closeReason: '',
+    operator: 'Ken', operatorType: '运营',
+  },
+  {
+    /* 【点测用】验货异常出口③:不退并关闭 → as_status = 已关闭 + close_reason = 拒退关单 */
+    id: 'AS20260731017', orderNo: 'ORD20260715031', orderItemId: 'OI7845003',
+    item: { name: 'GIVENCHY Antigona 小号 · 黑色', pid: 'P1006954', grade: '9成新(B)', paid: 1320 },
+    user: 'U81276 · Nora F.', market: 'US', cur: 'USD', sym: '$',
+    email: 'nora.fitzgerald@gmail.com',
+    asType: 'return_refund', reasonCode: 'ASR_NOT_AS_DESCRIBED', note: '实物和商详图完全不是同一个款。',
+    status: 'closed', liability: 'buyer', feeQuoted: 15, policyId: 'POL-US-BAG',
+    taxOrigin: 0, taxRefunded: 0, overdue: false, overdueNote: '',
+    audits: [{ result: '通过', innerNote: '买家称款式不符,先受理进入退货流程;责任归属待判责环节判定', by: 'Lily', byType: '运营', at: '2026-07-22 10:30' }],
+    /* ER 新增(11.3):售后单自己登记退货运单号与承运商编码,不依赖实时调物流服务 */
+    returnTrackingNo: '1Z999AA15566778899', returnCarrierCode: 'UPS',
+    ship: { sid: 'shp_4a90cc21-7b03-4e18-a2f6-9d51e0b73c44', no: '1Z999AA15566778899', carrierCode: 'UPS',
+      internal: '已送达', regAt: '2026-07-22 10:38',
+      track: [{ i: 1, at: '2026-07-27 13:22', st: '已送达', desc: 'Delivered — City of Industry, CA' },
+        { i: 2, at: '2026-07-24 08:15', st: '已揽收', desc: 'Picked up — Phoenix, AZ' }] },
+    inspect: { result: '退回件与订单不符', outlet: 'deny',
+      note: '退回件为另一品牌的仿制手袋,与订单商品(GIVENCHY Antigona · P1006954)完全不是同一件。' +
+        '已线下联系买家核实并保留通话记录,买家无法说明来源 —— 经主管核实后选择「不退并关闭」,商品线下回寄买家。',
+      deduct: 0, deductReason: '', by: 'Lily', byType: '运营', at: '2026-07-28 16:05',
+      photos: [{ i: 1, name: 'CHK_6610.jpg 退回件全貌', by: '运营', at: '2026-07-28 15:58' },
+        { i: 2, name: 'CHK_6611.jpg 内标与订单商品比对', by: '运营', at: '2026-07-28 16:01' }] },
+    refund: null,
+    ev: [{ i: 1, name: 'IMG_5501.jpg 买家称收到的实物', by: '买家', at: '2026-07-22 09:11' }],
+    appliedAt: '2026-07-22 09:11', completedAt: '',
+    closedAt: '2026-07-28 16:05', closeCode: 'deny_close',
+    closeReason: '验货结论「退回件与订单不符」,经线下人工核实后选择出口「不退并关闭」:不产生退款单,售后单关闭',
+    operator: 'Lily', operatorType: '运营',
+  },
+  {
+    /* 待审核状态买家可自行撤销 → close_reason 取值「买家撤销」 */
+    id: 'AS20260730013', orderNo: 'ORD20260726063', orderItemId: 'OI8120001',
+    item: { name: 'SAINT LAURENT Loulou 中号 · 黑色', pid: 'P1006233', grade: '95新(A)', paid: 1560 },
+    user: 'U92440 · Iris N.', market: 'US', cur: 'USD', sym: '$',
+    email: 'iris.nakamura@icloud.com',
+    asType: 'return_refund', reasonCode: 'ASR_CHANGED_MIND', note: '下单后又觉得可以留着。',
+    status: 'closed', liability: '', feeQuoted: 15, policyId: 'POL-US-BAG',
+    taxOrigin: 0, taxRefunded: 0, overdue: false, overdueNote: '',
+    audits: [], ship: null, inspect: null, refund: null, ev: [],
+    appliedAt: '2026-07-29 21:14', completedAt: '',
+    closedAt: '2026-07-30 08:02', closeCode: 'buyer_withdraw',
+    closeReason: '买家在待审核阶段于 C 端自行撤销申请',
+    operator: '买家', operatorType: '买家',
+  },
+  {
+    /* 点测:待寄回 + 买家久未交寄 —— 审核已通过、运单号已告知,承运商仍无任何揽收轨迹,买家既不寄也不说话。
+       系统不做超时关单,单子会永久停在非终态、商品行互斥占用不释放,买家重新申请也会被挡住;
+       本单即「关闭售后单」的使用场景:列表行操作与详情页页头都应出现红色「关闭售后单」按钮 */
+    id: 'AS20260731018', orderNo: 'ORD20260705018', orderItemId: 'OI7480002',
+    item: { name: 'MIU MIU Wander 马特拉塞包 · 粉色', pid: 'P1008120', grade: '95新(A)', paid: 1180 },
+    user: 'U94517 · Rina T.', market: 'US', cur: 'USD', sym: '$',
+    email: 'rina.tanaka@outlook.com',
+    asType: 'return_refund', reasonCode: 'ASR_SIZE_NOT_SUITABLE', note: '实物比想象中小,装不下平板。',
+    /* 快照演示:建单时「尺寸不合适」这条原因要求必传举证(买家确实传了 1 张),
+       之后运营把字典里这条放宽为选传;本单仍按建单时的快照口径存档 */
+    reasonSnapDiff: { ev: true },
+    status: 'to_ship', liability: '', feeQuoted: 15, policyId: 'POL-US-ALL',
+    taxOrigin: 0, taxRefunded: 0, overdue: false, overdueNote: '',
+    audits: [{ result: '通过', innerNote: '时效内受理,已告知退货运单号;责任归属待判责环节判定', by: 'Ken', byType: '运营', at: '2026-07-09 11:36' }],
+    /* ER 新增(11.3):售后单自己登记退货运单号与承运商编码,不依赖实时调物流服务 */
+    returnTrackingNo: '1Z999AA10556677889', returnCarrierCode: 'UPS',
+    ship: { sid: 'shp_0e33ad57-2c40-4b91-a7e8-5f21c9d4b660', no: '1Z999AA10556677889', carrierCode: 'UPS',
+      internal: '已注册待揽收', regAt: '2026-07-09 11:42', track: [] },
+    inspect: null, refund: null,
+    ev: [{ i: 1, name: 'IMG_4410.jpg 商品与平板比例', by: '买家', at: '2026-07-09 09:18' }],
+    appliedAt: '2026-07-09 09:18', completedAt: '', closedAt: '', closeReason: '',
+    operator: 'Ken', operatorType: '运营',
+  },
+  {
+    /* 运营关闭的结果留痕示例:同类单被运营关闭后长什么样 ——
+       close_reason 取值「运营关闭」+ 原因文本,时间线与操作日志均写明「已释放该商品行的互斥占用」 */
+    id: 'AS20260731019', orderNo: 'ORD20260703022', orderItemId: 'OI7402001',
+    item: { name: 'LOEWE Puzzle 小号 · 焦糖拼色', pid: 'P1007033', grade: '9成新(B)', paid: 1690 },
+    user: 'U95208 · Tess B.', market: 'US', cur: 'USD', sym: '$',
+    email: 'tess.brennan@gmail.com',
+    asType: 'return_refund', reasonCode: 'ASR_CHANGED_MIND', note: '想了想还是留着,不退了。',
+    status: 'closed', liability: '', feeQuoted: 15, policyId: 'POL-US-ALL',
+    taxOrigin: 0, taxRefunded: 0, overdue: false, overdueNote: '',
+    audits: [{ result: '通过', innerNote: '时效内受理,已告知退货运单号', by: 'Lily', byType: '运营', at: '2026-07-07 10:22' }],
+    /* ER 新增(11.3):售后单自己登记退货运单号与承运商编码,不依赖实时调物流服务 */
+    returnTrackingNo: '1Z999AA10221133445', returnCarrierCode: 'UPS',
+    ship: { sid: 'shp_46b1c9e8-73d2-4a05-9c18-8e40b2f75a31', no: '1Z999AA10221133445', carrierCode: 'UPS',
+      internal: '已注册待揽收', regAt: '2026-07-07 10:30', track: [] },
+    inspect: null, refund: null, ev: [],
+    appliedAt: '2026-07-07 08:55', completedAt: '',
+    closedAt: '2026-07-30 17:20', closeCode: 'ops_close',
+    closeReason: '买家来电明确表示放弃退货(不想再跑一趟快递点),经确认后由运营手动关闭本单',
+    /* 运营关闭时【勾选了】邮件告知买家 —— 勾选状态随关单动作进操作日志留痕 */
+    closeNotify: true,
+    operator: 'Lily', operatorType: '运营',
+  },
+  {
+    /* 对照组:同为运营关闭,但运营【没有勾选】邮件告知买家 ——
+       场景:买家是在电话里当场说的放弃,客服已口头确认,再发一封关单邮件反而多余。
+       与上一条 AS20260731019 对照看,即可验证「发不发由运营决定」这件事在操作日志里两种取值都留得下痕迹。 */
+    id: 'AS20260731020', orderNo: 'ORD20260702009', orderItemId: 'OI7361004',
+    item: { name: 'CELINE Triomphe 中号 · 棕色', pid: 'P1006480', grade: '95新(A)', paid: 2280 },
+    user: 'U96331 · Dana P.', market: 'US', cur: 'USD', sym: '$',
+    email: 'dana.papadopoulos.procurement@luxe-resale-group.co.uk',
+    asType: 'return_refund', reasonCode: 'ASR_SIZE_NOT_SUITABLE', note: '容量比预期小,想换个大一号的。',
+    status: 'closed', liability: '', feeQuoted: 15, policyId: 'POL-US-BAG',
+    taxOrigin: 0, taxRefunded: 0, overdue: false, overdueNote: '',
+    audits: [{ result: '通过', innerNote: '时效内受理,已告知退货运单号', by: 'Ken', byType: '运营', at: '2026-07-06 16:41' }],
+    returnTrackingNo: '1Z999AA10998877665', returnCarrierCode: 'UPS',
+    ship: { sid: 'shp_9c14f7b2-51ad-4e63-b8d0-2a7e6f30c915', no: '1Z999AA10998877665', carrierCode: 'UPS',
+      internal: '已注册待揽收', regAt: '2026-07-06 16:50', track: [] },
+    inspect: null, refund: null, ev: [],
+    appliedAt: '2026-07-06 14:12', completedAt: '',
+    closedAt: '2026-07-31 09:35', closeCode: 'ops_close',
+    closeReason: '买家来电当场表示放弃退货并已口头确认,客服现场答复完毕,故不再另发关单邮件',
+    /* 运营【未勾选】邮件告知 —— 操作日志同样记「邮件告知买家:否」 */
+    closeNotify: false,
+    operator: 'Ken', operatorType: '运营',
+  },
+  {
+    /* 点测形态①「等买家修改」:驳回 1 次,买家尚未重新提交(无 resubmittedAt)。
+       驳回不是独立状态,标记由「结论为驳回的审核记录条数」与 resubmitted_at 共同推导 */
+    id: 'AS20260715009', orderNo: 'ORD20260706025', orderItemId: 'OI7702003',
+    item: { name: 'CHANEL 19 手袋 · 白色', pid: 'P1001045', grade: '9成新(B)', paid: 4100 },
+    user: 'U88213 · Emma W.', market: 'US', cur: 'USD', sym: '$',
+    email: 'emma.whitfield@gmail.com',
+    asType: 'return_refund', reasonCode: 'ASR_OTHER', note: '用了两周后发现底部有磨损。',
+    status: 'pending_audit', liability: '', feeQuoted: 15, policyId: 'POL-US-BAG',
+    taxOrigin: 0, taxRefunded: 0, overdue: false, overdueNote: '',
+    audits: [{ result: '驳回', note: '举证照片显示为使用后磨损,且已超出商详披露范围,请补充开箱当日的照片或视频后重新提交',
+      innerNote: '照片 EXIF 拍摄日期晚于签收 9 天,疑似使用后损伤;若买家补不出开箱当日影像,倾向不受理', by: 'Lily', byType: '运营', at: '2026-07-15 14:35' }],
+    ship: null, inspect: null, refund: null,
+    ev: [{ i: 1, name: 'IMG_1180.jpg 底部磨损', by: '买家', at: '2026-07-15 10:02' }],
+    appliedAt: '2026-07-15 10:02', completedAt: '', closedAt: '', closeReason: '',
+    operator: 'Lily', operatorType: '运营',
+  },
+  {
+    /* 点测形态②「等运营审核」:驳回 2 次,买家已于最近一次驳回之后重新提交(有 resubmittedAt 且晚于该条驳回记录)。
+       与 AS20260715009 对照,验证同为「待审核 + 被驳回过」的两种形态能被区分开 */
+    id: 'AS20260731021', orderNo: 'ORD20260721044', orderItemId: 'OI8098001',
+    item: { name: 'VALENTINO Rockstud 手拿包 · 裸粉', pid: 'P1009330', grade: '95新(A)', paid: 1120 },
+    user: 'U97402 · Bella Q.', market: 'US', cur: 'USD', sym: '$',
+    email: 'bella.quintero@gmail.com',
+    asType: 'return_refund', reasonCode: 'ASR_NOT_AS_DESCRIBED', note: '第三次补充:已按客服要求补拍铆钉特写与内标照片。',
+    status: 'pending_audit', liability: '', feeQuoted: 15, policyId: 'POL-US-BAG',
+    taxOrigin: 0, taxRefunded: 0, overdue: false, overdueNote: '',
+    /* 两条驳回记录各自留原文:拆表前主表只存得下最近一次,第一次驳回说了什么会被覆盖掉。
+       原文案里手写的「第二次驳回:」前缀已删 —— 次序由记录条数得出,不再靠人工写进原因里 */
+    audits: [
+      { result: '驳回', note: '举证只有整体外观照,看不出与商详描述不符;请补拍铆钉特写与内标照片',
+        by: 'Ken', byType: '运营', at: '2026-07-29 17:40' },
+      { result: '驳回', note: '补传的照片仍看不清铆钉与内标,请在自然光下重拍并对准细节',
+        innerNote: '已电话联系买家指导拍摄角度,本次仍不清晰;下一次仍无法辨识则转线下鉴定',
+        by: 'Ken', byType: '运营', at: '2026-07-30 16:12' },
+    ],
+    resubmittedAt: '2026-07-31 10:22',
+    ship: null, inspect: null, refund: null,
+    ev: [{ i: 1, name: 'IMG_7701.jpg 铆钉特写', by: '买家', at: '2026-07-31 10:20' },
+      { i: 2, name: 'IMG_7702.jpg 内标', by: '买家', at: '2026-07-31 10:21' }],
+    appliedAt: '2026-07-29 14:05', completedAt: '', closedAt: '', closeReason: '',
+    operator: 'Ken', operatorType: '运营',
+  },
+];
+
+/* ===== 工具 ===== */
+const money = (sym, n) => sym + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const reasonOf = (code) => { const x = REASONS.find(r => r.code === code); return x ? x : null; };
+/* 原因码快照 = 建单时对选中的那条原因码整条留档(after_sale_order.reason_snapshot),
+   与政策快照【同一套机制】。原因码字典是运营随时可改的配置,改动不能把在途单带偏 ——
+   一张已经在「待判责」的单,如果因为字典被改就变成「要寄回」,它已经跳过待寄回状态,回不去了。
+   所以流程判据一律读本快照,不读字典当前值。
+   原型用 reasonSnapDiff 模拟「快照值与字典当前值已不同」的情形 */
+const reasonSnapOf = (r) => {
+  const x = reasonOf(r.reasonCode);
+  if (!x) return null;
+  return { ...x, ...(r.reasonSnapDiff || {}), snapAt: r.appliedAt };
+};
+const reasonSnapDiffKeys = (r) => Object.keys(r.reasonSnapDiff || {});
+/* 售后单上展示的原因文案同样取快照:字典改了措辞,历史单仍显示建单当时的那一份 */
+const reasonLabelOf = (r) => { const x = reasonSnapOf(r); return x ? x.cn + ' / ' + x.text : '—'; };
+/* 【本期流程分岔的唯一判据】要不要走「待寄回 → 退货在途」这两步,
+   看【建单时留档的原因码快照】属于哪一组 —— 不看售后类型(类型本期恒为「退货」),
+   也不实时查原因码字典。全文所有分支判断一律调本函数 */
+/* 走不走寄回:看本单原因码快照里的 code 是否落在系统侧的未收到货白名单里。
+   默认方向是【走寄回】—— 只有命中白名单才不寄回,取不到快照时同样按走寄回处理。
+   ⚠ 不要在这里读什么布尔字段:字典上没有,单据上也没有 */
+const needReturn = (r) => { const x = reasonSnapOf(r); return !x || NOT_RECEIVED_CODES.indexOf(x.code) < 0; };
+const policyOf = (id) => { const x = POLICIES.find(p => p.id === id); return x ? x : null; };
+const marketOf = (code) => { const x = MARKETS.find(m => m.value === code); return x ? x : MARKETS[0]; };
+const dash = (v) => (v === undefined || v === null || v === '') ? <span style={{ color: '#9CA3AF' }}>—</span> : v;
+/* 退货扣减(界面展示名;ER 字段仍为 service_fee_amount)由运营决定,系统不按责任自动豁免、不按包裹分摊;
+   预填取政策配置的退货服务费(政策快照值)、可手动修改 —— 该预填只发生在【判责弹窗】里,
+   详情页不做任何试算展示(v14:详情页只展示已经发生的金额)。
+   ⚠ 退还税费在 ER 中仍是字段(refund_tax_amount),本期界面不出 */
+/* 政策快照 = 建单时对命中政策整条留档(after_sale_order.policy_snapshot)。
+   原型用 policySnapDiff 模拟「快照值与当前政策已不同」的情形 */
+const snapOf = (r) => {
+  const p = policyOf(r.policyId);
+  if (!p) return null;
+  return { ...p, ...(r.policySnapDiff || {}), snapAt: r.appliedAt };
+};
+const snapDiffKeys = (r) => Object.keys(r.policySnapDiff || {});
+/* 退款方案上「退货扣减」的【预填值】——
+   唯一取 policy_snapshot.service_fee_amount(建单时冻结的整条政策快照里的退货服务费);
+   after_sale_order.service_fee_quoted 只作申请时告知值与对账展示,不作为预填来源。
+   不寄回的单返回 null(预填为【空】,不是 0),由运营手动填写;需寄回的单预填政策快照的退货服务费金额。
+   两种情况都只是默认值,运营均可手动改写(不做只读、不做任何按责任的自动置 0 / 豁免联动) */
+const snapFee = (r) => {
+  if (!needReturn(r)) return null;
+  const s = snapOf(r);
+  return s ? Number(s.fee || 0) : null;
+};
+
+/* ===== 审核记录派生口径(after_sale_audit:一次审核一条记录,1:N)=====
+   主表已删「审核结论 / 审核意见 / 审核时间 / 驳回次数」四个字段,下列口径全部从子表推导:
+   · 历次审核记录         = 该单 after_sale_audit,按 audited_at 升序
+   · 「这单被驳回过」     = 结论为驳回的记录【条数 ≥ 1】(不再看主表的驳回次数字段)
+   · 「最近审核时间」     = 最近一条记录的 audited_at
+   · 「当前正等待买家修改」= as_status=待审核 且 最近一条记录结论为驳回
+                            且(resubmitted_at 为空 或 早于该条记录的 audited_at)
+   ⚠ 列表页要显示「已驳回 N 次」,N 由接口 count 子表后聚合返回;
+     不允许为前端取数方便把驳回次数字段加回主表 —— 它能从子表推出来,冗余就会出现两份不一致的真相 */
+const auditsOf = (r) => r.audits || [];
+const lastAudit = (r) => { const a = auditsOf(r); return a.length ? a[a.length - 1] : null; };
+const lastAuditAt = (r) => { const a = lastAudit(r); return a ? a.at : ''; };
+const rejectTimes = (r) => auditsOf(r).filter(x => x.result === '驳回').length;
+const wasRejected = (r) => rejectTimes(r) > 0;
+const waitingBuyerFix = (r) => {
+  if (r.status !== 'pending_audit') return false;
+  const a = lastAudit(r);
+  if (!a || a.result !== '驳回') return false;
+  return !r.resubmittedAt || r.resubmittedAt < a.at;
+};
+/* 待审核单的副标记:被驳回过才出,再按买家有没有在最近一次驳回之后重新提交分两种形态 */
+const rejectMark = (r) => (r.status === 'pending_audit' && wasRejected(r))
+  ? '已驳回 ' + rejectTimes(r) + ' 次 · ' + (waitingBuyerFix(r) ? '等买家修改' : '买家已重新提交,等运营审核')
+  : '';
+
+/* ===== 买家时间线(after_sale_log 中 is_customer_visible=1 的投影)==================
+   【文案口径】本时间线是买家在 C 端看到的那一份,文案【就是英文原文】,不是中文的译文,
+   也不给语言包 key —— 这里定义的英文即最终展示文案。运营端弹窗直接显示这套英文,
+   因为它的定位就是「买家看到的那一份」,显示中文就不是投影了。
+   每条 = title(标题) + desc(说明),两级;金额 / 卡号等变量按现有取数拼入。
+
+   【必须不出现】(内部信息,只进下方的中文操作日志):
+     · inspect.result 验货结论枚举   · inspect.outlet 处理出口
+     · inspect.note   验货备注       · liability 责任归属
+     · audits[].innerNote 审核意见   · 「第 N 次驳回」这类计数
+     · 内部状态名(待审核 / 待判责…)、内部术语(C 端 / 售后单 / 工单)
+     · 第三人称称呼买家(「买家提交了…」)—— 一律第二人称 you / your
+   唯一的中文出口 = 运营关闭时运营手填的 close_note,那是运营自己写给买家的原文,照登。
+
+   【驳回用 Action needed 不用 Rejected】买家需要的是「该我动手了」,而不是被否定的判词。
+   【撤销只留一句】页面上已有 Start a new request 按钮,不必再写一遍「仍在时效内可重新申请」。
+   ================================================================================= */
+const TRACK_EN = { '已揽收': 'Picked up', '运输中': 'In transit', '已送达': 'Delivered',
+  '已注册待揽收': 'Label created' };
+function buildTimeline(r) {
+  const t = [];
+  const push = (at, title, desc) => t.push({ at: at, title: title, text: desc });
+  push(r.appliedAt, 'Request submitted', "We've received your return request.");
+  /* 历次审核各出一条。驳回条【不拼 audit_note、不拼第几次】:
+     驳回原因原文在 C 端另有承载(申请页的提示区),时间线只负责说「该你动手了」 */
+  auditsOf(r).forEach(a => {
+    if (a.result === '驳回') {
+      push(a.at, 'Action needed', 'We need a bit more from you before we can approve this.');
+    } else {
+      /* 通过分两种:要寄回 / 不用寄回。判据是售后原因码本身,不是售后类型 */
+      push(a.at, 'Request approved', needReturn(r)
+        ? 'Next step: send the item back to us.'
+        : "We're looking into what happened with your package.");
+    }
+  });
+  /* resubmitted_at 只保留最近一次取值,故买家重新提交在时间线上最多出现一条 */
+  if (r.resubmittedAt) push(r.resubmittedAt, 'Request updated', "Thanks — we're reviewing it again.");
+  if (r.ship) {
+    /* 告知买家的是售后单上的【登记值】,不是物流侧的实时值。
+       运单号 / 承运商不再念给买家听 —— 面单是平台预付并发给他的,他要的是「可以寄了」 */
+    push(r.ship.regAt, 'Return label ready', 'Use the prepaid label to send the item back.');
+    /* 承运商轨迹条:标题取承运商自己的英文说法,不出中文。
+       TRACK_EN 不是新写的产品文案,而是把内部归一化后的中文状态名换回轨迹描述里
+       本来就在用的那个词(desc 原文就是 Picked up… / In transit… / Delivered…)——
+       买家可见投影里不该出现平台内部的中文状态名 */
+    (r.ship.track || []).slice().reverse().forEach(k => push(k.at, TRACK_EN[k.st] || k.st, k.desc));
+  }
+  /* 到仓检查完成条:只说【检查已完成】+【这对你的钱有什么影响】,
+     一律不拼验货结论 / 处理出口 / 验货备注 / 责任归属。
+     有扣减时只报【退货扣减这一个总数】,不报拆分、不报定性。
+     拒退关单没有退款,金额影响由紧随其后的关单条统一说,本条只报「检查已完成」 */
+  if (r.inspect) {
+    const ded = r.refund ? Number(r.refund.fee || 0) + Number(r.refund.deduct || 0) : 0;
+    /* ⚠ 拒退关单没有退款单(r.refund 不存在),这时【不能】说 Everything checked out. ——
+       这句是「查过了、没问题」的正面结论,而这单恰恰是查出问题才拒退的,和紧随其后的
+       Refund not approved 自相矛盾。已确认的两条文案(无扣减 / 有扣减)都以「有退款」为前提,
+       没有覆盖这一支,故本条只出标题、不出说明:陈述「检查已完成」这个事实,不下任何结论,
+       金额与结果由下一条关单条统一说 */
+    push(r.inspect.at, 'Item checked', !r.refund ? ''
+      : (ded > 0 ? 'Your return deduction came to ' + money(r.sym, ded) + '.'
+        : 'Everything checked out.'));
+  }
+  /* 退款单号不念给买家 —— 那是内部单据号,买家用不上也查不了 */
+  if (r.refund && r.refund.refNo) push(r.refund.at, 'Refund on its way',
+    'Your refund of ' + money(r.sym, r.refund.amount) + ' is on its way.');
+  if (r.refund && r.refund.status === 'failed') push(r.refund.failAt, 'Refund delayed',
+    'We hit a problem sending your refund and are trying again. Nothing for you to do.');
+  if (r.refund && r.refund.status === 'done') push(r.completedAt || r.refund.at, 'Refund complete',
+    money(r.sym, r.refund.amount) + ' has been refunded to your ' + (r.refund.payTo || 'original payment method') + '.');
+  /* 关单条按 close_reason 三种来源分别成文(状态机只有一个 closed,差异全靠 close_reason):
+     · 买家撤销 —— 一句话,不再补「仍在时效内可重新申请」
+     · 运营关闭 —— 说明文案 = 运营手填的关闭说明(close_note,对买家可见),照登原文
+     · 拒退关单 —— 【不拼 closeReason】:该字段在拒退单里含验货结论,拼进来就是把内部定性
+       泄露给买家;买家只看到「不予退款 + 商品回寄」这个客观结果 */
+  if (r.closedAt) {
+    if (r.closeCode === 'buyer_withdraw') push(r.closedAt, 'Request cancelled', 'You cancelled this request.');
+    else if (r.closeCode === 'ops_close') push(r.closedAt, 'Request closed', r.closeReason);
+    else push(r.closedAt, 'Refund not approved',
+      "We can't refund this return. We're sending the item back to you.");
+  }
+  return t.filter(x => x.at).sort((a, b) => (a.at < b.at ? 1 : -1));
+}
+function buildLogs(r) {
+  const out = [];
+  let i = 0;
+  const add = (at, who, type, detail, vis) => { if (at) out.push({ i: ++i, at, who, type, detail, vis }); };
+  /* 不寄回的单建单时不报退货服务费,故这条日志不带金额;不在日志里复述分岔依据 */
+  add(r.appliedAt, '买家', '创建', !needReturn(r)
+    ? '买家在 C 端提交售后申请'
+    : '买家在 C 端提交售后申请,申请时已告知退货服务费参考金额 ' + money(r.sym, r.feeQuoted), true);
+  /* 每次审核最多出两条日志,按对外性拆开 —— 与拒退关单同一处理:
+     · 买家可见条:通过只写结果;驳回只写【驳回原因】,该原文会原样进驳回邮件
+     · 内部条:【审核意见】只在后台留痕,买家看不到,故单独成条且 vis=false
+     绝不把审核意见拼进买家可见那条 */
+  auditsOf(r).forEach(a => {
+    const passed = a.result === '通过';
+    add(a.at, a.by, passed ? '审核通过' : '审核驳回',
+      passed
+        ? '审核通过,售后单继续推进'
+        : '驳回原因:' + a.note + ' | 已发送驳回通知邮件,等买家修改后重新提交', true);
+    if (a.innerNote) add(a.at, a.by, passed ? '审核通过' : '审核驳回',
+      '审核意见(内部,买家看不到本条):' + a.innerNote, false);
+  });
+  if (r.resubmittedAt) add(r.resubmittedAt, '买家', '重新提交',
+    '买家在 C 端修改申请后重新提交,等待重新审核', true);
+  if (r.ship) add(r.ship.regAt, r.operator || 'Lily', '回填运单',
+    '登记退货运单号 ' + r.returnTrackingNo + ' / 承运商 ' + carrierName(r.returnCarrierCode) +
+    ',已注册物流追踪并向买家告知退货地址', true);
+  if (r.ship && (r.ship.track || []).some(k => k.st === '已送达'))
+    add(r.ship.track.find(k => k.st === '已送达').at, '系统', '状态推进', '物流已送达,售后单自动推进至待判责', true);
+  if (r.inspect) add(r.inspect.at, r.inspect.by, '判责并退款', '结论:' + r.inspect.result +
+    ' | 责任归属:' + (r.liability ? LIABILITY[r.liability] : '未录入') +
+    (r.inspect.outlet ? ' | 处理出口:' + OUTLETS[r.inspect.outlet].label : '') +
+    ' | 判责说明:' + r.inspect.note, false);
+  if (r.refund && r.refund.refNo) add(r.refund.at, r.refund.by, '发起退款',
+    '退款基准 ' + money(r.sym, r.refund.base) + ' - 退货扣减 ' + money(r.sym, r.refund.fee) +
+    ' = ' + money(r.sym, r.refund.amount) + ',退款单 ' + r.refund.refNo + ';售后单进入「退款中」', true);
+  if (r.refund && r.refund.status === 'failed') add(r.refund.failAt, '系统', '退款失败回传',
+    '退款单 ' + r.refund.refNo + ' 执行失败:' + r.refund.failReason + '。本单仍为「退款中」,需重新发起', true);
+  if (r.refund && r.refund.status === 'done') add(r.completedAt || r.refund.at, '系统', '状态推进',
+    '退款成功(退款单 ' + r.refund.refNo + '),售后单推进至「已完成」', true);
+  /* 拒退关单拆成两条日志:买家可见条只写客观结果;内部条承载判责说明原文,不外露。
+     ⚠ 买家可见那条【不拼】验货结论 inspect.result、也【不拼】处理出口名 —— 与买家可见时间线同一口径。
+     运营要看结论 / 出口 / 责任归属,上面「判责并退款」那条(vis=false)已经全量承载,不会因此丢信息 */
+  if (r.closedAt && r.closeCode === 'deny_close') {
+    add(r.closedAt, r.operator || 'Lily', '拒退关单',
+      '经线下人工核实后不予退款:不产生退款单,售后单关闭,商品按线下方式回寄买家。' + DENY_REAPPLY_NOTE, true);
+    if (r.inspect && r.inspect.note) add(r.closedAt, r.operator || 'Lily', '拒退关单',
+      '判责说明(内部,买家看不到本条):' + r.inspect.note, false);
+  }
+  if (r.closedAt && r.closeCode !== 'deny_close') add(r.closedAt,
+    r.operatorType === '买家' ? '买家' : (r.closeCode === 'ops_close' ? (r.operator || '运营') : '系统'), '关单',
+    '关闭原因:' + (r.closeCode ? CLOSE_REASONS[r.closeCode].label : '') + ' — ' + r.closeReason + '。' +
+    (r.closeCode === 'ops_close'
+      ? '邮件告知买家:' + (r.closeNotify ? '是,关单邮件已发出' : '否,未发关单邮件') + '。' + OPS_CLOSE_RELEASE_TIP
+      : REAPPLY_NOTE), true);
+  return out.sort((a, b) => (a.at < b.at ? 1 : -1)).map((x, k) => ({ ...x, i: k + 1 }));
+}
+
+/* ============================================================
+   共享弹窗(规则 A.19:列表页 + 详情页同一操作复用同一组件)
+   ============================================================ */
+
+/* 1. 审核弹窗
+   审核【不再判责任归属】—— 两条流程分支都没有该控件,
+   责任归属统一留到判责环节录入(判责弹窗对两个分支都开着该控件)。
+   审核只做三件事:定结论(通过 / 驳回)、写意见 / 驳回原因、推进状态。
+   · 驳回 → 售后单回到「待审核」等买家修改后重新提交 */
+function AuditModal({ open, onClose, record }) {
+  const r = record || AS_ORDERS[0];
+  const [result, setResult] = useState('pass');
+  /* 两个输入框对应两个字段,不共用一个 state:
+     · note      = 驳回原因,【买家可见】,原样进驳回邮件正文,仅驳回时出现
+     · innerNote = 审核意见,【仅内部】,通过 / 驳回都可写,只进操作日志的内部条 */
+  const [note, setNote] = useState('');
+  const [innerNote, setInnerNote] = useState('');
+  /* 提交成功 toast 里报下一站;界面上不再常驻「通过后进入」行 */
+  const nextTo = needReturn(r) ? '待寄回' : '待判责';
+  return <Modal title="审核售后申请" open={open} onCancel={onClose} closable={false} maskClosable={false} centered width={660}
+    footer={[<Button key="c" onClick={onClose}>取消</Button>,
+      <Button key="s" type="primary"
+        onClick={() => { toast(result === 'pass' ? '审核已通过,售后单推进至「' + nextTo + '」' : '已驳回,驳回通知邮件已发出'); onClose(); }}>
+        提交审核结论</Button>]}>
+    {/* 灰底块【本页面唯一保留的场景】:本弹窗是「只读核对区 + 可编辑表单区」并存,
+       灰底负责把「给你看的」和「要你填的」划开 —— 这是它真正在分东西的地方,
+       与详情页(整页只读、灰底分不开任何东西,故已全部去掉)不同。
+       长文本(买家说明 / 历次审核)独占整行。两个 DetailGrid 列数不同,必须同传 SUB_LABEL_W,
+       否则售后单号与售后原因 / 买家说明的值对不齐 */}
+    <div className="lp-sub">
+      <DetailGrid cols={2} labelWidth={SUB_LABEL_W} rows={[
+        { rk: 'id', k: '售后单号', v: <span className="lp-code">{r.id}</span> },
+        { rk: 'type', k: '售后类型', v: AS_TYPE[r.asType] },
+      ]} />
+      <DetailGrid labelWidth={SUB_LABEL_W} rows={[
+        { rk: 'reason', k: '售后原因', v: reasonLabelOf(r) },
+        { rk: 'note', k: '买家说明', v: dash(r.note) },
+        /* 拆表后历次驳回原因都在,弹窗里直接列全 —— 运营再审时要看得到前几次已经要求过买家补什么 */
+        wasRejected(r) ? { rk: 'aud', k: '历次审核记录', v: <div>
+          <div><StatusTag variant="req">已驳回 {rejectTimes(r)} 次</StatusTag>
+            <span style={{ color: '#6B7280', fontSize: 12 }}>
+              {waitingBuyerFix(r) ? '最近一次驳回后买家尚未重新提交'
+                : (r.resubmittedAt ? '买家已于 ' + r.resubmittedAt + ' 重新提交,本次为再审' : '')}</span></div>
+          <div style={{ marginTop: 6 }}>{auditsOf(r).map((a, i) => <div key={'am' + i}
+            style={{ fontSize: 12, marginBottom: 6 }}>
+            <div style={{ color: '#6B7280' }}>{a.at} · {a.result} · {a.by}</div>
+            {a.note ? <div style={{ color: '#DC2626' }}>驳回原因(已发给买家):{a.note}</div> : null}
+            {a.innerNote ? <div style={{ color: '#6B7280' }}>审核意见(仅内部):{a.innerNote}</div> : null}
+          </div>)}</div></div> } : null,
+      ]} />
+    </div>
+    <FormRow label="审核结论" required>
+      <Radio.Group value={result} onChange={e => setResult(e.target.value)}
+        options={[{ value: 'pass', label: '通过' }, { value: 'reject', label: '驳回' }]} /></FormRow>
+    {/* 驳回时两个框同时出现,驳回原因在上、审核意见在下。
+       两者对外性完全不同,差异写进各自的 placeholder(不靠灰字 helper 说明) */}
+    {result === 'reject' && <FormRow label="驳回原因" required>
+      <Input.TextArea rows={3} value={note} onChange={e => setNote(e.target.value)}
+        placeholder="请用英文填写 —— 本内容会原样发送给买家。写清要买家补什么、怎么改" /></FormRow>}
+    <FormRow label="审核意见">
+      <Input.TextArea rows={3} value={innerNote} onChange={e => setInnerNote(e.target.value)}
+        placeholder={result === 'reject'
+          ? '内部判断记这里,买家看不到 —— 例:该买家本月第 2 次以「与描述不符」发起售后,举证疑似二次拍摄'
+          : '内部判断记这里,买家看不到 —— 例:成色快照与举证一致,先受理,到仓再核'} /></FormRow>
+  </Modal>;
+}
+
+/* 2. 回填退货运单弹窗
+   运营在本弹窗输入的运单号与承运商,落库到售后单自己的两个字段
+   (after_sale_order.return_tracking_no / return_carrier_code),不只是传给物流服务注册追踪 ——
+   目的是让售后单自身可读、可线下追查,不依赖实时调物流服务。
+   承运商存 code(与物流模块 carrier_code 对齐),展示名由 CARRIERS 字典映射。
+   轨迹与实时状态只从物流服务取,本域不冗余 */
+function ShipmentModal({ open, onClose, record }) {
+  const r = record || AS_ORDERS[0];
+  const s = snapOf(r);
+  const [no, setNo] = useState(r.returnTrackingNo || '');
+  const [carrier, setCarrier] = useState(r.returnCarrierCode || undefined);
+  return <Modal title="回填退货运单并注册物流追踪" open={open} onCancel={onClose} closable={false} maskClosable={false} centered width={640}
+    footer={[<Button key="c" onClick={onClose}>取消</Button>,
+      <Button key="s" type="primary" onClick={() => { toast('运单已保存并注册追踪,退货运单号邮件已发出'); onClose(); }}>
+        保存并注册追踪</Button>]}>
+    <FormRow label="退货运单号" required>
+      <Input value={no} onChange={e => setNo(e.target.value)} placeholder="线下预约面单拿到的承运商运单号" /></FormRow>
+    <FormRow label="承运商" required>
+      <Select value={carrier} onChange={setCarrier} style={{ width: 300 }} placeholder="选择承运商"
+        options={CARRIER_OPTIONS} /></FormRow>
+    <FormRow label="退货地址" helper="不可在此修改">
+      <Input.TextArea rows={2} value={s ? s.addr : ''} disabled /></FormRow>
+    <Alert style={{ marginTop: 8 }} type="info" showIcon
+      message="保存后向买家发出「退货运单号」邮件" />
+  </Modal>;
+}
+
+/* 3-A. 【共享子组件】退款方案字段组(规则 A.19 第一层)
+   只三行:退款基准(只读)/ 退货扣减(可改,有预填)/ 最终退款金额(可改,有预填),不出明细表。
+   「退货扣减」是这笔钱在运营端与 C 端统一的展示名(C 端 Return deduction),ER 字段名仍为 service_fee_amount。
+   退货扣减与退款金额双向联动,两者之和恒等于退款基准,联动在父组件的 setter 里完成。
+   本组件为纯受控组件、内部不调用任何 Hook(规则 A.13) */
+function RefundPlanFields({ r, fee, setFee, amount, setAmount, locked }) {
+  const prefill = snapFee(r);
+  const base = r.item.paid;
+  const effFee = locked ? 0 : fee;
+  const effAmount = locked ? base : amount;
+  const feeEdited = !locked && Number(fee || 0) !== Number(prefill || 0);
+  return <>
+    <FormRow label="退款基准">
+      <Input value={money(r.sym, base)} disabled /></FormRow>
+    <FormRow label="退货扣减" required={!locked}>
+      <Space size={12} wrap>
+        <InputNumber value={effFee} onChange={setFee} min={0} max={base} precision={2} prefix={r.sym}
+          disabled={locked} placeholder={prefill === null ? '请手动填写' : '扣减总额'} style={{ width: 200 }} />
+        {!locked && prefill !== null && <Button size="small" disabled={!feeEdited}
+          onClick={() => setFee(prefill)}>恢复默认值</Button>}
+        {feeEdited && <span style={{ fontSize: 12, color: '#D97706' }}>
+          已改写,默认值为 {money(r.sym, prefill)}</span>}
+      </Space>
+      {/* 不填 = 按 0 退,系统有意不拦 —— 只提示,不加阻断 */}
+      {!locked && (fee === null || fee === undefined || fee === '') && <div
+        style={{ color: '#D97706', fontSize: 12, marginTop: 6 }}>
+        退货扣减未填写:提交后按 <b>{money(r.sym, 0)}</b> 计,请确认这是本单的扣减意图。
+      </div>}</FormRow>
+    <FormRow label="最终退款金额" required={!locked}>
+      <Space size={12} wrap>
+        <InputNumber value={effAmount} onChange={setAmount} min={0} max={base} precision={2} prefix={r.sym}
+          disabled={locked} style={{ width: 200 }} />
+        <span style={{ fontSize: 13, color: '#7C3AED', fontWeight: 700 }}>
+          实退给买家 {money(r.sym, effAmount)} {r.cur}</span>
+      </Space></FormRow>
+  </>;
+}
+
+/* 3-B. 判责弹窗:判责结论 + 责任判定 + 退款金额【同一步完成】,提交即调支付域退款接口
+   入口开放在两个状态:退货在途 / 待判责。
+   · 需寄回的单:录判责结论(含「退回途中丢件」)+ 责任归属 + 退款方案
+   · 不寄回的单(原因属「未收到货」):货没到、无实物可验,不录判责结论;
+     责任归属在本步录入(审核环节已不再判责任)
+   · 异常结论(退回件与订单不符 / 空包或无实物):经线下人工核实后在同一步内三选一出口,
+     选「不退并关闭」则不调退款接口,直接落已关闭 · 拒退关单
+   不设「判责异常·待人工处理」挂起态:人工核实是线下动作,核实完再回系统录入即可。
+   丢件不设独立动作:它是判责结论的一个取值,选中后必须写明认定依据 */
+function AdjudicateModal({ open, onClose, record }) {
+  const r = record || AS_ORDERS[0];
+  /* 本单走不走寄回 —— 判据是售后原因所属分组,不是售后类型 */
+  const needShip = needReturn(r);
+  const arriveAt = r.ship && (r.ship.track || []).find(k => k.st === '已送达');
+  /* 本弹窗【只有一种形态:首次判责】—— 判责是终局动作、判过就不再开放入口(见 canAdjudicate),
+     所以字段一律空开,【不做任何「回填上一次判责结果」的预填】。
+     ⚠ 唯一的预填是退货扣减的起填值,取的是建单时冻结的政策快照服务费(snapFee),
+       它是政策值、不是上一次判责的成交值 —— 别再改回 r.inspect / r.refund 取数,
+       那是「判责可修改」年代的残留,与判责即打款的口径直接冲突 */
+  /* 退货在途入口:货没到仓,判责结论只可能是「退回途中丢件」→ 锁死该值、下拉置灰不可改。
+     这不是「回填上一次结果」,是这个入口本身只有一个合法取值(见 inspectOptionsFor)。
+     责任归属随之带出平台责任(物流出问题对买家而言即平台责任),运营仍可改判买家责任 —— 默认值不是规则 */
+  const lockLost = needShip && r.status === 'in_transit';
+  const [result, setResult] = useState(lockLost ? LOST_RESULT : undefined);
+  const [note, setNote] = useState('');
+  const [liab, setLiab] = useState(lockLost ? 'platform' : undefined);
+  const [outlet, setOutlet] = useState(undefined);
+  const initFee = snapFee(r);
+  const [fee, setFeeRaw] = useState(initFee);
+  const [amount, setAmountRaw] = useState(Math.max(0, r.item.paid - Number(initFee || 0)));
+  /* 退货扣减与最终退款金额双向联动:两者之和恒等于退款基准,改哪一个另一个跟着反算 */
+  const onFee = (v) => { setFeeRaw(v); setAmountRaw(Math.max(0, r.item.paid - Number(v || 0))); };
+  const onAmount = (v) => { setAmountRaw(v); setFeeRaw(Math.max(0, r.item.paid - Number(v || 0))); };
+  /* 选中「退回途中丢件」时把责任归属默认置为平台责任(常规口径),运营仍可改判买家责任 */
+  const onResult = (v) => { setResult(v); if (v === LOST_RESULT && !liab) setLiab('platform'); };
+  const abnormal = ABNORMAL_RESULTS.indexOf(result) >= 0;
+  const deny = abnormal && outlet === 'deny';
+  const full = abnormal && outlet === 'full';
+  /* 字段构成按两个维度收敛,不存在第三种形态:
+     ① 要不要寄回(看售后原因)—— 需寄回的单比不寄回的单多【判责结论】
+                    (货没收到就没有实物回流,没有验货结论可录)与【瑕疵照片】(同理无实物可拍)
+     ② 入口状态 —— 退货在途货还没到、拿不到照片 → 不出【瑕疵照片】;待判责货已到仓 → 出该项
+     责任归属 / 判责说明 / 退款方案 三项在所有形态下都出,不寄回的单责任归属在本弹窗首次录入 */
+  const canPhoto = needShip && r.status === 'to_adjudicate';
+  const blocked = (needShip && !result) || (abnormal && !outlet) || !liab;
+  const sysRows = needShip
+    ? [['售后单号', r.id], ['订单号 / 商品行', r.orderNo + '  ·  ' + r.item.pid], ['商品名称', r.item.name],
+      ['到仓日期', arriveAt ? arriveAt.at : '尚未送达(退货在途,可直接判丢件)'],
+      ['订单成色快照', r.item.grade], ['当前状态', AS_STATUS[r.status].label]]
+    : [['售后单号', r.id], ['订单号 / 商品行', r.orderNo + '  ·  ' + r.item.pid], ['商品名称', r.item.name],
+      ['售后原因', reasonLabelOf(r)],
+      ['最近审核结论', lastAudit(r) ? lastAudit(r).result : '—'],
+      ['最近审核时间', lastAudit(r) ? lastAudit(r).at : '—']];
+  return <Modal title="判责" open={open} onCancel={onClose}
+    closable={false} maskClosable={false} centered width={780}
+    footer={[<Button key="c" onClick={onClose}>取消</Button>,
+      <Button key="s" type="primary" danger={deny} disabled={blocked}
+        onClick={() => { toast(deny ? '已关闭售后单(拒退关单),未产生退款单' : '判责已提交,退款已发起,售后单进入「退款中」'); onClose(); }}>
+        {deny ? '判责并关闭售后单(拒退关单)' : '判责并发起退款'}</Button>]}>
+    {/* 灰底块同 AuditModal:本弹窗也是「只读核对 + 表单填写」并存,灰底给两段划界。
+       不用「一、二、三」分步标题,字段平铺;
+       标签列与下方表单区同宽(见 SUB_LABEL_W),两区的值落在同一条竖线上 */}
+    <div className="lp-sub">
+      <DetailGrid cols={2} labelWidth={SUB_LABEL_W} rows={sysRows.map((x, i) => ({ rk: 'sr' + i, k: x[0], v: x[1] }))} />
+    </div>
+    {/* 下拉的可选项【按入口状态过滤】,不是一律 7 条 —— 见 inspectOptionsFor。
+        退货在途还要 disabled:值只有一个,展示得出来但改不动 */}
+    {needShip && <FormRow label="判责结论" required
+      helper={lockLost ? '货尚未到仓、无实物可验,本单的判责结论已锁定,不可改选' : undefined}>
+      <Select value={result} onChange={onResult} disabled={lockLost} style={{ width: 300 }} placeholder="选择判责结论"
+        options={inspectOptionsFor(r.status).map(x => ({ value: x, label: x }))} /></FormRow>}
+    <FormRow label="责任归属" required>
+      <Radio.Group value={liab} onChange={e => setLiab(e.target.value)} options={LIABILITY_OPTIONS} /></FormRow>
+    <FormRow label="判责说明">
+      <Input.TextArea rows={3} value={note} onChange={e => setNote(e.target.value)}
+        placeholder="例:外观无新增瑕疵,配件齐全,成色与订单快照一致;判丢件时请写明认定依据(承运商查件案号、轨迹停留天数等)" /></FormRow>
+    {canPhoto && <FormRow label="瑕疵照片">
+      <Upload listType="picture-card" maxCount={8} beforeUpload={() => false}>
+        <div><PlusOutlined /><div style={{ marginTop: 8, fontSize: 12 }}>上传</div></div></Upload></FormRow>}
+
+    {abnormal && <>
+      <Alert style={{ margin: '4px 0 12px' }} type="warning" showIcon message={ABNORMAL_TIP} />
+      <FormRow label="处理出口" required>
+        <Radio.Group value={outlet} onChange={e => setOutlet(e.target.value)} options={OUTLET_OPTIONS} /></FormRow>
+      {!outlet && <Alert style={{ marginBottom: 12 }} type="warning" showIcon
+        message="处理出口未选择,无法提交" />}
+      {outlet && <div className="lp-note-sm" style={{ marginBottom: 12 }}>
+        已选<b>{OUTLETS[outlet].label}</b>:{OUTLETS[outlet].desc}</div>}
+    </>}
+
+    {!deny && <RefundPlanFields r={r} fee={fee} setFee={onFee} amount={amount} setAmount={onAmount} locked={full} />}
+    {deny && <Alert style={{ marginTop: 16 }} type="error" showIcon
+      message="已选「不退并关闭(拒退关单)」:本单不退款、不产生退款单"
+      description="提交后售后单直接关闭,商品按线下方式回寄买家。" />}
+  </Modal>;
+}
+
+/* 4. 重新发起退款弹窗
+   判责时金额已经定过了,本弹窗只服务【退款执行失败】的单:金额沿用成交值、【不可修改】,
+   运营核对「退款基准 / 扣了多少 / 实付 / 实退」四个数字后点确定即可 */
+function RetryRefundModal({ open, onClose, record }) {
+  const r = record || AS_ORDERS[0];
+  const rf = r.refund || {};
+  const rows = [
+    { rk: 'paid', k: '商品行实付', v: money(r.sym, r.item.paid) + ' ' + r.cur },
+    { rk: 'base', k: '退款基准', v: money(r.sym, rf.base === undefined ? r.item.paid : rf.base) + ' ' + r.cur },
+    { rk: 'fee', k: '退货扣减', v: '- ' + money(r.sym, rf.fee || 0) + ' ' + r.cur },
+    { rk: 'amt', k: '实退金额', v: <span style={{ fontSize: 15, fontWeight: 700, color: '#7C3AED' }}>
+      {money(r.sym, rf.amount || 0)} {r.cur}</span> },
+  ];
+  return <Modal title="重新发起退款" open={open} onCancel={onClose}
+    closable={false} maskClosable={false} centered width={620}
+    footer={[<Button key="c" onClick={onClose}>取消</Button>,
+      <Button key="s" type="primary" onClick={() => { toast('已重新发起退款,售后单仍为「退款中」'); onClose(); }}>
+        确定</Button>]}>
+    <div className="lp-note" style={{ marginBottom: 14 }}>
+      退款单 {rf.refNo || ''} 于 {rf.failAt || ''} 回传失败
+    </div>
+    {/* 本弹窗全是只读、没有输入区 —— 灰底块在这里分不开任何东西,故与详情页同口径裸排 */}
+    <DetailGrid rows={rows} cols={2} labelWidth={MODAL_LABEL_W} />
+  </Modal>;
+}
+
+/* 5. 关闭售后单弹窗
+   规则 A.19:列表页行操作与详情页页头是同一个操作的两个入口 → 只此一份实现,两处 <CloseOrderModal> 引用。
+   ⚠ 关闭必须释放该商品行的互斥占用,否则买家仍然无法重新申请 ——
+      界面上必须把这句话明确说给运营看,它是运营敢不敢按这个按钮的决定性信息 */
+function CloseOrderModal({ open, onClose, record }) {
+  const r = record || AS_ORDERS[0];
+  const [note, setNote] = useState('');
+  /* 是否邮件告知买家由运营手动勾选。默认勾选 —— 运营关闭时买家不是发起方,不通知他会一直等;
+     但保留取消勾选的能力(如客服已在电话里当场答复完)。两种取值都进操作日志留痕 */
+  const [notify, setNotify] = useState(true);
+  return <Modal title="关闭售后单" open={open} onCancel={onClose} closable={false} maskClosable={false} centered width={680}
+    footer={[<Button key="c" onClick={onClose}>取消</Button>,
+      <Button key="s" type="primary" danger
+        onClick={() => { toast(notify ? '售后单已关闭,关单邮件已发给买家' : '售后单已关闭,未发关单邮件'); onClose(); }}>
+        确认关闭售后单</Button>]}>
+    {/* 三个只读项与下方「关闭说明」「关闭后通知」两个表单项同走 MODAL_LABEL_W:
+       标签右对齐、右边缘对齐,四项的值左边缘落在同一条竖线上 */}
+    <DetailGrid labelWidth={MODAL_LABEL_W} rows={[
+      { rk: 'id', k: '售后单号', v: <span className="lp-code">{r.id}</span> },
+      { rk: 'st', k: '当前状态', v: <span>
+        <StatusTag variant={AS_STATUS[r.status].variant}>{AS_STATUS[r.status].label}</StatusTag>
+        <span style={{ color: '#6B7280', fontSize: 12, marginLeft: 8 }}>非终态,关闭后落终态「已关闭」</span></span> },
+      { rk: 'oi', k: '订单 / 商品行', v: <span>
+        <span className="lp-code">{r.orderNo}</span>
+        <span style={{ color: '#6B7280', fontSize: 12, marginLeft: 8 }}>{r.orderItemId} · {r.item.name}</span></span> },
+    ]} />
+
+    <FormRow label="关闭说明" helper="选填。请用英文填写 —— 填了的话会原样发给买家">
+      <Input.TextArea rows={3} value={note} onChange={e => setNote(e.target.value)} /></FormRow>
+
+    {/* 是否邮件告知买家 —— 运营手动勾选,勾选状态进操作日志。
+       勾选与否的后果由 helper(CLOSE_NOTIFY_TIP)一句话讲完,控件下方不再跟一条随勾选状态变化的复述 */}
+    <FormRow label="关闭后通知" helper={CLOSE_NOTIFY_TIP}>
+      <Checkbox checked={notify} onChange={e => setNotify(e.target.checked)}>
+        邮件告知买家本单已关闭</Checkbox></FormRow>
+  </Modal>;
+}
+
+/* 6. 超期特批建单弹窗
+   特批【只免时效校验】,其他校验照常执行 —— 命中下列任一的商品行【在下拉里置灰、根本选不中】:
+   ① 该商品行已有进行中的售后单
+   ② 该商品行已退成钱(存在已完成的售后单) —— 走没走寄回都算,判据是钱有没有退出去
+   ⚠ 形态是【选不中】,不是「先让他选中、再报错拦提交」:
+     被拦的选项仍然列出来,并在 label 上把被拦原因写清楚(运营要知道这一行为什么点不了,
+     否则会以为是数据没加载出来);但它 disabled,选不进去。
+     既然选不中,「已选中若干非法项」这个状态就不存在了 —— 因此本弹窗没有选后 Alert,
+     提交按钮也不需要靠 Alert 的结果去置灰。别再把那套「选中→报错→禁用提交」加回来 */
+const OVERDUE_ITEMS = [
+  { value: 'OI7823001', label: 'OI7823001 · P1002381 CHANEL Classic Flap 中号', block: '' },
+  { value: 'OI7823002', label: 'OI7823002 · P1005520 CELINE Triomphe 太阳镜', block: '' },
+  { value: 'OI7823003', label: 'OI7823003 · P1004417 LOUIS VUITTON Neverfull MM',
+    block: '已有进行中的售后单 AS20260728006(退货在途)' },
+  { value: 'OI7823004', label: 'OI7823004 · P1006612 PRADA Re-Edition 2005 尼龙包',
+    block: '该商品行已退成钱 —— 退货已完成(售后单 AS20260722011)' },
+  { value: 'OI7823005', label: 'OI7823005 · P1007244 GUCCI Marmont 链条包',
+    block: '该商品行已退成钱 —— 售后单 AS20260710002 已完成' },
+];
+function OverdueCreateModal({ open, onClose }) {
+  const [note, setNote] = useState('');
+  const [items, setItems] = useState([]);
+  /* 被拦的项在下拉里 disabled,进不了 items —— 提交条件因此只剩「至少选了一行」 */
+  const canSubmit = items.length > 0;
+  return <Modal title="超期特批建单" open={open} onCancel={onClose} closable={false} maskClosable={false} centered width={680}
+    footer={[<Button key="c" onClick={onClose}>取消</Button>,
+      <Button key="s" type="primary" disabled={!canSubmit}
+        onClick={() => { toast('已为 ' + items.length + ' 个商品行特批建单'); setItems([]); setNote(''); onClose(); }}>
+        确认建单</Button>]}>
+    <div className="lp-note-sm" style={{ marginBottom: 14 }}>
+      仅用于<b>已超出政策时效窗口</b>的订单。
+    </div>
+    <FormRow label="订单号" required>
+      <Input defaultValue="ORD20260714029" placeholder="输入订单号,如 ORD20260714029" /></FormRow>
+    <FormRow label="商品行" required helper="可多选。已有进行中或已完成售后单的商品行不可选">
+      <Select mode="multiple" value={items} onChange={setItems} allowClear
+        style={{ width: '100%', maxWidth: 560 }} placeholder="选择要发起售后的商品行(可多选)"
+        options={OVERDUE_ITEMS.map(x => ({ value: x.value, disabled: !!x.block,
+          label: x.label + (x.block ? '　—— ' + x.block : '') }))} /></FormRow>
+    <FormRow label="售后类型" required>
+      <Radio.Group defaultValue="return_refund"
+        options={Object.keys(AS_TYPE).map(k => ({ value: k, label: AS_TYPE[k] }))} /></FormRow>
+    <FormRow label="选择售后原因" required>
+      <Select style={{ width: '100%', maxWidth: 460 }} placeholder="选择售后原因" options={REASON_OPTIONS} /></FormRow>
+    <FormRow label="备注">
+      <Input.TextArea rows={3} value={note} onChange={e => setNote(e.target.value)}
+        placeholder="例:买家在时效内已联系客服,因客服漏单导致超期,经主管同意特批受理" /></FormRow>
+  </Modal>;
+}
+
+/* 7. 附件查看与补传弹窗(信息/上传类 → 底部只放关闭)*/
+function EvidenceModal({ open, onClose, record }) {
+  const r = record || AS_ORDERS[0];
+  const list = (r.ev || []).concat(r.inspect ? (r.inspect.photos || []).map(p => ({ ...p, i: 'k' + p.i })) : []);
+  return <Modal title="售后附件" open={open} onCancel={onClose} closable={false} maskClosable={false} centered width={760}
+    footer={[<Button key="c" onClick={onClose}>关闭</Button>]}>
+    <Table size="small" rowKey="i" pagination={false} styles={TABLE_STYLES} columns={[
+      { title: '文件', dataIndex: 'name' },
+      { title: '来源', dataIndex: 'by', width: 120, render: v => <StatusTag variant={v === '买家' ? 'sale' : 'pending'}>{v === '买家' ? '买家举证' : '判责取证'}</StatusTag> },
+      { title: '文件类型', key: 'ft', width: 100, render: () => '图片' },
+      { title: '上传时间', dataIndex: 'at', width: 160 },
+    ]} dataSource={list} locale={{ emptyText: '暂无附件' }} />
+    <h4 className="lp-section" style={{ marginTop: 20 }}>运营补传</h4>
+    <Upload.Dragger name="file" multiple accept=".jpg,.jpeg,.png,.mp4" beforeUpload={() => false}>
+      <p className="ant-upload-drag-icon"><InboxOutlined style={{ color: '#7C3AED' }} /></p>
+      <p className="ant-upload-text">点击或拖拽文件到此处上传</p>
+      <p className="ant-upload-hint">支持 jpg / png / mp4</p>
+    </Upload.Dragger>
+  </Modal>;
+}
+
+/* 7-B. 大图查看弹窗
+   详情页的附件已经以缩略图铺在页面上,点缩略图直接看大图,不再另设「查看全部附件」按钮。
+   原型没有真实图片资源,大图区用等比放大的占位框表达;多张时在弹窗内直接翻页,
+   不用退出去再点下一张。附件清单 +【运营补传】仍在 EvidenceModal,入口是缩略图旁的「运营补传」按钮 */
+function PhotoViewModal({ open, onClose, list, index, onIndex }) {
+  const arr = list || [];
+  const i = Math.min(Math.max(index || 0, 0), Math.max(arr.length - 1, 0));
+  const cur = arr[i];
+  return <Modal title="查看大图" open={open} onCancel={onClose} closable={false} maskClosable={false} centered width={720}
+    footer={[<Button key="c" onClick={onClose}>关闭</Button>]}>
+    {cur ? <>
+      <div className="lp-bigshot"><PictureOutlined /></div>
+      {/* 「来源」不在这里出:大图是从某一组缩略图点进来的,那一组自己就是来源
+          (买家举证附件 / 判责取证照片),弹窗里再标一次是复述 */}
+      <DetailGrid labelWidth={MODAL_LABEL_W} rows={[
+        { rk: 'n', k: '文件名', v: cur.name },
+        { rk: 'a', k: '上传时间', v: cur.at },
+      ]} />
+      <Space size={12}>
+        <Button size="small" disabled={i <= 0} onClick={() => onIndex(i - 1)}>上一张</Button>
+        <span style={{ fontSize: 12, color: '#6B7280' }}>{i + 1} / {arr.length} 张</span>
+        <Button size="small" disabled={i >= arr.length - 1} onClick={() => onIndex(i + 1)}>下一张</Button>
+      </Space>
+    </> : <div className="lp-nodata">暂无可查看的图片</div>}
+  </Modal>;
+}
+
+/* 8. 政策启停弹窗 */
+function PolicyToggleModal({ open, onClose, record }) {
+  const r = record || POLICIES[0];
+  const on = r.status === 'on';
+  return <Modal title={on ? '停用售后政策' : '启用售后政策'} open={open} onCancel={onClose}
+    closable={false} maskClosable={false} centered width={560}
+    footer={[<Button key="c" onClick={onClose}>取消</Button>,
+      <Button key="s" type="primary" danger={on}
+        onClick={() => { toast(on ? '政策已停用' : '政策已启用'); onClose(); }}>{on ? '确认停用' : '确认启用'}</Button>]}>
+    <div className="lp-detail">
+      <div className="dl">政策编号</div><div className="dv"><span className="lp-code">{r.id}</span></div>
+      <div className="dl">适用范围</div><div className="dv">{marketOf(r.market).label} · {SCOPE_TYPE[r.scopeType]}{r.scopeValue ? ':' + r.scopeValue : ''}</div>
+      <div className="dl">同层优先级</div><div className="dv">{r.priority}</div>
+    </div>
+    {on && <Alert type="warning" showIcon message="停用后新申请不再命中本条" />}
+  </Modal>;
+}
+
+/* 9. 原因码启停弹窗 */
+function ReasonToggleModal({ open, onClose, record }) {
+  const r = record || REASONS[0];
+  const on = r.status === 'on';
+  return <Modal title={on ? '停用原因码' : '启用原因码'} open={open} onCancel={onClose}
+    closable={false} maskClosable={false} centered width={560}
+    footer={[<Button key="c" onClick={onClose}>取消</Button>,
+      <Button key="s" type="primary" danger={on}
+        onClick={() => { toast(on ? '原因码已停用' : '原因码已启用'); onClose(); }}>{on ? '确认停用' : '确认启用'}</Button>]}>
+    <div className="lp-detail">
+      <div className="dl">原因码</div><div className="dv"><span className="lp-code">{r.code}</span></div>
+      <div className="dl">展示文案</div><div className="dv">{r.text}</div>
+    </div>
+    {on && <Alert type="warning" showIcon message="停用后 C 端申请页不再展示该原因" />}
+  </Modal>;
+}
+
+/* 10. 建单快照弹窗(详情页右上角入口)
+   建单那一刻会对两样东西各留一份整条留档:命中的【售后政策】+ 选中的【售后原因码】。
+   两者之后在配置页被改动,都不回溯本单 —— 本单要不要寄回、扣多少钱,认的都是这两份留档。
+   为什么合成一个弹窗而不是并排两个按钮:运营查它们的场景是同一件事 ——
+   「这单建的时候,规则长什么样」;拆成两个入口,反而要先想该点哪一个。
+   信息/查看类 → 底部只放关闭 */
+function SnapshotModal({ open, onClose, record }) {
+  const r = record || AS_ORDERS[0];
+  const s = snapOf(r);
+  const diffKeys = snapDiffKeys(r);
+  const rs = reasonSnapOf(r);
+  const rDiffKeys = reasonSnapDiffKeys(r);
+  const rMark = (key) => rDiffKeys.indexOf(key) >= 0
+    ? <StatusTag variant="pending">与字典当前值不同</StatusTag> : null;
+  const reasonRows = rs ? [
+    { rk: 'rc', k: '原因码', v: <span className="lp-code">{rs.code}</span> },
+    { rk: 'rat', k: '快照时间', v: rs.snapAt },
+    { rk: 'rtx', k: '展示文案', v: <span>{rs.text} {rMark('text')}</span> },
+    { rk: 'rcn', k: '中文备注', v: <span>{rs.cn} {rMark('cn')}</span> },
+    { rk: 'rev', k: '举证要求', v: <span>
+      <StatusTag variant={rs.ev ? 'req' : 'off'}>{rs.ev ? '必传' : '选传'}</StatusTag> {rMark('ev')}</span> },
+  ] : [];
+  const mark = (key) => diffKeys.indexOf(key) >= 0
+    ? <StatusTag variant="pending">与政策当前值不同</StatusTag> : null;
+  const rows = s ? [
+    { rk: 'pid', k: '快照来源政策', v: <span className="lp-code">{s.id}</span> },
+    { rk: 'pat', k: '快照时间', v: s.snapAt },
+    { rk: 'pmk', k: '适用市场', v: marketOf(s.market).label },
+    { rk: 'psc', k: '适用范围', v: <span><StatusTag variant="sale">{SCOPE_TYPE[s.scopeType]}</StatusTag>
+      {s.scopeValue ? s.scopeValue : '全部商品'}</span> },
+    { rk: 'ppr', k: '同层优先级', v: s.priority },
+    { rk: 'prt', k: '是否支持退货', v: <StatusTag variant={s.returnable ? 'on' : 'req'}>{s.returnable ? '支持' : '不支持'}</StatusTag> },
+    { rk: 'pvd', k: '售后时效天数', v: <span>签收后 {s.validDays} 天 {mark('validDays')}</span> },
+    { rk: 'pfee', k: '退货服务费',
+      v: <span>{money(marketOf(s.market).sym, s.fee)} {s.cur} {mark('fee')}</span> },
+    { rk: 'pcur', k: '币种', v: s.cur },
+    { rk: 'pst', k: '快照时政策状态', v: <StatusTag variant={s.status === 'on' ? 'on' : 'off'}>{s.status === 'on' ? '启用' : '停用'}</StatusTag> },
+  ] : [];
+  return <Modal title="建单快照" open={open} onCancel={onClose} closable={false} maskClosable={false} centered width={760}
+    footer={[<Button key="c" onClick={onClose}>关闭</Button>]}>
+    <h4 className="lp-section">售后原因快照</h4>
+    {rDiffKeys.length > 0 && <div className="lp-note-sm" style={{ marginBottom: 12, color: '#D97706' }}>
+      本单有 {rDiffKeys.length} 项已与字典当前值不同,下方已标注。
+    </div>}
+    {/* 建单快照弹窗同样是纯只读,无输入区 → 裸排,标签宽走弹窗常量 */}
+    {rs ? <DetailGrid rows={reasonRows} cols={2} labelWidth={MODAL_LABEL_W} />
+      : <div className="lp-nodata">未留存原因码快照</div>}
+    <h4 className="lp-section">售后政策快照</h4>
+    {diffKeys.length > 0 && <div className="lp-note-sm" style={{ marginBottom: 12 }}>
+      <span style={{ color: '#D97706' }}>本单快照中有 {diffKeys.length} 项已与政策当前值不同,下方已标注。</span>
+    </div>}
+    {s ? <>
+      <DetailGrid rows={rows} cols={2} labelWidth={MODAL_LABEL_W} />
+      <DetailGrid rows={[{ rk: 'paddr', k: '退货地址', v: dash(s.addr) }]} labelWidth={MODAL_LABEL_W} />
+    </> : <div className="lp-nodata">未命中政策快照</div>}
+  </Modal>;
+}
+
+/* 11. 买家时间线弹窗(详情页右上角入口)
+   时间线 = after_sale_log 中 is_customer_visible=1 的投影,是「买家在 C 端看到的那一份」,
+   与详情页底部的操作记录(内部全量、含仅内部条)是两份东西,不合并、不互相替代。
+   运营看它的场景是「买家打电话来问进度,我核对一下他那边显示到哪一步」——属于偶尔查一次,
+   不常驻正文,收进弹窗从页头进。信息/查看类 → 底部只放关闭 */
+function TimelineModal({ open, onClose, record }) {
+  const r = record || AS_ORDERS[0];
+  const tl = buildTimeline(r);
+  return <Modal title="买家时间线" open={open} onCancel={onClose} closable={false} maskClosable={false} centered width={760}
+    footer={[<Button key="c" onClick={onClose}>关闭</Button>]}>
+    {/* 「为什么这里是英文、为什么不出中文版」是设计依据,不是运营此刻要知道的事 ——
+        它的落点在本文件 buildTimeline 上方的注释(【文案口径】那段),不在页面上。
+        本条只说运营此刻需要知道的一件事:这就是买家正在看的那一份 */}
+    <div className="lp-note-sm" style={{ marginBottom: 18 }}>
+      买家侧会展示最新的售后进度,当前时间线和买家看到的信息一致。
+    </div>
+    {/* 每条两级:英文标题(加粗)+ 时间同行右对齐,说明另起一行灰字。
+        与退货轨迹同一副时间轴写法,只是这里最新一条恒为主色(没有「已送达」这种终态色) */}
+    <Timeline items={tl.map((x, i) => ({
+      key: i, color: i === 0 ? '#7C3AED' : '#9CA3AF',
+      children: <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+          <span style={{ fontWeight: 600 }}>{x.title}</span>
+          <span style={{ fontSize: 12, color: '#9CA3AF', whiteSpace: 'nowrap' }}>{x.at}</span></div>
+        {x.text ? <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{x.text}</div> : null}</div>,
+    }))} />
+  </Modal>;
+}
+
+/* ============================================================
+   页面 1:售后工单列表
+   ============================================================ */
+function AfterSaleListPage({ go }) {
+  const [mode, setMode] = useState('data');
+  /* 单号只留一个输入框:运营手上拿到的往往就是「一串号」,先分清它是售后单号 / 订单号 / 物流单号
+     再挑输入框是多余的一步。一个框同时匹配四个字段 —— 三种号的编码规则本身互不重叠,
+     买家邮箱带 @ 与点号,与三种号更不会撞 */
+  const [kw, setKw] = useState('');
+  /* 状态由 Tab 承载主视图,不再另设状态筛选下拉 */
+  const [statusTab, setStatusTab] = useState('all');
+  const [liabF, setLiabF] = useState('');
+  const [marketF, setMarketF] = useState('');
+  const [cur, setCur] = useState(null);
+  const [auditOpen, setAuditOpen] = useState(false);
+  const [shipOpen, setShipOpen] = useState(false);
+  const [adjOpen, setAdjOpen] = useState(false);
+  const [retryOpen, setRetryOpen] = useState(false);
+  const [closeOpen, setCloseOpen] = useState(false);
+  const [overdueOpen, setOverdueOpen] = useState(false);
+
+  /* 一个关键词命中四个字段中的任意一个即算匹配:售后单号 / 订单号 / 物流单号(return_tracking_no)
+     / 买家邮箱(user_account.email,实时关联查、售后表不冗余)。
+     ⚠ 邮箱走【部分匹配】而不是全等:运营常常只记得 @ 前面那截("emma.whit"),
+       或只记得域名("@gmail.com" / "luxe-resale");要求整串输对等于这个搜索框对邮箱不可用。
+     ⚠ 大小写不敏感:邮箱本身就不区分大小写,而运营的输入习惯不一(有人首字母大写、有人全小写),
+       故两边一起 toLowerCase —— 与另外三个单号同一套处理,不为邮箱单开一条分支 */
+  const hitNo = (r, k) => {
+    const q = k.trim().toLowerCase();
+    return [r.id, r.orderNo, r.returnTrackingNo, r.email]
+      .some(x => (x || '').toLowerCase().indexOf(q) >= 0);
+  };
+  const rows = AS_ORDERS.filter(r => {
+    if (kw && !hitNo(r, kw)) return false;
+    if (statusTab !== 'all' && r.status !== statusTab) return false;
+    if (liabF && r.liability !== liabF) return false;
+    if (marketF && r.market !== marketF) return false;
+    return true;
+  });
+  const cnt = (s) => AS_ORDERS.filter(r => r.status === s).length;
+  const retryCnt = AS_ORDERS.filter(isRetry).length;
+  const openWith = (rec, setter) => { setCur(rec); setter(true); };
+  const reset = () => { setKw(''); setStatusTab('all'); setLiabF(''); setMarketF(''); };
+  /* 角标只挂【运营待办】:待审核 / 待判责 —— 这两个状态运营不动手就推不动。
+     待寄回、退货在途在等买家交寄与等物流;退款中在等支付域回调,都不是运营待办,故不挂角标。
+     退款中 Tab 例外:失败待重试的那部分是运营待办,故角标只计失败数,不计全部退款中。 */
+  const PENDING_TABS = ['pending_audit', 'to_adjudicate'];
+  const tabLabel = (key, text) => {
+    const n = key === 'all' ? AS_ORDERS.length : cnt(key);
+    if (PENDING_TABS.indexOf(key) >= 0)
+      return <Badge count={n} size="small" offset={[10, -2]}><span style={{ paddingRight: 4 }}>{text}</span></Badge>;
+    if (key === 'refunding' && retryCnt > 0)
+      return <Badge count={retryCnt} size="small" offset={[10, -2]} title="退款失败待重试">
+        <span style={{ paddingRight: 4 }}>{text}({n})</span></Badge>;
+    return <span>{text}({n})</span>;
+  };
+  const tabItems = [{ key: 'all', label: tabLabel('all', '全部') }]
+    .concat(STATUS_ORDER.map(k => ({ key: k, label: tabLabel(k, AS_STATUS[k].label) })));
+
+  const columns = [
+    { title: '售后单号', dataIndex: 'id', width: 155, render: v => <span className="lp-code">{v}</span> },
+    { title: '订单号', dataIndex: 'orderNo', width: 155, render: v => <span className="lp-code">{v}</span> },
+    { title: '商品行', key: 'item', width: 260, render: (_, r) => <div>
+      <div>{r.item.name}</div>
+      <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{r.item.pid} · 成色快照 {r.item.grade} · 实付 {money(r.sym, r.item.paid)}</div></div> },
+    /* 售后类型本期恒为「退货」,只出这一个 tag。
+       ⚠「需寄回 / 不用寄回」「已收到货 / 未收到货」这类分岔标注,
+       运营端界面【全部不出】—— 列表、详情、审核弹窗、快照弹窗、启停弹窗一处都没有。
+       售后原因文案本身已经说清(「未收到货」),再挂 tag 是冗余。
+       分岔逻辑仍由 needReturn() 拿 code 比对照常执行,只是不上屏 */
+    { title: '售后类型', dataIndex: 'asType', width: 110,
+      render: v => <StatusTag variant="sale">{AS_TYPE[v]}</StatusTag> },
+    /* 原因列展示的是【建单时留档的那一份】,不是字典当前值 —— 字典改了,历史单照旧显示原样 */
+    { title: '原因', dataIndex: 'reasonCode', width: 210, render: (v, r) => { const x = reasonSnapOf(r); return x ? <div>
+      <div>{x.cn}</div>
+      <div style={{ fontSize: 12, color: '#6B7280' }}>{x.text}</div></div> : dash(''); } },
+    /* 状态列只显示状态本身:驳回次数、退款失败、买家撤销等补充信息一律在详情页查 */
+    { title: '状态', dataIndex: 'status', width: 110,
+      render: v => <StatusTag variant={AS_STATUS[v].variant}>{AS_STATUS[v].label}</StatusTag> },
+    { title: '责任归属', dataIndex: 'liability', width: 120,
+      render: (v, r) => v ? <StatusTag variant={v === 'platform' ? 'req' : 'off'}>{LIABILITY[v]}</StatusTag>
+        : (liabNeverJudged(r) ? dash('')
+          : <span style={{ color: '#9CA3AF', fontSize: 12 }}>{LIABILITY_STAGE_TIP}</span>) },
+    { title: 'Market', dataIndex: 'market', width: 110, render: v => marketOf(v).label },
+    /* 退款失败待重试的单靠本列的支付结果标记被看见(不做筛选器) */
+    { title: '退款金额 / 支付结果', key: 'amt', width: 165, align: 'right',
+      render: (_, r) => r.refund && r.refund.refNo ? <div>
+        <div>{money(r.sym, r.refund.amount)}</div>
+        <div style={{ marginTop: 2 }}><StatusTag variant={REFUND_STATUS[r.refund.status].variant}>{REFUND_STATUS[r.refund.status].label}</StatusTag></div>
+      </div> : dash('') },
+    { title: '申请时间', dataIndex: 'appliedAt', width: 155 },
+    { title: '操作', key: 'op', width: 250, fixed: 'right', render: (_, r) => {
+      const ops = [{ key: 'detail', label: '详情', onClick: () => go('as-detail', r) }];
+      if (r.status === 'pending_audit') ops.push({ key: 'audit', label: '审核', onClick: () => openWith(r, setAuditOpen) });
+      /* 运单登记发生在待寄回阶段:退货在途已经寄出,无登记场景,故本入口只对待寄回开放 */
+      if (r.status === 'to_ship') ops.push({ key: 'ship', label: '运单', onClick: () => openWith(r, setShipOpen) });
+      /* 判责入口开放在两个状态:退货在途(可直接判丢件)+ 待判责,且【仅限尚未判责的单】。
+         丢件是判责结论的一个取值,无独立按钮;判过责的单不再出本入口(判责即打款,无修改窗口)。
+         判据走公共 canAdjudicate(),与详情页页头同一份实现 */
+      if (canAdjudicate(r)) ops.push({ key: 'adj', label: '判责', onClick: () => openWith(r, setAdjOpen) });
+      if (isRetry(r)) ops.push({ key: 'retry', label: '重新退款', onClick: () => openWith(r, setRetryOpen) });
+      /* 待审核 / 待寄回 / 退货在途 三个阶段给运营一个手动关单出口(必填原因、留痕、释放商品行互斥占用)。
+         ⚠ 以 OPS_CLOSE_STATUS 常量为准(三个状态);不开放的是待判责 / 退款中 —— 那两个阶段钱已在路上,
+         关单会与退款执行打架。本注释曾写"两个阶段"、漏了待审核,与常量不符,2026-08-02 已修正。
+         按 A.1.1 排序规则,危险操作放最后;本页操作数最多的行为 3 个,不触发 >4 收纳规则,
+         Dropdown 分支保留以防后续再加操作 */
+      if (OPS_CLOSE_STATUS.indexOf(r.status) >= 0) ops.push({ key: 'close', label: '关闭售后单',
+        danger: true, onClick: () => openWith(r, setCloseOpen) });
+      const flat = ops.length <= 4 ? ops : ops.slice(0, 3);
+      const more = ops.length <= 4 ? [] : ops.slice(3);
+      const moreItems = [];
+      more.forEach(o => { if (o.danger && moreItems.length) moreItems.push({ type: 'divider' });
+        moreItems.push({ key: o.key, label: o.label, danger: o.danger }); });
+      return <Space size={6}>
+        {flat.map(o => <Button key={o.key} size="small" danger={o.danger} onClick={o.onClick}>{o.label}</Button>)}
+        {more.length > 0 && <Dropdown trigger={['click']} menu={{ items: moreItems,
+          onClick: ({ key }) => { const t = more.find(o => o.key === key); if (t && t.onClick) t.onClick(); } }}>
+          <Button size="small" icon={<EllipsisOutlined />} /></Dropdown>}</Space>;
+    } },
+  ];
+
+  return <Card style={CARD_STYLE}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 18 }}>
+      <div>
+        <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>售后工单</div>
+        <div style={{ color: '#6B7280', fontSize: 13 }}>发货后的全部逆向申请</div>
+      </div>
+      <Space>
+        <Button icon={<ClockCircleOutlined />} onClick={() => setOverdueOpen(true)}>超期特批建单</Button>
+        <Button icon={<DownloadOutlined />}
+          onClick={() => toast('已生成导出文件(' + rows.length + ' 条),稍后可在浏览器下载列表查看')}>导出</Button>
+      </Space>
+    </div>
+
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 18 }}>
+      <Kpi num={cnt('pending_audit')} label="待审核" onClick={() => setStatusTab('pending_audit')} />
+      <Kpi num={cnt('to_adjudicate')} label="待判责" onClick={() => setStatusTab('to_adjudicate')} />
+      <Kpi num={cnt('refunding')} label="退款中" onClick={() => setStatusTab('refunding')} />
+      <Kpi num={retryCnt} label="退款失败待重试" onClick={() => setStatusTab('refunding')} />
+    </div>
+
+    <Space size={12} wrap style={{ marginBottom: 12 }}>
+      <Input placeholder="售后单号 / 订单号 / 物流单号 / 买家邮箱" prefix={<SearchOutlined style={{ color: '#9CA3AF' }} />} allowClear
+        value={kw} onChange={e => setKw(e.target.value)} style={{ width: 300 }} />
+      <Select value={liabF} onChange={setLiabF} style={{ width: 140 }} options={[{ value: '', label: '全部责任归属' },
+        ...LIABILITY_OPTIONS]} />
+      <Select value={marketF} onChange={setMarketF} style={{ width: 150 }} options={[{ value: '', label: '全部 Market' },
+        ...MARKETS.map(m => ({ value: m.value, label: m.label }))]} />
+      <DatePicker.RangePicker placeholder={['申请开始日期', '申请结束日期']} />
+      <Button type="primary" icon={<SearchOutlined />}
+        onClick={() => toast('已按当前条件查询,共 ' + rows.length + ' 条')}>查询</Button>
+      <Button icon={<ReloadOutlined />} onClick={reset}>重置</Button>
+    </Space>
+    <Tabs activeKey={statusTab} items={tabItems} style={{ marginBottom: 16 }}
+      onChange={setStatusTab} />
+
+    {mode === 'data' && <>
+      <Table rowKey="id" columns={columns} dataSource={rows} pagination={false} styles={TABLE_STYLES}
+        scroll={{ x: 'max-content' }} />
+      <CompactPagination total={rows.length} pageSize={10} /></>}
+    {mode === 'zero' && <EmptyZero entity="售后工单" />}
+    {mode === 'no-match' && <EmptyNoMatch onClear={() => { reset(); setMode('data'); }} />}
+    {mode === 'error' && <EmptyError onRetry={() => setMode('data')} />}
+    <EmptyStateSwitcher mode={mode} setMode={setMode} />
+
+    <AuditModal key={'a' + (cur ? cur.id : '0')} open={auditOpen} onClose={() => setAuditOpen(false)} record={cur} />
+    <ShipmentModal key={'s' + (cur ? cur.id : '0')} open={shipOpen} onClose={() => setShipOpen(false)} record={cur} />
+    <AdjudicateModal key={'i' + (cur ? cur.id : '0')} open={adjOpen} onClose={() => setAdjOpen(false)} record={cur} />
+    <RetryRefundModal key={'r' + (cur ? cur.id : '0')} open={retryOpen} onClose={() => setRetryOpen(false)} record={cur} />
+    <CloseOrderModal key={'c' + (cur ? cur.id : '0')} open={closeOpen} onClose={() => setCloseOpen(false)} record={cur} />
+    <OverdueCreateModal open={overdueOpen} onClose={() => setOverdueOpen(false)} />
+  </Card>;
+}
+
+/* ============================================================
+   页面 2:售后单详情(运营端主界面)
+
+   【统一模块语言 v15 —— 对齐订单管理后台详情页】
+   全页 4 个模块(基本信息 / 退货信息 / 判责信息 / 操作记录)共用同一副骨架:
+     · 模块外壳 = <div className="lp-module">,零视觉,只管模块间距 24
+     · 模块标题 = <h4 className="lp-section">(黑 15/600 + 1px 底线),全页只此一种;
+                  模块之间的分界靠它,不靠给每块罩壳
+     · 只读字段 = 【不进任何容器】,白底裸排,走 DetailGrid,标签列宽一律 DETAIL_LABEL_W。
+                  v14 的 .lp-sub 灰底块【已从本页全部移除】—— 整页本来就只读,
+                  灰底块没把任何东西分开,只是给每个模块多罩了一层壳
+     · 子区标题 = 本页【已不点名任何子区】:退货轨迹在卡内、用 .lp-card-label(12px 灰字);
+                  判责取证与退款已并回字段行。能当普通字段行摆的,就不要升格成子区
+     · 空态     = 字段级用 dash() 的「—」;模块 / 子区级用 .lp-nodata 一行灰字
+     · 按钮     = 推进状态的动作只在页头;模块内只留作用于本模块内容的按钮(刷新轨迹)
+   ⚠ 唯一的例外是【退货信息】:它用订单详情页「包裹物流」同款的带边框卡(.lp-card)。
+     卡在这里不是用来圈"多个包裹里的这一个"(售后本期一单一包裹),而是用来把
+     【外部承运商系统返回的、会随时间变的那一段】与本页其余【我们自己录的静态事实】
+     在视觉上分层 —— 详见该模块处的注释。卡的所有数值(边框 / 圆角 / 灰底 / 内边距 /
+     分隔线)整套照抄订单后台,两个后台的这张卡长得一样,不各自发挥
+
+   【展示口径】本页只展示这单【已经发生】的事实。尚未产生的数据一律留空,
+   不出试算值 / 预填值 / 默认值 —— 金额尤其:未判责前退款基准、退货扣减、最终退款金额
+   一个数字都不出。判责弹窗按政策快照预填退货扣减是【运营填表】用的,与本页展示是两回事,
+   照旧保留。
+   ============================================================ */
+function AfterSaleDetailPage({ go, record }) {
+  const r = record || AS_ORDERS[0];
+  const [auditOpen, setAuditOpen] = useState(false);
+  const [shipOpen, setShipOpen] = useState(false);
+  const [adjOpen, setAdjOpen] = useState(false);
+  const [retryOpen, setRetryOpen] = useState(false);
+  const [evOpen, setEvOpen] = useState(false);
+  /* 大图查看:pv = { list, i } —— list 是本组缩略图的完整数组,i 是点中的那一张。
+     买家举证与判责取证是两组独立的图,各自翻页,不混在一起 */
+  const [pv, setPv] = useState(null);
+  const [closeOpen, setCloseOpen] = useState(false);
+  const [snapOpen, setSnapOpen] = useState(false);
+  const [tlOpen, setTlOpen] = useState(false);
+  const s = snapOf(r);
+  const m = marketOf(r.market);
+  /* 本单走不走寄回 —— 判据是售后原因所属分组,不是售后类型(类型本期恒为「退货」) */
+  const needShip = needReturn(r);
+  const closed = !!r.closedAt;
+  const denied = r.closeCode === 'deny_close';
+  /* 本域登记值与物流侧当前值可能不一致 —— 这是预期行为,不是错误 */
+  const trackingDrift = !!(r.ship && r.returnTrackingNo && r.ship.no !== r.returnTrackingNo);
+  const rf = r.refund;
+  const retry = isRetry(r);
+  const st = AS_STATUS[r.status];
+  const logs = buildLogs(r);
+  /* 「被驳回过」与「当前等买家修改」是两个口径:前者只看记录条数(不限状态),后者还要看 resubmitted_at */
+  const waitFix = waitingBuyerFix(r);
+  const rMark = rejectMark(r);
+  /* 判责 / 退款的三个判据,页头按钮与判责信息模块共用同一套,避免两处各判一次判出两个结果 */
+  const settled = !!(rf && rf.refNo);                                    // 退款单已产生
+  const judged = isJudged(r);                                            // 判过责(不寄回的单没有验货结论,退款已发起即判过)
+  const canAdj = canAdjudicate(r);                                       // 状态允许 && 未判过责(与列表页同一份判据)
+  const neverJudged = !judged && TERMINAL_STATUS.indexOf(r.status) >= 0;  // 终态却从未判责:买家撤销 / 运营关闭
+  const abnormal = !!(r.inspect && ABNORMAL_RESULTS.indexOf(r.inspect.result) >= 0);
+
+  /* --- 基本信息 --------------------------------------------------------------
+     分栏口径 = 按【字段语义】切成两条互不相干的序列,两栏各自从上到下连续排,不做行对齐:
+       · 左栏 =【这单是什么、谁的】售后单号[状态tag] / 售后类型 / 所属订单 / 买家 /
+         所属市场 / 超期人工特批。恒 6 行。
+       · 右栏 =【这单的时间线与怎么结束的】申请时间 → 最近审核时间 → 完成时间 or 关闭时间,
+         已关闭的再接 关闭原因 → 邮件告知买家 → 关闭说明。
+         时间类【全部集中在这一栏】并按发生先后排 —— v14 是按行铺的,申请 / 最近审核落左栏、
+         完成时间落右栏,同一类字段被拆到两边,想看「这单走到哪一步了」得左右来回扫。
+       · 两栏【不成对、不等长】:左 6 行、右 3~6 行,短的那一栏下方自然留白。
+         ⚠ 绝不为了左右对齐在栏内插空位 —— 这正是 groups 分栏取代按行铺的原因:
+           按行铺必然产生配对空位,分栏则是两个独立序列。
+     售后单状态【不再单独占一个字段位】—— 直接挂在售后单号的值后面当标签:
+     状态是这张单的身份属性,不是一条独立信息;单独占位会让它和「所属市场」等权,
+     而运营扫这块时永远是先找单号、顺带确认状态。
+     ⚠ 责任归属【不在本模块】:它是判责结论,归判责信息。摆两处会出现两个真相,
+       而且未判责的单在这里只能写「尚未录入」,那正是 v14 清掉的预填式占位。
+     ⚠ 状态标签只出状态本身:驳回次数 / 退款失败待重试已由页头标签承载,此处不复述 --- */
+  const baseLeftRows = [
+    { rk: 'id', k: '售后单号', v: <span><span className="lp-code">{r.id}</span>
+      <span style={{ marginLeft: 8 }}><StatusTag variant={st.variant}>{st.label}</StatusTag></span></span> },
+    { rk: 'type', k: '售后类型', v: <StatusTag variant="sale">{AS_TYPE[r.asType]}</StatusTag> },
+    { rk: 'ord', k: '所属订单', v: <span className="lp-code">{r.orderNo}</span> },
+    { rk: 'user', k: '买家', v: r.user },
+    /* 买家邮箱【不进售后表、不做快照】:售后单只存 user_id,邮箱实时关联 user_account 查。
+       ⚠ 与 policy_snapshot / reason_snapshot 的判据不同 —— 那两个锁的是【运营侧配置变动】
+         (防止改配置追溯影响在途单);邮箱是【买家自己的资料】,改了之后后续售后邮件就该发新邮箱,
+         快照反而会让邮件发去废弃地址。
+       ⚠ 按邮箱搜售后单走 join,不要为了"搜得快"在售后表冗余一份。
+       ⚠ 呈现用普通文本、不用 lp-code:lp-code 在本原型里是【系统生成的标识符】的样式
+         (售后单号 / 订单号 / 商品 ID / 运单号 / 原因码),邮箱是买家自己填的联系方式,不是系统码;
+         且 lp-code 带灰底 chip,最长的那个邮箱(53 字符 × 12px 等宽 ≈ 387px)会超出左栏净宽 ~370px,
+         在 chip 内部折行,反而更难读。与紧邻的「买家」行保持同一种文本样式。
+       ⚠ 本期【只加邮箱一项】:昵称、电话等其他买家资料不加(用户只要了邮箱)。
+       本口径待 G4 写 PRD 时收口,ER 本期不承载(见待优化清单) */
+    { rk: 'email', k: '买家邮箱', v: r.email },
+    { rk: 'mk', k: '所属市场', v: m.label },
+    { rk: 'ovd', k: '超期人工特批', v: r.overdue
+      ? <span><StatusTag variant="pending">是</StatusTag>{r.overdueNote}</span> : '否' },
+  ];
+  /* 右栏 = 时间线 + 怎么结束的。已关闭单的关闭三项接在关闭时间之后,
+     整条右栏读下来就是这单从申请到收尾的完整经过,不必再跳回左栏找关闭原因 */
+  const baseRightRows = [
+    { rk: 't1', k: '申请时间', v: dash(r.appliedAt) },
+    { rk: 't2', k: '最近审核时间', v: dash(lastAuditAt(r)) },
+    /* 完成时间与关闭时间互斥:一张单要么走到已完成,要么走到已关闭,不会两个都有。
+       没关闭的单出完成时间(未完成时为「—」),关闭的单出关闭时间 */
+    closed ? { rk: 'ct', k: '关闭时间', v: r.closedAt }
+      : { rk: 't3', k: '完成时间', v: dash(r.completedAt) },
+    closed ? { rk: 'cr', k: '关闭原因', v: r.closeCode
+      ? <StatusTag variant={CLOSE_REASONS[r.closeCode].variant}>{CLOSE_REASONS[r.closeCode].label}</StatusTag>
+      : dash('') } : null,
+    /* 邮件告知这个开关只有「运营关闭」这一种来源才有,买家撤销 / 拒退关单没有,故不出该行 */
+    (closed && r.closeCode === 'ops_close') ? { rk: 'cn', k: '邮件告知买家',
+      v: <span style={{ color: r.closeNotify ? '#1F2937' : '#D97706' }}>{r.closeNotify ? '是' : '否'}</span> } : null,
+    /* 关闭说明是自由文本,放在右栏内换行即可,【不】拉成横跨两栏的整行:
+       它是「怎么结束的」这条线的最后一句,跟关闭原因分开就又要左右来回读;
+       右栏净宽约 370px、13px 字,常见 30~60 字的关闭说明折 2~3 行,读得下。
+       两栏各自独立流动,右栏因此变长不会影响左栏 */
+    closed ? { rk: 'cd', k: '关闭说明',
+      v: <span style={{ color: '#DC2626', lineHeight: 1.7 }}>{dash(r.closeReason)}</span> } : null,
+  ];
+  /* 长字段(横跨两栏、各占整行)顺序:商品行 → 原因 → 买家说的 → 买家给的材料 → 被驳回过说了什么。
+     关闭说明【已移到右栏】,不再留在这里 */
+  const baseWideRows = [
+    { rk: 'item', k: '订单商品行', v: <span>{r.item.name}
+      <span style={{ color: '#6B7280', fontSize: 12, marginLeft: 8 }}>
+        商品 ID {r.item.pid} · 成色等级快照 {r.item.grade} · 商品行实付 {money(r.sym, r.item.paid)} {r.cur}</span></span> },
+    { rk: 'reason', k: '售后原因',
+      v: <span>{reasonLabelOf(r)}
+        <span className="lp-code" style={{ marginLeft: 8 }}>{r.reasonCode}</span></span> },
+    { rk: 'note', k: '买家补充说明', v: dash(r.note) },
+    /* 缩略图已经把图都铺出来了,点缩略图即看大图;附件清单与运营补传在同一个弹窗里,入口是「运营补传」 */
+    { rk: 'ev', k: '买家举证附件', v: <div>
+      {(r.ev || []).length > 0 ? <div className="lp-thumb-grid">
+        {r.ev.map((x, xi) => <div className="lp-thumb-wrap" key={x.i}>
+          <div className="lp-thumb" title="点击查看大图"
+            onClick={() => setPv({ list: r.ev, i: xi })}><PictureOutlined /></div>
+          <div className="lp-thumb-cap">{x.name}<br />{x.by} · {x.at.slice(5)}</div></div>)}
+      </div> : <div style={{ color: '#9CA3AF', marginBottom: 8 }}>买家未上传举证材料</div>}
+      <Button size="small" icon={<UploadOutlined />} onClick={() => setEvOpen(true)}>运营补传</Button>
+      </div> },
+    /* 「当前正等买家修改」这一状态由页头的 rejectMark 标签承载,此处只放原文 */
+    waitFix ? { rk: 'rej', k: '最近一次驳回原因',
+      v: <span style={{ color: '#DC2626' }}>{lastAudit(r).at} · {lastAudit(r).note}</span> } : null,
+  ];
+  const basicSection = <div className="lp-module">
+    <h4 className="lp-section">基本信息</h4>
+    <DetailGrid groups={[baseLeftRows, baseRightRows]} labelWidth={DETAIL_LABEL_W} />
+    <DetailGrid rows={baseWideRows} labelWidth={DETAIL_LABEL_W} />
+  </div>;
+
+  /* --- 退货信息 --------------------------------------------------------------
+     形态 = 【边框卡】,形制整套照抄订单管理后台详情页「包裹物流」(.lp-card / .lp-card-head /
+     .lp-card-part,边框、圆角、灰底色值、内边距、分隔线一个数值都没自己定)。
+     卡在这里圈的不是「多个包裹里的这一个」(售后本期一单一包裹),而是
+     【一件在外面跑的实物 + 承运商系统返回的这一段过程】—— 卡的边框就是本域与外部的分界:
+     卡外(基本信息 / 判责信息)全是我们自己录的静态事实,卡内的头条与轨迹是外部系统回来的、
+     会随时间变的。运营扫这块时要的正是「这件东西现在在哪」,把它整段圈起来一眼可辨。
+
+     卡的两段:
+       ① 灰底头条 = 这一件的全部标识,一行读完。
+          左:承运商名(+代码)→ 退货运单号(lp-code)→ 物流状态 tag(读法 = 谁在送 → 送的哪一件 → 送到哪了)
+          右:退货地址,右对齐。地址【只出值、不出标签】—— 头条是标识行不是字段区,
+             而且「Looply Returns Center, …」自带仓名 + 街道 + 州 + 邮编,不写标签也不会读错
+       ② 分区(唯一)= 外部返回的(退货轨迹时间轴 + 刷新轨迹)
+     ⚠ 卡内只剩一个分区,故【只有头条底下那一条分隔线】,不留空分区、不留孤立分隔线。
+     运单号 / 承运商只展示售后单登记值一份,不常驻两套字段;被物流侧改过号的单
+     只在头条挂一个「与物流侧不同」tag —— 物流侧当前值是多少不必摆在页面上,
+     轨迹本身就是物流侧回来的,运营点开承运商官网核对即可。
+     ⚠ 没有卡就没有内容:未回填运单 / 本单不寄回时【整张卡不出】,只留一行灰字 --- */
+  const shipSection = <div className="lp-module">
+    <h4 className="lp-section">退货信息</h4>
+    {!needShip ? <div className="lp-nodata">本单无需退货寄回</div> : (r.ship ? <div className="lp-card">
+      {/* ⚠ 承运商名与代码在多数承运商上是同一个字面量(UPS / USPS / HKPOST),
+            两个都摆会出现「UPS UPS」;只有名与代码确实不同的(FedEx / SF Express)才补代码 */}
+      <div className="lp-card-head">
+        <div className="main">
+          <span>{carrierName(r.returnCarrierCode)}</span>
+          {carrierName(r.returnCarrierCode) !== r.returnCarrierCode
+            && <span className="lp-code">{r.returnCarrierCode}</span>}
+          <span className="lp-code">{r.returnTrackingNo}</span>
+          {trackingDrift && <StatusTag variant="pending">与物流侧不同</StatusTag>}
+          <StatusTag variant={r.ship.internal === '已送达' ? 'on' : 'sale'}>{r.ship.internal}</StatusTag>
+        </div>
+        <span className="side">{dash(s ? s.addr : '')}</span>
+      </div>
+      <div className="lp-card-part">
+      <div className="lp-card-label">退货轨迹</div>
+      {/* 轨迹改走时间轴(订单详情页「包裹物流」同款),不再用三列表格:
+          表格把「时间 / 状态 / 描述」摊成等重的三格,读起来和上方字段一样平,
+          看不出这是一串有先后的事件;时间轴的圆点 + 竖线天生带方向感,
+          一眼就是「从上到下 = 从新到旧」。
+          圆点配色沿用本页既有口径(见 TimelineModal):已送达 = 成功色,
+          其余最新一条 = 主色,更早的 = 灰。状态用加粗正文而不是标签 —— 圆点已经在给颜色了 */}
+      {(r.ship.track || []).length > 0 ? <Timeline items={r.ship.track.map((x, xi) => ({
+        key: x.i,
+        color: x.st === '已送达' ? '#16A34A' : (xi === 0 ? '#7C3AED' : '#9CA3AF'),
+        children: <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+            <span style={{ fontWeight: 600 }}>{x.st}</span>
+            <span style={{ fontSize: 12, color: '#9CA3AF', whiteSpace: 'nowrap' }}>{x.at}</span></div>
+          <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{x.desc}</div></div>,
+      }))} />
+        : <div className="lp-nodata">承运商尚未产生揽收轨迹</div>}
+      {/* 刷新轨迹作用于本分区自己的内容(轨迹),故留在卡内;回填 / 修改运单会推进状态,只在页头 */}
+      <Button style={{ marginTop: 12 }} icon={<ReloadOutlined />}
+        onClick={() => toast('轨迹已刷新')}>刷新轨迹</Button>
+      </div>
+    </div> : <div className="lp-nodata">尚未回填退货运单</div>)}
+  </div>;
+
+  /* --- 判责信息 --------------------------------------------------------------
+     判责与退款【合并为一个模块】,模块首要字段区按【信息来源】切成三条竖着的独立序列 ——
+     不是按"字段多所以摊三列",是这三段的产生方式根本不同,混排会让运营看不出谁该找谁核对:
+       · 列1 判定 = 运营在判责弹窗里【人判的】:判责结论 / 责任归属 / 异常结论处理出口 /
+                    判责说明(内部)。判责说明【就是本列里的普通字段行】,值按列宽自动折行,
+                    与上一行同样的行间距 —— 不整行下沉、不点子区标题。
+                    判责取证同属「人判的」,但它是定宽缩略图的横向流,塞进 1/3 宽会竖成一条,
+                    故【单独跨整幅排在三列下方】(见 evidenceRows)
+       · 列2 算账 = 我们【自己算的】:退款基准 → 退货扣减 → 最终退款金额。
+                    竖着读就是一道算式,结果行加粗强调;三行之间不加分隔线
+       · 列3 执行 = 支付域【异步返回的】:退款单号 / 执行状态 / 到账时间。
+                    它慢于列2 —— 列2 的数一提交就定了,列3 的状态可能几天后才回来
+     三列【各自独立流动、不做行对齐】(A.21-4)。列1 最多 4 行且含一段长文本,
+     【必然长于】列2 / 列3 的 3 行 —— 这是预期结果,短的两列下方自然留白,不插空位。
+     ⚠ 模块内 = 一个三列分栏 + 一行判责取证:没有子区标题、没有告警条。
+       判责取证在 denied / settled=false 的单上【照出】—— 它属于「人判的」那一组,
+       不随列2 列3 一起消失。
+
+     ⚠ 没有内容就不占位置:
+       · 未判责的单 —— 不摆试算金额、不摆「待发起 / — / —」占位,整个模块只留一行「尚未判责」
+       · 已关闭且从未判责(买家撤销 / 运营关闭)—— 只留一行「暂无判责信息」
+       · 退款单未产生(settled 为假)—— 列2 与列3【整列不出】,栅格降级成单列,不留空格子。
+         拒退关单(denied)判过责但没有退款单,同样走这一条:列1 照出,列2 列3 整个不出。
+         「为什么没有退款单」已由列1 的「异常结论处理出口 = 不退并关闭(拒退关单)」tag 说清,
+         不再另摆一句说明复述它
+     ⚠ 本模块内【没有任何告警条】:退款失败这件事由页头的「退款失败待重试」tag +
+       列3 的「执行状态 = 退款失败」tag 承载,失败原因原文在页面底部的操作记录里
+       (「退款失败回传」那条),不在本模块重复一遍
+     删掉的四项不回来:录入人与时间 / 定案人 → 操作记录 --- */
+  const inspectPhotos = (r.inspect && r.inspect.photos) ? r.inspect.photos : [];
+  /* 列1 判定 —— 运营人判的。判责说明与判责取证【就是这一列里的两个普通字段行】:
+     · 判责说明 —— 值按列宽自动折行,与上一行同样的行间距,不整行下沉、不做特殊处理。
+       标签带「(内部)」+ 值尾挂灰字「不对买家展示」——两处标注各说一件事,都要留
+     · 判责取证 —— 形态整套照抄基本信息里的「买家举证附件」字段(见 baseWideRows 的 rk:'ev'):
+       同一个 .lp-thumb-grid / .lp-thumb-wrap / .lp-thumb(104,点开看大图)/ .lp-thumb-cap
+       (文件名 + 上传人 · 时间)。不点子区标题、不带张数 —— 与「买家举证附件」同一读法 */
+  const verdictCol = [
+    (needShip && r.inspect) ? { rk: 'i1', k: '判责结论', v: <StatusTag variant={abnormal ? 'req'
+      : (r.inspect.result === '与申请一致' ? 'on' : 'pending')}>{r.inspect.result}</StatusTag> } : null,
+    r.liability ? { rk: 'i2', k: '责任归属',
+      v: <StatusTag variant={r.liability === 'platform' ? 'req' : 'off'}>{LIABILITY[r.liability]}</StatusTag> } : null,
+    (r.inspect && r.inspect.outlet) ? { rk: 'i5', k: '异常结论处理出口',
+      v: <StatusTag variant={r.inspect.outlet === 'deny' ? 'req' : 'sale'}>{OUTLETS[r.inspect.outlet].label}</StatusTag> } : null,
+    (r.inspect && r.inspect.note) ? { rk: 'i4', k: '判责说明(内部)',
+      v: <span style={{ lineHeight: 1.75 }}>{r.inspect.note}
+        <span className="lp-inner-flag">不对买家展示</span></span> } : null,
+  ].filter(Boolean);
+  /* 判责取证【跨整个模块宽度、排在三列下方】,不进列1 ——
+     缩略图是定宽 104 的横向流,塞进 1/3 宽的列里每行只放得下 1 张,会竖成一条;
+     铺满整幅后一行能放 7~8 张,一眼看完整组图。
+     形态仍与「买家举证附件」完全一致(lp-thumb-grid / lp-thumb-wrap / caption 全未改),
+     变的只是容器宽度。
+     ⚠ 用的是本文件既有的【整行 DetailGrid 兄弟节点】写法(基本信息的 baseWideRows 同款),
+       不是曾经的 lp-rowfull —— 那个 grid-column:1/-1 只跨得了【一栏内的标签列 + 值列】,
+       跨不出栏本身,拿它做不到整幅。全页只此一种跨行机制 */
+  const evidenceRows = inspectPhotos.length > 0
+    ? [{ rk: 'i6', k: '判责取证', v: <div className="lp-thumb-grid">
+        {inspectPhotos.map((x, xi) => <div className="lp-thumb-wrap" key={x.i}>
+          <div className="lp-thumb" title="点击查看大图"
+            onClick={() => setPv({ list: inspectPhotos, i: xi })}><PictureOutlined /></div>
+          <div className="lp-thumb-cap">{x.name}<br />{x.by} · {x.at.slice(5)}</div></div>)}
+      </div> }]
+    : [];
+  /* 列2 算账 —— 我们自己算的,竖着读是一道算式:基准 − 扣减 = 最终。
+     三行之间【不加分隔线】:三个标签自己已经把算式说清楚了,一条横线只是把同一件事再画一遍。
+     【只在退款单已产生时】才组装 —— settled 为假就是整列都没有,而不是一列破折号 */
+  const amountCol = settled ? [
+    { rk: 'm1', k: '退款基准', v: <span className="lp-num">{money(r.sym, rf.base)}</span> },
+    /* 扣减为 0 时不加负号、不上红:那是「没扣」,不是一笔扣款 */
+    { rk: 'm2', k: '退货扣减', v: Number(rf.fee) > 0
+      ? <span className="lp-minus">- {money(r.sym, rf.fee)}</span>
+      : <span className="lp-num">{money(r.sym, 0)}</span> },
+    { rk: 'm3', k: '最终退款金额', v: <span className="lp-amt">{money(r.sym, rf.amount)} {r.cur}</span> },
+  ] : [];
+  /* 列3 执行 —— 支付域异步返回的。与列2 不同源:列2 一提交就定了,列3 可能几天后才回来 */
+  const execCol = settled ? [
+    { rk: 'r1', k: '退款单号', v: <span className="lp-code">{rf.refNo}</span> },
+    { rk: 'r2', k: '执行状态',
+      v: <StatusTag variant={REFUND_STATUS[rf.status].variant}>{REFUND_STATUS[rf.status].label}</StatusTag> },
+    { rk: 'r3', k: '到账时间', v: dash(rf.status === 'done' ? rf.at : '') },
+  ] : [];
+  /* 空列在传入前就 filter 掉:传空数组会留一个空格子,栅格仍按 3 列分宽,
+     剩下的列被挤在左边 1/3。filter 后 3 列自动降级成 2 列 / 单列 */
+  const adjCols = [verdictCol, amountCol, execCol].filter(g => g.length > 0);
+  const adjSection = <div className="lp-module">
+    <h4 className="lp-section">判责信息</h4>
+    {neverJudged ? <div className="lp-nodata">暂无判责信息</div>
+      /* 模块内 = 三列分栏 + 判责取证整行,没有子区标题、没有告警条。
+         判责取证的标签列宽【跟三列一样取 108,不取整行常量 116】——
+         它紧贴在列1 下方,读起来是「判定」这条序列的最后一项,
+         标签右边缘要与列1 的标签落在同一条竖线上;取 116 会右移 8px,看着像另起了一段 */
+      : (!judged ? <div className="lp-nodata">尚未判责</div> : <>
+        <DetailGrid groups={adjCols} labelWidth={DETAIL_LABEL_W_3COL} />
+        {evidenceRows.length > 0 && <DetailGrid rows={evidenceRows} labelWidth={DETAIL_LABEL_W_3COL} />}
+      </>)}
+  </div>;
+
+  /* 买家时间线在页头右上角按钮 → TimelineModal;下方常驻的操作记录是内部全量,两者不合并。
+     操作记录固定在详情页底部常驻区(skill 规则 A.8),标题由 OpLog 自己出 .lp-section */
+  const logSection = <OpLog data={logs} types={['创建', '审核通过', '审核驳回', '重新提交', '回填运单', '状态推进',
+    '判责并退款', '发起退款', '退款失败回传', '拒退关单', '关单']} />;
+
+  return <Card style={CARD_STYLE}>
+    {/* marginBottom 32:本页页头下方不画分隔线,页头与正文的分隔全靠这个间距(比模块间距 24 大一档) */}
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 32 }}>
+      <div>
+        <Breadcrumb items={[{ title: <a onClick={() => go('as-list')}>售后工单</a> }, { title: '售后单详情' }]}
+          style={{ marginBottom: 8 }} />
+        <div style={{ fontSize: 20, fontWeight: 700 }}>
+          <span className="lp-code">{r.id}</span>
+          <span style={{ marginLeft: 10 }}><StatusTag variant={st.variant}>{st.label}</StatusTag></span>
+          {rMark ? <span style={{ marginLeft: 4 }}><StatusTag variant="req">{rMark}</StatusTag></span> : null}
+          {retry && <span style={{ marginLeft: 4 }}><StatusTag variant="req">退款失败待重试</StatusTag></span>}</div>
+        <div style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>
+          {AS_TYPE[r.asType]} · {m.label} · 订单 {r.orderNo} · 申请于 {r.appliedAt}</div>
+      </div>
+      {/* 推进状态的动作【全部】收在这一排,模块正文里不再各放一份 */}
+      <Space>
+        {r.status === 'pending_audit' && <Button type="primary" icon={<AuditOutlined />} onClick={() => setAuditOpen(true)}>审核</Button>}
+        {/* 运单登记发生在待寄回阶段;退货在途已寄出,本入口不再开放 */}
+        {r.status === 'to_ship' && <Button type="primary" icon={<CarOutlined />} onClick={() => setShipOpen(true)}>回填运单</Button>}
+        {/* 判责入口只此一个,文案只有「判责」一种,不存在「修改判责」变体 ——
+            判责提交即定死退款金额并当场调支付域打款,是终局动作、没有修改窗口,
+            所以判过责的单直接不出本入口(判据 canAdjudicate 已含 !isJudged) */}
+        {canAdj && <Button type="primary" icon={<AuditOutlined />} onClick={() => setAdjOpen(true)}>
+          判责</Button>}
+        {retry && <Button type="primary" icon={<ReloadOutlined />} onClick={() => setRetryOpen(true)}>重新发起退款</Button>}
+        {OPS_CLOSE_STATUS.indexOf(r.status) >= 0 && <Button danger icon={<CloseCircleOutlined />}
+          onClick={() => setCloseOpen(true)}>关闭售后单</Button>}
+        {/* 买家时间线 / 建单快照:都是「偶尔查一次」的核对信息,同一排、同一风格,收进弹窗不占正文版面 */}
+        <Button icon={<ClockCircleOutlined />} onClick={() => setTlOpen(true)}>买家时间线</Button>
+        <Button icon={<FileProtectOutlined />} onClick={() => setSnapOpen(true)}>建单快照</Button>
+        <Button onClick={() => go('as-list')}>返回列表</Button>
+      </Space>
+    </div>
+    {/* 页头与正文之间【不画分隔线】—— 第一个模块标题 .lp-section 自带底线,
+        再来一条就是两条平行线挤在一起。分隔改由页头容器的下边距承担(32,
+        比模块间距 24 大一档,体现"页头 → 正文"是更高层级的跨越) */}
+    {basicSection}
+    {shipSection}
+    {adjSection}
+    {logSection}
+    <AuditModal key={'da' + r.id} open={auditOpen} onClose={() => setAuditOpen(false)} record={r} />
+    <ShipmentModal key={'ds' + r.id} open={shipOpen} onClose={() => setShipOpen(false)} record={r} />
+    <AdjudicateModal key={'di' + r.id} open={adjOpen} onClose={() => setAdjOpen(false)} record={r} />
+    <RetryRefundModal key={'dr' + r.id} open={retryOpen} onClose={() => setRetryOpen(false)} record={r} />
+    <CloseOrderModal key={'dc' + r.id} open={closeOpen} onClose={() => setCloseOpen(false)} record={r} />
+    <EvidenceModal key={'de' + r.id} open={evOpen} onClose={() => setEvOpen(false)} record={r} />
+    <PhotoViewModal open={!!pv} onClose={() => setPv(null)}
+      list={pv ? pv.list : []} index={pv ? pv.i : 0}
+      onIndex={(n) => setPv({ list: pv.list, i: n })} />
+    <SnapshotModal key={'dp' + r.id} open={snapOpen} onClose={() => setSnapOpen(false)} record={r} />
+    <TimelineModal key={'dt' + r.id} open={tlOpen} onClose={() => setTlOpen(false)} record={r} />
+  </Card>;
+}
+
+/* ============================================================
+   页面 3:售后政策配置
+   ============================================================ */
+/* 「复制」= 带着源政策的全部内容进新增页预填,不是打开一张空白新增页 ——
+   传 null 进去等于「新增」,与按钮上的两个字对不上,运营会以为点错了。
+   ⚠ 唯一不带的是【政策编号 id】:它是这条政策的唯一标识,由系统在保存时重新生成,
+     表单上本来就没有这个输入项,带过去只会让新增页的页头显示成源政策的编号。
+     更新时间 at 同理不带 —— 它是保存那一刻才产生的值,不是可复制的配置内容。
+   其余字段(市场 / 范围类型 / 范围值 / 优先级 / 是否支持退货 / 时效 / 服务费 / 地址 / 状态)全部带走 */
+const policyCopyOf = (r) => { const { id, at, ...rest } = r; return rest; };
+
+function PolicyListPage({ go }) {
+  const [mode, setMode] = useState('data');
+  const [marketF, setMarketF] = useState('');
+  const [cur, setCur] = useState(null);
+  const [toggleOpen, setToggleOpen] = useState(false);
+  const rows = POLICIES.filter(p => !marketF || p.market === marketF);
+  const columns = [
+    { title: '政策编号', dataIndex: 'id', width: 165, render: v => <span className="lp-code">{v}</span> },
+    { title: '适用市场', dataIndex: 'market', width: 120, render: v => marketOf(v).label },
+    { title: '适用范围', key: 'scope', width: 210, render: (_, r) => <div>
+      <StatusTag variant="sale">{SCOPE_TYPE[r.scopeType]}</StatusTag>
+      <span>{r.scopeValue ? r.scopeValue : '全部商品'}</span></div> },
+    { title: '同层优先级', dataIndex: 'priority', width: 110, align: 'center' },
+    { title: '是否支持退货', dataIndex: 'returnable', width: 120, align: 'center',
+      render: v => <StatusTag variant={v ? 'on' : 'req'}>{v ? '支持' : '不支持'}</StatusTag> },
+    { title: '售后时效', dataIndex: 'validDays', width: 130, align: 'center',
+      render: (v, r) => r.returnable ? '签收后 ' + v + ' 天' : dash('') },
+    { title: '退货服务费', key: 'fee', width: 140, align: 'right',
+      render: (_, r) => r.returnable ? money(marketOf(r.market).sym, r.fee) + ' ' + r.cur : dash('') },
+    { title: '退货地址', dataIndex: 'addr', width: 260, render: v => v ? <span style={{ fontSize: 12, color: '#4B5563' }}>{v}</span> : dash('') },
+    { title: '状态', dataIndex: 'status', width: 90, render: v => <StatusTag variant={v === 'on' ? 'on' : 'off'}>{v === 'on' ? '启用' : '停用'}</StatusTag> },
+    { title: '更新时间', dataIndex: 'at', width: 155 },
+    { title: '操作', key: 'op', width: 170, fixed: 'right', render: (_, r) => <Space size={6}>
+      <Button size="small" onClick={() => go('policy-edit', r)}>编辑</Button>
+      <Button size="small" onClick={() => go('policy-create', policyCopyOf(r))}>复制</Button>
+      <Button size="small" danger={r.status === 'on'} onClick={() => { setCur(r); setToggleOpen(true); }}>
+        {r.status === 'on' ? '停用' : '启用'}</Button></Space> },
+  ];
+  return <Card style={CARD_STYLE}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 18 }}>
+      <div>
+        <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>售后政策</div>
+        <div style={{ color: '#6B7280', fontSize: 13 }}>匹配顺序:商品 → 品类 → 全市场,命中即停</div>
+      </div>
+      <Button type="primary" icon={<PlusOutlined />} onClick={() => go('policy-create', null)}>新增政策</Button>
+    </div>
+    <Space size={12} wrap style={{ marginBottom: 12 }}>
+      <Input placeholder="政策编号 / 范围值" prefix={<SearchOutlined style={{ color: '#9CA3AF' }} />} allowClear style={{ width: 220 }} />
+      <Select value={marketF} onChange={setMarketF} style={{ width: 150 }} options={[{ value: '', label: '全部 Market' },
+        ...MARKETS.map(m => ({ value: m.value, label: m.label }))]} />
+      <Select defaultValue="" style={{ width: 150 }} options={[{ value: '', label: '全部范围类型' },
+        ...Object.keys(SCOPE_TYPE).map(k => ({ value: k, label: SCOPE_TYPE[k] }))]} />
+      <Select defaultValue="" style={{ width: 130 }} options={[{ value: '', label: '全部状态' },
+        { value: 'on', label: '启用' }, { value: 'off', label: '停用' }]} />
+      <Button type="primary" icon={<SearchOutlined />}
+        onClick={() => toast('已按当前条件查询,共 ' + rows.length + ' 条')}>查询</Button>
+      <Button icon={<ReloadOutlined />} onClick={() => setMarketF('')}>重置</Button>
+    </Space>
+    {mode === 'data' && <>
+      <Table rowKey="id" columns={columns} dataSource={rows} pagination={false} styles={TABLE_STYLES}
+        scroll={{ x: 'max-content' }} />
+      <CompactPagination total={rows.length} pageSize={10} /></>}
+    {mode === 'zero' && <EmptyZero entity="售后政策" cta="新增政策" onCta={() => go('policy-create', null)} />}
+    {mode === 'no-match' && <EmptyNoMatch onClear={() => { setMarketF(''); setMode('data'); }} />}
+    {mode === 'error' && <EmptyError onRetry={() => setMode('data')} />}
+    <EmptyStateSwitcher mode={mode} setMode={setMode} />
+    <PolicyToggleModal key={'pt' + (cur ? cur.id : '0')} open={toggleOpen} onClose={() => setToggleOpen(false)} record={cur} />
+  </Card>;
+}
+
+function PolicyFormPage({ go, isEdit, record }) {
+  const r = record || {};
+  const [market, setMarket] = useState(r.market || 'US');
+  const [scopeType, setScopeType] = useState(r.scopeType || 'market');
+  const [returnable, setReturnable] = useState(r.returnable === undefined ? true : r.returnable);
+  const m = marketOf(market);
+  return <Card style={CARD_STYLE}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 18 }}>
+      <div>
+        <Breadcrumb items={[{ title: <a onClick={() => go('policy-list')}>售后政策</a> }, { title: isEdit ? '编辑政策' : '新增政策' }]}
+          style={{ marginBottom: 8 }} />
+        <div style={{ fontSize: 20, fontWeight: 700 }}>{isEdit ? '编辑售后政策' : '新增售后政策'}</div>
+        <div style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>
+          {isEdit ? <span className="lp-code">{r.id}</span> : '保存后即对新申请生效'}</div>
+      </div>
+      <Button onClick={() => go('policy-list')}>返回列表</Button>
+    </div>
+
+    <div className="lp-module">
+      <h4 className="lp-section">适用范围</h4>
+      <FormRow label="适用市场" required>
+        <Select value={market} onChange={setMarket} style={{ width: 260 }}
+          options={MARKETS.map(x => ({ value: x.value, label: x.label }))} /></FormRow>
+      <FormRow label="范围类型" required>
+        <Radio.Group value={scopeType} onChange={e => setScopeType(e.target.value)}
+          options={Object.keys(SCOPE_TYPE).map(k => ({ value: k, label: SCOPE_TYPE[k] }))} /></FormRow>
+      {scopeType === 'category' && <FormRow label="适用品类" required>
+        <Select style={{ width: '100%', maxWidth: 460 }} defaultValue={r.scopeValue} placeholder="选择品类"
+          options={[{ value: '手袋(CAT1002)', label: '手袋(CAT1002)' }, { value: '腕表(CAT1005)', label: '腕表(CAT1005)' },
+            { value: '特价清仓(CAT1099)', label: '特价清仓(CAT1099)' }]} /></FormRow>}
+      {scopeType === 'product' && <FormRow label="适用商品" required>
+        <Select mode="tags" style={{ width: '100%', maxWidth: 560 }} defaultValue={r.scopeValue ? [r.scopeValue] : []}
+          placeholder="输入商品 ID 后回车,支持粘贴多个" /></FormRow>}
+      <FormRow label="同层优先级" required helper={PRIORITY_TIP}>
+        <InputNumber defaultValue={r.priority || 10} min={1} max={999} style={{ width: 160 }} /></FormRow>
+    </div>
+
+    <div className="lp-module">
+      <h4 className="lp-section">退货与时效规则</h4>
+      <FormRow label="是否支持退货" required>
+        <Radio.Group value={returnable} onChange={e => setReturnable(e.target.value)}
+          options={[{ value: true, label: '支持退货' }, { value: false, label: '不支持退货' }]} /></FormRow>
+      {returnable && <>
+        <FormRow label="售后时效" required helper="从买家签收当天开始算">
+          <InputNumber defaultValue={r.validDays || 14} min={1} max={365} addonAfter="天" style={{ width: 180 }} /></FormRow>
+      </>}
+    </div>
+
+    {returnable && <div className="lp-module">
+      <h4 className="lp-section">退货服务费</h4>
+      <FormRow label="服务费金额" required>
+        <Space size={12}>
+          <InputNumber defaultValue={r.fee === undefined ? 15 : r.fee} min={0} precision={2} prefix={m.sym} style={{ width: 180 }} />
+          <Select value={m.cur} disabled style={{ width: 120 }} options={[{ value: m.cur, label: m.cur }]} />
+        </Space></FormRow>
+      <h4 className="lp-section">退货地址</h4>
+      <FormRow label="退货地址" required>
+        <Input.TextArea rows={3} defaultValue={r.addr} placeholder="收件人 / 门牌 / 街道 / 城市 / 州省 / 邮编 / 国家 / 联系电话" /></FormRow>
+    </div>}
+
+    <div className="lp-module">
+      <h4 className="lp-section">状态</h4>
+      <FormRow label="政策状态" required>
+        <Select defaultValue={r.status || 'on'} style={{ width: 180 }}
+          options={[{ value: 'on', label: '启用' }, { value: 'off', label: '停用' }]} /></FormRow>
+    </div>
+
+    {isEdit && <OpLog types={['创建', '编辑', '启用', '停用']} />}
+
+    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, padding: '16px 0', borderTop: '1px solid #E5E7EB', marginTop: 8 }}>
+      <Button onClick={() => go('policy-list')}>取消</Button>
+      <Button type="primary" onClick={() => { toast(isEdit ? '政策已保存' : '政策已创建'); go('policy-list'); }}>
+        {isEdit ? '保存' : '保存并创建'}</Button>
+    </div>
+  </Card>;
+}
+
+/* ============================================================
+   页面 4:售后原因(after_sale_reason)
+   ============================================================ */
+function ReasonListPage({ go }) {
+  const [mode, setMode] = useState('data');
+  const [cur, setCur] = useState(null);
+  const [toggleOpen, setToggleOpen] = useState(false);
+  const rows = REASONS;
+  const columns = [
+    { title: '原因码', dataIndex: 'code', width: 260, render: v => <span className="lp-code">{v}</span> },
+    { title: '展示文案', dataIndex: 'text', width: 240 },
+    { title: '中文备注', dataIndex: 'cn', width: 150 },
+    /* ⚠ 这里没有「货是否已收到」列,也没有对应的筛选器 —— 字典上根本没有这个字段了。
+       走不走寄回由原因码本身决定(needReturn 看 code 在不在 NOT_RECEIVED_CODES 白名单里),
+       运营要找白名单那几条,靠原因码或展示文案搜索 —— 前缀已中性化,分不出组 */
+    { title: '必传举证', dataIndex: 'ev', width: 100, align: 'center',
+      render: v => <StatusTag variant={v ? 'req' : 'off'}>{v ? '必传' : '选传'}</StatusTag> },
+    { title: '排序', dataIndex: 'sort', width: 80, align: 'center' },
+    { title: '状态', dataIndex: 'status', width: 90, render: v => <StatusTag variant={v === 'on' ? 'on' : 'off'}>{v === 'on' ? '启用' : '停用'}</StatusTag> },
+    { title: '更新时间', dataIndex: 'at', width: 155 },
+    /* 预置码(preset)整组构成流程分岔的判据 —— 停掉其中任何一条,买家就少一条能走到
+       不寄回分支的路,故这几行的「停用」按钮【逐行】置灰,不是只锁一行。
+       本页本就没有删除入口,不可删无需另做表达。
+       置灰的原因用 Tooltip 一句话交代(属「操作被拦住的原因」),不在页面上铺开讲为什么 */
+    { title: '操作', key: 'op', width: 150, fixed: 'right', render: (_, r) => <Space size={6}>
+      <Button size="small" onClick={() => go('reason-edit', r)}>编辑</Button>
+      {r.preset
+        ? <Tooltip title="系统预置原因,不可停用">
+            <Button size="small" disabled>停用</Button></Tooltip>
+        : <Button size="small" danger={r.status === 'on'} onClick={() => { setCur(r); setToggleOpen(true); }}>
+            {r.status === 'on' ? '停用' : '启用'}</Button>}</Space> },
+  ];
+  return <Card style={CARD_STYLE}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 18 }}>
+      <div>
+        <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>售后原因</div>
+        <div style={{ color: '#6B7280', fontSize: 13 }}>C 端申请页的售后原因下拉配置</div>
+      </div>
+      <Button type="primary" icon={<PlusOutlined />} onClick={() => go('reason-create', null)}>新增原因码</Button>
+    </div>
+    <Space size={12} wrap style={{ marginBottom: 12 }}>
+      <Input placeholder="原因码 / 展示文案" prefix={<SearchOutlined style={{ color: '#9CA3AF' }} />} allowClear style={{ width: 240 }} />
+      <Select defaultValue="" style={{ width: 130 }} options={[{ value: '', label: '全部举证要求' },
+        { value: '1', label: '必传' }, { value: '0', label: '选传' }]} />
+      <Select defaultValue="" style={{ width: 130 }} options={[{ value: '', label: '全部状态' },
+        { value: 'on', label: '启用' }, { value: 'off', label: '停用' }]} />
+      <Button type="primary" icon={<SearchOutlined />}
+        onClick={() => toast('已按当前条件查询,共 ' + rows.length + ' 条')}>查询</Button>
+      <Button icon={<ReloadOutlined />} onClick={() => setMode('data')}>重置</Button>
+    </Space>
+    {mode === 'data' && <>
+      <Table rowKey="id" columns={columns} dataSource={rows} pagination={false} styles={TABLE_STYLES}
+        scroll={{ x: 'max-content' }} />
+      <CompactPagination total={rows.length} pageSize={20} /></>}
+    {mode === 'zero' && <EmptyZero entity="原因码" cta="新增原因码" onCta={() => go('reason-create', null)} />}
+    {mode === 'no-match' && <EmptyNoMatch onClear={() => setMode('data')} />}
+    {mode === 'error' && <EmptyError onRetry={() => setMode('data')} />}
+    <EmptyStateSwitcher mode={mode} setMode={setMode} />
+    <ReasonToggleModal key={'rt' + (cur ? cur.id : '0')} open={toggleOpen} onClose={() => setToggleOpen(false)} record={cur} />
+  </Card>;
+}
+
+function ReasonFormPage({ go, isEdit, record }) {
+  const r = record || {};
+  return <Card style={CARD_STYLE}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 18 }}>
+      <div>
+        <Breadcrumb items={[{ title: <a onClick={() => go('reason-list')}>售后原因</a> }, { title: isEdit ? '编辑原因码' : '新增原因码' }]}
+          style={{ marginBottom: 8 }} />
+        <div style={{ fontSize: 20, fontWeight: 700 }}>{isEdit ? '编辑原因码' : '新增原因码'}</div>
+        <div style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>
+          {isEdit ? <span className="lp-code">{r.code}</span> : '原因码全局唯一,创建后不可修改'}</div>
+      </div>
+      <Button onClick={() => go('reason-list')}>返回列表</Button>
+    </div>
+    <div className="lp-module">
+      <h4 className="lp-section">基本信息</h4>
+      <FormRow label="原因码" required>
+        <Input defaultValue={r.code} disabled={isEdit} placeholder="如 ASR_NOT_AS_DESCRIBED" style={{ maxWidth: 460 }} /></FormRow>
+      <FormRow label="展示文案" required helper="C 端展示的英文文案">
+        <Input defaultValue={r.text} placeholder="如 Item not as described" style={{ maxWidth: 460 }} /></FormRow>
+      <FormRow label="中文备注" helper="仅后台内部识别用,不对买家展示">
+        <Input defaultValue={r.cn} placeholder="如 描述不符" style={{ maxWidth: 460 }} /></FormRow>
+    </div>
+    {/* 原「收货情况」这一项已删:字典上不再有标识收货与否的字段,
+        走不走寄回由原因码本身决定,不需要运营在这里配 */}
+    <div className="lp-module">
+      <h4 className="lp-section">举证要求</h4>
+      <FormRow label="是否必传举证" required helper="必传时,买家须上传至少一张图片 / 视频">
+        <Radio.Group defaultValue={r.ev === undefined ? true : r.ev}
+          options={[{ value: true, label: '必传' }, { value: false, label: '选传' }]} /></FormRow>
+    </div>
+    <div className="lp-module">
+      <h4 className="lp-section">展示与状态</h4>
+      <FormRow label="排序" required helper="数值越小越靠前">
+        <InputNumber defaultValue={r.sort || 100} min={1} max={999} style={{ width: 160 }} /></FormRow>
+      {/* 预置码不可停用(同列表页的置灰口径),故本项对它只读 */}
+      <FormRow label="启用状态" required>
+        <Select defaultValue={r.status || 'on'} style={{ width: 180 }} disabled={!!r.preset}
+          options={[{ value: 'on', label: '启用' }, { value: 'off', label: '停用' }]} /></FormRow>
+    </div>
+    {isEdit && <OpLog types={['创建', '编辑', '启用', '停用']} />}
+    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, padding: '16px 0', borderTop: '1px solid #E5E7EB', marginTop: 8 }}>
+      <Button onClick={() => go('reason-list')}>取消</Button>
+      <Button type="primary" onClick={() => { toast(isEdit ? '原因码已保存' : '原因码已创建'); go('reason-list'); }}>
+        {isEdit ? '保存' : '保存并创建'}</Button>
+    </div>
+  </Card>;
+}
+
+/* ===== App ===== */
+function App() {
+  const [currentPage, setCurrentPage] = useState('as-list');
+  const [record, setRecord] = useState(null);
+  const go = (key, rec) => { if (rec !== undefined) setRecord(rec); setCurrentPage(key); window.scrollTo(0, 0); };
+  const activeKey = currentPage.indexOf('policy') === 0 ? 'policy' : (currentPage.indexOf('reason') === 0 ? 'reason' : 'as');
+  const subLabel = (text, key) => <span style={{ fontWeight: activeKey === key ? 600 : 400 }}>{text}</span>;
+  const menuItems = [
+    { key: 'workbench', icon: <CustomerServiceOutlined />, label: '售后处理',
+      children: [{ key: 'as', icon: <ProfileOutlined />, label: subLabel('售后工单', 'as') }] },
+    { key: 'config', icon: <SettingOutlined />, label: '售后规则',
+      children: [
+        { key: 'policy', icon: <FileProtectOutlined />, label: subLabel('售后政策', 'policy') },
+        { key: 'reason', icon: <BookOutlined />, label: subLabel('售后原因', 'reason') },
+      ] },
+  ];
+  const crumbMap = {
+    'as-list': '售后工单', 'as-detail': '售后工单 / 售后单详情',
+    'policy-list': '售后规则 / 售后政策', 'policy-create': '售后规则 / 售后政策 / 新增政策',
+    'policy-edit': '售后规则 / 售后政策 / 编辑政策',
+    'reason-list': '售后规则 / 售后原因', 'reason-create': '售后规则 / 售后原因 / 新增原因码',
+    'reason-edit': '售后规则 / 售后原因 / 编辑原因码',
+  };
+  const onMenu = ({ key }) => {
+    if (key === 'as') go('as-list', null);
+    if (key === 'policy') go('policy-list', null);
+    if (key === 'reason') go('reason-list', null);
+  };
+  return <ConfigProvider theme={looplyTheme}>
+    <Layout style={{ height: '100vh' }}>
+      <Layout.Header style={{ borderBottom: '1px solid #E5E7EB', display: 'flex', alignItems: 'center' }}>
+        <img src={LOGO_SRC} alt="Looply" style={{ height: 32, display: 'block' }} />
+        <div style={{ width: 1, height: 20, background: '#E5E7EB', margin: '0 16px' }} />
+        <span style={{ fontSize: 14, fontWeight: 500, color: '#6B7280' }}>售后管理后台</span>
+        <span style={{ marginLeft: 'auto', color: '#9CA3AF', fontSize: 13 }}>{crumbMap[currentPage]}</span>
+      </Layout.Header>
+      <Layout>
+        <Layout.Sider width={220} theme="light" style={SIDER_STYLE}>
+          <Menu mode="inline" items={menuItems} selectedKeys={[activeKey]} defaultOpenKeys={['workbench', 'config']}
+            style={{ borderInlineEnd: 'none' }} onClick={onMenu} /></Layout.Sider>
+        <Layout.Content style={{ padding: 28, overflow: 'auto' }}>
+          {currentPage === 'as-list' && <AfterSaleListPage go={go} />}
+          {currentPage === 'as-detail' && <AfterSaleDetailPage go={go} record={record} />}
+          {currentPage === 'policy-list' && <PolicyListPage go={go} />}
+          {/* record 不能写死 null:「新增政策」按钮传的就是 null(空白页),
+              「复制」按钮传的是去掉编号的源政策(预填页)—— 两条入口共用本页面,由 record 区分 */}
+          {currentPage === 'policy-create' && <PolicyFormPage go={go} isEdit={false} record={record} />}
+          {currentPage === 'policy-edit' && <PolicyFormPage go={go} isEdit={true} record={record} />}
+          {currentPage === 'reason-list' && <ReasonListPage go={go} />}
+          {currentPage === 'reason-create' && <ReasonFormPage go={go} isEdit={false} record={null} />}
+          {currentPage === 'reason-edit' && <ReasonFormPage go={go} isEdit={true} record={record} />}
+        </Layout.Content>
+      </Layout>
+    </Layout>
+  </ConfigProvider>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

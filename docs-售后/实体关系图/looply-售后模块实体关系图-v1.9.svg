@@ -1,0 +1,2344 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="3863pt" height="2471pt" viewBox="0.00 0.00 3863.00 2471.00">
+<metadata><er-schema format="json" version="1.0">
+{
+  "title": "looply · 售后模块 实体关系图",
+  "version": "v1.9 · 2026-08-02",
+  "tables": [
+    {
+      "name": "after_sale_policy",
+      "comment": "售后政策",
+      "columns": [
+        {
+          "name": "id",
+          "comment": "主键",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "market_id",
+          "comment": "适用市场（→ market）",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "scope_type",
+          "comment": "适用范围类型（全市场/品类/商品）",
+          "constraint": ""
+        },
+        {
+          "name": "scope_value",
+          "comment": "适用范围值（品类或商品标识）",
+          "constraint": ""
+        },
+        {
+          "name": "priority",
+          "comment": "优先级（仅同层级内多条命中时定序，越大越优先）",
+          "constraint": ""
+        },
+        {
+          "name": "is_returnable",
+          "comment": "是否支持退货（特价/定制件例外）",
+          "constraint": ""
+        },
+        {
+          "name": "valid_days",
+          "comment": "售后时效天数（签收后 N 天；未签收不计时）",
+          "constraint": ""
+        },
+        {
+          "name": "service_fee_amount",
+          "comment": "退货服务费金额（A14）",
+          "constraint": ""
+        },
+        {
+          "name": "currency_code",
+          "comment": "币种（ISO 4217）",
+          "constraint": ""
+        },
+        {
+          "name": "return_address",
+          "comment": "退货地址（完整文本，按 market 配）",
+          "constraint": ""
+        },
+        {
+          "name": "policy_status",
+          "comment": "政策状态（启用/停用）",
+          "constraint": ""
+        },
+        {
+          "name": "created_at",
+          "comment": "创建时间",
+          "constraint": ""
+        },
+        {
+          "name": "updated_at",
+          "comment": "更新时间",
+          "constraint": ""
+        }
+      ],
+      "note": "A5 可配置策略实体；A17 按 market 独立配。政策匹配按【商品 → 品类 → 市场】固定层级顺序查找，匹配即停、不再往上找；该层级顺序由系统硬编码，不由 priority 决定。priority 仅用于同一层级内多条同时命中时的定序（越大越优先），例：一件商品同属「手袋」与「特价清仓」两个品类、两条品类级政策都命中时靠它定先后。数值均为运营配置项，产品阶段不定具体值"
+    },
+    {
+      "name": "after_sale_reason",
+      "comment": "售后原因码",
+      "columns": [
+        {
+          "name": "id",
+          "comment": "主键",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "reason_code",
+          "comment": "原因码",
+          "constraint": "UNIQUE"
+        },
+        {
+          "name": "display_text",
+          "comment": "展示文案（英文）",
+          "constraint": ""
+        },
+        {
+          "name": "require_evidence",
+          "comment": "是否必传举证",
+          "constraint": ""
+        },
+        {
+          "name": "sort_order",
+          "comment": "排序",
+          "constraint": ""
+        },
+        {
+          "name": "reason_status",
+          "comment": "启用状态",
+          "constraint": ""
+        },
+        {
+          "name": "created_at",
+          "comment": "创建时间",
+          "constraint": ""
+        },
+        {
+          "name": "updated_at",
+          "comment": "更新时间",
+          "constraint": ""
+        }
+      ],
+      "note": "结构化原因码。原因码不参与判责、不与金额挂钩，故不设 default_liability 字段（无消费方）。展示文案为英文，PRD 定义即最终展示文案。⚠ 本表承担【流程分岔的判定依据】：售后单上没有任何标识收货与否的字段，本表也没有——买家选了哪条原因码即决定这单要不要走寄回环节，判定方式是【看 reason_code 在不在白名单里】：落在系统侧维护的「未收到货码表」中 → 不寄回，其余一律走寄回（码表内容与不可变约束见 未收到货原因码为系统预置项）。⚠ 本表【只在建单那一刻被读一次】：整条原因码随即快照进 after_sale_order.reason_snapshot，建单之后的流程判定与对外展示一律读那份快照、不回查本表（见 流程分岔依据取原因码快照、建单时的两个快照）。所以本表的改动只对【此后新建的单据】生效，不影响在途单。⚠ 本表【不设「适用售后类型」字段】：售后类型本期只剩「退货」一个取值，原因码无需再区分适用类型，它区分的是货收到与否"
+    },
+    {
+      "name": "after_sale_order",
+      "comment": "售后单（聚合根）",
+      "columns": [
+        {
+          "name": "id",
+          "comment": "主键",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "as_no",
+          "comment": "售后单号（编码规则归技术侧定）",
+          "constraint": "UNIQUE"
+        },
+        {
+          "name": "order_id",
+          "comment": "所属订单（→ order）",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "order_item_id",
+          "comment": "订单商品行（→ order_item，一单一行）",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "user_id",
+          "comment": "申请人（→ user_account）",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "market_id",
+          "comment": "所属市场（V1 由 user 信息判定）",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "policy_id",
+          "comment": "命中的售后政策（→ after_sale_policy）",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "policy_snapshot",
+          "comment": "政策快照（建单时整条政策留档）",
+          "constraint": ""
+        },
+        {
+          "name": "reason_code",
+          "comment": "原因码（→ after_sale_reason）",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "reason_snapshot",
+          "comment": "原因码快照（建单时整条原因码留档，含 reason_code 与展示文案；流程分岔读本快照里的 reason_code、不实时查字典；与 policy_snapshot 同一套机制）",
+          "constraint": ""
+        },
+        {
+          "name": "reason_note",
+          "comment": "买家补充说明",
+          "constraint": ""
+        },
+        {
+          "name": "as_type",
+          "comment": "售后类型（本期仅「退货」一个取值；字段与维度保留，为 V2 新类型留位，见 售后类型维度本期单取值）",
+          "constraint": ""
+        },
+        {
+          "name": "liability_party",
+          "comment": "责任归属（平台/买家）—— 统一在判责环节落定，审核环节不落（两条分支一律如此）",
+          "constraint": ""
+        },
+        {
+          "name": "as_status",
+          "comment": "售后单状态（7 个枚举：待审核/待寄回/退货在途/待判责/退款中/已完成/已关闭）",
+          "constraint": ""
+        },
+        {
+          "name": "service_fee_quoted",
+          "comment": "申请时告知的退货服务费（已收到货分支取政策值；未收到货分支存 0）",
+          "constraint": ""
+        },
+        {
+          "name": "is_overdue_approved",
+          "comment": "是否超期人工特批",
+          "constraint": ""
+        },
+        {
+          "name": "overdue_approve_note",
+          "comment": "特批原因",
+          "constraint": ""
+        },
+        {
+          "name": "shipment_ref_id",
+          "comment": "退货运单（→ shipments.shipment_id，弱引用）",
+          "constraint": ""
+        },
+        {
+          "name": "return_tracking_no",
+          "comment": "退货运单号（运营登记值）",
+          "constraint": ""
+        },
+        {
+          "name": "return_carrier_code",
+          "comment": "退货承运商编码（运营登记值）",
+          "constraint": ""
+        },
+        {
+          "name": "operator_id",
+          "comment": "最近处理人",
+          "constraint": ""
+        },
+        {
+          "name": "operator_type",
+          "comment": "处理人类型（运营/系统）",
+          "constraint": ""
+        },
+        {
+          "name": "applied_at",
+          "comment": "申请时间",
+          "constraint": ""
+        },
+        {
+          "name": "resubmitted_at",
+          "comment": "买家最近一次重新提交申请的时间（首次提交不写，仅驳回后重新提交时更新）",
+          "constraint": ""
+        },
+        {
+          "name": "closed_at",
+          "comment": "关闭时间",
+          "constraint": ""
+        },
+        {
+          "name": "close_reason",
+          "comment": "关闭原因（枚举：买家撤销 / 运营关闭 / 拒退关单）",
+          "constraint": ""
+        },
+        {
+          "name": "close_note",
+          "comment": "关闭说明（运营关闭时填写的自由文本；【对买家可见】，C 端进度页展示；close_reason 说哪一类关闭，本字段说具体怎么回事）",
+          "constraint": ""
+        },
+        {
+          "name": "close_notify_buyer",
+          "comment": "关闭时是否邮件告知买家（运营关闭弹窗手动勾选，默认勾选=发送；仅运营关闭场景写值，其余关闭来源不经过该勾选框）",
+          "constraint": ""
+        },
+        {
+          "name": "completed_at",
+          "comment": "完成时间",
+          "constraint": ""
+        },
+        {
+          "name": "created_at",
+          "comment": "创建时间",
+          "constraint": ""
+        },
+        {
+          "name": "updated_at",
+          "comment": "更新时间",
+          "constraint": ""
+        }
+      ],
+      "note": "A1 一单一行：一个商品行一张单，一次退多件=多张单。A2 不走订单域 refund_request。互斥：同一 order_item_id 同时只允许一张非终态单。⚠ 互斥占用的解除是【进入终态的必然结果，与关闭来源无关】——两个终态（已完成/已关闭）、三种关闭来源（买家撤销/运营关闭/拒退关单）一律释放，无任何例外、也不需要显式反写字段；占用与否按 order_item_id 实时聚合本域非终态单得出（与 A12 同一口径）。service_fee_quoted 是申请时告知买家的金额快照（A14 要求申请前告知），政策改价不影响在途单。market_id：订单域目前无 market 维度，V1 由 user 信息判定所属 market（已在订单侧记待优化：需补 market）。币种不冗余——售后是同一笔交易的逆向，币种必然继承订单，仅在 after_sale_refund 保留一个用于与支付域对账。审核结论不落主表：每轮审核各生成一条 after_sale_audit 记录（含结论、驳回原因、内部审核意见、审核人、审核时间），主表既不存最近一次结论，也不冗余驳回次数。反之，买家的重新提交是买家动作、不进 after_sale_audit（该表只记运营的审核动作），在别处也推导不出来，故由主表 resubmitted_at 承载"
+    },
+    {
+      "name": "after_sale_audit",
+      "comment": "审核记录",
+      "columns": [
+        {
+          "name": "id",
+          "comment": "主键",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "after_sale_order_id",
+          "comment": "所属售后单（→ after_sale_order）",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "audit_result",
+          "comment": "审核结论（通过/驳回）",
+          "constraint": ""
+        },
+        {
+          "name": "audit_note",
+          "comment": "驳回原因（自由文本；【对买家可见】：原样作为驳回邮件正文，C 端展示；仅驳回时写值）",
+          "constraint": ""
+        },
+        {
+          "name": "audit_internal_note",
+          "comment": "审核意见（自由文本；【仅内部】：运营记内部判断，不进邮件、不对 C 端展示；通过与驳回均可写）",
+          "constraint": ""
+        },
+        {
+          "name": "operator_id",
+          "comment": "审核人（运营）",
+          "constraint": ""
+        },
+        {
+          "name": "operator_type",
+          "comment": "审核人类型",
+          "constraint": ""
+        },
+        {
+          "name": "audited_at",
+          "comment": "审核提交时间（即审核结论录入时间）",
+          "constraint": ""
+        },
+        {
+          "name": "created_at",
+          "comment": "创建时间",
+          "constraint": ""
+        },
+        {
+          "name": "updated_at",
+          "comment": "更新时间",
+          "constraint": ""
+        }
+      ],
+      "note": "一次审核一条记录，本表承接运营提交的审核结论，不承接审核过程。审核可发生多次：驳回后单据回到待审核，买家修改后重新提交、运营再审，可多次循环；每一轮审核（通过或驳回）各写一条，历次驳回原因完整可查、互不覆盖。历次驳回原因是业务事实（chargeback 抗辩需证明平台明确告知过买家第几次该补什么材料），故由本业务表承载，不依赖日志表。「这单被驳回过」= 本表结论为驳回的记录条数 ≥ 1，主表不冗余计数字段。本表只记运营的审核动作；买家的重新提交动作不入本表，由 after_sale_order.resubmitted_at 承载，两者比对得出「最近一次驳回之后买家是否已再提交」。⚠ 审核环节【不落责任判定】：两条流程分支一律在判责环节才定责任方（见 责任判定时点），责任方落 after_sale_order.liability_party，不入本表。⚠ 本表的两个文本字段【对外可见性相反、不可合并】：audit_note（驳回原因）对买家可见，原样作为驳回邮件正文发出、C 端展示，与 close_note 同类；audit_internal_note（审核意见）仅内部，运营在此记内部判断（如该买家近期第几次申请、举证疑似二次拍摄），绝不进邮件、绝不对 C 端展示，与 inspection_note 同类（见 S1_真伪复核）。结论为通过时只写 audit_internal_note，为驳回时两个都写"
+    },
+    {
+      "name": "after_sale_inspection",
+      "comment": "验货记录",
+      "columns": [
+        {
+          "name": "id",
+          "comment": "主键",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "after_sale_order_id",
+          "comment": "所属售后单（→ after_sale_order）",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "inspection_result",
+          "comment": "验货结论（含「退回途中丢件」结论值）",
+          "constraint": ""
+        },
+        {
+          "name": "inspection_note",
+          "comment": "验货备注（可疑情况的唯一承载，S1；丢件原因也写这里；内部字段，不对 C 端展示）",
+          "constraint": ""
+        },
+        {
+          "name": "operator_id",
+          "comment": "录入人（运营）",
+          "constraint": ""
+        },
+        {
+          "name": "operator_type",
+          "comment": "录入人类型",
+          "constraint": ""
+        },
+        {
+          "name": "inspected_at",
+          "comment": "判责提交时间（即验货结论录入时间）",
+          "constraint": ""
+        },
+        {
+          "name": "created_at",
+          "comment": "创建时间",
+          "constraint": ""
+        },
+        {
+          "name": "updated_at",
+          "comment": "更新时间",
+          "constraint": ""
+        }
+      ],
+      "note": "A16 验货在线下仓完成、结果回传在线表格，本表承接运营录入的结论，不承接作业过程。本表由「判责」这一个动作一次性写入：运营在同一次提交里录验货结论 + 判责任方 + 填退款金额，责任方落 after_sale_order.liability_party、金额落 after_sale_refund，三者同一次提交、不分步。判责入口有两个状态：退货在途（货未到仓即可判，如退回途中丢件）与待判责（货已送达）。未收到货分支无实物验货，不产生本表记录（该分支的判责只落责任方与退款金额）。S1 定 V1 不做真伪复核：无「真伪存疑」结论值、无挂起态，可疑情况只写 inspection_note；inspection_note 是内部字段、不对 C 端展示。A3 只记客观结果，不含处置决策。⚠ 本表不承载任何金额：验货发现的成色下降 / 缺配件所需扣款，并入 after_sale_refund.service_fee_amount（退货扣减）由运营手填一个总额，本域不单列扣款科目。故本表无金额字段、也不带 currency_code"
+    },
+    {
+      "name": "after_sale_refund",
+      "comment": "退款方案与执行",
+      "columns": [
+        {
+          "name": "id",
+          "comment": "主键",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "after_sale_order_id",
+          "comment": "所属售后单（→ after_sale_order）",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "order_id",
+          "comment": "所属订单（冗余，供税费累计校验）",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "base_amount",
+          "comment": "退款基准（商品行实付：已扣优惠分摊、不含销售税、优惠不追回；系统取数）",
+          "constraint": ""
+        },
+        {
+          "name": "service_fee_amount",
+          "comment": "退货扣减（唯一扣款科目：含退货服务费 + 验货扣款；默认取政策快照值，运营可改，以运营填的为准）",
+          "constraint": ""
+        },
+        {
+          "name": "refund_tax_amount",
+          "comment": "退还税费（★本期订单税费恒为 0，字段预留，不参与退款计算）",
+          "constraint": ""
+        },
+        {
+          "name": "refund_amount",
+          "comment": "最终退款金额（运营录入值；预填 = base_amount 减 service_fee_amount，与其双向联动）",
+          "constraint": ""
+        },
+        {
+          "name": "currency_code",
+          "comment": "币种",
+          "constraint": ""
+        },
+        {
+          "name": "refund_ref_no",
+          "comment": "支付域退款单号（→ refund_order.refund_no）",
+          "constraint": ""
+        },
+        {
+          "name": "refund_status",
+          "comment": "退款执行状态（含失败；失败单重试与筛选的依据）",
+          "constraint": ""
+        },
+        {
+          "name": "operator_id",
+          "comment": "定案人",
+          "constraint": ""
+        },
+        {
+          "name": "operator_type",
+          "comment": "定案人类型",
+          "constraint": ""
+        },
+        {
+          "name": "refunded_at",
+          "comment": "退款到账时间",
+          "constraint": ""
+        },
+        {
+          "name": "created_at",
+          "comment": "创建时间",
+          "constraint": ""
+        },
+        {
+          "name": "updated_at",
+          "comment": "更新时间",
+          "constraint": ""
+        }
+      ],
+      "note": "A2 直接对接支付域退款单，只存 refund_ref_no 不冗余金额。退款计算口径（本域唯一算式）：最终退款金额 = 退款基准 base_amount 减 退货扣减 service_fee_amount。⚠ 该式是恒等约束、不是单向派生：service_fee_amount 与 refund_amount 两个都是运营在判责时的录入值，各自带预填值、改其一另一个随之联动，等式恒成立；base_amount 为系统取数、不由运营写入。构成与取数口径见 退款金额的构成与录入口径。service_fee_amount（中文名【退货扣减】）是本域唯一扣款科目，为运营手填的一个总额，已含验货发现的成色下降 / 缺配件扣款，本域不再单列验货扣减字段。refund_tax_amount 本期恒为 0、不参与该算式（字段预留）。本表在「判责」提交时创建：判责动作本身即调用支付域退款接口，售后单随之进入「退款中」，收到退款成功结果后售后单才落「已完成」。退款失败不新增售后单主状态——失败的单停留在「退款中」可重试，失败原因与重试依据本表 refund_status 及 refund_ref_no 关联的支付域退款单状态。税费随退款退还，refund_tax_amount 用于按 order_id 做已退税费累计校验（支付域只校验金额总额、不拆税）。order_id 为冗余字段，专供该累计校验"
+    },
+    {
+      "name": "after_sale_attachment",
+      "comment": "售后附件",
+      "columns": [
+        {
+          "name": "id",
+          "comment": "主键",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "after_sale_order_id",
+          "comment": "所属售后单（→ after_sale_order）",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "inspection_id",
+          "comment": "所属验货记录（验货取证时填）",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "source_type",
+          "comment": "来源（买家举证/验货取证）",
+          "constraint": ""
+        },
+        {
+          "name": "file_url",
+          "comment": "文件地址",
+          "constraint": ""
+        },
+        {
+          "name": "file_type",
+          "comment": "文件类型（图片/视频）",
+          "constraint": ""
+        },
+        {
+          "name": "uploader_id",
+          "comment": "上传人",
+          "constraint": ""
+        },
+        {
+          "name": "uploader_type",
+          "comment": "上传人类型（买家/运营）",
+          "constraint": ""
+        },
+        {
+          "name": "created_at",
+          "comment": "上传时间",
+          "constraint": ""
+        }
+      ],
+      "note": "买家在 C 端自助上传举证；运营从在线表格取图上传验货取证。两种来源靠 source_type 区分。举证必须跟单走且带审计，不能只留在外部表格。约束：inspection_id 非空时，其所属售后单必须与 after_sale_order_id 一致。保留 inspection_id 而非只挂售后单——验货照片的父本来就是那次验货，且未来若允许复验（inspection 变 1:N）该字段必需"
+    },
+    {
+      "name": "order",
+      "comment": "订单（订单域）",
+      "columns": [
+        {
+          "name": "id",
+          "comment": "主键",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "order_no",
+          "comment": "订单号",
+          "constraint": "UNIQUE"
+        }
+      ],
+      "note": "外部拥有，售后只读 + 反写商品行退款状态"
+    },
+    {
+      "name": "order_item",
+      "comment": "订单商品行（订单域）",
+      "columns": [
+        {
+          "name": "id",
+          "comment": "主键",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "refund_status",
+          "comment": "退款状态（售后域按既有语义反写）",
+          "constraint": ""
+        },
+        {
+          "name": "fulfillment_status",
+          "comment": "发货状态（售后只读不改写；入口以已发货为界）",
+          "constraint": ""
+        },
+        {
+          "name": "condition_grade",
+          "comment": "成色等级快照（验货比对基准）",
+          "constraint": ""
+        }
+      ],
+      "note": "售后判责提交、调起退款（售后单进入「退款中」）才置 refund_status=退款中，到账置已退款；不在申请或审核通过时置。A12 订单表不为售后新增状态字段，「售后中」由订单侧实时查本域聚合"
+    },
+    {
+      "name": "refund_order",
+      "comment": "退款单（支付域）",
+      "columns": [
+        {
+          "name": "id",
+          "comment": "主键",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "refund_no",
+          "comment": "退款单号（售后弱引用）",
+          "constraint": "UNIQUE"
+        }
+      ],
+      "note": "A2 售后单直接对接本表。只存 refund_no 引用，不冗余金额。注意：订单域的 refund_request 仅服务发货前退款，售后不使用它"
+    },
+    {
+      "name": "shipments",
+      "comment": "物流运单（物流信息服务）",
+      "columns": [
+        {
+          "name": "shipment_id",
+          "comment": "运单 UUID（对外主键，不可变）",
+          "constraint": "UNIQUE"
+        },
+        {
+          "name": "business_order_no",
+          "comment": "业务单号（非唯一索引，售后传订单号）",
+          "constraint": ""
+        },
+        {
+          "name": "internal_status",
+          "comment": "标准化物流状态（已送达=到仓时点唯一来源）",
+          "constraint": ""
+        }
+      ],
+      "note": "A15 售后注册退货运单后获得轨迹与主动通知。business_order_no 为非唯一索引，故 1 订单号 = N 运单，支撑 A1「多张售后单共用一个退货运单号」。售后存 shipment_id 取轨迹，另落 return_tracking_no/return_carrier_code 作运营登记留痕。登记值不随物流侧修正自动同步——它记「当时登记了什么」，实时状态仍以本表为准"
+    },
+    {
+      "name": "market",
+      "comment": "销售市场（Market）",
+      "columns": [
+        {
+          "name": "id",
+          "comment": "主键",
+          "constraint": "PRIMARY KEY"
+        }
+      ],
+      "note": "A17 V1 覆盖美国站 + 香港站，时效/服务费/退货地址三项按 market 独立配置"
+    },
+    {
+      "name": "user_account",
+      "comment": "用户（登录注册域）",
+      "columns": [
+        {
+          "name": "id",
+          "comment": "主键",
+          "constraint": "PRIMARY KEY"
+        }
+      ],
+      "note": "外部拥有，售后只读"
+    }
+  ],
+  "relations": [
+    {
+      "from": "market",
+      "to": "after_sale_policy",
+      "type": "1:N",
+      "label": "按市场配政策",
+      "color": "#7B4FC9"
+    },
+    {
+      "from": "after_sale_policy",
+      "to": "after_sale_order",
+      "type": "1:N",
+      "label": "命中政策",
+      "color": "#7B4FC9"
+    },
+    {
+      "from": "after_sale_reason",
+      "to": "after_sale_order",
+      "type": "1:N",
+      "label": "原因码",
+      "color": "#7B4FC9"
+    },
+    {
+      "from": "order",
+      "to": "after_sale_order",
+      "type": "1:N",
+      "label": "订单可多次售后",
+      "color": "#6B7280"
+    },
+    {
+      "from": "order_item",
+      "to": "after_sale_order",
+      "type": "1:N",
+      "label": "一单一行 · 同时只允许一张非终态",
+      "color": "#1565C0",
+      "penwidth": 1.8
+    },
+    {
+      "from": "user_account",
+      "to": "after_sale_order",
+      "type": "1:N",
+      "label": "申请人",
+      "color": "#6B7280"
+    },
+    {
+      "from": "shipments",
+      "to": "after_sale_order",
+      "type": "1:N",
+      "label": "多张单共用一个退货运单",
+      "color": "#1565C0",
+      "penwidth": 1.8,
+      "style": "dashed"
+    },
+    {
+      "from": "after_sale_order",
+      "to": "after_sale_audit",
+      "type": "1:N",
+      "label": "每轮审核一条 · 可反复驳回再审",
+      "color": "#1565C0",
+      "penwidth": 1.6
+    },
+    {
+      "from": "after_sale_order",
+      "to": "after_sale_inspection",
+      "type": "1:1",
+      "label": "仅已收到货分支 · 判责时写入",
+      "color": "#1565C0",
+      "penwidth": 1.6
+    },
+    {
+      "from": "after_sale_order",
+      "to": "after_sale_refund",
+      "type": "1:1",
+      "label": "退款方案 · 判责时写入",
+      "color": "#1565C0",
+      "penwidth": 1.6
+    },
+    {
+      "from": "after_sale_refund",
+      "to": "refund_order",
+      "type": "N:1",
+      "label": "弱引用 refund_no",
+      "color": "#6B7280",
+      "style": "dashed"
+    },
+    {
+      "from": "after_sale_order",
+      "to": "after_sale_attachment",
+      "type": "1:N",
+      "label": "买家举证",
+      "color": "#1565C0"
+    },
+    {
+      "from": "after_sale_inspection",
+      "to": "after_sale_attachment",
+      "type": "1:N",
+      "label": "验货取证",
+      "color": "#1565C0"
+    },
+    {
+      "from": "after_sale_order",
+      "to": "order_item",
+      "type": "N:1",
+      "label": "反写退款状态",
+      "color": "#C0392B",
+      "style": "dashed"
+    }
+  ],
+  "design_rules": {
+    "A1_一单一行": "一个商品行一张售后单；一次退多件=多张单。多件同包裹寄回时共用一个退货运单号，注册物流追踪时业务单号传订单号（复用物流服务 1 订单号 = N 运单），不新造退货包裹实体",
+    "A2_退款链路": "售后单不走订单域 refund_request，直接对接支付域 refund_order；refund_request 仅服务发货前退款",
+    "A3_域边界": "售后只记客观验货结果，处置决策（能否再售/降级/报废）与执行均归商品域，本域无处置字段",
+    "A12_订单侧状态": "订单表不为售后新增状态字段；订单详情页显示「售后中」由订单侧按 order_item_id 实时查本域聚合。售后单表的 order_id / order_item_id 必须建索引，这是该方案成立的前提",
+    "A14_退货服务费": "正逆向均不向买家收运费；退货服务费在退款时一并扣除，系统内不存在「退货运费」独立概念。⚠ 两个 service_fee_amount 的中文名【刻意不同】，指的不是同一个东西：after_sale_policy.service_fee_amount =「退货服务费」，是政策里配的那笔纯服务费；after_sale_refund.service_fee_amount =「退货扣减」，是这一单实际扣的总额（含服务费与验货扣款）。C 端与运营端两端界面均以「退货扣减 / Return deduction」指代后者；英文字段名不随中文名调整（由技术环节保证）。⚠ after_sale_refund.service_fee_amount（退货扣减）是本域【唯一扣款科目】：它装的不只是退货物流成本，验货发现的成色下降 / 缺配件所需扣款一并并入其中，由运营手填一个总额；系统不单列验货扣减科目、不自动计算、不按责任自动豁免。取值口径按分支区分（默认值只是起填值，最终仍由人决定，不违背\"手动填写\"）：① 已收到货分支（走寄回）：默认取 after_sale_order.policy_snapshot.service_fee_amount（建单时冻结的政策快照，为唯一取数源；service_fee_quoted 只作对账展示、不作默认值来源），运营可改，改后以运营填的为准；② 未收到货分支（跳过寄回）：默认为空，运营手填（因无退货动作、不产生退货物流成本，也无实物验货）。⚠ 未填即按 0 计：service_fee_amount 允许取 0 / 为空，为空时按 0 参与算式，退款按全额基准照常执行到底。告知值 service_fee_quoted 与实扣值之间【不设任何一致性约束】，偏离多少都不改变流程走向。这是一条给开发的反向约束——本域不为该字段派生任何拦截或中断逻辑",
+    "A15_物流接入": "接入物流信息服务，售后单存 shipment_id 用于取轨迹；「已送达」是到仓时点唯一来源。售后单同时落 return_tracking_no 与 return_carrier_code——这两个是【运营登记时的业务留痕】，用于售后单自身可读、可线下追查、不依赖实时调用物流服务；轨迹与实时状态仍只从物流服务取（凭 shipment_ref_id），不在本域冗余。⚠ 脏数据口径：运单号若在物流侧被修正、或改承运商切了追踪平台，本域登记值【不自动同步】，它记录的是「当时登记了什么」；需要以物流侧为准展示时，走 shipment_ref_id 实时取。⚠ 登记值的写入阶段：return_tracking_no / return_carrier_code 【只在「待寄回」阶段写入】，单据推进到「退货在途」之后这两个值不再变更，运营端也不再提供该登记入口；揽收轨迹一旦产生就说明买家已按告知的单号交寄，此后再改登记值只会让留痕与实际轨迹对不上。⚠ 承运商【存 code 不存展示名】：return_carrier_code 落库的是承运商编码（与物流模块 carrier_code 对齐），展示名由承运商字典映射得出，本域不落展示名——承运商改名或多语言展示时不必回改历史数据",
+    "A16_验货作业": "验货在线下仓完成并回传在线表格，运营核对后录入。V1 不对接在线表格，但验货录入表单需按其字段设计，以便后续对接不重构",
+    "S1_真伪复核": "V1 不做：无「真伪存疑」结论值、无挂起态。可疑情况只写 inspection_note——该字段是可疑情况（如疑似调包）的唯一承载，为【内部字段，绝不外露 C 端】。本期不做拒退说明的 C 端展示",
+    "S3_税费累计校验": "税费随退款退还；必须按 order_id 做已退税费累计校验（支付域只校验金额总额、不拆税）。并发场景需按 order_id 加锁",
+    "库存回流与重新上架不做": "库存回流与商品重新上架 V1 均不做（退货只放仓内），本域不建库存事件与处置指令相关实体",
+    "命名规范": "随订单域：表名单数 snake_case、主键 id、业务单号 &lt;x&gt;_no[UK]、外键 &lt;被引实体&gt;_id、跨域弱引用 _ref_no/_ref_id 不建 FK、多状态带前缀、时间戳 _at、含金额表必带 currency_code、操作人 operator_id + operator_type 成对",
+    "A7_责任二分类_与G1文档的已知差异": "本 ER 按【平台责任 / 买家责任】二分类建模。G1 概览文档仍写三分类（含物流责任），属已知差异、不视为冲突——物流出问题属平台与物流商之间的事，对买家而言即平台责任，平台先赔付再线下索赔；物流原因由 after_sale_reason 承载（原因码记「为什么」，liability_party 记「谁承担」）",
+    "售后单状态机": "状态枚举共 7 个，其中终态 2 个：待审核 pending_audit / 待寄回 to_ship / 退货在途 in_transit / 待判责 to_adjudicate / 退款中 refunding 为非终态，已完成 completed / 已关闭 closed 为终态。⚠ 两条流转分支【同属「退货」这一个售后类型】，分岔依据是原因码而非类型字段（见 流程分岔依据取原因码快照）：① 已收到货分支：待审核 —审核通过→ 待寄回(已告知运单号) —揽收轨迹→ 退货在途 —已送达→ 待判责；判责后 → 退款中 —退款成功回调→ 已完成，或判责结论为拒退时 → 已关闭(close_reason=拒退关单)。② 未收到货分支：待审核 —审核通过→ 待判责 —判责→ 退款中 —退款成功回调→ 已完成，即跳过待寄回与退货在途两个状态、也不做到仓验货，不产生 after_sale_inspection 记录。③ 驳回：待审核 —驳回→ 待审核（不落终态，等买家修改后重新提交，见 驳回后重新提交）。④ 关闭：待审核 —买家撤销→ 已关闭；待审核 / 待寄回 / 退货在途 —运营关闭→ 已关闭（待判责 / 退款中 不开放运营关闭，见 运营手动关闭售后单）。「退货在途 → 待判责」由 shipments.internal_status=已送达 自动推进（A15），无人工签收登记。⚠ 判责入口在【两个状态】：退货在途（货未到仓即可判，如退回途中丢件）与待判责。判责是一个动作：录验货结论 + 判责任方 + 填退款金额一次提交，并【由该动作直接调用支付域退款接口】，无需再有独立的「发起退款」动作；提交后单据进入退款中，收到退款成功结果才落已完成。「退款中」是系统等待态（已调接口、等支付域回调），不是等运营去点的人工待办态。拒退出口【不经过退款中】，判责直接落已关闭 + close_reason=拒退关单。退回途中丢件没有「标记丢件」独立操作，它是判责时的一个验货结论值（默认平台责任、运营可改），丢件原因写 inspection_note。待审核状态买家可自行撤销，落 close_reason",
+    "售后类型维度本期单取值": "after_sale_order.as_type 本期【只有「退货」一个取值】，但字段与维度【保留不删】——V2 的换货 / 部分补偿等新类型仍挂在这个维度上，届时加枚举值即可，不必改结构。⚠ 原「仅退款」不再是一个售后类型：它当初（A13）就不是独立流程（走同一张售后单、审核通过后跳过逆向物流与验货），本质是「要不要走寄回环节」的开关，本期正名为【流程分支】（见 流程分岔依据取原因码快照）。as_type 与流程分支是两回事：类型描述这单要什么结果（本期只有退货退款），分支描述这单怎么走（要不要寄回），不要把分支写回 as_type。⚠ 本期虽只有一个取值，运营端售后单列表与详情【仍展示「售后类型」这一项】，值恒为「退货」，不因取值单一而隐藏该维度",
+    "流程分岔依据取原因码快照": "本期【不为「收货与否」新增任何字段】：售后单上没有，after_sale_reason 上也没有——流程分岔的依据是买家申请时选的那条原因码【本身】，判定方式是【白名单包含判断】：① reason_code ∈ 系统侧维护的「未收到货码表」→ 审核通过后直接进入待判责，跳过寄回与到仓验货；② 其余任何 reason_code → 审核通过后进入待寄回，走寄回、退货在途、到仓验货。⚠ 判定的默认方向是【走寄回】：只有命中白名单才不寄回，新增的原因码在系统眼里一律是「已收到货」，不需要也无处标注分组。⚠ 白名单是【系统常量，不是配置项】：做成运营可编辑就等于又回到「运营能改流程走向」，而那正是本方案要消掉的东西。⚠ 这是给开发的取数约束：判断一单要不要走寄回环节，只读本单 reason_snapshot 里的 reason_code，【不实时回查 after_sale_reason 字典】，也不看 as_type（as_type 本期恒为「退货」，区分不出分支）；字典只在建单那一刻被读一次并落进快照。⚠ 白名单里【每一条】的取值都是业务契约，运营不得删除 / 改 code / 停用，停掉任意一条都会让买家少一条走到「未收到货」分支的路（约束见 未收到货原因码为系统预置项）。⚠ 已建单据不受字典事后调整影响：快照已锁定建单时选中的 reason_code，单据按建单时判定的分支走完、不回溯改道——这由快照机制保证（见 建单时的两个快照），不依赖开发额外做取值冻结",
+    "未收到货原因码为系统预置项": "⚠ 上一条（流程分岔依据取原因码快照）把流程分岔挂在了【一组固定的 code 取值】上，它随之带来一条必须写死在系统里的隐性约束，开发不实现、运营就能在后台把整条链路弄断：after_sale_reason 中【必须存在且只存在这一组】未收到货原因码，共 4 条，由系统在初始化时预置、不由运营创建：① RO_MARKED_DELIVERED_NOT_RECEIVED（Marked delivered but not received / 显示已送达但未收到）；② RO_LOST_IN_TRANSIT（Lost in transit / 运输中丢件）；③ RO_EMPTY_PACKAGE（Empty package / 包裹为空）；④ RO_DELIVERY_FAILED（Delivery failed and returned / 投递失败退回）。⚠ 上述约束【对这组里的每一条都成立】，不是只锁其中某一条：每条都【不允许运营删除、不允许改 reason_code、不允许改 reason_status 为停用】——停掉任意一条，买家就少一条能走到不寄回分支的路。ⓐ 允许运营改的只有：display_text、sort_order、require_evidence——这三项改了只影响 C 端怎么展示、要不要传图，不影响流程走向；ⓑ 运营端原因码配置页对这几行必须【逐行禁用停用/删除入口】（不是提交时再报错），新增原因码时也不允许再输入这几个 code（reason_code 本就 UK，重复即拒）；ⓒ 系统侧把这一组 code 作为【常量白名单】维护（不要做成可配置项，可配置就等于又回到「运营能改流程」）。⚠【「其他」不进白名单】：RR_OTHER（Other / 其他）是一条普通原因码，走寄回。理由——买家选「其他」时很可能是货已收到、只是原因不在列表里；把它放进白名单，这类买家就永远走不到寄回分支，而他手上是有货的。这也意味着一个已知代价：买家「没收到货、但情形不在这 4 条里」时，只能选最接近的一条，或选「其他」而被要求寄回（已记模块待优化清单第 31 条）。⚠ 理由要写给开发看清楚：这几条不是普通的字典数据，它们合起来是流程分岔的判据。停用其中一条 → C 端申请页少一个入口，买家只能改选一条会要求他寄回的原因，而他手上根本没有货；删除 → 历史单靠 reason_snapshot 仍能显示，但新单再也走不进该分支",
+    "本期结构取舍": "① 时间线与操作日志合表 after_sale_log，靠 is_customer_visible 区分——同一动作既要对买家展示又要留痕，分表会双写。⚠ 同一动作若「结果可对外、细节不可对外」，必须拆成两条记录（可见条 + 内部条），不能靠一条记录里的部分内容不展示来实现——拒退关单是本期唯一实例，拆分口径见 拒退说明不对外与日志拆两条。② 协商改方案不做退款方案版本化，调整过程由 after_sale_log 的 before/after 承载；若后续需要方案多版本，after_sale_refund 改 1:N 即可，结构不用动。③ 退货地址存完整文本快照而非引用地址库——它是仓库地址、要直接发给买家看，且需随 market 配",
+    "本图范围_不画不等于不建": "本图只呈现售后域【核心实体关系】，用于确认设计大方向。日志/时间线、邮件通知记录等留痕与触达类实体本期不在图内体现，但它们都是 ✅V1 能力、建表时必须补：① 时间线与操作日志（涉及资金必须留痕：审核结论、责任判定、退货扣减调整（含并入其中的验货扣款）、超期特批、关单）；② 售后节点邮件记录（消息通知模块仅提供通道，节点与内容由本域定义，需覆盖两个 market 的语言）",
+    "责任判定时点": "责任判定【统一在判责环节落定】（终判），落 after_sale_order.liability_party，【不按流程分支区分判定时点】：两条流程分支（已收到货 / 未收到货，见 流程分岔依据取原因码快照）在审核环节【一律不落】责任判定，运营端审核环节不提供责任归属的录入入口。未收到货分支虽无实物验货，责任判定同样在判责环节做——该分支的判责动作只录责任方与退款金额，不产生 after_sale_inspection 记录。不预填、不自动带值——本域无 default_liability、无 is_service_fee_waived；丢件结论下默认平台责任只是判责弹窗的默认值、运营可改，不属于自动带值。本期 liability_party 不驱动任何金额计算（退货扣减全手填），为纯留痕字段。",
+    "建单时的两个快照": "建单时对【命中的整条政策】与【买家选的整条原因码】各留一份快照，分别存 after_sale_order.policy_snapshot 与 after_sale_order.reason_snapshot，均整条留档、不逐字段补。两者是同一套机制、同一个理由：政策与原因码字典都是运营随时可改的配置，在途单必须锁定建单当时的口径。① policy_snapshot：避免运营改政策追溯改掉在途单的关单时点（关单不可恢复）、以及邮件已告知的退货地址与系统新值对不上；② reason_snapshot：流程分岔的判定依据（买家选中的那条 reason_code）就在其中，快照令「已建单据按建单时判定的分支走完、不回溯改道」成为数据结构决定的必然结果，而不是一条要开发自觉遵守的约定。⚠ reason_snapshot 的顺带收益：原因码的展示文案将来改写或做多语言，历史单据凭快照仍能还原当时给买家看的说法，不必回改历史数据。⚠ reason_code 外键仍保留：它指向字典当前记录，用于按原因码聚合统计与回溯字典条目；但凡影响本单流程走向与对外展示的取值，一律读 reason_snapshot。⚠ 驳回后买家重新提交时，两份快照的处理【相反】，开发不要一把刷新或一把不刷：ⓐ policy_snapshot【不刷新】——重新提交不重新匹配政策，金额口径按建单时冻结的走；否则运营改了政策，就能靠「驳回 → 买家重提」把新政策绕进在途单，快照就失去意义；ⓑ reason_snapshot【按买家新选中的那条刷新】——买家修改申请时可以改售后原因（例如从「描述不符」改成「包裹为空」），不刷新等于买家改了没生效：流程分支仍按老快照走，系统仍然让他寄货。⚠ 两者不同的判据：快照锁的是【运营侧的配置变动】（政策与原因码字典的事后调整），【不锁买家自己的选择】——买家改原因码是他的主动行为，理应生效。重新提交的其余口径见 驳回后重新提交",
+    "售后时效判定": "本域无「交寄时限」字段与起算口径（本期不做，见 本期不做的范围）。valid_days 在未签收期间【不启动计时】——买家随时可申请，签收后才开始算 N 天。时效严格按窗口判断、与申请次数无关：关单后若仍在时效内可正常再次申请，不需人工特批。is_returnable=false 不约束未收到货分支——货未收到时该约束不适用。发货后即可申请。C 端申请页由买家选择售后原因，原因码映射到【流程分支】而不再映射到售后类型（售后类型本期恒为「退货」）：未收到货 → 跳过寄回与到仓验货；已收到货 → 走寄回。⚠ V1 【不存在「已收到货 + 不寄回就退款」这一组合】——那属于部分退款 / 补偿场景，V1 不做，本域不产生该组合的售后单，两端也不提供该组合的取值路径。时效之外还有两条建单拦截条件，见 建单拦截条件与超期特批边界。",
+    "建单拦截条件与超期特批边界": "超期人工特批【只豁免时效判定】这一条，其余建单拦截条件一律照常成立，特批不能绕过。命中下列任一即不产生售后单：① 该商品行已有进行中（非终态）的售后单——即 after_sale_order 的互斥约束；② 该商品行【已退成钱】——该商品行存在一张已完成（as_status=completed）的售后单，即退款已实际到账。⚠ 判据是【有没有退成钱】，与走哪条流程分支无关：两条分支走到已完成一律都算，因为二者实质相同——这笔钱已经退给买家了。⚠ ② 是独立于互斥约束的一条新约束，不能靠互斥推导出来：互斥管的是「同一 order_item_id 同时只允许一张非终态单」，而已完成的那张单已进入终态、互斥不拦，必须单独判定。⚠ 两个终态对「能不能再建单」的结论【正好相反】，不可一视同仁：已完成 = 钱已退出去 → 不能再建单；已关闭 = 没退成钱（买家撤销 / 运营关闭 / 拒退关单三种来源都没产生实际退款）→ 仍可在售后时效内重新申请。所以本条与「关单后仍在时效内可正常再次申请」不冲突，两者管的是不同的终态。特批建单的标记与理由落 after_sale_order.is_overdue_approved / overdue_approve_note 随单留痕",
+    "签收时间取数": "时效起算的签收时间取订单域 order_package.received_at（订单履约事实的权威源），不跨域调物流服务。逆向用物流服务是因为逆向运单本就由售后注册，两者不冲突",
+    "售后中的聚合口径": "「售后中」= 全部非终态（待审核 / 待寄回 / 退货在途 / 待判责 / 退款中，共 5 个）；终态 = 已完成 / 已关闭（共 2 个）。⚠ 该聚合口径只服务订单侧：订单详情页的「售后中」标识与 A12 的实时聚合承诺不变；运营后台不再提供「售后中」聚合筛选（无该 Tab、无该 KPI 卡），运营按具体状态筛选",
+    "运营手动关闭售后单": "运营有「关闭售后单」手动动作（关闭时落 close_reason 取值并全程留痕），适用【待审核 / 待寄回 / 退货在途】三个状态——这三个阶段的推进权都在买家手上，买家不响应时系统没有别的出口。⚠ 待审核纳入本入口的原因：驳回改为回环（驳回后回到待审核等买家修改）之后，待审核就没有了终态出口，买家既不修改也不撤销时单据会永久停在待审核、该商品行的互斥占用一直不释放。⚠ 待判责 / 退款中【不开放本入口】：货已在平台手上、或钱已在退的途中，应走判责与重新发起退款，不从这里硬关单。close_reason 含「运营关闭」取值。⚠ 关闭必须【释放该商品行的互斥占用】——否则买家仍无法重新申请，该动作等于白做。（这不是运营关闭的特有动作：释放是进入终态的必然结果，两个终态、三种关闭来源一律如此，通用口径见 after_sale_order 表 note；此处强调只因本条的成立前提正是它。）背景：本期不做超时关单，买家中途放弃时若无此出口，货没退成、钱没退到、重新申请被互斥挡住、C 端只能在待审核撤销、运营也无出口，五条路全堵死。关闭时是否邮件告知买家，由运营在关闭弹窗【手动勾选】决定，系统既不固定发也不固定不发；该选择落 after_sale_order.close_notify_buyer，并进操作日志与详情页留痕（用于解释「这单为什么没发邮件」）。⚠ 勾选框【默认勾选】，即默认发送关闭通知邮件；运营需要不发时手动取消勾选。⚠ 本字段仅在【运营关闭】场景由运营勾选写值；买家撤销 / 拒退关单两种来源不经过该勾选框。⚠ 关闭说明落 close_note：运营关闭时另填一段面向买家的说明文本，落 after_sale_order.close_note，与 close_reason 成对写入。两者分工——close_reason 是枚举、只说「哪一类关闭」；close_note 是自由文本、说「这一单具体怎么回事」，枚举装不下这段内容。⚠ close_note 【对买家可见】：C 端进度页会把它展示给买家，与 inspection_note（内部字段、绝不外露 C 端，见 S1_真伪复核）性质【正好相反】，开发不要照 inspection_note 的样子把它当内部备注处理。⚠ 写值范围与 close_notify_buyer 同口径：close_note 仅在【运营关闭】场景写值；买家撤销与拒退关单两种来源不写本字段，各自的买家侧文案另有承载（拒退见 拒退说明不对外与日志拆两条）。",
+    "拒退说明不对外与日志拆两条": "inspection_note 为【内部字段、不对 C 端展示】；其内容由运营自行写入，本域不对文本格式与内容作任何约定；拒退关单的成立也不依赖该字段有值。⚠ 日志口径（after_sale_log）：拒退关单必须产生【两条】日志，不得合成一条——① is_customer_visible=true 的一条只写客观结果（验货结论 + 出口「不退并关闭」+ 落终态已关闭·close_reason=拒退关单 + 可重新申请提示），【不含 inspection_note 原文】；② is_customer_visible=false 的一条承载验货备注原文（inspection_note），仅内部可见。合成一条就会把内部备注推给买家，正是本条要防的外泄。⚠ 拒退关单【不写 after_sale_order.close_note】：close_note 装的是运营在关闭动作里填给买家看的说明，而拒退关单不经过运营关闭这个动作（它由判责的「不退并关闭」出口落终态），没有这段输入；买家侧看到的是上述①那条固定的客观结果文案，由日志生成、不是运营自由填写的文本。两者承载不同，不要混用。⚠ 已知空缺：本期买家侧看不到拒退理由（C 端只见「不予退款 + 商品回寄」这个结果），客服需人工答复",
+    "验货异常的三个出路": "判责时验货结论为「退回件与订单不符」或「空包或无实物」→ 经人工核实后有三个出口：① 全额退给买家 ② 部分退给买家（金额由运营手填）③ 不退并关闭 → as_status=已关闭 且 close_reason=拒退关单。前两者走正常退款流程（判责即调退款接口 → 退款中 → 已完成）；③ 不产生退款单、不经过退款中，货走线下回寄、不进系统。⚠ 拒退不设独立状态枚举值——拒退关单一律流转到已关闭，差异由 close_reason 承载，不为单个场景增加枚举。拒退关单落终态后，该商品行的互斥占用【同样解除】，买家可在售后时效内对该商品行【重新申请】——拒退虽是走完全程后给出的否定结论，也【不因此额外加一道拦截】，与买家撤销 / 运营关闭三种关闭来源在这一点上口径完全一致。",
+    "本期不做的范围": "本期不做「交寄时限」与「超时关单」判定：after_sale_policy 无交寄时限天数字段，运营端政策列表列 / 表单项 / 详情快照行均无该项，该概念在本域既无写入方也无消费方。后期若要开超时关单，需同时补：政策配置项 + 交寄截止时点计算 + 关单前提醒 + 定时扫描关单，不是加一个字段就够。关单原因本期是三种：买家撤销 / 运营关闭 / 拒退关单。税费本期不处理：订单税费字段金额恒为 0，refund_tax_amount 字段预留、值恒为 0，S3 的已退税费累计校验本期无实际输入（逻辑保留，待订单侧真正产生税额后启用）。",
+    "驳回后重新提交": "审核驳回【不落终态、不设「已驳回」状态枚举】——单据回到待审核，等买家修改后重新提交；可反复驳回，本期不设次数上限。C 端需要展示「申请被驳回，请修改后重新提交」，运营端列表需要区分「新提交」与「被驳回过」，因此需要一个可查询的承载。每一轮审核（含通过与驳回）各生成一条 after_sale_audit 记录，驳回原因写该表的 audit_note（对买家可见），内部审核意见另写 audit_internal_note（不对买家展示），历次驳回原因完整可查、互不覆盖；主表不保留审核结论、审核意见、审核时间字段。「这单被驳回过」= 该单 after_sale_audit 中结论为驳回的记录条数 ≥ 1，主表不冗余次数字段；「当前正等待买家修改」= as_status=待审核 且 该单最近一条 after_sale_audit 记录的结论为驳回 且（after_sale_order.resubmitted_at 为空 或 早于该条记录的 audited_at）——即【最近一次驳回之后买家还没再提交过】。买家重新提交时更新 resubmitted_at，该条件随即不成立，C 端不再提示「请修改」、转为「审核中」，直到运营再审写入新的 after_sale_audit 记录；所以「驳回」不会一直提示下去。资格判断只看这两条派生口径，主表不存审核结论、也不存驳回次数。⚠ 重新提交沿用原售后单、不新建单据（单号不变、时间线连续），买家可改的范围是【原因码 / 举证附件 / 文字说明】三项；商品行不可改——要换商品行只能撤销后重新发起；售后类型本期恒为「退货」一个取值，无可改之处。⚠ 原因码可改意味着流程分支可能翻转，因此两份快照在重新提交时的处理【相反】：policy_snapshot 不刷新、reason_snapshot 按买家新选中的那条刷新，判据与理由见 建单时的两个快照。⚠ 驳回【固定发一封驳回通知邮件给买家】，不由运营逐单选择发或不发，与运营关闭的 close_notify_buyer 手动勾选口径【刚好相反】，详见 售后邮件触达口径",
+    "售后邮件触达口径": "本域定义的节点邮件，发或不发由节点本身固定，不设全局开关。已定两条：① 审核驳回【固定发一封驳回通知邮件给买家】，本域不为驳回邮件设置任何开关字段，也不由运营逐单选择——驳回的语义是「要求买家去改申请」，不通知他，C 端只显示「审核中」，买家不知道要动手，单据就断在这里。⚠ 与 close_notify_buyer 【刚好相反】：运营关闭由运营手动勾选是否发邮件（默认勾选），因为关闭是终结、发不发都不改变买家还要做什么；驳回是行动请求，没有不发这个选项。开发不要照 close_notify_buyer 的样子给驳回也做一个开关。驳回邮件的正文取 after_sale_audit.audit_note（驳回原因原文，该字段【对买家可见】）。⚠ 邮件正文【只取 audit_note】，不含同一条记录的 audit_internal_note——审核意见是内部字段，既不进邮件也不对 C 端展示（两字段分工见 after_sale_audit 表 note）。② 「审核通过」邮件与「退货运单号」邮件【不合并，各发一封】：两者之间隔着「运营线下预约面单」这个人工动作，间隔时间长，合并会让买家在审核通过之后长时间收不到任何通知。邮件本身的发送记录由售后节点邮件记录实体承载（见 本图范围_不画不等于不建）",
+    "退款金额的构成与录入口径": "① 退款基准 base_amount = 该商品行的实付金额，构成口径为【已扣优惠分摊、不含销售税】，且【优惠不追回】——下单时享受的优惠按行分摊后已从实付中扣除，退款只退实付，不因为退货把这部分优惠再算回来向买家收回。base_amount 由系统按订单商品行取数，不由运营写入。② 退货扣减 service_fee_amount 与最终退款金额 refund_amount 【两个都是运营在判责时的录入值】，refund_amount 不是纯派生结果：两者各自带预填值（service_fee_amount 的预填口径见 A14_退货服务费；refund_amount 预填 = base_amount 减 service_fee_amount）。③ 两者【双向联动】：改动其中一个，另一个随之重算，恒等式 base_amount = service_fee_amount + refund_amount 始终成立。所以本域唯一算式表达的是这条恒等约束，而不是「谁被谁算出来」；refund_tax_amount 本期恒为 0、不参与本组等式",
+    "退款失败的承载": "不为退款失败新增售后单主状态枚举。判责动作调起退款后单据进入「退款中」，退款失败的单【停留在退款中】、可重试，与刚到货的「待判责」单天然分开、不会混在一起。失败原因与是否可重试，依据 after_sale_refund.refund_status 及 refund_ref_no 关联的支付域退款单状态，不看 after_sale_order.as_status",
+    "待技术侧定": "售后单号编码规则归技术环节确定，产品阶段不定"
+  }
+}
+</er-schema><er-tech-spec format="yaml"><![CDATA[
+title: looply · 售后模块 实体关系图
+version: v1.9 · 2026-08-02
+tables:
+- name: after_sale_policy
+  comment: 售后政策
+  note: A5 可配置策略实体；A17 按 market 独立配。政策匹配按【商品 → 品类 → 市场】固定层级顺序查找，匹配即停、不再往上找；该层级顺序由系统硬编码，不由 priority 决定。priority 仅用于同一层级内多条同时命中时的定序（越大越优先），例：一件商品同属「手袋」与「特价清仓」两个品类、两条品类级政策都命中时靠它定先后。数值均为运营配置项，产品阶段不定具体值
+  columns:
+  - name: id
+    comment: 主键
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: market_id
+    comment: 适用市场（→ market）
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: scope_type
+    comment: 适用范围类型（全市场/品类/商品）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: scope_value
+    comment: 适用范围值（品类或商品标识）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: priority
+    comment: 优先级（仅同层级内多条命中时定序，越大越优先）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: is_returnable
+    comment: 是否支持退货（特价/定制件例外）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: valid_days
+    comment: 售后时效天数（签收后 N 天；未签收不计时）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: service_fee_amount
+    comment: 退货服务费金额（A14）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: currency_code
+    comment: 币种（ISO 4217）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: return_address
+    comment: 退货地址（完整文本，按 market 配）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: policy_status
+    comment: 政策状态（启用/停用）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: created_at
+    comment: 创建时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: updated_at
+    comment: 更新时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: after_sale_reason
+  comment: 售后原因码
+  note: 结构化原因码。原因码不参与判责、不与金额挂钩，故不设 default_liability 字段（无消费方）。展示文案为英文，PRD 定义即最终展示文案。⚠ 本表承担【流程分岔的判定依据】：售后单上没有任何标识收货与否的字段，本表也没有——买家选了哪条原因码即决定这单要不要走寄回环节，判定方式是【看
+    reason_code 在不在白名单里】：落在系统侧维护的「未收到货码表」中 → 不寄回，其余一律走寄回（码表内容与不可变约束见 未收到货原因码为系统预置项）。⚠ 本表【只在建单那一刻被读一次】：整条原因码随即快照进 after_sale_order.reason_snapshot，建单之后的流程判定与对外展示一律读那份快照、不回查本表（见
+    流程分岔依据取原因码快照、建单时的两个快照）。所以本表的改动只对【此后新建的单据】生效，不影响在途单。⚠ 本表【不设「适用售后类型」字段】：售后类型本期只剩「退货」一个取值，原因码无需再区分适用类型，它区分的是货收到与否
+  columns:
+  - name: id
+    comment: 主键
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: reason_code
+    comment: 原因码
+    constraint: UNIQUE
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: display_text
+    comment: 展示文案（英文）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: require_evidence
+    comment: 是否必传举证
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: sort_order
+    comment: 排序
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: reason_status
+    comment: 启用状态
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: created_at
+    comment: 创建时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: updated_at
+    comment: 更新时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: after_sale_order
+  comment: 售后单（聚合根）
+  note: A1 一单一行：一个商品行一张单，一次退多件=多张单。A2 不走订单域 refund_request。互斥：同一 order_item_id 同时只允许一张非终态单。⚠ 互斥占用的解除是【进入终态的必然结果，与关闭来源无关】——两个终态（已完成/已关闭）、三种关闭来源（买家撤销/运营关闭/拒退关单）一律释放，无任何例外、也不需要显式反写字段；占用与否按
+    order_item_id 实时聚合本域非终态单得出（与 A12 同一口径）。service_fee_quoted 是申请时告知买家的金额快照（A14 要求申请前告知），政策改价不影响在途单。market_id：订单域目前无 market
+    维度，V1 由 user 信息判定所属 market（已在订单侧记待优化：需补 market）。币种不冗余——售后是同一笔交易的逆向，币种必然继承订单，仅在 after_sale_refund 保留一个用于与支付域对账。审核结论不落主表：每轮审核各生成一条
+    after_sale_audit 记录（含结论、驳回原因、内部审核意见、审核人、审核时间），主表既不存最近一次结论，也不冗余驳回次数。反之，买家的重新提交是买家动作、不进 after_sale_audit（该表只记运营的审核动作），在别处也推导不出来，故由主表
+    resubmitted_at 承载
+  columns:
+  - name: id
+    comment: 主键
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: as_no
+    comment: 售后单号（编码规则归技术侧定）
+    constraint: UNIQUE
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: order_id
+    comment: 所属订单（→ order）
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: order_item_id
+    comment: 订单商品行（→ order_item，一单一行）
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: user_id
+    comment: 申请人（→ user_account）
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: market_id
+    comment: 所属市场（V1 由 user 信息判定）
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: policy_id
+    comment: 命中的售后政策（→ after_sale_policy）
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: policy_snapshot
+    comment: 政策快照（建单时整条政策留档）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: reason_code
+    comment: 原因码（→ after_sale_reason）
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: reason_snapshot
+    comment: 原因码快照（建单时整条原因码留档，含 reason_code 与展示文案；流程分岔读本快照里的 reason_code、不实时查字典；与 policy_snapshot 同一套机制）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: reason_note
+    comment: 买家补充说明
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: as_type
+    comment: 售后类型（本期仅「退货」一个取值；字段与维度保留，为 V2 新类型留位，见 售后类型维度本期单取值）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: liability_party
+    comment: 责任归属（平台/买家）—— 统一在判责环节落定，审核环节不落（两条分支一律如此）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: as_status
+    comment: 售后单状态（7 个枚举：待审核/待寄回/退货在途/待判责/退款中/已完成/已关闭）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: service_fee_quoted
+    comment: 申请时告知的退货服务费（已收到货分支取政策值；未收到货分支存 0）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: is_overdue_approved
+    comment: 是否超期人工特批
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: overdue_approve_note
+    comment: 特批原因
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: shipment_ref_id
+    comment: 退货运单（→ shipments.shipment_id，弱引用）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: return_tracking_no
+    comment: 退货运单号（运营登记值）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: return_carrier_code
+    comment: 退货承运商编码（运营登记值）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: operator_id
+    comment: 最近处理人
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: operator_type
+    comment: 处理人类型（运营/系统）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: applied_at
+    comment: 申请时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: resubmitted_at
+    comment: 买家最近一次重新提交申请的时间（首次提交不写，仅驳回后重新提交时更新）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: closed_at
+    comment: 关闭时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: close_reason
+    comment: 关闭原因（枚举：买家撤销 / 运营关闭 / 拒退关单）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: close_note
+    comment: 关闭说明（运营关闭时填写的自由文本；【对买家可见】，C 端进度页展示；close_reason 说哪一类关闭，本字段说具体怎么回事）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: close_notify_buyer
+    comment: 关闭时是否邮件告知买家（运营关闭弹窗手动勾选，默认勾选=发送；仅运营关闭场景写值，其余关闭来源不经过该勾选框）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: completed_at
+    comment: 完成时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: created_at
+    comment: 创建时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: updated_at
+    comment: 更新时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: after_sale_audit
+  comment: 审核记录
+  note: 一次审核一条记录，本表承接运营提交的审核结论，不承接审核过程。审核可发生多次：驳回后单据回到待审核，买家修改后重新提交、运营再审，可多次循环；每一轮审核（通过或驳回）各写一条，历次驳回原因完整可查、互不覆盖。历次驳回原因是业务事实（chargeback
+    抗辩需证明平台明确告知过买家第几次该补什么材料），故由本业务表承载，不依赖日志表。「这单被驳回过」= 本表结论为驳回的记录条数 ≥ 1，主表不冗余计数字段。本表只记运营的审核动作；买家的重新提交动作不入本表，由 after_sale_order.resubmitted_at
+    承载，两者比对得出「最近一次驳回之后买家是否已再提交」。⚠ 审核环节【不落责任判定】：两条流程分支一律在判责环节才定责任方（见 责任判定时点），责任方落 after_sale_order.liability_party，不入本表。⚠ 本表的两个文本字段【对外可见性相反、不可合并】：audit_note（驳回原因）对买家可见，原样作为驳回邮件正文发出、C
+    端展示，与 close_note 同类；audit_internal_note（审核意见）仅内部，运营在此记内部判断（如该买家近期第几次申请、举证疑似二次拍摄），绝不进邮件、绝不对 C 端展示，与 inspection_note 同类（见
+    S1_真伪复核）。结论为通过时只写 audit_internal_note，为驳回时两个都写
+  columns:
+  - name: id
+    comment: 主键
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: after_sale_order_id
+    comment: 所属售后单（→ after_sale_order）
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: audit_result
+    comment: 审核结论（通过/驳回）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: audit_note
+    comment: 驳回原因（自由文本；【对买家可见】：原样作为驳回邮件正文，C 端展示；仅驳回时写值）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: audit_internal_note
+    comment: 审核意见（自由文本；【仅内部】：运营记内部判断，不进邮件、不对 C 端展示；通过与驳回均可写）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: operator_id
+    comment: 审核人（运营）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: operator_type
+    comment: 审核人类型
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: audited_at
+    comment: 审核提交时间（即审核结论录入时间）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: created_at
+    comment: 创建时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: updated_at
+    comment: 更新时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: after_sale_inspection
+  comment: 验货记录
+  note: A16 验货在线下仓完成、结果回传在线表格，本表承接运营录入的结论，不承接作业过程。本表由「判责」这一个动作一次性写入：运营在同一次提交里录验货结论 + 判责任方 + 填退款金额，责任方落 after_sale_order.liability_party、金额落
+    after_sale_refund，三者同一次提交、不分步。判责入口有两个状态：退货在途（货未到仓即可判，如退回途中丢件）与待判责（货已送达）。未收到货分支无实物验货，不产生本表记录（该分支的判责只落责任方与退款金额）。S1 定 V1
+    不做真伪复核：无「真伪存疑」结论值、无挂起态，可疑情况只写 inspection_note；inspection_note 是内部字段、不对 C 端展示。A3 只记客观结果，不含处置决策。⚠ 本表不承载任何金额：验货发现的成色下降 /
+    缺配件所需扣款，并入 after_sale_refund.service_fee_amount（退货扣减）由运营手填一个总额，本域不单列扣款科目。故本表无金额字段、也不带 currency_code
+  columns:
+  - name: id
+    comment: 主键
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: after_sale_order_id
+    comment: 所属售后单（→ after_sale_order）
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: inspection_result
+    comment: 验货结论（含「退回途中丢件」结论值）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: inspection_note
+    comment: 验货备注（可疑情况的唯一承载，S1；丢件原因也写这里；内部字段，不对 C 端展示）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: operator_id
+    comment: 录入人（运营）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: operator_type
+    comment: 录入人类型
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: inspected_at
+    comment: 判责提交时间（即验货结论录入时间）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: created_at
+    comment: 创建时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: updated_at
+    comment: 更新时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: after_sale_refund
+  comment: 退款方案与执行
+  note: A2 直接对接支付域退款单，只存 refund_ref_no 不冗余金额。退款计算口径（本域唯一算式）：最终退款金额 = 退款基准 base_amount 减 退货扣减 service_fee_amount。⚠ 该式是恒等约束、不是单向派生：service_fee_amount
+    与 refund_amount 两个都是运营在判责时的录入值，各自带预填值、改其一另一个随之联动，等式恒成立；base_amount 为系统取数、不由运营写入。构成与取数口径见 退款金额的构成与录入口径。service_fee_amount（中文名【退货扣减】）是本域唯一扣款科目，为运营手填的一个总额，已含验货发现的成色下降
+    / 缺配件扣款，本域不再单列验货扣减字段。refund_tax_amount 本期恒为 0、不参与该算式（字段预留）。本表在「判责」提交时创建：判责动作本身即调用支付域退款接口，售后单随之进入「退款中」，收到退款成功结果后售后单才落「已完成」。退款失败不新增售后单主状态——失败的单停留在「退款中」可重试，失败原因与重试依据本表
+    refund_status 及 refund_ref_no 关联的支付域退款单状态。税费随退款退还，refund_tax_amount 用于按 order_id 做已退税费累计校验（支付域只校验金额总额、不拆税）。order_id 为冗余字段，专供该累计校验
+  columns:
+  - name: id
+    comment: 主键
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: after_sale_order_id
+    comment: 所属售后单（→ after_sale_order）
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: order_id
+    comment: 所属订单（冗余，供税费累计校验）
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: base_amount
+    comment: 退款基准（商品行实付：已扣优惠分摊、不含销售税、优惠不追回；系统取数）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: service_fee_amount
+    comment: 退货扣减（唯一扣款科目：含退货服务费 + 验货扣款；默认取政策快照值，运营可改，以运营填的为准）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: refund_tax_amount
+    comment: 退还税费（★本期订单税费恒为 0，字段预留，不参与退款计算）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: refund_amount
+    comment: 最终退款金额（运营录入值；预填 = base_amount 减 service_fee_amount，与其双向联动）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: currency_code
+    comment: 币种
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: refund_ref_no
+    comment: 支付域退款单号（→ refund_order.refund_no）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: refund_status
+    comment: 退款执行状态（含失败；失败单重试与筛选的依据）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: operator_id
+    comment: 定案人
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: operator_type
+    comment: 定案人类型
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: refunded_at
+    comment: 退款到账时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: created_at
+    comment: 创建时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: updated_at
+    comment: 更新时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: after_sale_attachment
+  comment: 售后附件
+  note: 买家在 C 端自助上传举证；运营从在线表格取图上传验货取证。两种来源靠 source_type 区分。举证必须跟单走且带审计，不能只留在外部表格。约束：inspection_id 非空时，其所属售后单必须与 after_sale_order_id
+    一致。保留 inspection_id 而非只挂售后单——验货照片的父本来就是那次验货，且未来若允许复验（inspection 变 1:N）该字段必需
+  columns:
+  - name: id
+    comment: 主键
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: after_sale_order_id
+    comment: 所属售后单（→ after_sale_order）
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: inspection_id
+    comment: 所属验货记录（验货取证时填）
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: source_type
+    comment: 来源（买家举证/验货取证）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: file_url
+    comment: 文件地址
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: file_type
+    comment: 文件类型（图片/视频）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: uploader_id
+    comment: 上传人
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: uploader_type
+    comment: 上传人类型（买家/运营）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: created_at
+    comment: 上传时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: order
+  comment: 订单（订单域）
+  note: 外部拥有，售后只读 + 反写商品行退款状态
+  columns:
+  - name: id
+    comment: 主键
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: order_no
+    comment: 订单号
+    constraint: UNIQUE
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: order_item
+  comment: 订单商品行（订单域）
+  note: 售后判责提交、调起退款（售后单进入「退款中」）才置 refund_status=退款中，到账置已退款；不在申请或审核通过时置。A12 订单表不为售后新增状态字段，「售后中」由订单侧实时查本域聚合
+  columns:
+  - name: id
+    comment: 主键
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: refund_status
+    comment: 退款状态（售后域按既有语义反写）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: fulfillment_status
+    comment: 发货状态（售后只读不改写；入口以已发货为界）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: condition_grade
+    comment: 成色等级快照（验货比对基准）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: refund_order
+  comment: 退款单（支付域）
+  note: A2 售后单直接对接本表。只存 refund_no 引用，不冗余金额。注意：订单域的 refund_request 仅服务发货前退款，售后不使用它
+  columns:
+  - name: id
+    comment: 主键
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: refund_no
+    comment: 退款单号（售后弱引用）
+    constraint: UNIQUE
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: shipments
+  comment: 物流运单（物流信息服务）
+  note: A15 售后注册退货运单后获得轨迹与主动通知。business_order_no 为非唯一索引，故 1 订单号 = N 运单，支撑 A1「多张售后单共用一个退货运单号」。售后存 shipment_id 取轨迹，另落 return_tracking_no/return_carrier_code
+    作运营登记留痕。登记值不随物流侧修正自动同步——它记「当时登记了什么」，实时状态仍以本表为准
+  columns:
+  - name: shipment_id
+    comment: 运单 UUID（对外主键，不可变）
+    constraint: UNIQUE
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: business_order_no
+    comment: 业务单号（非唯一索引，售后传订单号）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: internal_status
+    comment: 标准化物流状态（已送达=到仓时点唯一来源）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: market
+  comment: 销售市场（Market）
+  note: A17 V1 覆盖美国站 + 香港站，时效/服务费/退货地址三项按 market 独立配置
+  columns:
+  - name: id
+    comment: 主键
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: user_account
+  comment: 用户（登录注册域）
+  note: 外部拥有，售后只读
+  columns:
+  - name: id
+    comment: 主键
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+relations:
+- from: market
+  to: after_sale_policy
+  type: 1:N
+  label: 按市场配政策
+  color: '#7B4FC9'
+- from: after_sale_policy
+  to: after_sale_order
+  type: 1:N
+  label: 命中政策
+  color: '#7B4FC9'
+- from: after_sale_reason
+  to: after_sale_order
+  type: 1:N
+  label: 原因码
+  color: '#7B4FC9'
+- from: order
+  to: after_sale_order
+  type: 1:N
+  label: 订单可多次售后
+  color: '#6B7280'
+- from: order_item
+  to: after_sale_order
+  type: 1:N
+  label: 一单一行 · 同时只允许一张非终态
+  color: '#1565C0'
+  penwidth: 1.8
+- from: user_account
+  to: after_sale_order
+  type: 1:N
+  label: 申请人
+  color: '#6B7280'
+- from: shipments
+  to: after_sale_order
+  type: 1:N
+  label: 多张单共用一个退货运单
+  color: '#1565C0'
+  penwidth: 1.8
+  style: dashed
+- from: after_sale_order
+  to: after_sale_audit
+  type: 1:N
+  label: 每轮审核一条 · 可反复驳回再审
+  color: '#1565C0'
+  penwidth: 1.6
+- from: after_sale_order
+  to: after_sale_inspection
+  type: '1:1'
+  label: 仅已收到货分支 · 判责时写入
+  color: '#1565C0'
+  penwidth: 1.6
+- from: after_sale_order
+  to: after_sale_refund
+  type: '1:1'
+  label: 退款方案 · 判责时写入
+  color: '#1565C0'
+  penwidth: 1.6
+- from: after_sale_refund
+  to: refund_order
+  type: N:1
+  label: 弱引用 refund_no
+  color: '#6B7280'
+  style: dashed
+- from: after_sale_order
+  to: after_sale_attachment
+  type: 1:N
+  label: 买家举证
+  color: '#1565C0'
+- from: after_sale_inspection
+  to: after_sale_attachment
+  type: 1:N
+  label: 验货取证
+  color: '#1565C0'
+- from: after_sale_order
+  to: order_item
+  type: N:1
+  label: 反写退款状态
+  color: '#C0392B'
+  style: dashed
+design_rules:
+  A1_一单一行: 一个商品行一张售后单；一次退多件=多张单。多件同包裹寄回时共用一个退货运单号，注册物流追踪时业务单号传订单号（复用物流服务 1 订单号 = N 运单），不新造退货包裹实体
+  A2_退款链路: 售后单不走订单域 refund_request，直接对接支付域 refund_order；refund_request 仅服务发货前退款
+  A3_域边界: 售后只记客观验货结果，处置决策（能否再售/降级/报废）与执行均归商品域，本域无处置字段
+  A12_订单侧状态: 订单表不为售后新增状态字段；订单详情页显示「售后中」由订单侧按 order_item_id 实时查本域聚合。售后单表的 order_id / order_item_id 必须建索引，这是该方案成立的前提
+  A14_退货服务费: 正逆向均不向买家收运费；退货服务费在退款时一并扣除，系统内不存在「退货运费」独立概念。⚠ 两个 service_fee_amount 的中文名【刻意不同】，指的不是同一个东西：after_sale_policy.service_fee_amount
+    =「退货服务费」，是政策里配的那笔纯服务费；after_sale_refund.service_fee_amount =「退货扣减」，是这一单实际扣的总额（含服务费与验货扣款）。C 端与运营端两端界面均以「退货扣减 / Return deduction」指代后者；英文字段名不随中文名调整（由技术环节保证）。⚠
+    after_sale_refund.service_fee_amount（退货扣减）是本域【唯一扣款科目】：它装的不只是退货物流成本，验货发现的成色下降 / 缺配件所需扣款一并并入其中，由运营手填一个总额；系统不单列验货扣减科目、不自动计算、不按责任自动豁免。取值口径按分支区分（默认值只是起填值，最终仍由人决定，不违背"手动填写"）：①
+    已收到货分支（走寄回）：默认取 after_sale_order.policy_snapshot.service_fee_amount（建单时冻结的政策快照，为唯一取数源；service_fee_quoted 只作对账展示、不作默认值来源），运营可改，改后以运营填的为准；②
+    未收到货分支（跳过寄回）：默认为空，运营手填（因无退货动作、不产生退货物流成本，也无实物验货）。⚠ 未填即按 0 计：service_fee_amount 允许取 0 / 为空，为空时按 0 参与算式，退款按全额基准照常执行到底。告知值
+    service_fee_quoted 与实扣值之间【不设任何一致性约束】，偏离多少都不改变流程走向。这是一条给开发的反向约束——本域不为该字段派生任何拦截或中断逻辑
+  A15_物流接入: 接入物流信息服务，售后单存 shipment_id 用于取轨迹；「已送达」是到仓时点唯一来源。售后单同时落 return_tracking_no 与 return_carrier_code——这两个是【运营登记时的业务留痕】，用于售后单自身可读、可线下追查、不依赖实时调用物流服务；轨迹与实时状态仍只从物流服务取（凭
+    shipment_ref_id），不在本域冗余。⚠ 脏数据口径：运单号若在物流侧被修正、或改承运商切了追踪平台，本域登记值【不自动同步】，它记录的是「当时登记了什么」；需要以物流侧为准展示时，走 shipment_ref_id 实时取。⚠
+    登记值的写入阶段：return_tracking_no / return_carrier_code 【只在「待寄回」阶段写入】，单据推进到「退货在途」之后这两个值不再变更，运营端也不再提供该登记入口；揽收轨迹一旦产生就说明买家已按告知的单号交寄，此后再改登记值只会让留痕与实际轨迹对不上。⚠
+    承运商【存 code 不存展示名】：return_carrier_code 落库的是承运商编码（与物流模块 carrier_code 对齐），展示名由承运商字典映射得出，本域不落展示名——承运商改名或多语言展示时不必回改历史数据
+  A16_验货作业: 验货在线下仓完成并回传在线表格，运营核对后录入。V1 不对接在线表格，但验货录入表单需按其字段设计，以便后续对接不重构
+  S1_真伪复核: V1 不做：无「真伪存疑」结论值、无挂起态。可疑情况只写 inspection_note——该字段是可疑情况（如疑似调包）的唯一承载，为【内部字段，绝不外露 C 端】。本期不做拒退说明的 C 端展示
+  S3_税费累计校验: 税费随退款退还；必须按 order_id 做已退税费累计校验（支付域只校验金额总额、不拆税）。并发场景需按 order_id 加锁
+  库存回流与重新上架不做: 库存回流与商品重新上架 V1 均不做（退货只放仓内），本域不建库存事件与处置指令相关实体
+  命名规范: 随订单域：表名单数 snake_case、主键 id、业务单号 <x>_no[UK]、外键 <被引实体>_id、跨域弱引用 _ref_no/_ref_id 不建 FK、多状态带前缀、时间戳 _at、含金额表必带 currency_code、操作人
+    operator_id + operator_type 成对
+  A7_责任二分类_与G1文档的已知差异: 本 ER 按【平台责任 / 买家责任】二分类建模。G1 概览文档仍写三分类（含物流责任），属已知差异、不视为冲突——物流出问题属平台与物流商之间的事，对买家而言即平台责任，平台先赔付再线下索赔；物流原因由
+    after_sale_reason 承载（原因码记「为什么」，liability_party 记「谁承担」）
+  售后单状态机: 状态枚举共 7 个，其中终态 2 个：待审核 pending_audit / 待寄回 to_ship / 退货在途 in_transit / 待判责 to_adjudicate / 退款中 refunding 为非终态，已完成
+    completed / 已关闭 closed 为终态。⚠ 两条流转分支【同属「退货」这一个售后类型】，分岔依据是原因码而非类型字段（见 流程分岔依据取原因码快照）：① 已收到货分支：待审核 —审核通过→ 待寄回(已告知运单号) —揽收轨迹→
+    退货在途 —已送达→ 待判责；判责后 → 退款中 —退款成功回调→ 已完成，或判责结论为拒退时 → 已关闭(close_reason=拒退关单)。② 未收到货分支：待审核 —审核通过→ 待判责 —判责→ 退款中 —退款成功回调→ 已完成，即跳过待寄回与退货在途两个状态、也不做到仓验货，不产生
+    after_sale_inspection 记录。③ 驳回：待审核 —驳回→ 待审核（不落终态，等买家修改后重新提交，见 驳回后重新提交）。④ 关闭：待审核 —买家撤销→ 已关闭；待审核 / 待寄回 / 退货在途 —运营关闭→ 已关闭（待判责
+    / 退款中 不开放运营关闭，见 运营手动关闭售后单）。「退货在途 → 待判责」由 shipments.internal_status=已送达 自动推进（A15），无人工签收登记。⚠ 判责入口在【两个状态】：退货在途（货未到仓即可判，如退回途中丢件）与待判责。判责是一个动作：录验货结论
+    + 判责任方 + 填退款金额一次提交，并【由该动作直接调用支付域退款接口】，无需再有独立的「发起退款」动作；提交后单据进入退款中，收到退款成功结果才落已完成。「退款中」是系统等待态（已调接口、等支付域回调），不是等运营去点的人工待办态。拒退出口【不经过退款中】，判责直接落已关闭
+    + close_reason=拒退关单。退回途中丢件没有「标记丢件」独立操作，它是判责时的一个验货结论值（默认平台责任、运营可改），丢件原因写 inspection_note。待审核状态买家可自行撤销，落 close_reason
+  售后类型维度本期单取值: after_sale_order.as_type 本期【只有「退货」一个取值】，但字段与维度【保留不删】——V2 的换货 / 部分补偿等新类型仍挂在这个维度上，届时加枚举值即可，不必改结构。⚠ 原「仅退款」不再是一个售后类型：它当初（A13）就不是独立流程（走同一张售后单、审核通过后跳过逆向物流与验货），本质是「要不要走寄回环节」的开关，本期正名为【流程分支】（见
+    流程分岔依据取原因码快照）。as_type 与流程分支是两回事：类型描述这单要什么结果（本期只有退货退款），分支描述这单怎么走（要不要寄回），不要把分支写回 as_type。⚠ 本期虽只有一个取值，运营端售后单列表与详情【仍展示「售后类型」这一项】，值恒为「退货」，不因取值单一而隐藏该维度
+  流程分岔依据取原因码快照: 本期【不为「收货与否」新增任何字段】：售后单上没有，after_sale_reason 上也没有——流程分岔的依据是买家申请时选的那条原因码【本身】，判定方式是【白名单包含判断】：① reason_code ∈
+    系统侧维护的「未收到货码表」→ 审核通过后直接进入待判责，跳过寄回与到仓验货；② 其余任何 reason_code → 审核通过后进入待寄回，走寄回、退货在途、到仓验货。⚠ 判定的默认方向是【走寄回】：只有命中白名单才不寄回，新增的原因码在系统眼里一律是「已收到货」，不需要也无处标注分组。⚠
+    白名单是【系统常量，不是配置项】：做成运营可编辑就等于又回到「运营能改流程走向」，而那正是本方案要消掉的东西。⚠ 这是给开发的取数约束：判断一单要不要走寄回环节，只读本单 reason_snapshot 里的 reason_code，【不实时回查
+    after_sale_reason 字典】，也不看 as_type（as_type 本期恒为「退货」，区分不出分支）；字典只在建单那一刻被读一次并落进快照。⚠ 白名单里【每一条】的取值都是业务契约，运营不得删除 / 改 code / 停用，停掉任意一条都会让买家少一条走到「未收到货」分支的路（约束见
+    未收到货原因码为系统预置项）。⚠ 已建单据不受字典事后调整影响：快照已锁定建单时选中的 reason_code，单据按建单时判定的分支走完、不回溯改道——这由快照机制保证（见 建单时的两个快照），不依赖开发额外做取值冻结
+  未收到货原因码为系统预置项: ⚠ 上一条（流程分岔依据取原因码快照）把流程分岔挂在了【一组固定的 code 取值】上，它随之带来一条必须写死在系统里的隐性约束，开发不实现、运营就能在后台把整条链路弄断：after_sale_reason 中【必须存在且只存在这一组】未收到货原因码，共
+    4 条，由系统在初始化时预置、不由运营创建：① RO_MARKED_DELIVERED_NOT_RECEIVED（Marked delivered but not received / 显示已送达但未收到）；② RO_LOST_IN_TRANSIT（Lost
+    in transit / 运输中丢件）；③ RO_EMPTY_PACKAGE（Empty package / 包裹为空）；④ RO_DELIVERY_FAILED（Delivery failed and returned / 投递失败退回）。⚠
+    上述约束【对这组里的每一条都成立】，不是只锁其中某一条：每条都【不允许运营删除、不允许改 reason_code、不允许改 reason_status 为停用】——停掉任意一条，买家就少一条能走到不寄回分支的路。ⓐ 允许运营改的只有：display_text、sort_order、require_evidence——这三项改了只影响
+    C 端怎么展示、要不要传图，不影响流程走向；ⓑ 运营端原因码配置页对这几行必须【逐行禁用停用/删除入口】（不是提交时再报错），新增原因码时也不允许再输入这几个 code（reason_code 本就 UK，重复即拒）；ⓒ 系统侧把这一组
+    code 作为【常量白名单】维护（不要做成可配置项，可配置就等于又回到「运营能改流程」）。⚠【「其他」不进白名单】：RR_OTHER（Other / 其他）是一条普通原因码，走寄回。理由——买家选「其他」时很可能是货已收到、只是原因不在列表里；把它放进白名单，这类买家就永远走不到寄回分支，而他手上是有货的。这也意味着一个已知代价：买家「没收到货、但情形不在这
+    4 条里」时，只能选最接近的一条，或选「其他」而被要求寄回（已记模块待优化清单第 31 条）。⚠ 理由要写给开发看清楚：这几条不是普通的字典数据，它们合起来是流程分岔的判据。停用其中一条 → C 端申请页少一个入口，买家只能改选一条会要求他寄回的原因，而他手上根本没有货；删除
+    → 历史单靠 reason_snapshot 仍能显示，但新单再也走不进该分支
+  本期结构取舍: ① 时间线与操作日志合表 after_sale_log，靠 is_customer_visible 区分——同一动作既要对买家展示又要留痕，分表会双写。⚠ 同一动作若「结果可对外、细节不可对外」，必须拆成两条记录（可见条 +
+    内部条），不能靠一条记录里的部分内容不展示来实现——拒退关单是本期唯一实例，拆分口径见 拒退说明不对外与日志拆两条。② 协商改方案不做退款方案版本化，调整过程由 after_sale_log 的 before/after 承载；若后续需要方案多版本，after_sale_refund
+    改 1:N 即可，结构不用动。③ 退货地址存完整文本快照而非引用地址库——它是仓库地址、要直接发给买家看，且需随 market 配
+  本图范围_不画不等于不建: 本图只呈现售后域【核心实体关系】，用于确认设计大方向。日志/时间线、邮件通知记录等留痕与触达类实体本期不在图内体现，但它们都是 ✅V1 能力、建表时必须补：① 时间线与操作日志（涉及资金必须留痕：审核结论、责任判定、退货扣减调整（含并入其中的验货扣款）、超期特批、关单）；②
+    售后节点邮件记录（消息通知模块仅提供通道，节点与内容由本域定义，需覆盖两个 market 的语言）
+  责任判定时点: 责任判定【统一在判责环节落定】（终判），落 after_sale_order.liability_party，【不按流程分支区分判定时点】：两条流程分支（已收到货 / 未收到货，见 流程分岔依据取原因码快照）在审核环节【一律不落】责任判定，运营端审核环节不提供责任归属的录入入口。未收到货分支虽无实物验货，责任判定同样在判责环节做——该分支的判责动作只录责任方与退款金额，不产生
+    after_sale_inspection 记录。不预填、不自动带值——本域无 default_liability、无 is_service_fee_waived；丢件结论下默认平台责任只是判责弹窗的默认值、运营可改，不属于自动带值。本期
+    liability_party 不驱动任何金额计算（退货扣减全手填），为纯留痕字段。
+  建单时的两个快照: 建单时对【命中的整条政策】与【买家选的整条原因码】各留一份快照，分别存 after_sale_order.policy_snapshot 与 after_sale_order.reason_snapshot，均整条留档、不逐字段补。两者是同一套机制、同一个理由：政策与原因码字典都是运营随时可改的配置，在途单必须锁定建单当时的口径。①
+    policy_snapshot：避免运营改政策追溯改掉在途单的关单时点（关单不可恢复）、以及邮件已告知的退货地址与系统新值对不上；② reason_snapshot：流程分岔的判定依据（买家选中的那条 reason_code）就在其中，快照令「已建单据按建单时判定的分支走完、不回溯改道」成为数据结构决定的必然结果，而不是一条要开发自觉遵守的约定。⚠
+    reason_snapshot 的顺带收益：原因码的展示文案将来改写或做多语言，历史单据凭快照仍能还原当时给买家看的说法，不必回改历史数据。⚠ reason_code 外键仍保留：它指向字典当前记录，用于按原因码聚合统计与回溯字典条目；但凡影响本单流程走向与对外展示的取值，一律读
+    reason_snapshot。⚠ 驳回后买家重新提交时，两份快照的处理【相反】，开发不要一把刷新或一把不刷：ⓐ policy_snapshot【不刷新】——重新提交不重新匹配政策，金额口径按建单时冻结的走；否则运营改了政策，就能靠「驳回
+    → 买家重提」把新政策绕进在途单，快照就失去意义；ⓑ reason_snapshot【按买家新选中的那条刷新】——买家修改申请时可以改售后原因（例如从「描述不符」改成「包裹为空」），不刷新等于买家改了没生效：流程分支仍按老快照走，系统仍然让他寄货。⚠
+    两者不同的判据：快照锁的是【运营侧的配置变动】（政策与原因码字典的事后调整），【不锁买家自己的选择】——买家改原因码是他的主动行为，理应生效。重新提交的其余口径见 驳回后重新提交
+  售后时效判定: 本域无「交寄时限」字段与起算口径（本期不做，见 本期不做的范围）。valid_days 在未签收期间【不启动计时】——买家随时可申请，签收后才开始算 N 天。时效严格按窗口判断、与申请次数无关：关单后若仍在时效内可正常再次申请，不需人工特批。is_returnable=false
+    不约束未收到货分支——货未收到时该约束不适用。发货后即可申请。C 端申请页由买家选择售后原因，原因码映射到【流程分支】而不再映射到售后类型（售后类型本期恒为「退货」）：未收到货 → 跳过寄回与到仓验货；已收到货 → 走寄回。⚠ V1 【不存在「已收到货
+    + 不寄回就退款」这一组合】——那属于部分退款 / 补偿场景，V1 不做，本域不产生该组合的售后单，两端也不提供该组合的取值路径。时效之外还有两条建单拦截条件，见 建单拦截条件与超期特批边界。
+  建单拦截条件与超期特批边界: 超期人工特批【只豁免时效判定】这一条，其余建单拦截条件一律照常成立，特批不能绕过。命中下列任一即不产生售后单：① 该商品行已有进行中（非终态）的售后单——即 after_sale_order 的互斥约束；② 该商品行【已退成钱】——该商品行存在一张已完成（as_status=completed）的售后单，即退款已实际到账。⚠
+    判据是【有没有退成钱】，与走哪条流程分支无关：两条分支走到已完成一律都算，因为二者实质相同——这笔钱已经退给买家了。⚠ ② 是独立于互斥约束的一条新约束，不能靠互斥推导出来：互斥管的是「同一 order_item_id 同时只允许一张非终态单」，而已完成的那张单已进入终态、互斥不拦，必须单独判定。⚠
+    两个终态对「能不能再建单」的结论【正好相反】，不可一视同仁：已完成 = 钱已退出去 → 不能再建单；已关闭 = 没退成钱（买家撤销 / 运营关闭 / 拒退关单三种来源都没产生实际退款）→ 仍可在售后时效内重新申请。所以本条与「关单后仍在时效内可正常再次申请」不冲突，两者管的是不同的终态。特批建单的标记与理由落
+    after_sale_order.is_overdue_approved / overdue_approve_note 随单留痕
+  签收时间取数: 时效起算的签收时间取订单域 order_package.received_at（订单履约事实的权威源），不跨域调物流服务。逆向用物流服务是因为逆向运单本就由售后注册，两者不冲突
+  售后中的聚合口径: 「售后中」= 全部非终态（待审核 / 待寄回 / 退货在途 / 待判责 / 退款中，共 5 个）；终态 = 已完成 / 已关闭（共 2 个）。⚠ 该聚合口径只服务订单侧：订单详情页的「售后中」标识与 A12 的实时聚合承诺不变；运营后台不再提供「售后中」聚合筛选（无该
+    Tab、无该 KPI 卡），运营按具体状态筛选
+  运营手动关闭售后单: 运营有「关闭售后单」手动动作（关闭时落 close_reason 取值并全程留痕），适用【待审核 / 待寄回 / 退货在途】三个状态——这三个阶段的推进权都在买家手上，买家不响应时系统没有别的出口。⚠ 待审核纳入本入口的原因：驳回改为回环（驳回后回到待审核等买家修改）之后，待审核就没有了终态出口，买家既不修改也不撤销时单据会永久停在待审核、该商品行的互斥占用一直不释放。⚠
+    待判责 / 退款中【不开放本入口】：货已在平台手上、或钱已在退的途中，应走判责与重新发起退款，不从这里硬关单。close_reason 含「运营关闭」取值。⚠ 关闭必须【释放该商品行的互斥占用】——否则买家仍无法重新申请，该动作等于白做。（这不是运营关闭的特有动作：释放是进入终态的必然结果，两个终态、三种关闭来源一律如此，通用口径见
+    after_sale_order 表 note；此处强调只因本条的成立前提正是它。）背景：本期不做超时关单，买家中途放弃时若无此出口，货没退成、钱没退到、重新申请被互斥挡住、C 端只能在待审核撤销、运营也无出口，五条路全堵死。关闭时是否邮件告知买家，由运营在关闭弹窗【手动勾选】决定，系统既不固定发也不固定不发；该选择落
+    after_sale_order.close_notify_buyer，并进操作日志与详情页留痕（用于解释「这单为什么没发邮件」）。⚠ 勾选框【默认勾选】，即默认发送关闭通知邮件；运营需要不发时手动取消勾选。⚠ 本字段仅在【运营关闭】场景由运营勾选写值；买家撤销
+    / 拒退关单两种来源不经过该勾选框。⚠ 关闭说明落 close_note：运营关闭时另填一段面向买家的说明文本，落 after_sale_order.close_note，与 close_reason 成对写入。两者分工——close_reason
+    是枚举、只说「哪一类关闭」；close_note 是自由文本、说「这一单具体怎么回事」，枚举装不下这段内容。⚠ close_note 【对买家可见】：C 端进度页会把它展示给买家，与 inspection_note（内部字段、绝不外露
+    C 端，见 S1_真伪复核）性质【正好相反】，开发不要照 inspection_note 的样子把它当内部备注处理。⚠ 写值范围与 close_notify_buyer 同口径：close_note 仅在【运营关闭】场景写值；买家撤销与拒退关单两种来源不写本字段，各自的买家侧文案另有承载（拒退见
+    拒退说明不对外与日志拆两条）。
+  拒退说明不对外与日志拆两条: inspection_note 为【内部字段、不对 C 端展示】；其内容由运营自行写入，本域不对文本格式与内容作任何约定；拒退关单的成立也不依赖该字段有值。⚠ 日志口径（after_sale_log）：拒退关单必须产生【两条】日志，不得合成一条——①
+    is_customer_visible=true 的一条只写客观结果（验货结论 + 出口「不退并关闭」+ 落终态已关闭·close_reason=拒退关单 + 可重新申请提示），【不含 inspection_note 原文】；② is_customer_visible=false
+    的一条承载验货备注原文（inspection_note），仅内部可见。合成一条就会把内部备注推给买家，正是本条要防的外泄。⚠ 拒退关单【不写 after_sale_order.close_note】：close_note 装的是运营在关闭动作里填给买家看的说明，而拒退关单不经过运营关闭这个动作（它由判责的「不退并关闭」出口落终态），没有这段输入；买家侧看到的是上述①那条固定的客观结果文案，由日志生成、不是运营自由填写的文本。两者承载不同，不要混用。⚠
+    已知空缺：本期买家侧看不到拒退理由（C 端只见「不予退款 + 商品回寄」这个结果），客服需人工答复
+  验货异常的三个出路: 判责时验货结论为「退回件与订单不符」或「空包或无实物」→ 经人工核实后有三个出口：① 全额退给买家 ② 部分退给买家（金额由运营手填）③ 不退并关闭 → as_status=已关闭 且 close_reason=拒退关单。前两者走正常退款流程（判责即调退款接口
+    → 退款中 → 已完成）；③ 不产生退款单、不经过退款中，货走线下回寄、不进系统。⚠ 拒退不设独立状态枚举值——拒退关单一律流转到已关闭，差异由 close_reason 承载，不为单个场景增加枚举。拒退关单落终态后，该商品行的互斥占用【同样解除】，买家可在售后时效内对该商品行【重新申请】——拒退虽是走完全程后给出的否定结论，也【不因此额外加一道拦截】，与买家撤销
+    / 运营关闭三种关闭来源在这一点上口径完全一致。
+  本期不做的范围: 本期不做「交寄时限」与「超时关单」判定：after_sale_policy 无交寄时限天数字段，运营端政策列表列 / 表单项 / 详情快照行均无该项，该概念在本域既无写入方也无消费方。后期若要开超时关单，需同时补：政策配置项
+    + 交寄截止时点计算 + 关单前提醒 + 定时扫描关单，不是加一个字段就够。关单原因本期是三种：买家撤销 / 运营关闭 / 拒退关单。税费本期不处理：订单税费字段金额恒为 0，refund_tax_amount 字段预留、值恒为 0，S3
+    的已退税费累计校验本期无实际输入（逻辑保留，待订单侧真正产生税额后启用）。
+  驳回后重新提交: 审核驳回【不落终态、不设「已驳回」状态枚举】——单据回到待审核，等买家修改后重新提交；可反复驳回，本期不设次数上限。C 端需要展示「申请被驳回，请修改后重新提交」，运营端列表需要区分「新提交」与「被驳回过」，因此需要一个可查询的承载。每一轮审核（含通过与驳回）各生成一条
+    after_sale_audit 记录，驳回原因写该表的 audit_note（对买家可见），内部审核意见另写 audit_internal_note（不对买家展示），历次驳回原因完整可查、互不覆盖；主表不保留审核结论、审核意见、审核时间字段。「这单被驳回过」=
+    该单 after_sale_audit 中结论为驳回的记录条数 ≥ 1，主表不冗余次数字段；「当前正等待买家修改」= as_status=待审核 且 该单最近一条 after_sale_audit 记录的结论为驳回 且（after_sale_order.resubmitted_at
+    为空 或 早于该条记录的 audited_at）——即【最近一次驳回之后买家还没再提交过】。买家重新提交时更新 resubmitted_at，该条件随即不成立，C 端不再提示「请修改」、转为「审核中」，直到运营再审写入新的 after_sale_audit
+    记录；所以「驳回」不会一直提示下去。资格判断只看这两条派生口径，主表不存审核结论、也不存驳回次数。⚠ 重新提交沿用原售后单、不新建单据（单号不变、时间线连续），买家可改的范围是【原因码 / 举证附件 / 文字说明】三项；商品行不可改——要换商品行只能撤销后重新发起；售后类型本期恒为「退货」一个取值，无可改之处。⚠
+    原因码可改意味着流程分支可能翻转，因此两份快照在重新提交时的处理【相反】：policy_snapshot 不刷新、reason_snapshot 按买家新选中的那条刷新，判据与理由见 建单时的两个快照。⚠ 驳回【固定发一封驳回通知邮件给买家】，不由运营逐单选择发或不发，与运营关闭的
+    close_notify_buyer 手动勾选口径【刚好相反】，详见 售后邮件触达口径
+  售后邮件触达口径: 本域定义的节点邮件，发或不发由节点本身固定，不设全局开关。已定两条：① 审核驳回【固定发一封驳回通知邮件给买家】，本域不为驳回邮件设置任何开关字段，也不由运营逐单选择——驳回的语义是「要求买家去改申请」，不通知他，C 端只显示「审核中」，买家不知道要动手，单据就断在这里。⚠
+    与 close_notify_buyer 【刚好相反】：运营关闭由运营手动勾选是否发邮件（默认勾选），因为关闭是终结、发不发都不改变买家还要做什么；驳回是行动请求，没有不发这个选项。开发不要照 close_notify_buyer 的样子给驳回也做一个开关。驳回邮件的正文取
+    after_sale_audit.audit_note（驳回原因原文，该字段【对买家可见】）。⚠ 邮件正文【只取 audit_note】，不含同一条记录的 audit_internal_note——审核意见是内部字段，既不进邮件也不对
+    C 端展示（两字段分工见 after_sale_audit 表 note）。② 「审核通过」邮件与「退货运单号」邮件【不合并，各发一封】：两者之间隔着「运营线下预约面单」这个人工动作，间隔时间长，合并会让买家在审核通过之后长时间收不到任何通知。邮件本身的发送记录由售后节点邮件记录实体承载（见
+    本图范围_不画不等于不建）
+  退款金额的构成与录入口径: ① 退款基准 base_amount = 该商品行的实付金额，构成口径为【已扣优惠分摊、不含销售税】，且【优惠不追回】——下单时享受的优惠按行分摊后已从实付中扣除，退款只退实付，不因为退货把这部分优惠再算回来向买家收回。base_amount
+    由系统按订单商品行取数，不由运营写入。② 退货扣减 service_fee_amount 与最终退款金额 refund_amount 【两个都是运营在判责时的录入值】，refund_amount 不是纯派生结果：两者各自带预填值（service_fee_amount
+    的预填口径见 A14_退货服务费；refund_amount 预填 = base_amount 减 service_fee_amount）。③ 两者【双向联动】：改动其中一个，另一个随之重算，恒等式 base_amount = service_fee_amount
+    + refund_amount 始终成立。所以本域唯一算式表达的是这条恒等约束，而不是「谁被谁算出来」；refund_tax_amount 本期恒为 0、不参与本组等式
+  退款失败的承载: 不为退款失败新增售后单主状态枚举。判责动作调起退款后单据进入「退款中」，退款失败的单【停留在退款中】、可重试，与刚到货的「待判责」单天然分开、不会混在一起。失败原因与是否可重试，依据 after_sale_refund.refund_status
+    及 refund_ref_no 关联的支付域退款单状态，不看 after_sale_order.as_status
+  待技术侧定: 售后单号编码规则归技术环节确定，产品阶段不定
+]]></er-tech-spec></metadata><g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(57.6 2413.6)">
+<title>ER</title>
+<polygon fill="#f8f9fc" stroke="none" points="-57.6,57.6 -57.6,-2413.6 3805.6,-2413.6 3805.6,57.6 -57.6,57.6" />
+<g id="clust1" class="cluster">
+<title>cluster_policy</title>
+<path fill="#f3eefb" stroke="#c3aee6" stroke-width="2.5" d="M346.38,-1302C346.38,-1302 788.88,-1302 788.88,-1302 794.88,-1302 800.88,-1308 800.88,-1314 800.88,-1314 800.88,-2336 800.88,-2336 800.88,-2342 794.88,-2348 788.88,-2348 788.88,-2348 346.38,-2348 346.38,-2348 340.38,-2348 334.38,-2342 334.38,-2336 334.38,-2336 334.38,-1314 334.38,-1314 334.38,-1308 340.38,-1302 346.38,-1302" />
+<text xml:space="preserve" text-anchor="start" x="532" y="-2331.7" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="#7b4fc9">策略配置层</text>
+</g>
+<g id="clust2" class="cluster">
+<title>cluster_core</title>
+<path fill="#ebf3fb" stroke="#a3c4e9" stroke-width="2.5" d="M1017.5,-8C1017.5,-8 3728,-8 3728,-8 3734,-8 3740,-14 3740,-20 3740,-20 3740,-1690 3740,-1690 3740,-1696 3734,-1702 3728,-1702 3728,-1702 1017.5,-1702 1017.5,-1702 1011.5,-1702 1005.5,-1696 1005.5,-1690 1005.5,-1690 1005.5,-20 1005.5,-20 1005.5,-14 1011.5,-8 1017.5,-8" />
+<text xml:space="preserve" text-anchor="start" x="2337.12" y="-1685.7" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="#4a90d9">售后主链路</text>
+</g>
+<g id="clust3" class="cluster">
+<title>cluster_external</title>
+<path fill="#f5f5f5" stroke="#c9c9c9" stroke-width="2.5" d="M322.75,-255C322.75,-255 812.5,-255 812.5,-255 818.5,-255 824.5,-261 824.5,-267 824.5,-267 824.5,-1282 824.5,-1282 824.5,-1288 818.5,-1294 812.5,-1294 812.5,-1294 322.75,-1294 322.75,-1294 316.75,-1294 310.75,-1288 310.75,-1282 310.75,-1282 310.75,-267 310.75,-267 310.75,-261 316.75,-255 322.75,-255" />
+<text xml:space="preserve" text-anchor="start" x="428.88" y="-1277.7" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="#6b7280">外部引用（其他域拥有，售后只读/弱引用）</text>
+</g>
+
+<g id="node1" class="node">
+<title>after_sale_policy</title>
+<polygon fill="#7b4fc9" stroke="none" points="352.38,-2269.5 352.38,-2301.75 743.12,-2301.75 743.12,-2269.5 352.38,-2269.5" />
+<text xml:space="preserve" text-anchor="start" x="460.75" y="-2283.45" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">售后政策 after_sale_policy</text>
+<text xml:space="preserve" text-anchor="start" x="358.38" y="-2248.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 主键</text>
+<text xml:space="preserve" text-anchor="start" x="749.12" y="-2248.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="358.38" y="-2216.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">market_id 适用市场（→ market）</text>
+<text xml:space="preserve" text-anchor="start" x="749.5" y="-2216.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="358.38" y="-2184" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">scope_type 适用范围类型（全市场/品类/商品）</text>
+<text xml:space="preserve" text-anchor="start" x="358.38" y="-2151.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">scope_value 适用范围值（品类或商品标识）</text>
+<text xml:space="preserve" text-anchor="start" x="358.38" y="-2119.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">priority 优先级（仅同层级内多条命中时定序，越大越优先）</text>
+<text xml:space="preserve" text-anchor="start" x="358.38" y="-2087.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">is_returnable 是否支持退货（特价/定制件例外）</text>
+<text xml:space="preserve" text-anchor="start" x="358.38" y="-2055" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">valid_days 售后时效天数（签收后 N 天；未签收不计时）</text>
+<text xml:space="preserve" text-anchor="start" x="358.38" y="-2022.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">service_fee_amount 退货服务费金额（A14）</text>
+<text xml:space="preserve" text-anchor="start" x="358.38" y="-1990.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">currency_code 币种（ISO 4217）</text>
+<text xml:space="preserve" text-anchor="start" x="358.38" y="-1958.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">return_address 退货地址（完整文本，按 market 配）</text>
+<text xml:space="preserve" text-anchor="start" x="358.38" y="-1926" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">policy_status 政策状态（启用/停用）</text>
+<text xml:space="preserve" text-anchor="start" x="358.38" y="-1893.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">created_at 创建时间</text>
+<text xml:space="preserve" text-anchor="start" x="358.38" y="-1861.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">updated_at 更新时间</text>
+<polygon fill="#e3f2fd" stroke="none" points="352.38,-1788.25 352.38,-1850.25 782.88,-1850.25 782.88,-1788.25 352.38,-1788.25" />
+<text xml:space="preserve" text-anchor="start" x="358.38" y="-1835.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">A5 可配置策略实体；A17 按 market 独立配。政策匹配按【商品 → 品类 </text>
+<text xml:space="preserve" text-anchor="start" x="358.38" y="-1825.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">→ 市场】固定层级顺序查找，匹配即停、不再往上找；该层级顺序由系统硬编码，</text>
+<text xml:space="preserve" text-anchor="start" x="358.38" y="-1815.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">不由 priority 决定。priority 仅用于同一层级内多条同时命中时的定序（越大越优先）</text>
+<text xml:space="preserve" text-anchor="start" x="358.38" y="-1805.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">，例：一件商品同属「手袋」与「特价清仓」两个品类、两条品类级政策都命中时靠它定先后。</text>
+<text xml:space="preserve" text-anchor="start" x="470.5" y="-1795.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">数值均为运营配置项，产品阶段不定具体值</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="351.38,-1787.25 351.38,-2302.75 783.88,-2302.75 783.88,-1787.25 351.38,-1787.25" />
+</g>
+
+<g id="node3" class="node">
+<title>after_sale_order</title>
+<polygon fill="#4a90d9" stroke="none" points="1023.5,-1490.75 1023.5,-1523 2132,-1523 2132,-1490.75 1023.5,-1490.75" />
+<text xml:space="preserve" text-anchor="start" x="1464.12" y="-1504.7" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">售后单（聚合根） after_sale_order</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-1469.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 主键</text>
+<text xml:space="preserve" text-anchor="start" x="2138.38" y="-1469.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-1437.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">as_no 售后单号（编码规则归技术侧定）</text>
+<text xml:space="preserve" text-anchor="start" x="2138" y="-1437.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[UK]</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-1405.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">order_id 所属订单（→ order）</text>
+<text xml:space="preserve" text-anchor="start" x="2138.75" y="-1405.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-1373" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">order_item_id 订单商品行（→ order_item，一单一行）</text>
+<text xml:space="preserve" text-anchor="start" x="2138.75" y="-1373" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-1340.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">user_id 申请人（→ user_account）</text>
+<text xml:space="preserve" text-anchor="start" x="2138.75" y="-1340.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-1308.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">market_id 所属市场（V1 由 user 信息判定）</text>
+<text xml:space="preserve" text-anchor="start" x="2138.75" y="-1308.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-1276.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">policy_id 命中的售后政策（→ after_sale_policy）</text>
+<text xml:space="preserve" text-anchor="start" x="2138.75" y="-1276.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-1244" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">policy_snapshot 政策快照（建单时整条政策留档）</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-1211.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">reason_code 原因码（→ after_sale_reason）</text>
+<text xml:space="preserve" text-anchor="start" x="2138.75" y="-1211.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-1179.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">reason_snapshot 原因码快照（建单时整条原因码留档，含 reason_code 与展示文案；流程分岔读本快照里的 reason_code、不实时查字典；与 policy_snapshot 同一套机制）</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-1147.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">reason_note 买家补充说明</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-1115" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">as_type 售后类型（本期仅「退货」一个取值；字段与维度保留，为 V2 新类型留位，见 售后类型维度本期单取值）</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-1082.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">liability_party 责任归属（平台/买家）—— 统一在判责环节落定，审核环节不落（两条分支一律如此）</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-1050.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">as_status 售后单状态（7 个枚举：待审核/待寄回/退货在途/待判责/退款中/已完成/已关闭）</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-1018.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">service_fee_quoted 申请时告知的退货服务费（已收到货分支取政策值；未收到货分支存 0）</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-986" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">is_overdue_approved 是否超期人工特批</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-953.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">overdue_approve_note 特批原因</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-921.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">shipment_ref_id 退货运单（→ shipments.shipment_id，弱引用）</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-889.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">return_tracking_no 退货运单号（运营登记值）</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-857" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">return_carrier_code 退货承运商编码（运营登记值）</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-824.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">operator_id 最近处理人</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-792.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">operator_type 处理人类型（运营/系统）</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-760.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">applied_at 申请时间</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-728" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">resubmitted_at 买家最近一次重新提交申请的时间（首次提交不写，仅驳回后重新提交时更新）</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-695.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">closed_at 关闭时间</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-663.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">close_reason 关闭原因（枚举：买家撤销 / 运营关闭 / 拒退关单）</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-631.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">close_note 关闭说明（运营关闭时填写的自由文本；【对买家可见】，C 端进度页展示；close_reason 说哪一类关闭，本字段说具体怎么回事）</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-599" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">close_notify_buyer 关闭时是否邮件告知买家（运营关闭弹窗手动勾选，默认勾选=发送；仅运营关闭场景写值，其余关闭来源不经过该勾选框）</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-566.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">completed_at 完成时间</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-534.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">created_at 创建时间</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-502.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">updated_at 更新时间</text>
+<polygon fill="#e3f2fd" stroke="none" points="1023.5,-379 1023.5,-491 2172.5,-491 2172.5,-379 1023.5,-379" />
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-476.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">A1 一单一行：一个商品行一张单，一次退多件=多张单。A2 不走订单域 refund_request。互斥：同一 order_item_id </text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-466.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">同时只允许一张非终态单。⚠ 互斥占用的解除是【进入终态的必然结果，与关闭来源无关】——两个终态（已完成/已关闭）</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-456.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">、三种关闭来源（买家撤销/运营关闭/拒退关单）一律释放，无任何例外、也不需要显式反写字段；占用与否按 </text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-446.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">order_item_id 实时聚合本域非终态单得出（与 A12 同一口径）。service_fee_quoted 是申请时告知买家的金额快照（A14 </text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-436.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">要求申请前告知），政策改价不影响在途单。market_id：订单域目前无 market 维度，V1 由 user 信息判定所属 </text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-426.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">market（已在订单侧记待优化：需补 market）。币种不冗余——售后是同一笔交易的逆向，币种必然继承订单，</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-416.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">仅在 after_sale_refund 保留一个用于与支付域对账。审核结论不落主表：每轮审核各生成一条 after_sale_audit </text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-406.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">记录（含结论、驳回原因、内部审核意见、审核人、审核时间），主表既不存最近一次结论，也不冗余驳回次数。</text>
+<text xml:space="preserve" text-anchor="start" x="1029.5" y="-396.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">反之，买家的重新提交是买家动作、不进 after_sale_audit（该表只记运营的审核动作），在别处也推导不出来，</text>
+<text xml:space="preserve" text-anchor="start" x="1230.12" y="-386.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">故由主表 resubmitted_at 承载</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="1022.5,-378 1022.5,-1524 2173.5,-1524 2173.5,-378 1022.5,-378" />
+</g>
+
+<g id="edge2" class="edge">
+<title>after_sale_policy-&gt;after_sale_order</title>
+<path fill="none" stroke="#7b4fc9" d="M784.75,-1817.12C798.21,-1802.88 811.54,-1788.75 824.5,-1775 898.88,-1696.09 977.16,-1612.83 1054.2,-1530.77" />
+<polygon fill="#7b4fc9" stroke="#7b4fc9" points="1055.71,-1532.75 1058.71,-1525.97 1052.14,-1529.39 1055.71,-1532.75" />
+<text xml:space="preserve" text-anchor="middle" x="915" y="-1769.51" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#7b4fc9">1:N 命中政策</text>
+</g>
+
+<g id="node2" class="node">
+<title>after_sale_reason</title>
+<polygon fill="#7b4fc9" stroke="none" points="395.88,-1729.88 395.88,-1762.12 652.38,-1762.12 652.38,-1729.88 395.88,-1729.88" />
+<text xml:space="preserve" text-anchor="start" x="426.62" y="-1743.83" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">售后原因码 after_sale_reason</text>
+<text xml:space="preserve" text-anchor="start" x="401.88" y="-1708.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 主键</text>
+<text xml:space="preserve" text-anchor="start" x="682" y="-1708.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="401.88" y="-1676.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">reason_code 原因码</text>
+<text xml:space="preserve" text-anchor="start" x="681.62" y="-1676.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[UK]</text>
+<text xml:space="preserve" text-anchor="start" x="401.88" y="-1644.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">display_text 展示文案（英文）</text>
+<text xml:space="preserve" text-anchor="start" x="401.88" y="-1612.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">require_evidence 是否必传举证</text>
+<text xml:space="preserve" text-anchor="start" x="401.88" y="-1579.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">sort_order 排序</text>
+<text xml:space="preserve" text-anchor="start" x="401.88" y="-1547.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">reason_status 启用状态</text>
+<text xml:space="preserve" text-anchor="start" x="401.88" y="-1515.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">created_at 创建时间</text>
+<text xml:space="preserve" text-anchor="start" x="401.88" y="-1483.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">updated_at 更新时间</text>
+<polygon fill="#e3f2fd" stroke="none" points="395.88,-1319.88 395.88,-1471.88 739.38,-1471.88 739.38,-1319.88 395.88,-1319.88" />
+<text xml:space="preserve" text-anchor="start" x="401.88" y="-1457.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">结构化原因码。原因码不参与判责、不与金额挂钩，故不设 </text>
+<text xml:space="preserve" text-anchor="start" x="401.88" y="-1447.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">default_liability 字段（无消费方）。展示文案为英文，</text>
+<text xml:space="preserve" text-anchor="start" x="401.88" y="-1437.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">PRD 定义即最终展示文案。⚠ 本表承担【流程分岔的判定依据】</text>
+<text xml:space="preserve" text-anchor="start" x="401.88" y="-1427.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">：售后单上没有任何标识收货与否的字段，本表也没有——买家选了哪条原因</text>
+<text xml:space="preserve" text-anchor="start" x="401.88" y="-1417.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">码即决定这单要不要走寄回环节，判定方式是【看 reason_code </text>
+<text xml:space="preserve" text-anchor="start" x="401.88" y="-1407.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">在不在白名单里】：落在系统侧维护的「未收到货码表」</text>
+<text xml:space="preserve" text-anchor="start" x="401.88" y="-1397.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">中 → 不寄回，其余一律走寄回（码表内容与不可变约束见 </text>
+<text xml:space="preserve" text-anchor="start" x="401.88" y="-1387.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">未收到货原因码为系统预置项）。⚠ 本表【只在建单那一刻被读一次】</text>
+<text xml:space="preserve" text-anchor="start" x="401.88" y="-1377.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">：整条原因码随即快照进 after_sale_order.reason_snapshot，</text>
+<text xml:space="preserve" text-anchor="start" x="401.88" y="-1367.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">建单之后的流程判定与对外展示一律读那份快照、不回查本表（见 </text>
+<text xml:space="preserve" text-anchor="start" x="401.88" y="-1357.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">流程分岔依据取原因码快照、建单时的两个快照）。所以本表的改动只对【</text>
+<text xml:space="preserve" text-anchor="start" x="401.88" y="-1347.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">此后新建的单据】生效，不影响在途单。⚠ 本表【不设「适用售后类型」</text>
+<text xml:space="preserve" text-anchor="start" x="401.88" y="-1337.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">字段】：售后类型本期只剩「退货」一个取值，原因码无需再区分适用类型</text>
+<text xml:space="preserve" text-anchor="start" x="514" y="-1327.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">，它区分的是货收到与否</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="394.88,-1318.88 394.88,-1763.12 740.38,-1763.12 740.38,-1318.88 394.88,-1318.88" />
+</g>
+
+<g id="edge3" class="edge">
+<title>after_sale_reason-&gt;after_sale_order</title>
+<path fill="none" stroke="#7b4fc9" d="M741.33,-1441.91C818.64,-1397.56 914.75,-1342.42 1014.34,-1285.28" />
+<polygon fill="#7b4fc9" stroke="#7b4fc9" points="1015.35,-1287.53 1020.21,-1281.92 1012.91,-1283.28 1015.35,-1287.53" />
+<text xml:space="preserve" text-anchor="middle" x="915" y="-1392.22" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#7b4fc9">1:N 原因码</text>
+</g>
+
+<g id="node4" class="node">
+<title>after_sale_audit</title>
+<polygon fill="#4a90d9" stroke="none" points="2384.38,-1124.12 2384.38,-1156.38 3168.88,-1156.38 3168.88,-1124.12 2384.38,-1124.12" />
+<text xml:space="preserve" text-anchor="start" x="2692.25" y="-1138.08" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">审核记录 after_sale_audit</text>
+<text xml:space="preserve" text-anchor="start" x="2390.38" y="-1103.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 主键</text>
+<text xml:space="preserve" text-anchor="start" x="3174.88" y="-1103.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="2390.38" y="-1070.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">after_sale_order_id 所属售后单（→ after_sale_order）</text>
+<text xml:space="preserve" text-anchor="start" x="3175.25" y="-1070.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="2390.38" y="-1038.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">audit_result 审核结论（通过/驳回）</text>
+<text xml:space="preserve" text-anchor="start" x="2390.38" y="-1006.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">audit_note 驳回原因（自由文本；【对买家可见】：原样作为驳回邮件正文，C 端展示；仅驳回时写值）</text>
+<text xml:space="preserve" text-anchor="start" x="2390.38" y="-974.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">audit_internal_note 审核意见（自由文本；【仅内部】：运营记内部判断，不进邮件、不对 C 端展示；通过与驳回均可写）</text>
+<text xml:space="preserve" text-anchor="start" x="2390.38" y="-941.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">operator_id 审核人（运营）</text>
+<text xml:space="preserve" text-anchor="start" x="2390.38" y="-909.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">operator_type 审核人类型</text>
+<text xml:space="preserve" text-anchor="start" x="2390.38" y="-877.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">audited_at 审核提交时间（即审核结论录入时间）</text>
+<text xml:space="preserve" text-anchor="start" x="2390.38" y="-845.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">created_at 创建时间</text>
+<text xml:space="preserve" text-anchor="start" x="2390.38" y="-812.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">updated_at 更新时间</text>
+<polygon fill="#e3f2fd" stroke="none" points="2384.38,-679.62 2384.38,-801.62 3208.62,-801.62 3208.62,-679.62 2384.38,-679.62" />
+<text xml:space="preserve" text-anchor="start" x="2390.38" y="-787.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">一次审核一条记录，本表承接运营提交的审核结论，不承接审核过程。审核可发生多次：驳回后单据回到待审核，</text>
+<text xml:space="preserve" text-anchor="start" x="2390.38" y="-777.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">买家修改后重新提交、运营再审，可多次循环；每一轮审核（通过或驳回）各写一条，历次驳回原因完整可查、</text>
+<text xml:space="preserve" text-anchor="start" x="2390.38" y="-767.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">互不覆盖。历次驳回原因是业务事实（chargeback 抗辩需证明平台明确告知过买家第几次该补什么材料）</text>
+<text xml:space="preserve" text-anchor="start" x="2390.38" y="-757.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">，故由本业务表承载，不依赖日志表。「这单被驳回过」= 本表结论为驳回的记录条数 ≥ 1，主表不冗余计数字段。</text>
+<text xml:space="preserve" text-anchor="start" x="2390.38" y="-747.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">本表只记运营的审核动作；买家的重新提交动作不入本表，由 after_sale_order.resubmitted_at 承载，</text>
+<text xml:space="preserve" text-anchor="start" x="2390.38" y="-737.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">两者比对得出「最近一次驳回之后买家是否已再提交」。⚠ 审核环节【不落责任判定】：两条流程分支一律在判责环节才定责任方（见 </text>
+<text xml:space="preserve" text-anchor="start" x="2390.38" y="-727.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">责任判定时点），责任方落 after_sale_order.liability_party，不入本表。⚠ 本表的两个文本字段【对外可见性相反、</text>
+<text xml:space="preserve" text-anchor="start" x="2390.38" y="-717.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">不可合并】：audit_note（驳回原因）对买家可见，原样作为驳回邮件正文发出、C 端展示，与 close_note </text>
+<text xml:space="preserve" text-anchor="start" x="2390.38" y="-707.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">同类；audit_internal_note（审核意见）仅内部，运营在此记内部判断（如该买家近期第几次申请、举证疑似二次拍摄）</text>
+<text xml:space="preserve" text-anchor="start" x="2390.38" y="-697.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">，绝不进邮件、绝不对 C 端展示，与 inspection_note 同类（见 S1_真伪复核）。结论为通过时只写 audit_internal_note，</text>
+<text xml:space="preserve" text-anchor="start" x="2642" y="-687.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">为驳回时两个都写</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="2383.38,-678.62 2383.38,-1157.38 3209.62,-1157.38 3209.62,-678.62 2383.38,-678.62" />
+</g>
+
+<g id="edge8" class="edge">
+<title>after_sale_order-&gt;after_sale_audit</title>
+<path fill="none" stroke="#1565c0" stroke-width="1.6" d="M2174.47,-935.13C2241.51,-933.28 2308.94,-931.42 2373.37,-929.64" />
+<polygon fill="#1565c0" stroke="#1565c0" stroke-width="1.6" points="2373.09,-932.1 2380.02,-929.46 2372.95,-927.2 2373.09,-932.1" />
+<text xml:space="preserve" text-anchor="middle" x="2274.12" y="-940" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#1565c0">1:N 每轮审核一条 · 可反复驳回再审</text>
+</g>
+
+<g id="node5" class="node">
+<title>after_sale_inspection</title>
+<polygon fill="#4a90d9" stroke="none" points="2444.38,-1565 2444.38,-1597.25 3108.88,-1597.25 3108.88,-1565 2444.38,-1565" />
+<text xml:space="preserve" text-anchor="start" x="2674.62" y="-1578.95" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">验货记录 after_sale_inspection</text>
+<text xml:space="preserve" text-anchor="start" x="2450.38" y="-1544" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 主键</text>
+<text xml:space="preserve" text-anchor="start" x="3114.88" y="-1544" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="2450.38" y="-1511.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">after_sale_order_id 所属售后单（→ after_sale_order）</text>
+<text xml:space="preserve" text-anchor="start" x="3115.25" y="-1511.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="2450.38" y="-1479.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">inspection_result 验货结论（含「退回途中丢件」结论值）</text>
+<text xml:space="preserve" text-anchor="start" x="2450.38" y="-1447.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">inspection_note 验货备注（可疑情况的唯一承载，S1；丢件原因也写这里；内部字段，不对 C 端展示）</text>
+<text xml:space="preserve" text-anchor="start" x="2450.38" y="-1415" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">operator_id 录入人（运营）</text>
+<text xml:space="preserve" text-anchor="start" x="2450.38" y="-1382.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">operator_type 录入人类型</text>
+<text xml:space="preserve" text-anchor="start" x="2450.38" y="-1350.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">inspected_at 判责提交时间（即验货结论录入时间）</text>
+<text xml:space="preserve" text-anchor="start" x="2450.38" y="-1318.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">created_at 创建时间</text>
+<text xml:space="preserve" text-anchor="start" x="2450.38" y="-1286" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">updated_at 更新时间</text>
+<polygon fill="#e3f2fd" stroke="none" points="2444.38,-1182.75 2444.38,-1274.75 3148.62,-1274.75 3148.62,-1182.75 2444.38,-1182.75" />
+<text xml:space="preserve" text-anchor="start" x="2450.38" y="-1260.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">A16 验货在线下仓完成、结果回传在线表格，本表承接运营录入的结论，不承接作业过程。本表由「判责」</text>
+<text xml:space="preserve" text-anchor="start" x="2450.38" y="-1250.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">这一个动作一次性写入：运营在同一次提交里录验货结论 + 判责任方 + 填退款金额，责任方落 after_sale_order.liability_party、</text>
+<text xml:space="preserve" text-anchor="start" x="2450.38" y="-1240.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">金额落 after_sale_refund，三者同一次提交、不分步。判责入口有两个状态：退货在途（货未到仓即可判，</text>
+<text xml:space="preserve" text-anchor="start" x="2450.38" y="-1230.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">如退回途中丢件）与待判责（货已送达）。未收到货分支无实物验货，不产生本表记录（该分支的判责只落责任方与退款金额）</text>
+<text xml:space="preserve" text-anchor="start" x="2450.38" y="-1220.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">。S1 定 V1 不做真伪复核：无「真伪存疑」结论值、无挂起态，可疑情况只写 inspection_note；inspection_note </text>
+<text xml:space="preserve" text-anchor="start" x="2450.38" y="-1210.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">是内部字段、不对 C 端展示。A3 只记客观结果，不含处置决策。⚠ 本表不承载任何金额：验货发现的成色下降 </text>
+<text xml:space="preserve" text-anchor="start" x="2450.38" y="-1200.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">/ 缺配件所需扣款，并入 after_sale_refund.service_fee_amount（退货扣减）由运营手填一个总额，本域不单列扣款科目。</text>
+<text xml:space="preserve" text-anchor="start" x="2634.88" y="-1190.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">故本表无金额字段、也不带 currency_code</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="2443.38,-1181.75 2443.38,-1598.25 3149.62,-1598.25 3149.62,-1181.75 2443.38,-1181.75" />
+</g>
+
+<g id="edge9" class="edge">
+<title>after_sale_order-&gt;after_sale_inspection</title>
+<path fill="none" stroke="#1565c0" stroke-width="1.6" d="M2174.47,-1162.14C2262.88,-1194.58 2351.96,-1227.26 2433.96,-1257.35" />
+<polygon fill="#1565c0" stroke="#1565c0" stroke-width="1.6" points="2432.69,-1259.49 2440.11,-1259.61 2434.38,-1254.89 2432.69,-1259.49" />
+<text xml:space="preserve" text-anchor="middle" x="2274.12" y="-1228.23" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#1565c0">1:1 仅已收到货分支 · 判责时写入</text>
+</g>
+
+<g id="node6" class="node">
+<title>after_sale_refund</title>
+<polygon fill="#4a90d9" stroke="none" points="2375.75,-621.75 2375.75,-654 3177.5,-654 3177.5,-621.75 2375.75,-621.75" />
+<text xml:space="preserve" text-anchor="start" x="2666" y="-635.7" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">退款方案与执行 after_sale_refund</text>
+<text xml:space="preserve" text-anchor="start" x="2381.75" y="-600.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 主键</text>
+<text xml:space="preserve" text-anchor="start" x="3183.5" y="-600.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="2381.75" y="-568.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">after_sale_order_id 所属售后单（→ after_sale_order）</text>
+<text xml:space="preserve" text-anchor="start" x="3183.88" y="-568.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="2381.75" y="-536.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">order_id 所属订单（冗余，供税费累计校验）</text>
+<text xml:space="preserve" text-anchor="start" x="3183.88" y="-536.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="2381.75" y="-504" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">base_amount 退款基准（商品行实付：已扣优惠分摊、不含销售税、优惠不追回；系统取数）</text>
+<text xml:space="preserve" text-anchor="start" x="2381.75" y="-471.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">service_fee_amount 退货扣减（唯一扣款科目：含退货服务费 + 验货扣款；默认取政策快照值，运营可改，以运营填的为准）</text>
+<text xml:space="preserve" text-anchor="start" x="2381.75" y="-439.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">refund_tax_amount 退还税费（★本期订单税费恒为 0，字段预留，不参与退款计算）</text>
+<text xml:space="preserve" text-anchor="start" x="2381.75" y="-407.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">refund_amount 最终退款金额（运营录入值；预填 = base_amount 减 service_fee_amount，与其双向联动）</text>
+<text xml:space="preserve" text-anchor="start" x="2381.75" y="-375" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">currency_code 币种</text>
+<text xml:space="preserve" text-anchor="start" x="2381.75" y="-342.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">refund_ref_no 支付域退款单号（→ refund_order.refund_no）</text>
+<text xml:space="preserve" text-anchor="start" x="2381.75" y="-310.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">refund_status 退款执行状态（含失败；失败单重试与筛选的依据）</text>
+<text xml:space="preserve" text-anchor="start" x="2381.75" y="-278.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">operator_id 定案人</text>
+<text xml:space="preserve" text-anchor="start" x="2381.75" y="-246" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">operator_type 定案人类型</text>
+<text xml:space="preserve" text-anchor="start" x="2381.75" y="-213.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">refunded_at 退款到账时间</text>
+<text xml:space="preserve" text-anchor="start" x="2381.75" y="-181.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">created_at 创建时间</text>
+<text xml:space="preserve" text-anchor="start" x="2381.75" y="-149.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">updated_at 更新时间</text>
+<polygon fill="#e3f2fd" stroke="none" points="2375.75,-26 2375.75,-138 3217.25,-138 3217.25,-26 2375.75,-26" />
+<text xml:space="preserve" text-anchor="start" x="2381.75" y="-123.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">A2 直接对接支付域退款单，只存 refund_ref_no 不冗余金额。退款计算口径（本域唯一算式）：最终退款金额 </text>
+<text xml:space="preserve" text-anchor="start" x="2381.75" y="-113.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">= 退款基准 base_amount 减 退货扣减 service_fee_amount。⚠ 该式是恒等约束、不是单向派生：service_fee_amount </text>
+<text xml:space="preserve" text-anchor="start" x="2381.75" y="-103.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">与 refund_amount 两个都是运营在判责时的录入值，各自带预填值、改其一另一个随之联动，等式恒成立；</text>
+<text xml:space="preserve" text-anchor="start" x="2381.75" y="-93.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">base_amount 为系统取数、不由运营写入。构成与取数口径见 退款金额的构成与录入口径。service_fee_amount（中文名【退货扣减】</text>
+<text xml:space="preserve" text-anchor="start" x="2381.75" y="-83.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">）是本域唯一扣款科目，为运营手填的一个总额，已含验货发现的成色下降 / 缺配件扣款，本域不再单列验货扣减字段。</text>
+<text xml:space="preserve" text-anchor="start" x="2381.75" y="-73.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">refund_tax_amount 本期恒为 0、不参与该算式（字段预留）。本表在「判责」提交时创建：判责动作本身即调用支付域退款接口，</text>
+<text xml:space="preserve" text-anchor="start" x="2381.75" y="-63.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">售后单随之进入「退款中」，收到退款成功结果后售后单才落「已完成」。退款失败不新增售后单主状态——失败的单停留在「退款中」</text>
+<text xml:space="preserve" text-anchor="start" x="2381.75" y="-53.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">可重试，失败原因与重试依据本表 refund_status 及 refund_ref_no 关联的支付域退款单状态。税费随退款退还，</text>
+<text xml:space="preserve" text-anchor="start" x="2381.75" y="-43.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">refund_tax_amount 用于按 order_id 做已退税费累计校验（支付域只校验金额总额、不拆税）。order_id </text>
+<text xml:space="preserve" text-anchor="start" x="2611.25" y="-33.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">为冗余字段，专供该累计校验</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="2374.75,-25 2374.75,-655 3218.25,-655 3218.25,-25 2374.75,-25" />
+</g>
+
+<g id="edge10" class="edge">
+<title>after_sale_order-&gt;after_sale_refund</title>
+<path fill="none" stroke="#1565c0" stroke-width="1.6" d="M2174.47,-657.13C2238.78,-624.29 2303.45,-591.27 2365.49,-559.59" />
+<polygon fill="#1565c0" stroke="#1565c0" stroke-width="1.6" points="2366.55,-561.8 2371.67,-556.43 2364.32,-557.43 2366.55,-561.8" />
+<text xml:space="preserve" text-anchor="middle" x="2274.12" y="-651" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#1565c0">1:1 退款方案 · 判责时写入</text>
+</g>
+
+<g id="node7" class="node">
+<title>after_sale_attachment</title>
+<polygon fill="#4a90d9" stroke="none" points="3321.5,-1587 3321.5,-1619.25 3682.25,-1619.25 3682.25,-1587 3321.5,-1587" />
+<text xml:space="preserve" text-anchor="start" x="3395.75" y="-1600.95" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">售后附件 after_sale_attachment</text>
+<text xml:space="preserve" text-anchor="start" x="3327.5" y="-1566" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 主键</text>
+<text xml:space="preserve" text-anchor="start" x="3688.25" y="-1566" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="3327.5" y="-1533.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">after_sale_order_id 所属售后单（→ after_sale_order）</text>
+<text xml:space="preserve" text-anchor="start" x="3688.62" y="-1533.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="3327.5" y="-1501.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">inspection_id 所属验货记录（验货取证时填）</text>
+<text xml:space="preserve" text-anchor="start" x="3688.62" y="-1501.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="3327.5" y="-1469.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">source_type 来源（买家举证/验货取证）</text>
+<text xml:space="preserve" text-anchor="start" x="3327.5" y="-1437" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">file_url 文件地址</text>
+<text xml:space="preserve" text-anchor="start" x="3327.5" y="-1404.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">file_type 文件类型（图片/视频）</text>
+<text xml:space="preserve" text-anchor="start" x="3327.5" y="-1372.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">uploader_id 上传人</text>
+<text xml:space="preserve" text-anchor="start" x="3327.5" y="-1340.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">uploader_type 上传人类型（买家/运营）</text>
+<text xml:space="preserve" text-anchor="start" x="3327.5" y="-1308" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">created_at 上传时间</text>
+<polygon fill="#e3f2fd" stroke="none" points="3321.5,-1234.75 3321.5,-1296.75 3722,-1296.75 3722,-1234.75 3321.5,-1234.75" />
+<text xml:space="preserve" text-anchor="start" x="3327.5" y="-1282.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">买家在 C 端自助上传举证；运营从在线表格取图上传验货取证。两种来源靠 </text>
+<text xml:space="preserve" text-anchor="start" x="3327.5" y="-1272.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">source_type 区分。举证必须跟单走且带审计，不能只留在外部表格。</text>
+<text xml:space="preserve" text-anchor="start" x="3327.5" y="-1262.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">约束：inspection_id 非空时，其所属售后单必须与 after_sale_order_id </text>
+<text xml:space="preserve" text-anchor="start" x="3327.5" y="-1252.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">一致。保留 inspection_id 而非只挂售后单——验货照片的父本来就是那次验货，</text>
+<text xml:space="preserve" text-anchor="start" x="3390.5" y="-1242.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">且未来若允许复验（inspection 变 1:N）该字段必需</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="3320.5,-1233.75 3320.5,-1620.25 3723,-1620.25 3723,-1233.75 3320.5,-1233.75" />
+</g>
+
+<g id="edge12" class="edge">
+<title>after_sale_order-&gt;after_sale_attachment</title>
+<path fill="none" stroke="#1565c0" d="M2174.41,-1510.39C2238.13,-1550.29 2304.97,-1584.71 2373.75,-1610 2726.43,-1739.71 2857.36,-1711.23 3219.25,-1610 3250.78,-1601.18 3282.28,-1588.06 3312.41,-1572.83" />
+<polygon fill="#1565c0" stroke="#1565c0" points="3313.17,-1575.19 3318.28,-1569.82 3310.93,-1570.83 3313.17,-1575.19" />
+<text xml:space="preserve" text-anchor="middle" x="2796.5" y="-1702.43" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#1565c0">1:N 买家举证</text>
+</g>
+
+<g id="node9" class="node">
+<title>order_item</title>
+<polygon fill="#6b7280" stroke="none" points="328.75,-975.38 328.75,-1007.62 766.75,-1007.62 766.75,-975.38 328.75,-975.38" />
+<text xml:space="preserve" text-anchor="start" x="438.25" y="-989.33" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">订单商品行（订单域） order_item</text>
+<text xml:space="preserve" text-anchor="start" x="334.75" y="-954.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 主键</text>
+<text xml:space="preserve" text-anchor="start" x="772.75" y="-954.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="334.75" y="-922.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">refund_status 退款状态（售后域按既有语义反写）</text>
+<text xml:space="preserve" text-anchor="start" x="334.75" y="-889.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">fulfillment_status 发货状态（售后只读不改写；入口以已发货为界）</text>
+<text xml:space="preserve" text-anchor="start" x="334.75" y="-857.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">condition_grade 成色等级快照（验货比对基准）</text>
+<polygon fill="#e3f2fd" stroke="none" points="328.75,-804.38 328.75,-846.38 806.5,-846.38 806.5,-804.38 328.75,-804.38" />
+<text xml:space="preserve" text-anchor="start" x="334.75" y="-831.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">售后判责提交、调起退款（售后单进入「退款中」）才置 refund_status=退款中，</text>
+<text xml:space="preserve" text-anchor="start" x="334.75" y="-821.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">到账置已退款；不在申请或审核通过时置。A12 订单表不为售后新增状态字段，</text>
+<text xml:space="preserve" text-anchor="start" x="434.12" y="-811.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">「售后中」由订单侧实时查本域聚合</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="327.75,-803.38 327.75,-1008.62 807.5,-1008.62 807.5,-803.38 327.75,-803.38" />
+</g>
+
+<g id="edge14" class="edge">
+<title>after_sale_order-&gt;order_item</title>
+<path fill="none" stroke="#c0392b" stroke-dasharray="5,2" d="M1021.62,-932.71C957.8,-930.08 893.76,-927.17 832.5,-924 827.31,-923.73 822.06,-923.45 816.77,-923.16" />
+<polygon fill="#c0392b" stroke="#c0392b" points="817.06,-920.72 809.94,-922.78 816.79,-925.62 817.06,-920.72" />
+<text xml:space="preserve" text-anchor="middle" x="915" y="-936.4" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#c0392b">N:1 反写退款状态</text>
+</g>
+
+<g id="edge13" class="edge">
+<title>after_sale_inspection-&gt;after_sale_attachment</title>
+<path fill="none" stroke="#1565c0" d="M3150.39,-1408.05C3205.44,-1410.87 3260.76,-1413.7 3311.25,-1416.28" />
+<polygon fill="#1565c0" stroke="#1565c0" points="3311,-1418.72 3318.12,-1416.63 3311.25,-1413.83 3311,-1418.72" />
+<text xml:space="preserve" text-anchor="middle" x="3269.38" y="-1420.53" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#1565c0">1:N 验货取证</text>
+</g>
+
+<g id="node10" class="node">
+<title>refund_order</title>
+<polygon fill="#6b7280" stroke="none" points="425.5,-379.12 425.5,-411.38 665.88,-411.38 665.88,-379.12 425.5,-379.12" />
+<text xml:space="preserve" text-anchor="start" x="443.69" y="-393.07" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">退款单（支付域） refund_order</text>
+<text xml:space="preserve" text-anchor="start" x="431.5" y="-358.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 主键</text>
+<text xml:space="preserve" text-anchor="start" x="673.94" y="-358.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="431.5" y="-325.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">refund_no 退款单号（售后弱引用）</text>
+<text xml:space="preserve" text-anchor="start" x="673.56" y="-325.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[UK]</text>
+<polygon fill="#e3f2fd" stroke="none" points="425.5,-272.62 425.5,-314.62 709.75,-314.62 709.75,-272.62 425.5,-272.62" />
+<text xml:space="preserve" text-anchor="start" x="431.5" y="-300.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">A2 售后单直接对接本表。只存 refund_no 引用，不冗余金额。</text>
+<text xml:space="preserve" text-anchor="start" x="431.5" y="-290.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">注意：订单域的 refund_request 仅服务发货前退款，</text>
+<text xml:space="preserve" text-anchor="start" x="538.38" y="-280.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">售后不使用它</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="424.5,-271.62 424.5,-412.38 710.75,-412.38 710.75,-271.62 424.5,-271.62" />
+</g>
+
+<g id="edge11" class="edge">
+<title>after_sale_refund-&gt;refund_order</title>
+<path fill="none" stroke="#6b7280" stroke-dasharray="5,2" d="M2373.96,-340.38C1870.82,-340.83 1055.43,-341.56 720.06,-341.86" />
+<polygon fill="#6b7280" stroke="#6b7280" points="720.25,-339.41 713.25,-341.87 720.26,-344.31 720.25,-339.41" />
+<text xml:space="preserve" text-anchor="middle" x="1598" y="-347.1" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#6b7280">N:1 弱引用 refund_no</text>
+</g>
+
+<g id="node8" class="node">
+<title>order</title>
+<polygon fill="#6b7280" stroke="none" points="467.88,-745.62 467.88,-777.88 623.12,-777.88 623.12,-745.62 467.88,-745.62" />
+<text xml:space="preserve" text-anchor="start" x="475.75" y="-759.58" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">订单（订单域） order</text>
+<text xml:space="preserve" text-anchor="start" x="473.88" y="-724.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 主键</text>
+<text xml:space="preserve" text-anchor="start" x="631.38" y="-724.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="473.88" y="-692.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">order_no 订单号</text>
+<text xml:space="preserve" text-anchor="start" x="631" y="-692.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[UK]</text>
+<polygon fill="#e3f2fd" stroke="none" points="467.88,-654.12 467.88,-681.12 667.38,-681.12 667.38,-654.12 467.88,-654.12" />
+<text xml:space="preserve" text-anchor="start" x="473.88" y="-666.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">外部拥有，售后只读 + 反写商品行退款状态</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="466.88,-653.12 466.88,-778.88 668.38,-778.88 668.38,-653.12 466.88,-653.12" />
+</g>
+
+<g id="edge4" class="edge">
+<title>order-&gt;after_sale_order</title>
+<path fill="none" stroke="#6b7280" d="M669.1,-738.96C753.03,-758.14 880.13,-787.18 1013.57,-817.68" />
+<polygon fill="#6b7280" stroke="#6b7280" points="1012.71,-819.99 1020.08,-819.16 1013.8,-815.22 1012.71,-819.99" />
+<text xml:space="preserve" text-anchor="middle" x="915" y="-817.95" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#6b7280">1:N 订单可多次售后</text>
+</g>
+
+<g id="edge5" class="edge">
+<title>order_item-&gt;after_sale_order</title>
+<path fill="none" stroke="#1565c0" stroke-width="1.8" d="M808.28,-904.29C869.96,-904.62 936.21,-905.66 997.5,-908 1002.34,-908.18 1007.21,-908.38 1012.1,-908.58" />
+<polygon fill="#1565c0" stroke="#1565c0" stroke-width="1.8" points="1011.7,-911.01 1018.79,-908.86 1011.9,-906.12 1011.7,-911.01" />
+<text xml:space="preserve" text-anchor="middle" x="915" y="-913.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#1565c0">1:N 一单一行 · 同时只允许一张非终态</text>
+</g>
+
+<g id="node11" class="node">
+<title>shipments</title>
+<polygon fill="#6b7280" stroke="none" points="346,-596.25 346,-628.5 748.75,-628.5 748.75,-596.25 346,-596.25" />
+<text xml:space="preserve" text-anchor="start" x="424.75" y="-610.2" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">物流运单（物流信息服务） shipments</text>
+<text xml:space="preserve" text-anchor="start" x="352" y="-575.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">shipment_id 运单 UUID（对外主键，不可变）</text>
+<text xml:space="preserve" text-anchor="start" x="754.75" y="-575.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[UK]</text>
+<text xml:space="preserve" text-anchor="start" x="352" y="-543" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">business_order_no 业务单号（非唯一索引，售后传订单号）</text>
+<text xml:space="preserve" text-anchor="start" x="352" y="-510.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">internal_status 标准化物流状态（已送达=到仓时点唯一来源）</text>
+<polygon fill="#e3f2fd" stroke="none" points="346,-437.5 346,-499.5 789.25,-499.5 789.25,-437.5 346,-437.5" />
+<text xml:space="preserve" text-anchor="start" x="352" y="-485" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">A15 售后注册退货运单后获得轨迹与主动通知。business_order_no 为非唯一索引，</text>
+<text xml:space="preserve" text-anchor="start" x="352" y="-475" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">故 1 订单号 = N 运单，支撑 A1「多张售后单共用一个退货运单号」。</text>
+<text xml:space="preserve" text-anchor="start" x="352" y="-465" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">售后存 shipment_id 取轨迹，另落 return_tracking_no/return_carrier_code </text>
+<text xml:space="preserve" text-anchor="start" x="352" y="-455" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">作运营登记留痕。登记值不随物流侧修正自动同步——它记「当时登记了什么」</text>
+<text xml:space="preserve" text-anchor="start" x="479.5" y="-445" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">，实时状态仍以本表为准</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="345,-436.5 345,-629.5 790.25,-629.5 790.25,-436.5 345,-436.5" />
+</g>
+
+<g id="edge7" class="edge">
+<title>shipments-&gt;after_sale_order</title>
+<path fill="none" stroke="#1565c0" stroke-width="1.8" stroke-dasharray="5,2" d="M791.13,-623.44C857.8,-650.54 934.25,-681.61 1012.92,-713.59" />
+<polygon fill="#1565c0" stroke="#1565c0" stroke-width="1.8" points="1011.6,-715.7 1019,-716.06 1013.44,-711.16 1011.6,-715.7" />
+<text xml:space="preserve" text-anchor="middle" x="915" y="-710.06" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#1565c0">1:N 多张单共用一个退货运单</text>
+</g>
+
+<g id="node12" class="node">
+<title>market</title>
+<polygon fill="#6b7280" stroke="none" points="430.38,-1215 430.38,-1247.25 646,-1247.25 646,-1215 430.38,-1215" />
+<text xml:space="preserve" text-anchor="start" x="445.94" y="-1228.95" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">销售市场（Market） market</text>
+<text xml:space="preserve" text-anchor="start" x="436.38" y="-1194" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 主键</text>
+<text xml:space="preserve" text-anchor="start" x="661.56" y="-1194" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<polygon fill="#e3f2fd" stroke="none" points="430.38,-1150.75 430.38,-1182.75 704.88,-1182.75 704.88,-1150.75 430.38,-1150.75" />
+<text xml:space="preserve" text-anchor="start" x="436.38" y="-1168.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">A17 V1 覆盖美国站 + 香港站，时效/服务费/退货地址三项按 </text>
+<text xml:space="preserve" text-anchor="start" x="530.88" y="-1158.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">market 独立配置</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="429.38,-1149.75 429.38,-1248.25 705.88,-1248.25 705.88,-1149.75 429.38,-1149.75" />
+</g>
+
+<g id="edge1" class="edge">
+<title>market-&gt;after_sale_policy</title>
+<path fill="none" stroke="#7b4fc9" d="M428.49,-1223.36C384.72,-1237.76 340.18,-1260.64 310.75,-1297 246.18,-1376.77 270.66,-1423.1 277.46,-1525.5 284.87,-1637.13 262.44,-1674.1 310.75,-1775 320.56,-1795.49 332.51,-1815.44 345.83,-1834.61" />
+<polygon fill="#7b4fc9" stroke="#7b4fc9" points="343.69,-1835.81 349.73,-1840.12 347.69,-1832.99 343.69,-1835.81" />
+<text xml:space="preserve" text-anchor="middle" x="264.88" y="-1516" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#7b4fc9">1:N 按市场配政策</text>
+</g>
+
+<g id="node13" class="node">
+<title>user_account</title>
+<polygon fill="#6b7280" stroke="none" points="430.75,-1092.5 430.75,-1124.75 664.75,-1124.75 664.75,-1092.5 430.75,-1092.5" />
+<text xml:space="preserve" text-anchor="start" x="436.75" y="-1106.45" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">用户（登录注册域） user_account</text>
+<text xml:space="preserve" text-anchor="start" x="436.75" y="-1071.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 主键</text>
+<text xml:space="preserve" text-anchor="start" x="670.75" y="-1071.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<polygon fill="#e3f2fd" stroke="none" points="430.75,-1033.25 430.75,-1060.25 704.5,-1060.25 704.5,-1033.25 430.75,-1033.25" />
+<text xml:space="preserve" text-anchor="start" x="436.75" y="-1045.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">外部拥有，售后只读</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="429.75,-1032.25 429.75,-1125.75 705.5,-1125.75 705.5,-1032.25 429.75,-1032.25" />
+</g>
+
+<g id="edge6" class="edge">
+<title>user_account-&gt;after_sale_order</title>
+<path fill="none" stroke="#6b7280" d="M706.25,-1061.87C788.23,-1051.67 898.47,-1037.94 1013.43,-1023.64" />
+<polygon fill="#6b7280" stroke="#6b7280" points="1013.56,-1026.09 1020.21,-1022.79 1012.96,-1021.23 1013.56,-1026.09" />
+<text xml:space="preserve" text-anchor="middle" x="915" y="-1051.03" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#6b7280">1:N 申请人</text>
+</g>
+</g>
+</svg>

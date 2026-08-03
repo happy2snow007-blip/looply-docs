@@ -12,6 +12,7 @@ var PROTOTYPE_CONFIG = {
   'user':           'docs-用户管理/原型/looply-用户管理后台原型-v2-antd.html',
   'pdp':            'docs-商详/原型/looply-商详页CMS配置后台原型-v3-antd.html',
   'Favourites':     'docs-Favourites/原型/looply-favorites-prototype-v9.html',
+  'aftersale':      'docs-售后/原型/looply-售后管理后台原型-v16-antd.html',
   'collection':     'docs-Collection管理/原型/looply-类目管理-后台-v0.20-antd.html',
   'contact':        'docs-Contact-Us/原型/looply-contact-us-prototype-v0.1.html',
   'logistics':      'docs-物流管理/原型/looply-物流管理后台原型-v5.11-antd.html',
