@@ -666,6 +666,31 @@ MODULES = {
             },
         },
     },
+    'reporting': {
+        'name': 'C 端数据报表',
+        'default_source': '/Users/zz/Documents/Looply',
+        'target': 'docs-C端数据报表',
+        'keywords': ['数据报表', '数据总览', 'GA4', 'reporting'],
+        'config_key': 'reporting',
+        'sidebar_group': 'C端卖场',
+        'artifacts': {
+            'prototype': {
+                'subdir': '原型',
+                'source_subdir': 'outputs',
+                'pattern': r'looply-数据总览-经营概览-GA4自动同步副本-v(.+?)\.html',
+            },
+            'prd': {
+                'subdir': 'PRD',
+                'source_subdir': 'docs/product',
+                'pattern': r'looply-数据总览-经营概览-PRD-v(.+?)\.md',
+            },
+            'spec': {
+                'subdir': '口径说明',
+                'source_subdir': 'outputs',
+                'pattern': r'looply-数据总览-经营概览-GA4指标口径映射-v(.+?)\.md',
+            },
+        },
+    },
 }
 
 # ─── 自动发现新模块 ────────────────────────────────────────────────────────────────
@@ -761,31 +786,36 @@ _CARD_META = {
     'prd':          ('PRD 文档',    'icon-md',   'M'),
     'prd_md':       ('PRD 文档',    'icon-md',   'M'),
     'prd_html':     ('PRD 文档',    'icon-html', 'H'),
+    'spec':         ('指标口径',    'icon-md',   'M'),
     'delivery':     ('交付包',      'icon-zip',  'Z'),
 }
 
 _STAGE2_TYPES = ('er', 'architecture', 'flowchart')
-_STAGE3_TYPES = ('prototype', 'dev_review', 'prd', 'prd_md', 'prd_html', 'delivery')
+_STAGE3_TYPES = ('prototype', 'dev_review', 'prd', 'prd_md', 'prd_html', 'spec', 'delivery')
 
 
 def _gen_card(mod_name, target_dir, art_type, file_name, ver, today):
     """生成单个文档卡片 HTML。"""
     card_title, icon_cls, icon_letter = _CARD_META.get(art_type, ('文档', 'icon-md', 'D'))
+    if mod_name == 'C 端数据报表' and art_type == 'prototype':
+        card_title = '报表 Demo'
     subdir = 'PRD' if art_type.startswith('prd') else {
         'er': '实体关系图', 'architecture': '产品架构图',
-        'flowchart': '系统流程图', 'prototype': '原型', 'dev_review': '原型',
+        'flowchart': '系统流程图', 'prototype': '原型', 'dev_review': '原型', 'spec': '口径说明',
     }.get(art_type, '')
     href = f'{target_dir}/{subdir}/{file_name}' if subdir else f'{target_dir}/{file_name}'
 
     # 文档显示名
     if art_type == 'prototype':
-        doc_label = f'{mod_name}后台原型 v{ver}'
+        doc_label = f'{mod_name} Demo v{ver}' if mod_name == 'C 端数据报表' else f'{mod_name}后台原型 v{ver}'
     elif art_type == 'dev_review':
         doc_label = f'{mod_name}开发评审版 v{ver}'
     elif art_type == 'delivery':
         doc_label = f'{mod_name}交付开发 V{ver}'
     elif art_type.startswith('prd'):
         doc_label = f'{mod_name} PRD v{ver}'
+    elif art_type == 'spec':
+        doc_label = f'{mod_name}指标口径 v{ver}'
     elif art_type == 'er':
         doc_label = f'{mod_name}实体关系图 v{ver}'
     elif art_type == 'architecture':
@@ -1147,6 +1177,17 @@ def sync_module_files(source_dir, target_dir, mod_key):
             if not os.path.isfile(dst_latest) or not files_equal(src_latest, dst_latest):
                 shutil.copy2(src_latest, dst_latest)
 
+    # 指标口径等模块专属说明文件；只同步注册正则命中的文件。
+    spec_config = MODULES.get(mod_key, {}).get('artifacts', {}).get('spec', {})
+    if spec_config:
+        src_spec = os.path.normpath(os.path.join(source_dir, spec_config.get('source_subdir', spec_config['subdir'])))
+        dst_spec = os.path.join(REPO_DIR, target_dir, spec_config['subdir'])
+        if os.path.isdir(src_spec):
+            os.makedirs(dst_spec, exist_ok=True)
+            for f in globmod.glob(os.path.join(src_spec, '*.md')):
+                if os.path.isfile(f) and re.fullmatch(spec_config['pattern'], os.path.basename(f)):
+                    smart_cp(f, dst_spec)
+
     # 评审记录
     sync_subdir(source_dir, target_dir, '评审记录', ['.md'])
 
@@ -1165,9 +1206,10 @@ def sync_module_files(source_dir, target_dir, mod_key):
         src_proto = os.path.normpath(os.path.join(source_dir, prototype_source_subdir))
         dst_proto = os.path.join(REPO_DIR, target_dir, '原型')
         os.makedirs(dst_proto, exist_ok=True)
+        prototype_pattern = prototype_config.get('pattern', r'.*')
         for ext in ['.html', '.png', '.jpg', '.svg']:
             for f in globmod.glob(os.path.join(src_proto, f'*{ext}')):
-                if os.path.isfile(f):
+                if os.path.isfile(f) and re.fullmatch(prototype_pattern, os.path.basename(f)):
                     smart_cp(f, dst_proto)
 
     # 变更日志

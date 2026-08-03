@@ -18,6 +18,7 @@ var PROTOTYPE_CONFIG = {
   'marketing':      'docs-营销活动/原型/looply-营销活动-antd-原型-v14.html',
   'order':          'docs-订单支付/原型/looply-订单管理后台原型-v7.html',
   'plm':            'docs-红布林商品对接/原型/looply-红布林商品对接-antd-原型-v20.html',
+  'reporting':      'docs-C端数据报表/原型/looply-数据总览-经营概览-GA4自动同步副本-v1.html',
   'rhl_order':      'docs-红布林订单对接/原型/looply-红布林订单对接-后台原型-v2.html',
   'shop':           'docs-shop页/后台原型/looply-shop页导航栏配置-后台原型-v0.1-antd.html',
   'social_share':   'docs-社媒分享管理/原型/looply-社媒分享管理-antd-原型-v1.2.html',
