@@ -963,10 +963,14 @@ def ensure_index_sections(new_modules_arts):
                 continue
             mod_config = next((cfg for cfg in MODULES.values() if cfg['name'] == name), {})
             sidebar_group = mod_config.get('sidebar_group', '基础服务域')
-            m = re.search(rf"(\{{ name: '{re.escape(sidebar_group)}', modules: \[)", content)
+            # 追加到该分组**末尾**：新模块自然落在分组底部，不打乱既有模块的排列顺序。
+            # （早期为插到开头，导致每加一个新模块就把整组顺序推乱一次。）
+            m = re.search(rf"\{{ name: '{re.escape(sidebar_group)}', modules: \[([^\]]*)\]", content)
             if m:
-                content = content[:m.end()] + f"'{name}', " + content[m.end():]
-                print(f'  [新增] index.html 侧边导航添加 {name}（{sidebar_group}）')
+                inner = m.group(1).rstrip()
+                new_inner = f"{inner}, '{name}'" if inner else f"'{name}'"
+                content = content[:m.start(1)] + new_inner + content[m.end(1):]
+                print(f'  [新增] index.html 侧边导航添加 {name}（{sidebar_group}，置于分组末尾）')
             else:
                 print(f'  [警告] 未找到侧边导航 GROUPS，{name} 需手工加入导航')
         with open(index_path, 'w', encoding='utf-8') as f:
