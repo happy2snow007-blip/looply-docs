@@ -666,31 +666,6 @@ MODULES = {
             },
         },
     },
-    'reporting': {
-        'name': 'C 端数据报表',
-        'default_source': '/Users/zz/Documents/Looply',
-        'target': 'docs-C端数据报表',
-        'keywords': ['数据报表', '数据总览', 'GA4', 'reporting'],
-        'config_key': 'reporting',
-        'sidebar_group': 'C端卖场',
-        'artifacts': {
-            'prototype': {
-                'subdir': '原型',
-                'source_subdir': 'outputs',
-                'pattern': r'looply-数据总览-经营概览-GA4自动同步副本-v(.+?)\.html',
-            },
-            'prd': {
-                'subdir': 'PRD',
-                'source_subdir': 'docs/product',
-                'pattern': r'looply-数据总览-经营概览-PRD-v(.+?)\.md',
-            },
-            'spec': {
-                'subdir': '口径说明',
-                'source_subdir': 'outputs',
-                'pattern': r'looply-数据总览-经营概览-GA4指标口径映射-v(.+?)\.md',
-            },
-        },
-    },
     'aftersale': {
         'name': '售后',
         'default_source': '$HOME/Desktop/海外业务/售后',
@@ -828,8 +803,6 @@ _STAGE3_TYPES = ('prototype', 'dev_review', 'prd', 'prd_md', 'prd_html', 'spec',
 def _gen_card(mod_name, target_dir, art_type, file_name, ver, today):
     """生成单个文档卡片 HTML。"""
     card_title, icon_cls, icon_letter = _CARD_META.get(art_type, ('文档', 'icon-md', 'D'))
-    if mod_name == 'C 端数据报表' and art_type == 'prototype':
-        card_title = '报表 Demo'
     subdir = 'PRD' if art_type.startswith('prd') else {
         'er': '实体关系图', 'architecture': '产品架构图',
         'flowchart': '系统流程图', 'prototype': '原型', 'dev_review': '原型', 'spec': '口径说明',
@@ -838,7 +811,7 @@ def _gen_card(mod_name, target_dir, art_type, file_name, ver, today):
 
     # 文档显示名
     if art_type == 'prototype':
-        doc_label = f'{mod_name} Demo v{ver}' if mod_name == 'C 端数据报表' else f'{mod_name}后台原型 v{ver}'
+        doc_label = f'{mod_name}后台原型 v{ver}'
     elif art_type == 'dev_review':
         doc_label = f'{mod_name}开发评审版 v{ver}'
     elif art_type == 'delivery':
