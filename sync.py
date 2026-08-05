@@ -719,7 +719,7 @@ MODULES = {
         },
     },
     'about': {
-        'name': 'About',
+        'name': 'About Looply',
         'default_source': '/Users/zz/Documents/Looply/deliveries/about-us',
         'target': 'docs-About',
         'keywords': ['about', 'About', 'About Us', 'about-us', '品牌介绍'],
