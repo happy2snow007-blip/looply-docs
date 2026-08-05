@@ -1649,8 +1649,16 @@ def update_index_html(updates, all_versions, all_history=None):
                             prefix_alts.append(re.escape(href_prefix_encoded))
                         if href_prefix_partial and href_prefix_partial not in (href_prefix, href_prefix_encoded):
                             prefix_alts.append(re.escape(href_prefix_partial))
-                        href_m = re.search(r'href="(?:' + '|'.join(prefix_alts) + r')([^"]+)"', lookback)
-                        if href_m and re.match(file_pattern, href_m.group(1)):
+                        # 遍历卡片里的**所有** href，任一匹配文件名规则即命中。
+                        # 不能只取第一个：PRD 卡的第一个按钮通常是「查看 → PRD/index.html」（在线阅读器），
+                        # 它匹配不上 looply-xxx-PRD-vN.md，只看第一个会误判成「这不是 PRD 卡」而跳过历史版本。
+                        href_m = None
+                        for cand in re.finditer(r'href="(?:' + '|'.join(prefix_alts) + r')([^"]+)"', lookback):
+                            fname = cand.group(1)
+                            if re.match(file_pattern, fname) or re.match(file_pattern, url_unquote(fname)):
+                                href_m = cand
+                                break
+                        if href_m:
                             matched_key = (mk, art_type)
                             break
             if matched_key:
