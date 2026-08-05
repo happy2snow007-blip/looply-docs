@@ -718,6 +718,28 @@ MODULES = {
             },
         },
     },
+    'about': {
+        'name': 'About',
+        'default_source': '/Users/zz/Documents/Looply/deliveries/about-us',
+        'target': 'docs-About',
+        'keywords': ['about', 'About', 'About Us', 'about-us', '品牌介绍'],
+        'config_key': None,
+        'sidebar_group': 'C端卖场',
+        'artifacts': {
+            'prd': {
+                'subdir': 'PRD',
+                'pattern': r'looply-About-PRD-v(.+?)\.md',
+            },
+            'ui_pc': {
+                'subdir': 'UI',
+                'pattern': r'looply-about-us-ui-pc-v(.+?)\.png',
+            },
+            'ui_mobile': {
+                'subdir': 'UI',
+                'pattern': r'looply-about-us-ui-mobile-v(.+?)\.png',
+            },
+        },
+    },
 }
 
 # ─── 自动发现新模块 ────────────────────────────────────────────────────────────────
@@ -815,10 +837,12 @@ _CARD_META = {
     'prd_html':     ('PRD 文档',    'icon-html', 'H'),
     'spec':         ('指标口径',    'icon-md',   'M'),
     'delivery':     ('交付包',      'icon-zip',  'Z'),
+    'ui_pc':        ('PC UI 基线',  'icon-html', 'P'),
+    'ui_mobile':    ('Mobile UI 基线', 'icon-html', 'M'),
 }
 
 _STAGE2_TYPES = ('er', 'architecture', 'flowchart')
-_STAGE3_TYPES = ('prototype', 'dev_review', 'prd', 'prd_md', 'prd_html', 'spec', 'delivery')
+_STAGE3_TYPES = ('prototype', 'dev_review', 'prd', 'prd_md', 'prd_html', 'spec', 'ui_pc', 'ui_mobile', 'delivery')
 
 
 def _gen_card(mod_name, target_dir, art_type, file_name, ver, today):
@@ -827,6 +851,7 @@ def _gen_card(mod_name, target_dir, art_type, file_name, ver, today):
     subdir = 'PRD' if art_type.startswith('prd') else {
         'er': '实体关系图', 'architecture': '产品架构图',
         'flowchart': '系统流程图', 'prototype': '原型', 'dev_review': '原型', 'spec': '口径说明',
+        'ui_pc': 'UI', 'ui_mobile': 'UI',
     }.get(art_type, '')
     href = f'{target_dir}/{subdir}/{file_name}' if subdir else f'{target_dir}/{file_name}'
 
@@ -847,6 +872,10 @@ def _gen_card(mod_name, target_dir, art_type, file_name, ver, today):
         doc_label = f'{mod_name}产品架构图 v{ver}'
     elif art_type == 'flowchart':
         doc_label = f'{mod_name}系统流程图 v{ver}'
+    elif art_type == 'ui_pc':
+        doc_label = f'{mod_name} PC UI 基线 v{ver}'
+    elif art_type == 'ui_mobile':
+        doc_label = f'{mod_name} Mobile UI 基线 v{ver}'
     else:
         doc_label = f'{mod_name} v{ver}'
 
@@ -1228,7 +1257,7 @@ def sync_module_files(source_dir, target_dir, mod_key):
 
     # UI 设计稿
     if 'UI' not in skip_subdirs:
-        sync_subdir(source_dir, target_dir, 'UI', ['.pen', '.html'])
+        sync_subdir(source_dir, target_dir, 'UI', ['.pen', '.html', '.png', '.jpg', '.jpeg'])
 
     # 原型（HTML + 图片）；支持模块声明独立源子目录，目标仍统一落在“原型”。
     prototype_config = MODULES.get(mod_key, {}).get('artifacts', {}).get('prototype', {})
