@@ -697,6 +697,27 @@ MODULES = {
             },
         },
     },
+    'aftersale_cx': {
+        'name': '售后列表详情',
+        'default_source': '$HOME/Desktop/海外业务/售后列表详情',
+        'target': 'docs-售后列表详情',
+        'keywords': ['售后列表', '售后详情', '售后C端', 'aftersale_cx'],
+        'config_key': None,
+        'sidebar_group': '交易域',
+        # UI/ 下的 HTML 原型自 PRD v1.0（2026-08-05）起已降级为历史参考，
+        # 界面一律以 Figma 设计稿为准，不发布到文档中心以免开发照着过期原型实现。
+        'skip_subdirs': ['UI'],
+        'artifacts': {
+            'prd': {
+                'subdir': 'PRD',
+                'pattern': r'looply-售后列表详情-PRD-v(.+?)\.md',
+            },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'售后列表详情-交付开发 V(.+?)\.zip',
+            },
+        },
+    },
 }
 
 # ─── 自动发现新模块 ────────────────────────────────────────────────────────────────
@@ -1198,8 +1219,12 @@ def sync_module_files(source_dir, target_dir, mod_key):
     # 验收记录
     sync_subdir(source_dir, target_dir, '验收记录', ['.md'])
 
+    # 模块可声明 skip_subdirs 跳过某些子目录（如产物已迁 Figma、本地文件降级为历史参考）
+    skip_subdirs = MODULES.get(mod_key, {}).get('skip_subdirs', [])
+
     # UI 设计稿
-    sync_subdir(source_dir, target_dir, 'UI', ['.pen', '.html'])
+    if 'UI' not in skip_subdirs:
+        sync_subdir(source_dir, target_dir, 'UI', ['.pen', '.html'])
 
     # 原型（HTML + 图片）；支持模块声明独立源子目录，目标仍统一落在“原型”。
     prototype_config = MODULES.get(mod_key, {}).get('artifacts', {}).get('prototype', {})
