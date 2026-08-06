@@ -437,24 +437,27 @@ MODULES = {
         },
     },
     'shop': {
-        'name': 'Shop页导航',
-        'default_source': '$HOME/looply/shop',
+        'name': 'shop页',
+        'default_source': '$HOME/Desktop/looply/06shop',
         'target': 'docs-shop页',
         'keywords': ['shop', 'Shop', '导航'],
         'config_key': 'shop',
         'artifacts': {
             'prototype': {
                 'subdir': '后台原型',
+                'source_subdir': '后台原型',
                 'pattern': r'looply-shop页导航栏配置-后台原型-v(.+?)-antd\.html',
                 'exclude': r'(backup|PC)',
             },
             'prototype_app': {
                 'subdir': '原型',
+                'source_subdir': '前端原型',
                 'pattern': r'looply-shop-app-v(.+?)\.html',
                 'exclude': r'(backup|奢侈品)',
             },
             'prd': {
                 'subdir': 'PRD',
+                'source_subdir': 'prd',
                 'pattern': r'looply-shop-app-prd-v(.+?)\.md',
             },
             'prd_html': {
@@ -1259,19 +1262,22 @@ def sync_module_files(source_dir, target_dir, mod_key):
     if 'UI' not in skip_subdirs:
         sync_subdir(source_dir, target_dir, 'UI', ['.pen', '.html', '.png', '.jpg', '.jpeg'])
 
-    # 原型（HTML + 图片）；支持模块声明独立源子目录，目标仍统一落在“原型”。
-    prototype_config = MODULES.get(mod_key, {}).get('artifacts', {}).get('prototype', {})
-    prototype_source_subdir = prototype_config.get('source_subdir')
-    if prototype_source_subdir is None:
-        sync_subdir(source_dir, target_dir, '原型', ['.html', '.png', '.jpg', '.svg'])
-    else:
+    # 原型（HTML + 图片）；一个模块可声明多个原型制品及各自的源/目标子目录。
+    for art_type, prototype_config in MODULES.get(mod_key, {}).get('artifacts', {}).items():
+        if not art_type.startswith('prototype'):
+            continue
+        prototype_source_subdir = prototype_config.get('source_subdir', '原型')
         src_proto = os.path.normpath(os.path.join(source_dir, prototype_source_subdir))
-        dst_proto = os.path.join(REPO_DIR, target_dir, '原型')
+        dst_proto = os.path.join(REPO_DIR, target_dir, prototype_config.get('subdir', '原型'))
+        if not os.path.isdir(src_proto):
+            continue
         os.makedirs(dst_proto, exist_ok=True)
         prototype_pattern = prototype_config.get('pattern', r'.*')
+        restrict_to_pattern = 'source_subdir' in prototype_config
         for ext in ['.html', '.png', '.jpg', '.svg']:
             for f in globmod.glob(os.path.join(src_proto, f'*{ext}')):
-                if os.path.isfile(f) and re.fullmatch(prototype_pattern, os.path.basename(f)):
+                excluded = prototype_config.get('exclude') and re.search(prototype_config['exclude'], os.path.basename(f), re.I)
+                if os.path.isfile(f) and not excluded and (not restrict_to_pattern or re.fullmatch(prototype_pattern, os.path.basename(f))):
                     smart_cp(f, dst_proto)
 
     # 变更日志
