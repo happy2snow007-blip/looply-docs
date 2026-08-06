@@ -3,7 +3,7 @@
 > 版本：v0.3  
 > V1 范围：PC Web、Mobile Web  
 > 参考材料：`looply-全局搜索-核心逻辑-Checklist-v0.1.md`  
-> 当前正式 UI：[PC Web](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=5477-28904&m=dev) · [Mobile Web](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=5477-27518&m=dev)  
+> 当前正式 UI：[Looply 1.1](https://www.figma.com/design/sAOLkw0gIl1bwQRYCDqKuW/Looply-1.1)
 > UI 评审说明：`prototypes/search/looply-global-search-ui-review-v0.1.html`  
 > 开发评审版：`prototypes/search/looply-global-search-dev-review-v0.1.html`  
 > 统一逻辑 Demo：`prototypes/search/looply-global-search-web-demo-v0.1.html`  
@@ -44,10 +44,10 @@
 
 - Home、Shop、Collection 和 Favorites 复用同一 Sug、有效输入提交、搜索结果、Recent searches 和结果异常处理能力；入口打开方式与空输入初始状态按来源页分别执行。退出未提交的搜索状态时恢复来源页及原状态；结果页返回复用 Web 全局导航规则。
 - PC Web 通过 Header 搜索图标进入搜索态；Header 切换为搜索输入框、`Search` 和 `Cancel`，下方展示搜索发现内容。
-- Mobile Web 的 Home、Shop 和 Favorites 使用入口型搜索框，轮播词按第 5 章执行。点击入口后进入全屏搜索发现页；有效轮播词作为当前 placeholder，否则使用 `Search by brand or item`。Favorites 入口搜索全站商品，不限定当前 Wishlist 或 Recently Viewed。
+- Mobile Web 的 Home、Shop 和 Favorites 使用入口型搜索框，轮播词按第 5 章执行。点击入口后进入全屏搜索发现页；有效轮播词作为当前 placeholder，否则使用 `Search by brand or item...`。Favorites 入口搜索全站商品，不限定当前 Wishlist 或 Recently Viewed。
 - Home 右侧同时展示搜索图标：存在有效轮播词时直接提交该词；展示固定 placeholder 时进入全屏搜索页，不发起搜索或展示 Toast。
 - Home、Shop 和 Favorites 有轮播词缓存时首屏直接展示；无缓存加载中、空数据、失败或词条不可用时展示固定 placeholder。加载成功后切换为第一条有效词并开始轮播。
-- Mobile Web 点击 Collection Header 的搜索入口后，当前 Header 切换为内联搜索态，自动聚焦并唤起键盘，使用固定 placeholder `Search by brand or item`。空输入时保留原商品列表、筛选、排序和滚动位置，不展示搜索发现内容。
+- Mobile Web 点击 Collection Header 的搜索入口后，当前 Header 切换为内联搜索态，自动聚焦并唤起键盘，使用固定 placeholder `Search by brand or item...`。空输入时保留原商品列表、筛选、排序和滚动位置，不展示搜索发现内容。
 
 ### 2.2 搜索发现页面形态
 
@@ -58,7 +58,7 @@
 
 ### 2.3 搜索输入状态
 
-- PC Web 输入框使用固定 placeholder `Search by brand or item`；Mobile Web 全屏搜索页的初始 placeholder 按第 2.1 节的入口规则执行，Collection 内联搜索使用固定 placeholder。各入口的输入框初始保持空值。
+- PC Web 输入框使用固定 placeholder `Search by brand or item`；Mobile Web 全屏搜索页的初始 placeholder 按第 2.1 节的入口规则执行，Collection 内联搜索使用 `Search by brand or item...`。各入口的输入框初始保持空值。
 - 用户开始输入有效真实内容后，隐藏搜索发现内容，并以当前输入请求 Sug；输入变化时只展示与最新输入对应的 Sug 状态和结果。
 - 用户清空输入后隐藏 Sug，并按来源页恢复第 2.1 节定义的空输入状态；Collection 继续保留原页内容和位置，不转为搜索发现页。迟到的 Sug 结果不得覆盖当前状态。
 - Mobile Web 全屏搜索页和 Collection 内联搜索态在输入非空时展示清除按钮；点击后清空输入并恢复对应空输入状态，焦点保留在输入框。
@@ -77,11 +77,11 @@
 
 ### 2.5 搜索发现模块状态
 
-- Recent searches、Popular searches 和 Popular brands 分别独立加载和降级；Popular categories 不发起独立热门数据请求，按前端固定 ID 名单读取品类基础数据后展示。
+- Recent searches 与 Popular searches 分别独立加载和降级；Popular brands 与 Popular categories 使用 UI 1.1 定义的固定内容，不发起热门数据请求。
 - 存在可用缓存时立即展示缓存内容；后台刷新失败时保留已展示的缓存内容。
-- 没有可用缓存且请求尚未完成时，对应动态模块展示符合内容形态的轻量骨架屏：搜索词模块使用词条骨架，品牌模块使用卡片骨架。
+- 没有可用缓存且请求尚未完成时，对应动态模块展示符合内容形态的轻量骨架屏：搜索词模块使用词条骨架。
 - 没有可用缓存且服务返回空数据或请求失败时，隐藏对应模块，后续模块自动上移。
-- Recent searches 缓存按游客域或登录账号隔离；Popular searches 缓存按 `market_id + locale` 隔离；Popular brands 缓存仅按 `market_id` 隔离。登录、退出或切换账号后切换 Recent searches 缓存；切换市场后重新读取 Popular searches 和 Popular brands；仅切换 locale 时重新读取 Popular searches，Popular brands 沿用当前市场的有序品牌 ID，品牌名称按新 locale 重新读取。
+- Recent searches 缓存按游客域或登录账号隔离；Popular searches 缓存按 `market_id + locale` 隔离。登录、退出或切换账号后切换 Recent searches 缓存；切换市场或 locale 后重新读取 Popular searches。
 - 单个或多个搜索发现模块不可用时，搜索框、手动输入、输入联想及其他成功模块继续正常使用。
 - 只有搜索页公共框架、关键公共依赖或页面全部内容不可用时，才展示整页错误状态。
 
@@ -118,7 +118,7 @@
 - 手动输入并提交关键词。
 - 点击 Mobile Web 首页搜索图标并成功提交当前有效轮播词；固定 placeholder 状态下进入全屏搜索页不生成记录。
 - 点击输入联想。
-- 点击 Popular searches、Popular brands 或 Popular categories。
+- 点击 Popular searches 或 Popular brands。
 - 点击已有 Recent searches；对应记录更新时间并移动到第一位。
 - 点击搜推返回的纠错词或推荐词。
 
@@ -161,6 +161,7 @@
 - 搜索结果为 0 或搜索请求失败时仍生成 Search event，并记录本次结果状态。
 - 登录用户的 Search event 同步失败时进入绑定原 `user_id` 的待同步队列；网络恢复、页面重新可见或同一账号再次登录时重试，不转为游客或其他账号的事件。
 - 刷新结果页、打开分享链接及浏览器前进或后退触发的状态恢复不属于新的搜索提交，不重复生成 Recent searches 或 Search event。
+- 点击 Popular categories 后仅打开该品类配置的链接，不生成 Recent searches 或 Search event。
 
 ## 5. Popular content
 
@@ -170,32 +171,32 @@
 
 - 按服务返回顺序展示，不在浏览器端重新排序。
 - Mobile Web 的 Home、Shop、Favorites 入口轮播词与搜索发现页 Popular searches 共用同一份最终列表和顺序。
-- PC Web 完整展示服务返回的前 10 条，不限制行数，不提供展开入口。
+- PC Web 完整展示服务返回的前 10 条；服务返回不足 10 条时展示全部返回内容，不限制行数，不提供展开入口。
 - Mobile Web 最多完整展示 3 行，实际展示数量由词条宽度和当前语言决定；放不进第三行的词条不展示，不提供 `See all`。
 - 单个词条使用单行展示，最大宽度不超过当前内容区可用宽度的 75%；超出时显示省略号，点击时使用完整词条搜索。
 
-**Popular brands**
+**Popular Designers（业务对象：Popular brands）**
 
 - 仅在 Mobile Web 搜索发现页展示。
-- 服务端根据当前 `market_id` 返回 10 个有序品牌，终端按返回顺序展示，不重新排序。
-- 展示品牌已有图片和当前 locale 下的品牌名称，不展示商品数量。
-- 横向滑动浏览，不提供 `See all`；点击后使用品牌 ID 和名称发起品牌搜索。
+- 固定品牌清单、展示顺序和品牌图片由 UI 1.1 提供，不根据用户行为、市场或终端动态生成或排序。
+- 每项固定配置包含稳定 `brand_id`；展示当前 locale 下的品牌名称，不展示商品数量。
+- 横向滑动浏览，不提供 `See all`；点击后以 `brand_id` 作为精确约束发起品牌搜索，品牌名称仅用于展示。
 
 **Popular categories**
 
 - 仅在 Mobile Web 搜索发现页展示。
 - V1 由前端代码固定维护品类 ID 名单和展示顺序，并据此渲染；不请求动态 Popular categories 数据，不按市场热度重新排序。
 - 品类卡复用品类模块已有图片，并读取当前 locale 对应的品类名称；搜索模块不单独配置图片或名称。
-- 横向滑动浏览，不提供 `See all`；点击后使用品类 ID 和名称发起品类搜索。
+- 横向滑动浏览，不提供 `See all`；点击后打开该品类配置的链接，不发起品类搜索。
 
 ### 5.2 市场与多语言
 
-- Popular searches 按当前 `market_id + locale` 请求；Popular brands 仅按当前 `market_id` 请求有序品牌 ID。
+- Popular searches 按当前 `market_id + locale` 请求。
 - 用户切换 locale 后，重新读取新 `market_id + locale` 对应的 Popular searches。
 - 不使用其他 locale 的 Popular searches 替代当前列表，也不对热门词进行机器翻译。
-- Popular brands 按 `market_id` 使用统一排名，不按 locale 分别计算；服务端返回 10 个有序品牌 ID，品牌名称读取当前 locale 对应名称，图片复用品牌已有图片。
+- Popular brands 的固定清单、展示顺序和图片不随 `market_id`、locale 或终端变化；品牌名称读取当前 locale 对应名称。
 - Popular categories 的固定 ID 名单和顺序不随 `market_id` 或 locale 改变；品类名称读取当前 locale 对应名称，图片复用品类已有图片。
-- Popular searches 与 Popular brands 的榜单生成、数据源切换、异常回退、内容治理及人工干预规则统一复用[搜推既有定义](https://zhuanspirit.feishu.cn/wiki/MRYIwf8SSiqSJskYtF8clxh5nud?from=auth_notice&hash=5732394c17444be5044ec05256c9e51d)；Web 仅消费最终有序结果。
+- Popular searches 的榜单生成、数据源切换、异常回退、内容治理及人工干预规则复用[搜推既有定义](https://zhuanspirit.feishu.cn/wiki/MRYIwf8SSiqSJskYtF8clxh5nud?from=auth_notice&hash=5732394c17444be5044ec05256c9e51d)；Web 仅消费最终有序结果。Popular brands 不参与动态榜单。
 
 ## 6. 搜索执行与结果
 
@@ -237,6 +238,7 @@
 - 筛选采用非收缩候选项模型：本次搜索内候选集合保持稳定，只更新数量；数量为 0 的未选项保留但置灰，已选项保留供取消。提交新搜索词或切换 `market_id`、渠道、locale 后，按新响应重建候选集合。
 - 维度间使用 AND，同一维度多值使用 OR。
 - 应用筛选后，使用最新响应刷新商品、结果总数及候选值数量。
+- 切换排序或应用筛选时，只有商品区域进入加载或刷新态；结果总数和筛选候选项保留在原位置，并在最新响应返回后更新。
 - PC Web 直接复用 Collection 的 240px 左侧筛选栏、维度展示样式、展开收起、内部滚动和即时筛选规则；按接口顺序展示全部有效筛选维度，结果数量和 `Sort By` 保留在搜索结果区顶部。
 - Mobile Web 直接复用 Collection 的移动端横向筛选栏和完整 Filter 抽屉组件：横向栏固定展示 `Filter`、`Sort By`，其后按接口顺序展示全部有效筛选维度，超出屏幕时横向滑动；Filter 抽屉按同一顺序展示同一套完整维度，用户点击 `Apply` 后应用。
 - Mobile Web Filter 抽屉复用 Collection 的宽度、Reset、`Apply · N items`、点击右侧露出区关闭及状态联动规则。
@@ -281,9 +283,9 @@
 | 统一身份与账号数据 | 提供当前 `anonymous_id` / `user_id`，并支持 Recent searches 的登录复制、账号归属、跨设备读取与合并、主体切换和待同步队列隔离。 |
 | 数据埋点与行为平台 | 逐条接收 Search event，并支持账号归属、上报及待同步队列隔离；各事件保持独立。 |
 | Market、商品与 listing | 提供当前 `market_id`、渠道可见性、listing 状态及统一商品卡所需字段。 |
-| 品牌、品类与商品域 | 通过稳定 ID 提供当前 locale 下的名称、已有图片及统一缺译兜底。 |
+| 品牌、品类与商品域 | 通过稳定 ID 提供当前 locale 下的名称、品类已有图片及统一缺译兜底，并提供品类卡配置链接。 |
 | Collection 与公共商品列表 | 提供统一筛选维度池、PC/Mobile 筛选交互、商品卡和列表加载规则。 |
-| Popular searches 与 Popular brands 数据 | 按第 5.2 节维度返回最终有序内容；榜单策略复用搜推既有定义。 |
+| Popular searches 数据 | 按第 5.2 节维度返回最终有序内容；榜单策略复用搜推既有定义。 |
 | 首页 `For You` | 在搜索词无结果页提供可直接挂载的 `For You` 模块，包括推荐数据、顺序、商品卡、加载及状态处理。 |
 
 - Recent searches 的登录复制、保存边界与清除方式需纳入 Privacy Policy / Notice at Collection；数据保留、注销及 DSAR 删除复用全局隐私规则。
@@ -297,7 +299,7 @@
 
 | 模块 | PC Web | Mobile Web |
 |---|---|---|
-| 当前正式 UI 源稿 | [Looply v1.0 · PC 搜索](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=5477-28904&m=dev) | [Looply v1.0 · Mobile 搜索](https://www.figma.com/design/rLK7XCdVvYqEHQHd7WjOkk/Looply-v1.0?node-id=5477-27518&m=dev) |
+| 当前正式 UI 源稿 | [Looply 1.1](https://www.figma.com/design/sAOLkw0gIl1bwQRYCDqKuW/Looply-1.1) | [Looply 1.1](https://www.figma.com/design/sAOLkw0gIl1bwQRYCDqKuW/Looply-1.1) |
 | 统一开发评审入口 | `looply-global-search-dev-review-v0.1.html`，可筛选 PC Web | `looply-global-search-dev-review-v0.1.html`，可筛选 Mobile Web |
 | UI 评审说明（非 UI 源稿） | `looply-global-search-ui-review-v0.1.html`，切换至 PC Web | `looply-global-search-ui-review-v0.1.html`，切换至 Mobile Web |
 | 功能逻辑与状态演示 | `looply-global-search-web-demo-v0.1.html`，PC 视口 | `looply-global-search-web-demo-v0.1.html`，Mobile 视口 |
