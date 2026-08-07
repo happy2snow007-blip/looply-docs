@@ -1,18 +1,17 @@
 # Looply 收藏与浏览历史 PRD
 
-**文档版本**：v1.6
+**文档版本**：v1.5
 **撰写时间**：2026年7月27日
 **模块**：收藏（Wishlist）+ 浏览历史（Recently Viewed）
 **端**：APP + PC Web
-**配套**：个人中心 PRD v1.2、个人中心 ER 图 v1.6、个人中心原型 `looply-个人中心-APP-v5.pen`、功能清单 v1.8、收藏与浏览历史 ER 图 v1.5、原型 `looply-收藏与浏览历史-APP-v2.pen`
+**配套**：个人中心 PRD v1.1、个人中心 ER 图 v1.5、个人中心原型 `looply-个人中心-APP-v5.pen`、功能清单 v1.7、收藏与浏览历史 ER 图 v1.4、原型 `looply-收藏与浏览历史-APP-v2.pen`
 
-> **v1.6 变更摘要**（Market + 国家双维度落库）：
-> ① Market 与国家拆分：一个 Market 可包含多个国家；`market_id` 表示商业运营市场，`country_code` 表示具体经营国家/地区，采用 ISO 3166-1 alpha-2。
-> ② `favorite`、`browsing_history` 与 `browsing_history_delete_marker` 均持久化 `market_id + country_code`，不再仅通过 listing 推导地域。
-> ③ 收藏/浏览唯一粒度升级为“主体 + market_id + country_code + listing_id”；同一主体可在不同国家站分别收藏或浏览同一 listing，状态互不覆盖。
-> ④ 列表、数量、收藏人数、商详最近浏览、登录复制和 Clear All 均按 `market_id + country_code` 隔离；当前国家 Clear All 可直接写同地域 `scope=all` 标记。
-> ⑤ 两级地域值由服务端当前站点上下文确定，写入前校验国家归属 Market 且关联可用于 C 端；历史值作为发生时地域快照，不随国家未来调整 Market 而静默改写。
-> ⑥ 每次切换国家时，个人中心同时使用 Market 模块中目标国家配置的默认语言和默认币种覆盖当前偏好；收藏/浏览列表按新的语言、币种和 `market_id + country_code` 上下文整体刷新。
+> **v1.5 变更摘要**（首期多市场口径补齐）：
+> ① 首期市场明确为 United States 与 Hong Kong；当前市场由 `market_id` 表示，市场选项、默认币种和支持币种读取 Market 模块，语言由多语言系统独立控制。
+> ② 收藏与浏览历史继续只锚定 `listing_id`，`favorite` / `browsing_history` 不重复保存 `market_id`；列表、数量和商详最近浏览统一按 `listing.market_id = 当前 market_id` 过滤。
+> ③ 切换市场只改变数据显隐，不删除、不迁移记录；切回原市场后恢复展示。收藏人数仍按 listing 统计，已给定 listing_id 时无需再次叠加市场过滤。
+> ④ 浏览历史 Clear All 只清除当前市场可见记录；为避免影响其他市场，不写全市场 `scope=all` 标记，而为本次删除的 listing 逐条写 `scope=item` 防回灌标记。
+> ⑤ 合规告知、记录资格、同意与留存由隐私/合规模块按市场返回；数据库时间统一存 UTC，C 端时区展示规则仍待定，本版不新增事件时区字段。
 
 ---
 
@@ -60,10 +59,10 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 1. 用户浏览商品 → 点♡收藏 → 进 Wishlist 蹲降价 → 降价高亮 → 下单。
 2. 用户在商品卡片或详情页查看收藏人数，结合热度判断是否尽快下单。
 3. 用户看过多件商品 → 进 Recently Viewed 找回某件 → 跳商详。
-4. 收藏/浏览的商品已售出或已下架 → 列表显示失效态；Sold Out 仍可收藏/取消，Unavailable 不可进入商详或新增收藏，但可取消已有收藏/删除历史；点"找相似"可看同类在售。
+4. 收藏/浏览的商品已售出或已下架 → 列表显示失效态，但仍可收藏/取消；点"找相似"可看同类在售。
 5. 未登录访客收藏/浏览 → 注册登录 → 设备级记录复制关联到账户，跨设备可见。
 6. 用户在商详页底部"最近浏览"横条 → 点击继续逛（消费方场景，见第三章）。
-7. 用户切换 Country/Region → 系统同时确定该国家所属 `market_id` 与 `country_code`，强制重置为目标国家默认语言和默认币种，只展示该国家站的收藏和浏览历史；切回后原国家数据恢复展示，但语言/币种仍按目标国家默认值重置。
+7. 用户从 United States 切换到 Hong Kong → 仅展示 Hong Kong listing 对应的收藏和浏览历史；切回后 United States 数据恢复展示。
 
 ### 1.6 全局页面流转
 
@@ -88,22 +87,21 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 [PC Account Home] ──Wishlist入口──→ [PC 全屏收藏列表页]
 
 [我的页/导航] ──Recently Viewed入口──→ [浏览历史列表页] ──点卡片──→ [商品详情页]
-                                            └─"Clear All"→ 二次确认 → 清空当前国家站
+                                            └─"Clear All"→ 二次确认 → 清空当前市场
                                             └─单条 X → 二次确认 → 删除
                                             └─真空态"Explore Items"→ [首页 For You；不可用则首页默认位置]
 
 [商品详情页底部] ──最近浏览横条──→ [商品详情页]（消费方，引用商详页模块设计）
 
-[Country/Region] ──切换国家──→ 收藏/浏览列表、数量、抽屉与商详横条按 market_id + country_code 重新过滤
+[Country/Region] ──切换 market_id──→ 收藏/浏览列表、数量、抽屉与商详横条按 listing.market_id 重新过滤
 ```
 
 ### 1.7 术语说明
 
 | 术语 | 含义 |
 |---|---|
-| market / market_id | Market 模块配置的商业运营市场及内部唯一标识；一个 Market 可包含多个国家 |
-| country / country_code | Market 下的具体经营国家/地区；使用 ISO 3166-1 alpha-2，如 US、HK |
-| listing（渠道商品） | 表示单件孤品的渠道商品记录，可处于在售、已售出或已下架；是收藏/浏览的商品锚点，但不替代记录自身的 Market 与国家归属 |
+| market / market_id | Market 模块配置的经营市场及内部唯一标识；用户端统一显示为 Country/Region |
+| listing（渠道商品） | 表示单件孤品的渠道商品记录，可处于在售、已售出或已下架；每条 listing 唯一归属一个 `market_id`，是收藏/浏览的锚定对象 |
 | product（实物商品） | 一物一码的实物层，listing 的上游，本模块不直接锚定 |
 | price_at_save | 收藏时记录的价格快照，降价判断基准 |
 | price_at_first_view | 首次浏览时记录的价格快照，浏览历史降价判断基准（再次浏览不更新） |
@@ -115,15 +113,13 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 
 ### 1.8 多语言 / 多市场策略
 
-首期启用 United States 与 Hong Kong 国家站。用户端以 `Country/Region` 选择具体国家，服务端从当前站点上下文取得 `country_code` 及其归属 `market_id`；一个 Market 可包含多个国家。Market、国家名称、Market—国家归属、每个国家的默认语言/默认币种和 Market 支持币种均读取 Market 模块，不在本模块写死永久枚举。
+首期同时启用 United States 与 Hong Kong。用户端以 `Country/Region` 选择当前市场，内部使用 `market_id`；市场选项、市场名称、默认币种和支持币种均读取 Market 模块，不在本模块写死国家或币种枚举。每条 listing 唯一归属一个市场，收藏与浏览记录通过 `listing_id → listing.market_id` 隐式归属市场。
 
-- **地域落库**：`favorite`、`browsing_history` 与 `browsing_history_delete_marker` 均保存 `market_id + country_code`；两字段必填并共同构成业务作用域。
-- **地域来源**：前端不得自由指定两字段，后端也不得按 IP 直接落库；服务端从当前站点业务上下文确定，并校验 `country_code` 归属 `market_id` 且关联可用于 C 端。
-- **读取过滤**：列表、筛选角标、个人中心数量、PC 抽屉、收藏人数和商详最近浏览均按当前 `market_id + country_code` 查询，缺少任一字段不得退化为全局查询。
-- **数据保留**：切换国家只改变读取作用域，其他 Market 或国家记录不删除、不迁移、不失活；切回原国家后恢复展示。
-- **历史快照**：记录上的 Market 与国家代表收藏/浏览发生时国家站。国家未来调整 Market 时不得静默改写历史记录；如需迁移，须由 Market 模块提供显式迁移方案并评估价格快照、删除标记与合规影响。
-- **语言与价格**：翻译资源由多语言系统提供。用户可单独修改语言和币种，但每次切换国家均由个人中心强制覆盖为目标国家在 Market 模块配置的默认语言和默认币种；随后收藏/浏览列表按新语言、币种及商品系统返回的国家站价格上下文重载。
-- **合规与时间**：记录资格、告知、同意和留存规则由隐私/合规模块按 `market_id + country_code` 提供，本模块不写死某一地域规则。数据库时间字段统一保存 UTC；C 端最终按设备时区、事件发生时区或其他业务时区展示仍待定，本版不新增 `event_timezone` 等字段。
+- **市场过滤**：列表、筛选角标、个人中心数量、PC 抽屉和商详最近浏览均只返回 `listing.market_id = 当前 market_id` 的记录。
+- **数据保留**：切换市场只改变读取过滤条件，其他市场的收藏和浏览记录不删除、不迁移、不失活；切回原市场后恢复展示。
+- **表结构边界**：`favorite` 与 `browsing_history` 不重复保存 `market_id`，避免 listing 归属与冗余市场字段不一致；市场事实以商品系统的 listing 为准。
+- **语言与价格**：界面文案由多语言系统按用户选择语言控制，语言不与市场一一绑定；商品现价和价格快照使用商品系统返回的 listing 市场价格上下文，前端按当前市场支持的币种展示。
+- **合规与时间**：记录资格、告知、同意和留存规则由隐私/合规模块按当前市场提供，本模块不写死某一市场规则。数据库时间字段统一保存 UTC；C 端最终按设备时区、事件发生时区或其他业务时区展示仍待定，本版不新增 `event_timezone` 等字段。
 
 `anonymous_id` 仅用于收藏、最近浏览和登录复制，不用于广告、跨站追踪或 `person_id` 模糊身份图谱；相关边界见 2.2.6、第四章和第六章。
 
@@ -150,8 +146,8 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 **触发条件**：用户点击商品卡片、商品详情页上的♡图标。
 
 **处理流程**：
-- **首次添加收藏**：商品处于在售、已降价或已售出时，空心♡可点击 → 前端将♡与收藏人数分别乐观更新为实心和 `+1` → 服务端从当前站点上下文取得 `market_id + country_code`，校验国家归属 Market、关联可用且 listing 在该国家站可见 → 写入 `user/anonymous_id + market_id + country_code + listing_id` 收藏关系，记录当前国家站价格快照 `price_at_save`，并将 `created_at` 与 `saved_at` 设为本次收藏时间 → 返回确认后的收藏状态与该国家站人数。`off_shelf` 不接受新增收藏。
-- **重新收藏**：在售、已降价或已售出状态下，存在同主体、同 `market_id + country_code + listing_id` 的软删除关系时，用户主动点空心♡ → 将该关系恢复为 `is_active=true`，以本次国家站价格刷新 `price_at_save`，以本次收藏时间刷新 `saved_at`，并清空 `cancelled_at`。若匿名关系的计数排除原因为 `merged_to_user`，本次**主动**重新收藏同时清除排除标记并计数；其他排除原因不得恢复。`off_shelf` 不允许重新收藏。
+- **首次添加收藏**：商品处于在售、已降价、已售出或已下架时，空心♡均可点击 → 前端将♡与收藏人数分别乐观更新为实心和 `+1` → 服务端校验 listing 记录存在且返回价格 → 写入 `user×listing`（或 `anonymous_id×listing`）收藏关系，记录当前价格快照 `price_at_save`，并将 `created_at` 与 `saved_at` 设为本次收藏时间 → 返回确认后的收藏状态与人数。
+- **重新收藏**：在售、已降价、已售出或已下架状态下，存在同主体、同 listing 的软删除关系时，用户主动点空心♡ → 将该关系恢复为 `is_active=true`，以本次价格刷新 `price_at_save`，以本次收藏时间刷新 `saved_at`，并清空 `cancelled_at`。若匿名关系的计数排除原因为 `merged_to_user`，本次**主动**重新收藏同时清除排除标记并计数；其他排除原因不得恢复。
 - **取消收藏**：♡实心 → 点击 → 前端先将♡乐观更新为空心；仅当服务端此前返回“当前关系参与收藏人数”时，人数才乐观 `-1`，`count_excluded=true` 的匿名关系取消时人数净变化为 0 → 服务端软删除（`is_active=false`）并写入 `cancelled_at` → 返回确认后的收藏状态与人数。取消不受商品当前状态限制。
 - **未登录收藏**：以设备级 `anonymous_id` 为主体写入，不拦截、不强制登录。
 
@@ -161,14 +157,14 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 | 在售（active） | 允许添加收藏，显示可操作空心♡ | 允许取消收藏，显示可操作实心♡ |
 | 已降价（active + discount） | 允许添加收藏，操作权限同在售 | 允许取消收藏，操作权限同在售 |
 | 已售出（sold） | 允许添加收藏，显示可操作空心♡ | 允许取消收藏，显示可操作实心♡ |
-| 已下架（off_shelf） | 不允许新增收藏，不展示可操作空心♡ | 允许取消已有收藏，显示可操作实心♡ |
+| 已下架（off_shelf） | 允许添加收藏，显示可操作空心♡ | 允许取消收藏，显示可操作实心♡ |
 
 | 通用规则 | 内容 |
 |---|---|
 | 收藏主体 | 登录用 `user_id`，未登录用 `anonymous_id`，二选一 |
-| 地域归属 | 收藏必填 `market_id + country_code`；由服务端当前站点上下文确定，写入前校验国家归属 Market 及 listing 在该国家站可见 |
+| 市场归属 | 收藏只写 `listing_id`，不写 `market_id`；市场由 `listing.market_id` 唯一确定 |
 | 价格快照 | 首次收藏或主动重新收藏成功时记录商品系统返回的当时 listing 价格；所有可收藏商品均保证价格存在，快照后续不随商品改价变动 |
-| 重复收藏 | `(主体, market_id, country_code, listing_id)` 唯一；同一国家站同件不重复，不同国家站状态互不覆盖 |
+| 重复收藏 | (主体, listing_id) 唯一约束，同件不重复收藏 |
 | 软删除 | 取消收藏不物理删除，置 `is_active=false` 并写入 `cancelled_at`，保留追溯与合并幂等 |
 | 防自动复活 | 自动登录复制不得恢复用户已取消的收藏；只有用户主动点击任一状态商品的收藏按钮才允许重新激活 |
 | 计数排除标记 | 匿名收藏关系使用 `count_excluded`、`count_excluded_reason`、`count_excluded_at`记录是否退出公开收藏人数、原因与时间；完整枚举见 2.1.3 |
@@ -176,8 +172,8 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 
 **异常处理**：
 - 网络异常：乐观更新后服务端失败 → ♡与收藏人数一起回滚原状态 + 轻提示"操作失败，请重试"。
-- 点击期间商品变为已售出：不影响收藏，按最新状态展示 `Sold Out`，收藏关系与人数更新继续完成；若变为已下架，则拒绝新增/重新收藏并回滚，已有收藏取消仍可完成。
-- 商品状态暂时无法确认：添加/重新收藏须确认 listing 非 off_shelf 且价格可用；状态无法确认、主体无效或网络失败时拒绝并回滚。取消已有收藏不依赖公开商详可访问。
+- 点击期间商品变为已售出或已下架：不影响收藏，按最新商品状态展示 `Sold Out` 或 `Unavailable`，收藏关系与人数更新继续完成。
+- 商品状态暂时无法确认：商品状态不是收藏门槛。添加/重新收藏只要求 listing 记录存在且价格可用；主体无效或网络失败时拒绝添加并回滚。已下架商品的 listing 记录与价格持续可用，收藏/取消权限与其他状态一致。
 - 并发：同一商品快速重复点击 → 以最终一次有效操作为准，收藏关系与人数均幂等处理，不重复增减。
 
 **UI 关联**：♡按钮属商品卡片/详情页组件（商品模块）。本模块负责收藏关系的写入与状态回显。
@@ -189,14 +185,14 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 **触发条件**：商品卡片、详情页渲染时，按单个或一批 listing 查询当前主体的收藏状态与收藏人数。
 
 **处理流程**：
-1. 按当前主体 + `market_id + country_code + listing_id` 查询是否存在有效收藏（`is_active=true`），返回布尔状态供前端渲染空心/实心♡。
-2. 同批返回当前 `market_id + country_code` 下各 listing 的原始收藏人数，以及当前主体这条有效收藏是否参与人数的布尔标记；商品流不得逐卡单独查询。前端据此决定取消收藏是否乐观 `-1`。
+1. 按当前主体 + listing_id 查询是否存在有效收藏（`is_active=true`），返回布尔状态供前端渲染空心/实心♡；调用方传入的 listing 应属于当前市场。
+2. 同批返回各 listing 的原始收藏人数，以及当前主体这条有效收藏是否参与人数的布尔标记；商品流不得逐卡单独查询。前端据此决定取消收藏是否乐观 `-1`。
 3. 前端 `0–999` 显示准确整数，`1000` 及以上按当前语言环境使用紧凑格式（如 `1.2K`）；缩写仅影响展示，不修改服务端原始值。
 
 **人数统计口径**：
 | 维度 | 规则 |
 |---|---|
-| 计数公式 | `distinct(active user_id) + distinct(active anonymous_id where count_excluded=false)`，按 `market_id + country_code + listing_id` 计算 |
+| 计数公式 | `distinct(active user_id) + distinct(active anonymous_id where count_excluded=false)`，按 listing 计算 |
 | 有效关系 | 只统计 `is_active=true` 且未被排除的收藏；商品变为已售出/已下架不自动减数，用户取消才减少 |
 | 登录主体 | 用户行按 `user_id` 去重，用户行不使用 `count_excluded` |
 | 匿名主体 | 匿名行按 `anonymous_id` 去重；`count_excluded=true` 的匿名行保留收藏状态，但不计入人数 |
@@ -212,13 +208,13 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 
 **规则说明**：未登录态按 `anonymous_id` 查询；登录态按 `user_id`。状态与人数回显是对外只读能力，供全站商品展示位复用。计数物理存储方式由技术设计确定，本 PRD 只定义业务事实来源、返回能力与一致性要求。
 
-**地域口径**：公开收藏人数不是 listing 的全球汇总，而是当前国家站热度，必须按 `market_id + country_code + listing_id` 统计。接口缺少 Market 或国家参数时直接报参数错误，不得退化为 listing 全局人数；同一 listing 在不同国家站的人数互不叠加。
+**市场口径**：公开收藏人数按 listing 维度统计。调用方已传入明确的 listing_id 后，无需再对计数关系叠加 `market_id` 条件；市场隔离由“当前页面只提供当前市场 listing_id”保证。Wishlist 列表、筛选角标和个人中心数量则必须先按 `listing.market_id = 当前 market_id` 取 listing 范围。
 
 #### 2.1.4 收藏列表页（页面型）
 
-**功能描述**：展示当前用户在当前国家站（`market_id + country_code`）的收藏，默认展示该国家站全部商品，支持"All / In Stock Only / Price Drop"三态筛选（各带数量角标），处理四种商品状态，提供失效项"找相似"。
+**功能描述**：展示当前用户在当前市场的收藏，默认展示该市场全部商品，支持"All / In Stock Only / Price Drop"三态筛选（各带数量角标），处理四种商品状态，提供失效项"找相似"。
 
-**前置条件**：用户进入 Wishlist 页（APP：Tabbar♡ Favorites 聚合页收藏板块 "See All"（聚合页见移动端专属独立 PRD）/ 我的页入口 / 导航栏♡入口；PC：Navbar♡ 抽屉为主）。当前国家站无收藏时显示空态（见 2.1.6）。
+**前置条件**：用户进入 Wishlist 页（APP：Tabbar♡ Favorites 聚合页收藏板块 "See All"（聚合页见移动端专属独立 PRD）/ 我的页入口 / 导航栏♡入口；PC：Navbar♡ 抽屉为主）。当前市场无收藏时显示空态（见 2.1.6）。
 > PC 端 Navbar♡ 点击打开的是收藏抽屉（2.1.5），抽屉本身即带筛选的完整滚动列表；本收藏列表页是 APP 端的整页形态与 PC 端的全屏形态。
 
 **页面布局（PC / APP 差异）**：
@@ -243,14 +239,14 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 | 状态 | 说明 | 设计稿 |
 |---|---|---|
 | 默认（有收藏） | 卡片列表，按 `saved_at` 倒序（失效项不下沉，原位显 Sold Out / Unavailable） | APP: 收藏-Favorites；PC: PC-收藏列表 |
-| 真空态 | 当前国家站无任何收藏；其他 Market/国家可能仍有记录 | APP: Wishlist-空态；PC: PC-收藏空态 |
+| 真空态 | 当前市场无任何收藏；其他市场可能仍有记录 | APP: Wishlist-空态；PC: PC-收藏空态 |
 | 筛选态-In Stock Only | 只显在售（隐藏失效项） | （同默认页，In Stock Only 激活） |
 | 筛选态-Price Drop | 只显现价低于快照价的在售项 | （同默认页，Price Drop 激活） |
 | 筛选空态 | 有收藏但当前筛选态角标为 0 | 保留筛选栏 + 列表区占位（见 2.1.6a） |
 | 加载态 | 列表加载中骨架/loading | 待开发实现 |
 
 **操作流程**：
-- 主流程：进入页 → 获取当前 `market_id + country_code` → 按主体与两级地域字段直接查询收藏 → 批量加载该国家站商品状态、现价、当前主体收藏状态与收藏人数 → 按 `saved_at` 倒序排列（失效项不下沉，原位显 Sold Out / Unavailable）→ active/discount 及有真实 URL 的 sold 卡可进商详；off_shelf 卡不可点击。
+- 主流程：进入页 → 获取当前 `market_id` → 按主体查询收藏并关联 listing，只保留 `listing.market_id = 当前 market_id` → 批量加载商品状态、现价、当前主体收藏状态与收藏人数 → 按 `saved_at` 倒序排列（失效项不下沉，原位显 Sold Out / Unavailable）→ 点卡片进商详。
 - 分支-筛选（三态，默认 All）：点"All" → 显示全部（含失效，按 `saved_at` 倒序、失效不下沉）；点"In Stock Only" → 只显在售（隐藏失效项）；点"Price Drop" → 只显现价低于收藏快照价的在售项。三态互斥单选，pill 数量角标随之刷新。
 - 分支-筛选无结果：切到 In Stock Only / Price Drop 后该态角标为 0 时，列表区显示筛选空态（见 2.1.6a），保留筛选栏，不落到真空态。
 
@@ -266,7 +262,7 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 | 字段/动作 | 规则 | 时机 |
 |---|---|---|
 | 列表数据 | 每项渲染时实时取商品系统状态与现价 | 列表加载 |
-| 地域过滤 | 列表、All / In Stock Only / Price Drop 角标与分页均按实体的 `market_id + country_code` 过滤 | 首屏 / 筛选 / 续接加载 |
+| 市场过滤 | 列表、All / In Stock Only / Price Drop 角标与分页均按 `listing.market_id = 当前 market_id` 过滤 | 首屏 / 筛选 / 续接加载 |
 | 筛选数量角标 | All / In Stock Only / Price Drop 按 listing 实时状态计算 | 列表加载 |
 | 收藏人数 | 按一批 listing 返回原始人数与当前主体收藏状态，不逐卡请求 | 列表加载 / 续接加载 |
 
@@ -276,8 +272,8 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 
 **异常处理**：
 - 商品系统状态接口超时/不可用：降级展示（按上次已知状态或标"状态加载中"），不阻塞列表。
-- listing 已下架：通过内部归档接口返回个人清单识别所需最小字段，显示 Unavailable + Find Similar；不返回公开 URL、不可点进商详、不可新增收藏，仅允许取消已有收藏。
-- 切换国家：清空当前页面缓存和游标，按目标 `market_id + country_code` 重新查询；其他 Market/国家记录只隐藏、不删除，切回后恢复。
+- listing 已下架：保留完整商品记录，显示 Unavailable + Find Similar，收藏/取消仍可操作。
+- 切换市场：清空当前页面缓存和游标，按目标 `market_id` 重新查询；其他市场记录只隐藏、不删除，切回后恢复。
 - 空数据：显示空态。
 
 **UI 关联**：
@@ -292,7 +288,7 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 
 **为什么 PC 端用抽屉承载完整列表**：PC 端♡入口高频、用户常在浏览过程中顺手查看并管理收藏，右侧抽屉无需离开当前页、即开即用、随手可关，符合电商 mini-wishlist 通行模式（Fashionphile 等二奢平台）；把筛选与滚动加载收进抽屉，用户不必被抛到另一个整页，浏览-筛选-下单一气呵成。APP 端屏幕窄不适合抽屉，仍走整页瀑布流列表（2.1.4），此为分端差异。
 
-**前置条件**：PC 端任意页面，点击 Navbar 右上角♡图标。当前国家站无收藏时抽屉内显空态。
+**前置条件**：PC 端任意页面，点击 Navbar 右上角♡图标。当前市场无收藏时抽屉内显空态。
 
 **触发与形态**：
 | 项 | 规则 |
@@ -300,7 +296,7 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 | 触发 | PC 全局 Navbar 右上角♡图标点击 |
 | 形态 | 右侧滑出抽屉（Drawer）+ 半透明遮罩；点遮罩 / 右上角 → 图标 / Esc 关闭 |
 | 定位 | **PC 端收藏的完整承载**：筛选 + 滚动加载 + 下单，全部抽屉内完成 |
-| 数据来源 | 调收藏列表读接口（默认时间倒序），按当前 `market_id + country_code` 与筛选态分批加载 |
+| 数据来源 | 调收藏列表读接口（默认时间倒序），按当前 `market_id` 与筛选态分批加载 |
 
 **页面元素**：
 | 元素 | 说明 |
@@ -310,7 +306,7 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 | 商品卡 | **2 列网格卡**，每卡：商品图 + ♡（实心，可点取消）+ 收藏人数 + 品牌/名称 + 价格（降价附原价划线 + `Save {currency_symbol}{amount}` 降幅）+ **Buy Now**（在售）|
 | 失效项 | 保留图 + Sold Out / Unavailable 蒙层 + 置灰，位置改"Find Similar"（同 2.3 失效态规则）；按 `saved_at` 倒序、原位不下沉 |
 | 滚动加载 | 抽屉内容区下滑触底 → 自动加载下一批；确认无更多数据后自然停止滚动，不显示结束文案（见 2.3.7） |
-| 空态 | 当前国家站无收藏时抽屉内显 inbox 线框图标 + "Your wishlist is empty" + 副文案 + "Explore Items →" 幽灵按钮；优先跳首页 For You，不可用时兜底首页默认位置 |
+| 空态 | 当前市场无收藏时抽屉内显 inbox 线框图标 + "Your wishlist is empty" + 副文案 + "Explore Items →" 幽灵按钮；优先跳首页 For You，不可用时兜底首页默认位置 |
 
 **Buy Now 口径统一**：抽屉内在售卡的主按钮为 **Buy Now**（非 Add to Cart），与列表页、详情页保持一致——一物一码孤品防抢，点击直接进结算锁定该件（论证见 2.3.6）。失效卡不展示 Buy Now，改 Find Similar。
 
@@ -342,7 +338,7 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 
 #### 2.1.6 收藏真空态（页面型 / 状态变体）
 
-**功能描述**：用户在当前国家站无任何收藏时的引导页（真空态，区别于当前国家站有收藏但筛选无结果的 2.1.6a）。其他 Market/国家存在收藏不影响本国家站显示真空态。
+**功能描述**：用户在当前市场无任何收藏时的引导页（真空态，区别于当前市场有收藏但筛选无结果的 2.1.6a）。其他市场存在收藏不影响本市场显示真空态。
 
 **页面元素**（对齐设计稿）：inbox（收纳盒）线框图标（黑色描边，无底色圆形）+ 主文案"Your wishlist is empty"（加粗）+ 副文案"Save pieces you love and check back for price drops"（灰色，两行居中，不承诺本期未实现的主动通知，无句尾句号）+ 按钮"Explore Items →"（描边幽灵按钮 / ghost，含右箭头，非填充主按钮）。整块垂直居中于内容卡片。
 
@@ -356,7 +352,7 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 
 #### 2.1.6a 收藏筛选空态（状态变体）
 
-**功能描述**：用户在当前国家站有收藏，但切到 "In Stock Only" 或 "Price Drop" 后该筛选态下无结果时的列表区空态（如当前国家站收藏均已失效 → In Stock Only 为 0；或无任何降价 → Price Drop 为 0）。区别于 2.1.6 真空态。
+**功能描述**：用户在当前市场有收藏，但切到 "In Stock Only" 或 "Price Drop" 后该筛选态下无结果时的列表区空态（如当前市场收藏均已失效 → In Stock Only 为 0；或无任何降价 → Price Drop 为 0）。区别于 2.1.6 真空态。
 
 **触发条件**：当前筛选态数量角标为 0（`In Stock Only 0` 或 `Price Drop 0`）。"All" 因含失效项，有收藏即不为 0，不触发本态（All 为 0 时即真空态 2.1.6）。
 
@@ -367,7 +363,7 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
   - Price Drop 空：`No price drops yet` + 副文案 `Check back later to see price drops on your saved items`
 - **CTA**：文字按钮 `View all saved items`（切回 All 态），**不跳首页**——用户已有收藏，意图是看自己的清单而非重新逛。
 
-**操作流程**：点 `View all saved items` → 筛选态切回 All、列表区恢复展示当前国家站全部收藏（按 `saved_at` 倒序，失效项原位）、角标刷新。
+**操作流程**：点 `View all saved items` → 筛选态切回 All、列表区恢复展示当前市场全部收藏（按 `saved_at` 倒序，失效项原位）、角标刷新。
 
 **适用范围**：收藏列表页（2.1.4）与 PC 收藏抽屉（2.1.5）共用同一套筛选空态；抽屉内占位块垂直居中于抽屉列表区，同样保留抽屉顶部筛选栏。
 
@@ -380,7 +376,7 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 |---|---|---|
 | 所有带收藏按钮的商品卡片 | **显示** | 按钮旁展示该 listing 的收藏人数；列表/商品流按一批 listing 返回，禁止逐卡查询 |
 | 商品详情页收藏按钮 | **显示** | 按钮旁展示同口径收藏人数 |
-| PC Account Home Wishlist 入口 | **可显示** | 展示当前国家站有效收藏数量，按实体 `market_id + country_code` 过滤 |
+| PC Account Home Wishlist 入口 | **可显示** | 展示当前市场有效收藏数量，按 `listing.market_id = 当前 market_id` 过滤 |
 | 移动端个人中心首页 | 不展示入口 | 移动端个人中心首页不展示 Wishlist 与 Recently Viewed，收藏/历史从移动端专属入口进入 |
 | 收藏列表页头计数副标题 | **不显示** | 前台精简，不在列表头显示 "N active · M sold"；如后续需要可由列表查询实时分组 count 得出，不落库 |
 | 收藏人数格式 | **显示** | 服务端返回非负整数原始值；前端 0–999 显示准确整数，1000 及以上按语言环境紧凑展示（如 1.2K） |
@@ -404,18 +400,18 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 
 **处理流程**：
 - 进详情页 → 服务端记录一次浏览：主体（`user_id` 或 `anonymous_id`）× listing_id × `viewed_at`，**首次浏览同时记录 `first_viewed_at` 与价格快照 `price_at_first_view`**（作为"相对第一次浏览价"的降价判断基准）。
-- **地域写入**：服务端从当前站点上下文取得 `market_id + country_code`，校验国家归属 Market、关联可用且 listing 在该国家站可见；浏览记录同时保存两级地域字段，前端不得自由传值，IP 不得直接作为落库国家。
-- **去重**：同一主体在同一 `market_id + country_code` 下重复浏览同一 listing 不新增记录，只更新 `viewed_at` 为最近时间；**`first_viewed_at` 与 `price_at_first_view` 成对保持该国家站首次不变**。同一 listing 在其他国家站浏览时另建记录，互不覆盖。
+- **去重**：同一 listing 重复浏览不新增记录，只更新 `viewed_at` 为最近时间（列表中只保留最近一次，不堆叠重复项）；**`first_viewed_at` 与 `price_at_first_view` 成对保持首次不变**，再次浏览不刷新。
+- **市场归属**：写入仍只保存 `listing_id`，不保存 `market_id`；市场由该 listing 的 `listing.market_id` 唯一确定。用户当前市场与 listing 所属市场不一致时，商品系统应先阻止进入该商详页，不写入跨市场浏览记录。
 - **容量**：首期 **暂不限制条数与行级留存时长**，先按 United States、Hong Kong 及全量维度观察真实数据规模、查询延迟和删除性能，再决定容量淘汰策略；该规则不代表永久无限留存。
 
 **规则说明**：
 | 规则 | 内容 |
 |---|---|
 | 记录主体 | 登录 `user_id`，未登录 `anonymous_id` |
-| 去重 | `(主体, market_id, country_code, listing_id)` 唯一，同国家站再次浏览更新时间戳 |
+| 去重 | (主体, listing_id) 唯一，再次浏览更新时间戳 |
 | 价格快照 | 首次浏览记录 `price_at_first_view`，后续再浏览不更新，作降价基准 |
 | 首次时间 | 首次浏览记录 `first_viewed_at`，与 `price_at_first_view` 成对保持，用于登录复制冲突取舍 |
-| 地域归属 | 必填 `market_id + country_code`；两者来自服务端站点上下文并作为发生时地域快照长期保留 |
+| 市场归属 | 仅存 `listing_id`，不存 `market_id`；通过 `listing.market_id` 隐式归属市场 |
 | 容量 | **首期暂不限制**；持续按市场观察，并在首批 anonymous_id 到期前重新评估条数 / 留存期 |
 | 隐式记录 | 无需用户操作，进详情页即记录 |
 
@@ -425,15 +421,15 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 
 **功能描述**：按主体查询浏览记录，返回时实时附带每件商品的最新状态与价格，供前端直接渲染失效态。
 
-**处理流程**：按主体（`user_id` 或 `anonymous_id`）+ 当前 `market_id + country_code` 直接查询 → 时间倒序 → 分页 → 每项实时关联该国家站商品状态/价格。
+**处理流程**：按主体（`user_id` 或 `anonymous_id`）查询 → 关联 listing 并过滤 `listing.market_id = 当前 market_id` → 时间倒序 → 分页 → 每项实时关联商品系统状态/价格。
 
-**规则说明**：读写接口中立开放，供 C 端各页调用（列表页、商详页横条、首页卡条等），展示形态不约束（见第三章消费方）。列表、数量和消费方查询均必须具备当前 `market_id + country_code`，并在服务端按实体字段过滤；缺少任一字段直接报参数错误，不得返回跨地域数据或依赖前端隐藏。
+**规则说明**：读写接口中立开放，供 C 端各页调用（列表页、商详页横条、首页卡条等），展示形态不约束（见第三章消费方）。列表、数量和消费方查询均必须接收当前 `market_id` 并在服务端过滤；不得依赖前端收到全市场数据后再隐藏。
 
 #### 2.2.4 浏览历史列表页（页面型）
 
-**功能描述**：展示当前用户在当前国家站的浏览记录，纯时间倒序，默认展示该 `market_id + country_code` 全部记录，支持"All / In Stock Only / Price Drop"三态筛选（各带数量角标）与降价高亮（相对该国家站首次浏览价），支持单条删除与当前国家清除，失效项处理同收藏。
+**功能描述**：展示当前用户在当前市场的浏览记录，纯时间倒序，默认展示该市场全部记录，支持"All / In Stock Only / Price Drop"三态筛选（各带数量角标）与降价高亮（相对首次浏览价），支持单条删除与当前市场清除，失效项处理同收藏。
 
-**前置条件**：进入 Recently Viewed 页（APP：Tabbar♡ Favorites 聚合页浏览历史板块 "See All"（聚合页见独立 PRD）/ 我的页 / 导航入口）。当前国家站无记录时显示空态（见 2.2.5）。
+**前置条件**：进入 Recently Viewed 页（APP：Tabbar♡ Favorites 聚合页浏览历史板块 "See All"（聚合页见独立 PRD）/ 我的页 / 导航入口）。当前市场无记录时显示空态（见 2.2.5）。
 
 **页面布局（PC / APP 差异）**：
 | 区域 | APP 端 | PC 端 |
@@ -449,7 +445,7 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 |---|---|
 | 标题 | "Recently Viewed" |
 | 筛选 pill | "All"（默认/激活态紫底）、"In Stock Only"（仅在售）、"Price Drop"（仅相对首次浏览价已降价）；**每个 pill 带数量角标**，随数据实时刷新 |
-| Clear All | 右上角，trash 图标 + 文字，清除当前 `market_id + country_code` 的浏览记录，不影响其他 Market/国家 |
+| Clear All | 右上角，trash 图标 + 文字，清除当前市场可见浏览记录，不影响其他市场 |
 | 商品卡片 | 复用 ProductCard，展示♡与收藏人数，失效态变体见 2.3 |
 | 单条删除 | 每条记录的 X 按钮（APP / PC 卡片内）；点击后先二次确认 |
 | 降价标签 | 浏览历史以首次浏览价为基准，显示 `Save {currency_symbol}{amount} since first viewed`；金额不得截断，窄卡片可两行展示说明 |
@@ -461,24 +457,24 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 | 默认（有记录） | 纯倒序卡片列表（含降价高亮） | APP: 浏览历史-History；PC: PC-浏览历史 |
 | 筛选态-In Stock Only | 只显在售（隐藏失效项） | （同默认页，In Stock Only 激活） |
 | 筛选态-Price Drop | 只显现价低于首次浏览价的在售项 | （同默认页，Price Drop 激活） |
-| 真空态 | 当前国家站无记录；其他 Market/国家可能仍有记录 | APP: History-空态；PC: PC-历史空态 |
+| 真空态 | 当前市场无记录；其他市场可能仍有记录 | APP: History-空态；PC: PC-历史空态 |
 | 筛选空态 | 有记录但当前筛选态角标为 0 | 保留筛选栏 + 列表区占位（见 2.2.5a） |
 | 加载态 | 加载中 | 待开发实现 |
 
 **操作流程**：
-- 主流程：进入页 → 获取当前 `market_id + country_code` → 按主体与两级地域字段查询 → 纯时间倒序加载（实时附带该国家站状态/价格）→ 打开时实时比对 `price_at_first_view` 与现价，现价更低即在卡片标降价高亮 → 有真实 URL 的卡片可进商详；off_shelf 卡不可点击。
+- 主流程：进入页 → 获取当前 `market_id` → 按主体查询并过滤 `listing.market_id = 当前 market_id` → 纯时间倒序加载（实时附带状态/价格）→ 打开时实时比对 `price_at_first_view` 与现价，现价更低即在卡片标降价高亮 → 点卡片进商详。
 - 分支-筛选（三态，默认 All）：点"All" → 显示全部；点"In Stock Only" → 只显在售；点"Price Drop" → 只显现价低于首次浏览价的在售项。三态互斥单选；筛选不改变纯时间倒序，pill 数量角标随之刷新。
 - 分支-筛选无结果：切到 In Stock Only / Price Drop 后该态角标为 0 时，列表区显示筛选空态（见 2.2.5a），保留筛选栏，不落到真空态。
 
 > **筛选口径说明**：三态**互斥单选**（非可叠加多选），任一时刻仅一态激活，筛选不改变纯时间倒序。**Price Drop 已内置"在售"过滤**——已售出/已下架商品即使价格仍存在，也因状态非在售而不进入 Price Drop。因此三态结果集为包含关系：**Price Drop ⊆ In Stock Only ⊆ All**。用户选 Price Drop 时无需再叠加 In Stock。由此角标恒满足单调性 **All ≥ In Stock Only ≥ Price Drop**，任何时刻违反即为数据/计数异常。
 
-- 分支-单条删除：点某条 X → 弹窗标题 `Remove from browsing history?`，说明 `Are you sure you want to remove this item from your browsing history?`，按钮为 `Cancel / Remove` → 点 Cancel 关闭弹窗且不改数据；点 Remove 后才执行删除。未登录时物理删除当前 `anonymous_id + market_id + country_code + listing_id` 记录；登录时在同一业务事务中物理删除同地域的 `user_id` 行与当前设备 `anonymous_id` 行，并 upsert 同 `user_id + market_id + country_code + scope=item + listing_id` 的删除标记 → 成功后从列表移除；失败时保留卡片并提示重试。
-- 分支-当前国家清除：点"Clear All" → 二次确认 → **只物理删除当前 `market_id + country_code` 的适用主体记录** → 当前国家站显示真空态。未登录时删除当前匿名域同地域记录；登录时同时删除用户域与当前设备匿名域同地域记录，并 upsert `user_id + market_id + country_code + scope=all + listing_id=NULL` 的删除标记。其他 Market/国家记录及标记不变。
+- 分支-单条删除：点某条 X → 弹窗标题 `Remove from browsing history?`，说明 `Are you sure you want to remove this item from your browsing history?`，按钮为 `Cancel / Remove` → 点 Cancel 关闭弹窗且不改数据；点 Remove 后才执行删除。未登录时物理删除当前 `anonymous_id + listing_id` 记录；登录时在同一业务事务中物理删除 `user_id + listing_id` 与当前设备 `anonymous_id + listing_id` 记录，并 upsert 同 `user_id + scope=item + listing_id` 的 `browsing_history_delete_marker.marked_at` → 成功后从列表移除；失败时保留卡片并提示重试。
+- 分支-当前市场清除：点"Clear All" → 二次确认 → 先按 `listing.market_id = 当前 market_id` 物化本次命中的 listing_id 集合 → **只物理删除当前市场命中的记录** → 当前市场显示真空态。未登录时删除当前 `anonymous_id` 域中命中集合的记录；登录时同时删除当前 `user_id` 域与当前设备 `anonymous_id` 域中命中集合的记录，并为本次删除的每个 listing upsert `user_id + scope=item + listing_id` 的 `browsing_history_delete_marker.marked_at`。其他市场记录及标记不变。
 - 分支-失效项找相似：失效卡点"Find Similar" → 跳相似在售品。
 
-> **删除语义：浏览历史用物删，区别于收藏的软删**：浏览历史的单条删除与当前国家 Clear All 均为**物理删除**，与收藏"取消=软删（`is_active=false`）"不同。浏览历史写入按 `(主体, market_id, country_code, listing_id)` 去重，物删后该国家站再次浏览可正常重新记录。账户级 DSAR / 全局隐私删除仍由隐私模块编排，可跨 Market/国家删除；页面 Clear All 仅代表当前国家站。收藏不受影响：收藏取消仍须软删以支撑防复活（见 2.1.2 / 4.3）。
+> **删除语义：浏览历史用物删，区别于收藏的软删**：浏览历史的单条删除与当前市场 Clear All 均为**物理删除**，与收藏"取消=软删（`is_active=false`）"不同。原因有二：①**可重新累积**——浏览历史的写入去重同样靠分域唯一约束（`UNIQUE(user_id/anonymous_id, listing_id)`），若清除用软删、约束又覆盖软删行，则"清除过的商品再次浏览也写不回来"，这对"最近看过"是反直觉的；物删后该 listing 无残留行，用户再看即正常重新记录。②**隐私更干净**——浏览历史是行为记录，物删比软删更符合用户对清除的预期。账户级 DSAR / 全局隐私删除仍由隐私模块编排，可跨市场删除；页面 Clear All 仅代表当前市场。收藏不受影响：收藏取消仍须软删以支撑防复活（见 2.1.2 / 4.3）。
 
-> **删除标记不是浏览历史软删**：`browsing_history_delete_marker` 是仅供登录复制判断旧匿名记录是否可回灌的用户域抑制事实，不参与前台列表读取，并必填 `market_id + country_code`。`scope=item` 表示该国家站单 listing 删除，此时 `listing_id` 必填；`scope=all` 表示该国家站 Clear All，此时 `listing_id=NULL`。同一用户、地域、scope、listing 只保留最新 `marked_at`，操作重试幂等，标记至少保留 **13 个月**。账户级跨地域隐私删除由隐私模块直接编排业务数据，不复用某一国家的 `scope=all`。
+> **删除标记不是浏览历史软删**：`browsing_history_delete_marker` 是仅供登录复制判断旧匿名记录是否可回灌的用户域抑制事实，不参与前台列表读取。标记实体完整枚举保持不变：`scope=item` 表示单 listing 删除，此时 `listing_id` 必填；`scope=all` 表示账户级全市场清除，此时 `listing_id=NULL`。C 端页面的 Clear All 是当前市场操作，为避免一个 `scope=all` 标记错误抑制其他市场旧匿名记录，本次逐 listing 写 `scope=item` 标记；`scope=all` 仅供明确的账户级全市场清除 / 隐私编排使用。同一用户同 scope/listing 只保留最新 `marked_at`，操作重试幂等，标记至少保留 **13 个月**。
 - 分支-分页/加载（**分端差异**，详见 2.3.7）：PC 端"View More"点击加载，每批 40 件（4×10），接续在列表尾部，最后一批完成后按钮消失；APP 端上滑无限滚动，每页最大 40 个商品，无更多数据时仅使用系统原生 overscroll 回弹。两端均不显示结束文案。
 
 **交互说明 —— 为什么纯时间倒序、不做日期分组**：
@@ -488,14 +484,14 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 | 动作 | 规则 | 时机 |
 |---|---|---|
 | 列表数据 | 每项实时取商品状态/价格 | 列表加载 |
-| 地域过滤 | 列表、三态角标、分页与 Clear All 均按实体 `market_id + country_code` 过滤 | 查询 / 清除 |
-| Clear All | 需二次确认；只物删当前国家站记录，登录态写同地域 scope=all 删除标记 | 点击时 |
+| 市场过滤 | 列表、三态角标、分页与 Clear All 命中集合均按 `listing.market_id = 当前 market_id` 过滤 | 查询 / 清除 |
+| Clear All | 需二次确认；只物删当前市场命中记录，登录态逐 listing 写 item 删除标记 | 点击时 |
 | 单条删除 | 需二次确认；登录态删除用户行、当前匿名行和写入 item 删除标记必须保证同一业务结果，不能只完成其中一部分 | 点 Remove 时 |
 
 **异常处理**：
 - 商品状态接口异常：降级展示，不阻塞。
 - 已售出/已下架 listing：分别显示 Sold Out / Unavailable + Find Similar。
-- 切换国家：清空当前页面缓存和游标，按目标 `market_id + country_code` 重新查询；其他 Market/国家记录只隐藏、不删除，切回后恢复。
+- 切换市场：清空当前页面缓存和游标，按目标 `market_id` 重新查询；其他市场记录只隐藏、不删除，切回后恢复。
 - 空数据：空态。
 
 **UI 关联**：
@@ -504,7 +500,7 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 
 #### 2.2.5 浏览历史真空态（页面型 / 状态变体）
 
-**功能描述**：当前国家站无浏览记录时的引导页（真空态，区别于当前国家站有记录但筛选无结果的 2.2.5a）。其他 Market/国家存在记录不影响本国家站显示真空态。
+**功能描述**：当前市场无浏览记录时的引导页（真空态，区别于当前市场有记录但筛选无结果的 2.2.5a）。其他市场存在记录不影响本市场显示真空态。
 
 **页面元素**（对齐设计稿）：inbox（收纳盒）线框图标（黑色描边，无底色圆形，与收藏空态同款图标）+ 主文案"No browsing history yet"（加粗）+ 副文案"Items you view will appear here so you can find them again"（灰色，两行居中，无句尾句号）+ 按钮"Explore Items →"（描边幽灵按钮 / ghost，含右箭头，与收藏空态样式一致）。整块垂直居中于内容卡片。
 
@@ -512,7 +508,7 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 
 **UI 关联**：APP 端 `History-空态`；PC 端 `PC-历史空态`。
 
-> **与筛选空态的区别**：本节是"当前国家站无任何浏览记录"的真空态，占满整页、无筛选栏、CTA 跳首页 For You / 首页默认位置。当前国家站有记录、只是筛选态无结果时，走 2.2.5a 筛选空态。
+> **与筛选空态的区别**：本节是"当前市场无任何浏览记录"的真空态，占满整页、无筛选栏、CTA 跳首页 For You / 首页默认位置。当当前市场有记录、只是筛选态无结果时，走 2.2.5a 筛选空态。
 
 #### 2.2.5a 浏览历史筛选空态（状态变体）
 
@@ -527,18 +523,18 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
   - Price Drop 空：`No price drops yet` + 副文案 `None of the items you viewed have dropped in price`
 - **CTA**：文字按钮 `View all history`（切回 All 态），**不跳首页**。
 
-**操作流程**：点 `View all history` → 筛选态切回 All、列表区恢复当前国家站全部记录（纯时间倒序）、角标刷新。
+**操作流程**：点 `View all history` → 筛选态切回 All、列表区恢复当前市场全部记录（纯时间倒序）、角标刷新。
 
-**说明**：浏览历史筛选空态不影响 Clear All / 单条删除入口；这些操作不受当前三态筛选限制，但作用范围仍限定为当前 `market_id + country_code`。
+**说明**：浏览历史筛选空态不影响 Clear All / 单条删除入口；这些操作不受当前三态筛选限制，但作用范围仍限定为当前市场。
 
 #### 2.2.6 隐私控制
 
-**功能描述**：浏览历史涉及行为记录。是否可默认记录、采用何种告知/同意方式以及保留多久，由隐私/合规模块按 `market_id + country_code` 返回；本模块必须限定第一方功能用途并提供清除能力，不在专项 PRD 中推定具体国家的法律要求。
+**功能描述**：浏览历史涉及行为记录。是否可默认记录、采用何种告知/同意方式以及保留多久，由隐私/合规模块按当前市场返回；本模块必须限定第一方功能用途并提供清除能力，不在专项 PRD 中推定 Hong Kong 或其他市场的具体法律要求。
 
 **规则说明**：
 | 控制项 | 本期 | 说明 |
 |---|---|---|
-| 清除浏览历史 | ✅ | 单条删除 + Clear All 均物理删除；页面 Clear All 只清当前国家站，账户级 DSAR / 全局隐私删除可由隐私模块跨 Market/国家编排 |
+| 清除浏览历史 | ✅ | 单条删除 + Clear All 均物理删除；页面 Clear All 只清当前市场，账户级 DSAR / 全局隐私删除可由隐私模块跨市场编排 |
 | 隐私告知与同意 | ✅ | 按市场展示适用说明，覆盖记录用途、未登录记录复制到账户、保存边界与清除方式；是否需额外同意由隐私/合规模块决定 |
 | 留存规则 | ✅ | 本模块执行隐私/合规模块返回的市场适用规则；产品容量观察不替代法定或政策留存要求 |
 | 用途限制 | ✅ | anonymous_id 仅用于收藏、最近浏览和登录复制，不用于出售、共享、跨站广告或 person_id 模糊图谱 |
@@ -557,37 +553,36 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 
 | 字段 | 说明 |
 |---|---|
-| 商品图 | listing 主图；off_shelf 仅供个人清单识别，不生成公开商详链接 |
+| 商品图 | listing 主图 |
 | 品牌 | 大写品牌名（如 CHANEL） |
 | 名称 | 商品名称 |
 | 价格 | 现价；降价时附原价划线 + 降幅 |
-| 收藏按钮 + 人数 | active/discount/sold 按当前状态显示可操作空心/实心；off_shelf 仅已有收藏显示可取消实心♡，未收藏不提供新增入口；人数按当前国家站展示（见 2.1.2、2.1.3） |
+| 收藏按钮 + 人数 | 所有商品卡片均展示；四种商品状态下按钮均可操作，按当前收藏状态显示空心/实心，旁边展示 listing 收藏人数（见 2.1.2、2.1.3） |
 | Buy Now 按钮 | **仅在售卡展示**（紫色主按钮 + 闪电图标）；失效卡不展示，改为 Find Similar。详见 2.3.6 |
 
 > 认证：前台收藏/浏览卡片**不展示认证徽章**，卡片保持精简。认证（Authenticated）信息在商品详情页呈现，不在列表卡片重复。
 
 #### 2.3.3 失效态变体（枚举完整定义）
 
-一物一码下失效是常态，卡片需完整定义状态。前台区分“已售出”与“已下架”：已售出表示已成交但可保留公开详情；已下架表示主动撤出公开渠道、商详返回 404，两者的跳转与收藏权限不同：
+一物一码下失效是常态，卡片需完整定义状态。前台区分“已售出”与“已下架”：已售出表示已成交，已下架表示未在当前渠道售卖；两者都不可购买，但收藏权限一致：
 
-| 状态枚举 | 含义 | 进入条件 | 卡片表现 | 商详点击 | 收藏操作 |
-|---|---|---|---|---|---|
-| 在售（active） | 商品可购买 | listing_status=在售 且 有库存 | 正常图 + 价格 + 收藏人数 | 可点击进入商详 | 未收藏显示可点空心♡；已收藏显示可点实心♡，支持收藏/取消 |
-| 已降价（active+discount） | 在售且现价低于快照价 | 在售 且 现价 < 快照价（收藏用 price_at_save，浏览历史用 price_at_first_view） | 正常展示 + 原价划线 + 降幅（绿色↓）+ 收藏人数 | 可点击进入商详 | 操作权限同在售 |
-| 已售出（sold） | 商品已卖出，永久不可购买 | listing_status=已售出 | 保留商品图 + 半透明灰蒙层 + 蒙层居中白字 `Sold Out` + 品牌/名称置灰 + Find Similar + 收藏人数 | 若售出商详保留则可点击；以商品模块返回 URL 为准 | 未收藏显示可点空心♡；已收藏显示可点实心♡，支持收藏/取消 |
-| 已下架（off_shelf） | 商品主动撤出公开渠道，公开商详返回 404 | listing_status=已下架 | 保留个人清单识别信息 + 灰蒙层 + `Unavailable` + Find Similar + 收藏人数 | **不可点击，不返回公开 URL；图片、标题和蒙层均不得绑定商详事件** | 已收藏可取消；浏览历史可删除；不得从下架卡新增收藏 |
+| 状态枚举 | 含义 | 进入条件 | 卡片表现 | 收藏操作 |
+|---|---|---|---|---|
+| 在售（active） | 商品可购买 | listing_status=在售 且 有库存 | 正常图 + 价格 + 收藏人数 | 未收藏显示可点空心♡；已收藏显示可点实心♡，支持收藏/取消 |
+| 已降价（active+discount） | 在售且现价低于快照价 | 在售 且 现价 < 快照价（收藏用 price_at_save，浏览历史用 price_at_first_view） | 正常展示 + 原价划线 + 降幅（绿色↓）+ 收藏人数 | 操作权限同在售 |
+| 已售出（sold） | 商品已卖出，永久不可购买 | listing_status=已售出 | 保留商品图 + 半透明灰蒙层 + 蒙层居中白字 `Sold Out` + 品牌/名称置灰 + Find Similar + 收藏人数 | 未收藏显示可点空心♡；已收藏显示可点实心♡，支持收藏/取消 |
+| 已下架（off_shelf） | 商品已下架，当前不可购买 | listing_status=已下架 | 保留商品图 + 半透明灰蒙层 + 蒙层居中白字 `Unavailable`（中文语义“已下架”）+ 品牌/名称置灰 + Find Similar + 收藏人数 | 未收藏显示可点空心♡；已收藏显示可点实心♡，支持收藏/取消 |
 
-> 说明①：后台 listing_status 与前台文案均区分 sold 与 off_shelf：已售出显示 `Sold Out`；已下架显示 `Unavailable`，公开商详 404，卡片不输出 URL、不允许点击。
+> 说明①：后台 listing_status 与前台文案均区分 sold 与 off_shelf：已售出显示 `Sold Out`，已下架显示 `Unavailable`；两者的收藏/取消与 Find Similar 权限一致。
 > 说明②：降价高亮是"在售"的子表现，不是独立状态；判定为实时比对（收藏比对 price_at_save，浏览历史比对 price_at_first_view，见 2.1.4 交互说明），任意幅度降价即标。
 > 说明③：失效态**保留原商品图**，仅叠加半透明灰蒙层 + 文案，不用纯灰色块（保留商品识别度）。
-> 说明④：Sold Out 只限制购买，不限制收藏；Unavailable 除限制购买外，还限制进入商详和新增收藏，但保留取消收藏/删除历史。商品失效不自动减少既有收藏人数。
+> 说明④：Sold Out / Unavailable 只限制购买，不限制收藏。商品失效不自动减少收藏人数；失效卡仍按当前收藏状态显示可操作空心/实心♡，收藏/取消后按 2.1.3 更新人数。
 > 说明⑤：灰蒙层仅覆盖商品图区，收藏按钮与人数位于蒙层上层；蒙层不得拦截收藏按钮点击事件。
 
 #### 2.3.4 失效项排序与找相似
 
 - **失效项排序（不下沉）**：收藏列表按 `saved_at` 倒序，浏览历史按 `viewed_at` 倒序，失效项（Sold Out / Unavailable）停在原位、不排到在售之后。原因：列表靠分页/滚动加载，若把失效项下沉会被推到后续批次，商品多时用户在首屏找不回自己收藏/看过的项；想只看在售，用 In Stock Only 筛选即可。
 - **找相似**：失效卡片提供"Find Similar"入口，跳同品牌/品类/价位的在售商品，依赖推荐/搜索能力。
-- **下架数据来源**：公开商详 API 可返回 404，但收藏/浏览服务需通过商品系统内部只读归档接口取得列表识别所需的最小字段和 Find Similar 特征；该接口不得返回公开商详 URL。
 
 #### 2.3.5 UI 关联
 
@@ -675,7 +670,7 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 | 形态 | 横向滑动卡片条（区别于列表页的全量竖列表/网格） |
 | 定位 | "继续逛"轻组件，目标是激发再点击转化 |
 | 数据来源 | 调本模块浏览历史读接口，不新增存储 |
-| 地域范围 | 只取实体 `market_id + country_code` 等于当前国家站的记录；切换国家后整块刷新 |
+| 市场范围 | 只取 `listing.market_id = 当前 market_id` 的记录；切换市场后整块按目标市场刷新 |
 | 条数 | 固定取最近 10 条，不分页 |
 | 排序 | 纯时间倒序 |
 | **排除当前商品** | 横条不显示用户正在看的这件（接口支持排除当前 listing_id） |
@@ -748,12 +743,11 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
   - 匿名行：`anonymous_id` 非空、`user_id` 为空。
   - 用户行：`user_id` 非空、`anonymous_id` 为空。
 - 同一个商品可同时存在一条匿名行和一条用户行（复制上移产生），二者物理独立。
-- **分域唯一约束**（地域字段均必填）：
-  - `UNIQUE(user_id, market_id, country_code, listing_id) WHERE user_id IS NOT NULL`（用户域防重）
-  - `UNIQUE(anonymous_id, market_id, country_code, listing_id) WHERE anonymous_id IS NOT NULL`（匿名域防重）
+- **分域唯一约束**（替代原单一 `(主体, listing_id)`）：
+  - `UNIQUE(user_id, listing_id) WHERE user_id IS NOT NULL`（用户域防重）
+  - `UNIQUE(anonymous_id, listing_id) WHERE anonymous_id IS NOT NULL`（匿名域防重）
   - 唯一约束**覆盖软删行**（含 `is_active=false`），是防"取消后复活"的关键（见 4.3）。
-- `market_id + country_code` 来自服务端当前站点上下文；写入前校验国家归属 Market。两字段作为发生时地域快照，不因后续 Market 主数据关系变化而静默更新。
-- 匿名行的 `anonymous_id` 必须引用 `anonymous_identity`；新写入、登录复制只接受 active 且未到期身份，历史行在身份 expired/revoked 后仍可按留存策略保留，但收藏人数按下述规则退出；生命周期字段见 ER v1.5。
+- 匿名行的 `anonymous_id` 必须引用 `anonymous_identity`；新写入、登录复制只接受 active 且未到期身份，历史行在身份 expired/revoked 后仍可按留存策略保留，但收藏人数按下述规则退出；生命周期字段见 ER v1.4。
 - favorite 匿名行增加收藏人数排除事实 `count_excluded`（boolean，默认 false）、`count_excluded_reason`、`count_excluded_at`：
   - false：该匿名有效收藏参与 listing 收藏人数。
   - true：匿名原件仍参与登出态收藏读取，但不参与公开收藏人数。
@@ -765,7 +759,7 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 
 - browsing_history 新增 `first_viewed_at`，与 `price_at_first_view` 成对保持。
 - 收藏列表使用 `saved_at` 排序，取消写 `cancelled_at`；`created_at` 保持首次创建时间语义。
-- `browsing_history_delete_marker` 业务定义见 2.2.4，数据字段见 7.2 与 ER v1.5。
+- 新增 `browsing_history_delete_marker`，业务定义见 2.2.4，数据字段见 7.2 与 ER v1.4。
 
 ### 4.3 登录后复制上移（机制型）
 
@@ -774,14 +768,14 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 
 **处理流程**：
 1. 校验当前设备 `anonymous_id` 存在、状态为 `active` 且未到期；过期、撤销或不存在时不执行旧匿名数据复制。
-2. **收藏复制**：只取当前 anonymous_id 名下 `is_active=true` 的收藏，逐 `market_id + country_code + listing_id` 处理：
+2. **收藏复制**：只取当前 anonymous_id 名下 `is_active=true` 的收藏，逐 listing 处理：
    - 用户域无行：新增用户有效行，原样复制 `price_at_save`、`saved_at`、`created_at`，并写入 `merged_from_anonymous_id / merged_at`。
    - 用户域已有有效行：保留用户行，不更改价格快照、`saved_at` 和溯源字段。
    - 用户域已有软删除行：不复活用户行，不更改其快照与时间。
    - 三种结果均将来源匿名收藏幂等设为 `count_excluded=true`、`count_excluded_reason=merged_to_user`、`count_excluded_at=本次时间`；人数净变化分别为 0 / -1 / -1。
    - 复制不比较价格高低；只有用户主动重新收藏才刷新 `price_at_save / saved_at`。
-3. **浏览历史复制**：浏览记录没有 `is_active`，取当前 anonymous_id 名下全部浏览记录，逐 `market_id + country_code + listing_id` 先做删除抑制判断：
-   - 按同一 `user_id + market_id + country_code + listing_id` 读取最新 `scope=item` 标记，同时读取同 user、Market、国家的最新 `scope=all` 标记；若 `anonymous.viewed_at <= max(item.marked_at, all.marked_at)`，该条属于该国家站删除前旧数据，跳过复制。
+3. **浏览历史复制**：浏览记录没有 `is_active`，取当前 anonymous_id 名下全部浏览记录，逐 listing 先做删除抑制判断：
+   - 按同一 `user_id + listing_id` 读取最新 `scope=item` 标记，同时读取该 user 最新 `scope=all` 标记；若 `anonymous.viewed_at <= max(item.marked_at, all.marked_at)`，该条属于删除前旧数据，跳过复制。
    - 用户域无行：复制 `first_viewed_at / price_at_first_view / viewed_at`，并写溯源字段。
    - 用户域已有行：`viewed_at=max(user.viewed_at, anonymous.viewed_at)`；`first_viewed_at=min(user.first_viewed_at, anonymous.first_viewed_at)`；`price_at_first_view` 必须取较早 `first_viewed_at` 所在行对应的价格。
    - 重复登录、复制重试不重复新增，不使已删除旧记录回灌；删除后新产生且 `viewed_at` 晚于标记的浏览可正常复制。
@@ -789,7 +783,7 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 5. **写合并日志**：每次触发复制上移，写一条 `anonymous_merge_log` 记录——`anonymous_id`、`user_id`、触发时机（登录 / 注册 / 第三方授权）、实际新增收藏条数 `favorite_merged_count`、实际新增浏览记录条数 `history_merged_count`、`merged_at` 时间戳（详见 4.4）。
 6. 登录复制成功不修改 anonymous_id 的 `expires_at`；已复制到用户域的数据不因来源 anonymous_id 后续到期、撤销或丢失而删除。
 
-**地域处理**：登录复制按 `market_id + country_code + listing_id` 幂等处理，原样保留匿名记录的两级地域快照。一次登录可批量处理来源匿名域中的多个 Market/国家记录，但不同地域绝不互相去重或覆盖；登录后读取再按当前国家站过滤。登录触发时所在国家仅作为事件维度，不得改写被复制记录原有地域。
+**市场处理**：登录复制继续按 `listing_id` 幂等处理，不按当前市场拆分任务，也不在 `favorite` / `browsing_history` 写入 `market_id`。复制可一次处理来源匿名域中的多市场 listing；登录后读取时再通过 `listing.market_id = 当前 market_id` 过滤，因此市场切换不影响合并结果，也不会迁移或删除其他市场记录。
 
 ### 4.4 合并日志（anonymous_merge_log，机制型）
 
@@ -836,8 +830,8 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 **读写口径**：
 | 状态 | 读取 | 写入 | 取消/删除 |
 |---|---|---|---|
-| 登录态 | `WHERE user_id=? AND market_id=? AND country_code=?`（跨设备一致） | 只写用户行（`anonymous_id=NULL`），同时写入当前 Market/国家 | 收藏按完整地域键软删；浏览历史单删时物删用户行与当前设备同地域同 listing 匿名行，并写 item 标记 |
-| 登出态 | `WHERE anonymous_id=? AND market_id=? AND country_code=?`（本设备） | 只写匿名行（`user_id=NULL`），同时写入当前 Market/国家 | 按完整地域键删除该行；Clear All 仅处理当前国家站 |
+| 登录态 | `WHERE user_id=?` 并按 `listing.market_id=当前 market_id` 过滤（跨设备一致） | 只写用户行（`anonymous_id=NULL`） | 收藏按 `user_id + listing_id` 软删；浏览历史单删时物删用户行与当前设备同 listing 匿名行，并写 item 删除标记 |
+| 登出态 | `WHERE anonymous_id=?` 并按 `listing.market_id=当前 market_id` 过滤（本设备） | 只写匿名行（`user_id=NULL`） | 按 `anonymous_id + listing_id` 删除该行；Clear All 仅处理当前市场集合 |
 
 > 上表"取消/删除"的**删除方式因模块而异**：**收藏 = 软删**（`is_active=false`，唯一约束覆盖软删行以防复活，见 4.3）；**浏览历史 = 业务行物删 + 独立删除抑制标记**（标记不是软删业务行，仅阻止删除前匿名数据在登录复制时回灌，见 2.2.4）。
 
@@ -866,9 +860,8 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 
 | 系统 | 依赖内容 |
 |---|---|
-| Market 模块 | 当前 `market_id + country_code`、Market—国家归属、关联可用状态、每个国家的默认语言/默认币种及 Market 支持币种；一个 Market 可包含多个国家 |
-| 站点上下文/网关 | 服务端确定当前 `market_id + country_code`；不得信任前端自由传值，IP 仅可推荐国家 |
-| 商品系统 | listing 实时状态/价格（在售/降价/售出/下架判定）、商品基础信息（图/品牌/名/认证）及 listing 在当前 Market/国家的可见性与价格上下文；锚定主键 `listing_id`（ER v1.9 核实） |
+| Market 模块 | 当前 `market_id`、已启用市场、市场名称、默认币种和支持币种列表；首期启用 United States 与 Hong Kong |
+| 商品系统 | listing 实时状态/价格（在售/降价/售出/下架判定）、商品基础信息（图/品牌/名/认证）、`listing.market_id` 与市场价格上下文；锚定主键 `listing_id`（ER v1.9 核实） |
 | 用户中心 | 用户主体 `user_id`；账户体系；全局 DSAR 删除编排 |
 | 登录注册 | 登录/注册/授权触发复制关联；未登录引导 |
 | 匿名身份生命周期能力 | `anonymous_id` 签发、固定到期、状态校验和撤销；Web / APP 统一 12 个月且不续期 |
@@ -876,7 +869,7 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 | 首页模块 | 提供 For You 推荐模块定位能力；模块未配置、无内容或失败时支持首页默认位置兜底 |
 | 商品卡片/商详页消费方 | 消费当前主体收藏状态与 listing 收藏人数；批量商品卡按一批 listing 获取 |
 | 商详页模块 | 消费"最近浏览"横条（本模块提供数据能力），并在收藏按钮旁展示收藏人数 |
-| 多语言系统 | 提供启用语言和翻译资源；Market 模块配置每个国家的默认语言 code，切换国家后按该 code 重载；缺失译文按全局规则回退 |
+| 多语言系统 | 提供界面语言和翻译资源；语言选择与市场选择解耦，缺失译文按全局规则回退 |
 | 隐私/合规模块 | 按市场返回浏览记录资格、告知/同意和留存规则，并编排账户级跨市场 DSAR / 全局隐私删除 |
 | 订阅/促销模块（二期） | 降价提醒事件源在价格 owner（商品/促销），订阅消费；本模块本期不发事件 |
 
@@ -889,16 +882,14 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 | 风险 | 影响 | 应对 |
 |---|---|---|
 | 商品状态接口不可用 | 列表无法渲染实时状态 | 降级展示（上次已知状态/加载中），不阻塞 |
-| 跨地域数据串显 | 用户在一个国家站看到其他 Market/国家的收藏或历史 | 所有列表、角标、数量、人数和商详横条均按实体 `market_id + country_code` 服务端过滤；缺参数禁止全局兜底 |
-| Market—国家归属不一致 | 错站写入、价格快照或合规作用域错误 | 写入前校验 country_code 归属 market_id 且关联可用；失败拒绝写入并告警 |
-| 国家切换误删数据 | 切换后其他国家收藏/历史丢失 | 切换只替换查询上下文，不执行删除、迁移或失活；切回原国家验证恢复展示 |
-| Clear All 范围错误 | 清当前国家时误删或抑制其他国家记录 | `browsing_history` 和 marker 均带两级地域；删除与 `scope=all` 标记必须使用同一 `market_id + country_code` |
-| Market / 币种配置异常 | 页面无法确定地域范围或金额展示错误 | 两级上下文任一无效均拒绝写入/查询，不返回跨地域兜底数据；保留原站点上下文并告警 |
-| 国家调整所属 Market | 历史地域快照与新主数据不一致 | 不静默改写；由 Market 模块提供显式迁移清单，专项评审价格、删除标记、计数及合规影响后执行 |
+| 跨市场数据串显 | 用户在 Hong Kong 看到 United States listing 的收藏/历史 | 所有列表、角标、数量和商详横条均在服务端按 `listing.market_id` 过滤；覆盖市场切换回归测试 |
+| 市场切换误删数据 | 切换后其他市场收藏/历史丢失 | 切换只替换查询上下文，不执行删除、迁移或失活；切回原市场验证恢复展示 |
+| Clear All 范围错误 | 清当前市场时误删或抑制其他市场记录 | 先物化当前市场 listing 集合，只删除命中行并逐 listing 写 item 标记；页面操作不得写全市场 `scope=all` |
+| Market / 币种配置异常 | 页面无法确定数据范围或金额展示错误 | 当前 market_id 无效时不返回跨市场兜底数据；保留原市场上下文并告警，币种按 Market 模块配置回退 |
 | anonymous_id 提前丢失或到期 | 未登录收藏 / 历史不可找回 | Web / APP 固定 12 个月且不续期；客户端丢失即换新；明确匿名数据尽力保存并引导登录 |
 | 浏览历史暂不限增长 | 存储、查询和 Clear All 性能风险 | 监控主体条数分位数、日增量、查询延迟和删除耗时，达到门槛即专项评审 |
 | 收藏人数高频批量读取 | 商品流逐卡查询导致性能问题，或并发增减造成短暂不一致 | 服务端支持批量返回；计数更新幂等；监控批量查询延迟、负数和关系数抽样对账差异 |
-| 旧匿名收藏缺少计数排除事实 | 上线收藏人数后，历史登录复制数据可能双计数，到期/撤销身份可能形成僵尸计数 | ER v1.5 保留 `count_excluded/reason/at`；上线前按合并日志、身份状态回填并与有效关系抽样对账 |
+| 旧匿名收藏缺少计数排除事实 | 上线收藏人数后，历史登录复制数据可能双计数，到期/撤销身份可能形成僵尸计数 | ER v1.4 增加 `count_excluded/reason/at`；上线前按合并日志、身份状态回填并与有效关系抽样对账 |
 | 浏览历史删除后被旧匿名行回灌 | 单删/Clear All 不符合用户预期，产生隐私风险 | 物删业务行同时写 `browsing_history_delete_marker`；登录复制先按同 user/listing 比对 `viewed_at` 与 `marked_at` |
 | 失效项过多 | 收藏列表体验差 | "In Stock Only"筛选 + 找相似（失效项不下沉，原位显 Sold Out / Unavailable）|
 | 浏览历史隐私投诉 | 合规风险 | 单删/清空能力 + 防回灌标记 + 隐私告知 + 配合 DSAR |
@@ -909,14 +900,14 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 
 ### 6.1 当前版本（MVP）范围
 
-- 地域：首期启用 United States 与 Hong Kong 国家站；一个 Market 可包含多个国家。收藏、浏览历史和删除标记均保存 `market_id + country_code`，所有列表、数量、人数、筛选角标、PC 抽屉和商详横条按两级地域过滤。切换国家不删除、不迁移记录，但每次都将 Language/Currency 强制重置为目标国家默认值并整体刷新展示。
-- 收藏：在售、已降价、已售出支持收藏/取消；已下架显示 Unavailable，公开商详 404，卡片不可点击、不可新增/重新收藏，但允许取消已有收藏和 Find Similar。使用 `saved_at/cancelled_at` 承载排序与取消时间；登录复制不复活已取消用户行；收藏人数按当前国家站统计。唯一键包含主体、Market、国家和 listing。
-- 浏览历史：首次写入成对记录 `first_viewed_at + price_at_first_view`，同国家站重复浏览只刷新 `viewed_at`；单删需二次确认，登录态同时物删同地域用户行、当前设备匿名行并写 item 删除标记；页面 Clear All 只清当前国家站并写同地域 `scope=all` 标记；登录复制按完整地域键比对删除标记防旧数据回灌；降价标签按当前币种显示 `Save {amount} since first viewed`；首期暂不限条数与行级留存时长。
+- 市场：首期支持 United States 与 Hong Kong；当前市场取自 Market 模块，收藏、浏览历史、数量、筛选角标、PC 抽屉和商详横条均按 `listing.market_id = 当前 market_id` 过滤。切换市场只改变显隐，不删除、不迁移记录。
+- 收藏：在售、已降价、已售出、已下架均支持收藏/取消，已售出显示 Sold Out，已下架显示 Unavailable，两者都只限制购买；支持主动重新收藏，使用 `saved_at/cancelled_at` 承载排序与取消时间；登录复制不复活已取消用户行；所有收藏按钮旁展示收藏人数，并按匿名身份合并/到期/撤销/隐私删除维护计数排除状态。`favorite` 不保存 `market_id`。
+- 浏览历史：首次写入成对记录 `first_viewed_at + price_at_first_view`，重复浏览只刷新 `viewed_at`；单删需二次确认，登录态同时物删用户行、当前设备匿名行并写 item 删除标记；页面 Clear All 只清当前市场并逐 listing 写 item 标记；登录复制对同 user/listing 比对 `viewed_at` 与 `marked_at` 防旧数据回灌；降价标签按当前币种显示 `Save {amount} since first viewed`；首期暂不限条数与行级留存时长。`browsing_history` 不保存 `market_id`。
 - 分页与加载：**PC 列表页 "View More" 点击加载（40/批，4×10）、PC 抽屉滚动自动加载、APP 瀑布流上滑无限滚动（每页最大 40 个商品）**；无更多数据时分别为 View More 消失、抽屉自然停止、APP 系统原生 overscroll 回弹，均不显示结束文案（见 2.3.7）。
 - 真空态 Explore Items：收藏、浏览历史及 PC 收藏抽屉统一优先跳首页 For You；模块未配置、无内容或加载失败时兜底首页默认位置。筛选空态仍切回 All。
 - 未登录记录与登录后复制关联（双行分离模型，跨设备可见 + 登出仍可见）+ **合并日志 anonymous_merge_log（记录合并时机与条数，供审计/幂等排查/分析）**。
 - anonymous_id 生命周期：Web / APP 首次生成后固定 12 个月，所有访问和操作不续期；缺失、撤销或到期后换新；仅有效 ID 可触发登录复制。
-- 合规范围：记录资格、告知、同意和留存由隐私/合规模块按 `market_id + country_code` 返回；`anonymous_id` 限第一方收藏 / 浏览历史 / 登录复制用途；本模块提供当前国家 Clear All，不新增本设备数据重置入口。
+- 合规范围：记录资格、告知、同意和留存由隐私/合规模块按市场返回；`anonymous_id` 限第一方收藏 / 浏览历史 / 登录复制用途；本模块提供当前市场 Clear All，不新增本设备数据重置入口。
 - 时间范围：数据库统一保存 UTC；C 端时区展示方案待定，本版不新增事件时区字段。
 - 商详页"最近浏览"横条数据能力（界面归商详页模块）。
 
@@ -946,23 +937,23 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 | 匿名身份到期 | 当前时间达到 expires_at | 12 个月到期规模、到期后新建量 |
 | 匿名身份撤销 | 全局隐私删除编排或后台安全机制撤销 | 撤销量、撤销原因与后续新建量 |
 
-**公共事件维度**：上述前台曝光、点击、列表打开、清除和合并事件均需携带当时生效的 `market_id + country_code`；涉及金额时同时携带币种。两级地域既是埋点维度，也是 `favorite` / `browsing_history` / 删除标记的业务字段。
+**公共事件维度**：上述前台曝光、点击、列表打开、清除和合并事件均需携带当时生效的 `market_id`；涉及金额时同时携带币种。`market_id` 是埋点维度，不代表向 `favorite` / `browsing_history` 业务表新增同名字段。
 
 ### 7.2 数据字段与来源
 
-收藏 / 浏览及匿名身份自有数据见收藏与浏览历史 ER 图 v1.5（favorite / browsing_history / browsing_history_delete_marker / anonymous_merge_log / anonymous_identity）；Market、国家、币种和 listing 外部关系见个人中心 ER 图 v1.6。商品状态、国家站价格与可见性来源商品系统，地域归属校验来源 Market 模块。
+收藏 / 浏览及匿名身份自有数据见收藏与浏览历史 ER 图 v1.4（favorite / browsing_history / browsing_history_delete_marker / anonymous_merge_log / anonymous_identity）；市场、币种和 listing 外部关系见个人中心 ER 图 v1.5。商品状态、价格、`listing.market_id` 来源商品系统，实时读取不落库。
 
-| 实体 | ER v1.5 关键字段 / 约束 |
+| 实体 | V1.4 关键字段 / 约束 |
 |---|---|
-| favorite | 必填 `market_id`、`country_code`；`created_at` 保持创建时间；`saved_at` 用于列表排序；`cancelled_at` 记最近取消；计数排除字段承载匿名人数退出事实 |
-| browsing_history | 必填 `market_id`、`country_code`；`first_viewed_at` 与 `price_at_first_view` 成对保持；`viewed_at` 记最近浏览 |
-| browsing_history_delete_marker | 必填 `market_id`、`country_code`；`scope=item/all`；item 必填 listing_id，all 必须为 NULL；同 user/地域/scope/listing 重试 upsert 最新时间 |
+| favorite | `created_at` 保持创建时间；`saved_at` 用于列表排序；`cancelled_at` 记最近取消；`count_excluded`、`count_excluded_reason`、`count_excluded_at` 承载计数排除事实 |
+| browsing_history | `first_viewed_at` 与 `price_at_first_view` 成对保持；`viewed_at` 记最近浏览 |
+| browsing_history_delete_marker | `marker_id`、`user_id`、`scope(item/all)`、`listing_id`、`marked_at`；item 必填 listing_id，all 必须为 NULL；同 user/scope/listing 重试 upsert 最新时间 |
 
-**地域字段结论**：`favorite`、`browsing_history` 与 `browsing_history_delete_marker` 均新增必填 `market_id + country_code`。Market 表示商业运营市场，国家表示具体国家站；一个 Market 可包含多个国家。地域由服务端站点上下文写入并校验，查询、计数、合并、删除和防回灌均以两级地域为边界，不能再仅靠 listing 反推。
+**市场字段结论**：`favorite` 与 `browsing_history` 均不新增 `market_id`。查询时通过 `listing_id` 关联商品系统并按 `listing.market_id` 过滤；页面 Clear All 通过当前市场 listing 集合执行物删和 item 标记。若未来 listing 允许跨市场迁移或一条 listing 同属多个市场，须先升级商品模型与本 PRD，当前版本不支持该语义。
 
 上线前必须对历史匿名收藏回填计数排除事实：可由合并日志识别的来源行标记 `merged_to_user`；身份已 expired/revoked 的行标记对应原因；回填后与有效关系数抽样对账。物理计数器、缓存或汇总表由技术设计确定，但必须满足 2.1.3 的业务口径和幂等转移。
 
-**MVP 数据观察指标**：每个 anonymous_id 的浏览历史条数 P50 / P90 / P95 / P99 / 最大值、业务表每日新增量与总存储增长、列表查询 P95 / P99 延迟、Clear All 单次删除条数与耗时、收藏人数单个/批量查询 P95 / P99 延迟、计数负数与抽样对账差异、anonymous_id 提前丢失 / 重新生成比例、匿名记录登录复制成功率，以及 `market_id + country_code`、Web / iOS / Android 分端差异。查询或删除性能触发服务端告警、跨地域串显、收藏人数与有效关系抽样差异超出技术设计阈值、存储增长偏离容量规划、出现隐私投诉或首批 ID 接近到期时，启动专项评审。
+**MVP 数据观察指标**：每个 anonymous_id 的浏览历史条数 P50 / P90 / P95 / P99 / 最大值、业务表每日新增量与总存储增长、列表查询 P95 / P99 延迟、Clear All 单次删除条数与耗时、收藏人数单个/批量查询 P95 / P99 延迟、计数负数与抽样对账差异、anonymous_id 提前丢失 / 重新生成比例、匿名记录登录复制成功率，以及 `market_id`、Web / iOS / Android 分端差异。查询或删除性能触发服务端告警、跨市场串显、收藏人数与有效关系抽样差异超出技术设计阈值、存储增长偏离容量规划、出现隐私投诉或首批 ID 接近到期时，启动专项评审。
 
 ---
 
@@ -980,11 +971,11 @@ Looply 是一物一码（one-of-one）二手奢侈品平台，**每件商品库�
 | 商详页"最近浏览"横条 | （归商详页模块设计） | （归商详页模块设计） |
 
 设计源文件：`~/Desktop/个人中心/原型/looply-收藏与浏览历史-APP-v2.pen`
-专项 ER 图：`~/Desktop/个人中心/实体关系图/looply-收藏与浏览历史实体关系图-v1.5.svg`
-Market/国家关系参考：`~/Desktop/个人中心/实体关系图/looply-个人中心实体关系图-v1.6.svg`
-个人中心 PRD：`~/Desktop/个人中心/PRD/looply-个人中心-PRD-v1.2.md`
+专项 ER 图：`~/Desktop/个人中心/实体关系图/looply-收藏与浏览历史实体关系图-v1.4.svg`
+市场关系参考：`~/Desktop/个人中心/实体关系图/looply-个人中心实体关系图-v1.5.svg`
+个人中心 PRD：`~/Desktop/个人中心/PRD/looply-个人中心-PRD-v1.1.md`
 个人中心前端原型：`~/Desktop/个人中心/原型/looply-个人中心-APP-v5.pen`
 
-> **v1.6 配套同步结果**：专项原型 V2 页面结构保持不变；专项 ER v1.5 为收藏、浏览历史和删除标记新增 `market_id + country_code`，个人中心 PRD v1.2、ER v1.6 与功能清单 v1.8 同步两级地域口径。
+> **v1.5 配套同步结果**：专项原型 V2 与专项 ER v1.4 的页面和自有实体结构保持不变；多市场入口与外部 Market/listing 关系由个人中心 V5、个人中心 PRD v1.1 和个人中心 ER v1.5 承接。本版补齐专项服务的市场过滤与清除口径。
 
 > 注：API 接口属技术文档范畴，PRD 不含接口清单。

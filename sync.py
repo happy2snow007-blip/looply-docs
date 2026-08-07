@@ -521,6 +521,8 @@ MODULES = {
         'keywords': ['收藏与浏览历史', '收藏', '浏览历史', 'wishlist', 'recently viewed'],
         # 当前前端原型以 Figma 为单一最新入口，不从本地 HTML 自动选版。
         'config_key': None,
+        # 与个人中心共用源目录，仅发布本模块匹配的 PRD 文件。
+        'sync_prd_only': True,
         'artifacts': {
             'prd': {
                 'subdir': 'PRD',
