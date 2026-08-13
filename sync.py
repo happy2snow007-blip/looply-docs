@@ -761,6 +761,24 @@ MODULES = {
             },
         },
     },
+    'tracking': {
+        'name': '数据采集与埋点',
+        'default_source': '/Users/zz/Documents/Looply/deliveries/数据采集与埋点',
+        'target': 'docs-数据采集与埋点',
+        'keywords': ['数据采集', '埋点', 'tracking'],
+        'config_key': None,
+        'sidebar_group': '数据分析',
+        'artifacts': {
+            'prd': {
+                'subdir': 'PRD',
+                'pattern': r'looply-数据采集与埋点产品需求-v(.+?)\.md',
+            },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'数据采集与埋点-交付开发 V(.+?)\.zip',
+            },
+        },
+    },
 }
 
 # ─── 自动发现新模块 ────────────────────────────────────────────────────────────────
