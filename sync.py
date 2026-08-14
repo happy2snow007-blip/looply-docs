@@ -739,6 +739,30 @@ MODULES = {
             },
         },
     },
+    'data_tracking': {
+        'name': '数据采集与埋点',
+        'default_source': '/Users/zz/Documents/Looply',
+        'target': 'docs-数据采集与埋点',
+        'keywords': ['数据采集', '埋点', 'data_tracking'],
+        'config_key': None,
+        'sidebar_group': '基础服务域',
+        'artifacts': {
+            'prd': {
+                'subdir': 'PRD',
+                'source_subdir': 'docs/product',
+                'pattern': r'looply-数据采集与埋点产品需求-v(.+?)\.md',
+            },
+            'spec': {
+                'subdir': '口径说明',
+                'source_subdir': 'docs/product',
+                'pattern': r'looply-GA4首版变更清单-v(.+?)\.md',
+            },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'数据采集与埋点-交付开发 V(.+?)\.zip',
+            },
+        },
+    },
     'about': {
         'name': 'About Looply',
         'default_source': '/Users/zz/Documents/Looply/deliveries/about-us',
