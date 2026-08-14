@@ -616,7 +616,7 @@ MODULES = {
         'target': 'docs-Contact-Us',
         'keywords': ['contact', 'Contact Us', '联系我们'],
         'config_key': 'contact',
-        'sidebar_group': '基础服务域',
+        'sidebar_group': 'C端卖场',
         'artifacts': {
             'prototype': {
                 'subdir': '原型',
