@@ -108,26 +108,33 @@
     const FAVORITES_DEMO='../favorites/looply-favorites-prototype-v9.html';
     const combinedReviewSteps=[
       {
-        title:'搜索入口',
+        title:'Mobile 搜索入口与初始状态',
         device:'mobile',
-        script:'Mobile Web 首页｜入口型搜索框 + 轮播底纹词 + 右侧搜索图标\n点击搜索框｜进入全屏搜索页\n点击搜索图标｜直接提交当前有效轮播词；轮播词不可用时 Toast 提示 Enter what you\'re looking for.\nFavorites｜顶部同样提供全局搜索入口，搜索全站商品',
-        focus:['首页与 Favorites 搜索入口哪些视觉参数共用，哪些随页面 Header 调整','搜索框与右侧搜索图标的一体化样式及点击热区','轮播长词、省略、暂停和减少动态效果的表现'],
+        script:'Home / Shop / Favorites｜入口搜索框共用当前 market + locale 的轮播词列表和顺序；点击搜索框进入搜索发现页，并将当下有效词作为 placeholder\nHome 搜索图标｜当前有有效轮播词时直接提交该词\n轮播词不可用｜Home / Shop / Favorites 统一降级为 Search by brand or item\nCollection｜当前页 Header 切换为内联搜索态，搜索图标位于输入框内右侧；空输入保留原商品、Filter、Sort 和滚动位置，不展示搜索发现内容\nCollection 输入｜在 Header 下展示统一 Sug；提交后进入全局搜索结果页',
+        focus:['Collection Header 从标题态切换为内联搜索态，以最新 Collection UI 稿为准','Collection 空输入时原列表、Filter、Sort 和滚动位置不变','Collection 清空输入后不转为搜索发现页'],
         actions:[
-          {label:'Mobile Home',device:'mobile',action:'home'},
-          {label:'Favorites entry',device:'mobile',source:'favorites'}
+          {label:'Home entry',device:'mobile',action:'home'},
+          {label:'Home discovery',device:'mobile',action:'discovery'},
+          {label:'Shop discovery',device:'mobile',action:'discovery'},
+          {label:'Collection input',device:'mobile',action:'entry-direct-input'},
+          {label:'Favorites entry UI',device:'mobile',source:'favorites'},
+          {label:'Favorites discovery',device:'mobile',action:'discovery'}
         ],
         defaultAction:{device:'mobile',action:'home'}
       },
       {
         title:'Mobile 搜索发现页',
         device:'mobile',
-        script:'页面形态｜全屏搜索页\n顶部｜返回按钮 + 搜索框 + 搜索图标\n模块顺序｜Recent → Popular searches → Brands → Categories\n进入后｜自动聚焦并唤起键盘\n空输入或纯空格提交｜不发请求，Toast 提示 Enter what you\'re looking for.\n返回｜清空未提交输入，回到来源页',
+        script:'适用入口｜Home、Shop、Favorites；Collection 不使用该初始页\n页面形态｜全屏搜索页\n顶部｜返回按钮 + 搜索框 + 搜索图标\n模块顺序｜Recent → Popular searches → Brands → Categories\n独立降级｜动态模块独立 Loading / 隐藏；固定 Categories 不受动态模块失败影响\n进入后｜自动聚焦并唤起键盘\n空输入、纯空格或纯标点提交｜不请求 Sug、不发搜索请求，Toast 提示 Please enter a brand or item.\n返回｜清空未提交输入，恢复进入搜索前的页面及状态',
         focus:['顶部三个控件的尺寸、间距和安全区','键盘展开时模块仍可滚动，收起后可完整浏览','有历史与无历史时首屏内容的视觉重心'],
         actions:[
           {label:'With history',device:'mobile',action:'discovery'},
           {label:'No history',device:'mobile',action:'discovery-no-history'},
-          {label:'Loading',device:'mobile',action:'discovery-loading'},
-          {label:'Empty input Toast',device:'mobile',action:'input-empty'}
+          {label:'Mixed loading',device:'mobile',action:'discovery-loading'},
+          {label:'All dynamic empty',device:'mobile',action:'discovery-empty'},
+          {label:'All dynamic failed',device:'mobile',action:'discovery-failed'},
+          {label:'Empty input Toast',device:'mobile',action:'input-empty'},
+          {label:'Punctuation Toast',device:'mobile',action:'input-invalid'}
         ],
         defaultAction:{device:'mobile',action:'discovery'}
       },
@@ -135,7 +142,7 @@
         title:'Recent searches',
         device:'mobile',
         script:'保存上限｜20 条，最近搜索优先\n默认展示｜Mobile Web 展示 2 行\n展开方式｜第二行末尾下箭头，展开后末尾上箭头\nV1｜不提供单条删除和清空全部',
-        focus:['展开入口必须占据真实位置，不能覆盖词条或单独掉到第三行','词条最大宽度 75%，长词单行省略但点击使用完整词','英语与西班牙语下的两行折叠和展开后页面跳动'],
+        focus:['展开入口必须占据真实位置，不能覆盖词条或单独掉到第三行','词条最大宽度 75%，长词单行省略但点击使用完整词','不同长度 locale 文案下的两行折叠和展开后页面跳动'],
         actions:[
           {label:'Collapsed',device:'mobile',action:'recent-collapsed'},
           {label:'Expanded',device:'mobile',action:'recent-expanded'}
@@ -145,7 +152,7 @@
       {
         title:'Popular content',
         device:'mobile',
-        script:'Popular searches｜Mobile Web 最多完整展示 3 行\nPopular brands｜按当前市场返回 10 个，横向滑动，不设 See all\nPopular categories｜前端固定品类 ID 和顺序，横向滑动，不设 See all\n卡片内容｜复用已有图片 + 当前 locale 名称',
+        script:'Popular searches｜按 market + locale 返回并隔离缓存；Mobile Web 最多完整展示 3 行\nPopular brands｜仅按 market 返回和缓存 10 个有序品牌 ID，不按 locale 拆榜；横向滑动，不设 See all\nPopular categories｜前端固定品类 ID 和顺序，横向滑动，不设 See all\n卡片内容｜复用已有图片 + 当前 locale 名称\n独立状态｜代表性 Loading 中仅 Popular brands 展示骨架，Popular searches 和固定 Categories 保持可用',
         focus:['Brands 与 Categories 是否共用图片比例、标题行数和滑动提示','长名称截断、图片裁切及公共缺图占位','横向列表首尾留白、卡片露出量和是否吸附'],
         actions:[
           {label:'Popular content',device:'mobile',action:'discovery'},
@@ -173,20 +180,19 @@
         focus:['搜索入口的可点击感，以及进入全屏搜索层的过渡','长搜索词与 Results for 文案的换行和压缩优先级','纠错提示、结果信息和筛选栏的视觉层级','商品卡必须标注复用 Collection 版本，不新建搜索卡片'],
         actions:[
           {label:'Normal',device:'mobile',action:'result-normal'},
-          {label:'Correction',device:'mobile',action:'result-hint'},
-          {label:'Filter',device:'mobile',action:'mobile-filter'},
-          {label:'Sort',device:'mobile',action:'mobile-sort'}
+          {label:'Correction',device:'mobile',action:'result-hint'}
         ],
         defaultAction:{device:'mobile',action:'result-normal'}
       },
       {
         title:'Mobile Filter / Sort',
         device:'mobile',
-        script:'快捷栏｜固定 Filter、Sort By，其后按接口顺序展示全部有效筛选维度\nFilter｜打开左侧抽屉，按相同顺序展示同一套完整维度\n候选项｜筛选过程中不消失，只更新数量；0 结果未选项置灰\nSort By｜固定排序入口，不属于动态筛选维度\nSort｜Best Match / Newest / Price Low to High / Price High to Low\n示例维度｜Demo 中 Brand、Category、Color 等仅模拟搜索接口当前响应，正式页面按接口返回的维度、候选值、数量和顺序渲染\n生效后｜返回列表顶部',
+        script:'统一数据｜PC 侧栏、Mobile 横向栏和 Mobile 抽屉均读取同一份 mock 搜索响应\n快捷栏｜固定 Filter、Sort By，其后按接口顺序展示全部有效筛选维度，超出屏幕横向滑动\nFilter｜打开左侧抽屉，按相同顺序展示同一套完整维度\n候选项｜筛选过程中不消失，只更新数量；0 结果未选项置灰，已选项即使变为 0 仍保留并可取消\nApply｜抽屉预估为 0 时置灰；已应用条件实际返回 0 时进入筛选空态\nSort By｜固定排序入口，不属于动态筛选维度\nSort｜Newest / Price: Low to High / Price: High to Low；默认 Newest\n生效后｜返回列表顶部',
         focus:['直接复用 Collection 对应端组件和当前版本','快捷栏横向溢出、选中态和数量状态','抽屉宽度、右侧露出区、底部固定操作栏及安全区'],
         actions:[
           {label:'Quick filters',device:'mobile',action:'result-normal'},
           {label:'Filter drawer',device:'mobile',action:'mobile-filter'},
+          {label:'Apply disabled at 0',device:'mobile',action:'filter-zero-selected'},
           {label:'Sort sheet',device:'mobile',action:'mobile-sort'}
         ],
         defaultAction:{device:'mobile',action:'mobile-filter'}
@@ -194,13 +200,15 @@
       {
         title:'结果页异常状态',
         device:'mobile',
-        script:'首次 Loading｜保留页面框架，商品区展示统一骨架\n首次失败｜显示加载失败和 Try again，不使用 No results\n下一页失败｜保留已有商品，在列表末尾重试\n搜索无结果｜保留原词和 0 items，下方展示独立 You May Also Like 商品区\n筛选无结果｜单独提示无匹配并提供 Clear filters，不展示推荐商品',
-        focus:['搜索无结果、筛选无结果和请求失败必须明显区分','You May Also Like 不计入结果数，也不应用搜索 Sort / Filter','首次失败、下一页失败和推荐模块静默失败使用不同层级','骨架尺寸、数量和网格与目标商品卡一致'],
+        script:'首次 Loading｜展示 Results for “搜索词” 与商品骨架\n首次失败｜展示 Results for “搜索词”、加载失败和 Try again\n成功返回｜展示 Results for “搜索词”, N items\n下一页失败｜保留已有商品，在列表末尾展示重试\n搜索无结果｜展示原词、0 items、We couldn’t find any matches、Try searching for a different brand or item.；下方挂载首页 For You，标题为 You May Also Like\n筛选无结果｜展示当前筛选条件、无匹配提示和 Clear filters',
+        focus:['搜索无结果、筛选无结果和请求失败的视觉层级','搜索无结果空态与首页 For You 模块的衔接','首次失败和下一页失败的提示层级','For You 直接复用首页模块样式与状态'],
         actions:[
           {label:'First loading',device:'mobile',action:'result-loading'},
           {label:'Request failed',device:'mobile',action:'result-first-failed'},
           {label:'Next failed',device:'mobile',action:'result-next-failed'},
           {label:'Keyword · 0 results',device:'mobile',action:'result-empty'},
+          {label:'Recommendation loading',device:'mobile',action:'recommend-loading'},
+          {label:'Recommendation hidden',device:'mobile',action:'recommend-unavailable'},
           {label:'Filtered · 0 results',device:'mobile',action:'filter-empty'}
         ],
         defaultAction:{device:'mobile',action:'result-loading'}
@@ -208,8 +216,8 @@
       {
         title:'多语言与最终收口',
         device:'mobile',
-        script:'语言｜en-US + es-US\n静态文案｜Web i18n\n动态名称｜品牌 / 品类 / 商品读取当前 locale\n体验底线｜文本不遮挡、不溢出、不产生半截词条\n组件复用｜Home · Favorites · Collection · 统一商品卡',
-        focus:['用西班牙语和超长搜索词完成最终走查','补齐键盘焦点、hover、pressed、disabled 和读屏名称','设计稿逐页标注复用组件及版本，避免开发重复实现'],
+        script:'语言｜继承 Web 当前全局 locale 范围\n静态文案｜Web i18n\n动态名称｜品牌 / 品类 / 商品读取当前 locale\n本页范围｜英文 mock 只核对布局边界；最终使用 Web 当前 locale 的真实文案走查\n组件复用｜Home · Favorites · Collection · 统一商品卡',
+        focus:['真实 locale 文案下文本不遮挡、不溢出、不产生半截词条','补齐键盘焦点、hover、pressed、disabled 和读屏名称','设计稿逐页标注复用组件及版本，避免开发重复实现'],
         actions:[
           {label:'Mobile overview',device:'mobile',action:'discovery'}
         ],
@@ -220,14 +228,15 @@
     const mobileReviewSteps=combinedReviewSteps.filter(step=>step.device==='mobile');
     const pcReviewSteps=[
       {
-        title:'PC Header 搜索入口',
+        title:'PC Header 搜索入口与搜索态',
         device:'pc',
-        script:'入口位置｜PC Web 全局 Header\n入口形态｜只展示搜索图标\n点击后｜在 Header 下方展开搜索层\n空输入或纯空格｜不发请求，Toast 提示 Enter what you\'re looking for.\n退出｜点击遮罩或按 Esc',
-        focus:['搜索图标尺寸、hover / focus 状态和点击热区','搜索层与 Header 的对齐关系、最大宽度和遮罩强度','打开搜索层后页面背景和 Header 是否继续可辨识'],
+        script:'入口位置｜PC Web 全局 Header\n常态入口｜搜索图标\n点击后｜Header 切换为搜索输入框 + Search + Cancel，下方展示搜索发现内容\n空输入、纯空格或纯标点｜不请求 Sug、不发搜索请求，Toast 提示 Please enter a brand or item.\n退出｜Cancel 或 Esc',
+        focus:['搜索图标尺寸、hover / focus 状态和点击热区','Header 常态与搜索态切换后的对齐和高度','Search、Cancel 的间距、点击热区和键盘焦点'],
         actions:[
           {label:'Header',device:'pc',action:'home'},
           {label:'Search layer',device:'pc',action:'discovery'},
-          {label:'Empty input Toast',device:'pc',action:'input-empty'}
+          {label:'Empty input Toast',device:'pc',action:'input-empty'},
+          {label:'Punctuation Toast',device:'pc',action:'input-invalid'}
         ],
         defaultAction:{device:'pc',action:'home'}
       },
@@ -235,7 +244,7 @@
         title:'PC 搜索发现层',
         device:'pc',
         script:'页面形态｜Header 下方展开层\n初始模块｜Recent searches → Popular searches\n不展示｜Popular brands / Popular categories\n无历史｜隐藏 Recent，Popular searches 自动上移\n内容超出｜搜索层内部滚动',
-        focus:['搜索层最大高度、内部滚动和页面遮罩的边界','有历史 / 无历史时内容区的垂直节奏','Popular searches 10 条完整展示时的高度和换行'],
+        focus:['搜索发现内容的最大高度和内部滚动边界','有历史 / 无历史时内容区的垂直节奏','Popular searches 10 条完整展示时的高度和换行'],
         actions:[
           {label:'With history',device:'pc',action:'discovery'},
           {label:'No history',device:'pc',action:'discovery-no-history'},
@@ -247,7 +256,7 @@
         title:'PC Recent / Popular',
         device:'pc',
         script:'Recent searches｜默认 2 行\n展开方式｜第二行末尾 More，展开后末尾 Less\nPopular searches｜完整展示服务返回的前 10 条\n长词｜单行省略，最大宽度 75%\nV1｜不提供单条删除和清空全部',
-        focus:['More / Less 必须占据真实词条位置，不能掉到第三行','展开前后搜索层高度和滚动位置的变化','长英语 / 西班牙语词条的两行布局'],
+        focus:['More / Less 必须占据真实词条位置，不能掉到第三行','展开前后搜索层高度和滚动位置的变化','不同长度 locale 词条的两行布局'],
         actions:[
           {label:'Collapsed',device:'pc',action:'recent-collapsed'},
           {label:'Expanded',device:'pc',action:'recent-expanded'}
@@ -257,7 +266,7 @@
       {
         title:'PC Sug 输入联想',
         device:'pc',
-        script:'展示方式｜单列，不分组\n顺序｜按 Sug 服务返回顺序\nLoading｜3 行同结构骨架\n空结果 / 失败｜保留输入并静默收起\n提交｜Enter 或搜索图标',
+        script:'展示方式｜纯文本单列，不分组，行尾箭头\n顺序｜按 Sug 服务返回顺序\nLoading｜3 行同结构骨架\n空结果 / 失败｜保留输入并静默收起\n提交｜Enter 或 Search',
         focus:['PC 搜索层内 Sug 行宽、行高和 hover / focus','骨架与真实行同结构，状态切换不跳动','Sug 收起后搜索层空白区域的高度处理'],
         actions:[
           {label:'Normal',device:'pc',action:'sug-normal'},
@@ -282,7 +291,7 @@
       {
         title:'PC Filter / Sort',
         device:'pc',
-        script:'Filter｜240px 左侧栏，默认展开，可收起\n操作｜勾选后即时应用并回到列表顶部\n候选项｜筛选过程中不消失，只更新数量；0 结果未选项置灰\nSort By｜结果区顶部固定入口，不属于动态筛选维度\nSort｜Best Match / Newest / Price Low to High / Price High to Low\n维度｜按搜索接口返回顺序展示，视觉复用 Collection\n示例维度｜Demo 中 Brand、Category、Color 等仅模拟搜索接口当前响应，正式页面按接口返回的维度、候选值、数量和顺序渲染\n不复用｜Collection Banner、图文筛和商品 Pin',
+        script:'统一数据｜与 Mobile 横向栏及抽屉读取同一份 mock 搜索响应\nFilter｜240px 左侧栏，默认展开，可收起\n操作｜勾选后即时应用并回到列表顶部\n候选项｜筛选过程中不消失，只更新数量；0 结果未选项置灰，已选项即使变为 0 仍保留\nSort By｜结果区顶部固定入口，不属于动态筛选维度\nSort｜Newest / Price: Low to High / Price: High to Low；默认 Newest\n维度｜按搜索接口返回顺序展示，视觉复用 Collection\n不复用｜Collection Banner、图文筛和商品 Pin',
         focus:['标注准确的 Collection Filter / Sort 组件版本','筛选栏内部滚动、长选项和展开收起状态','筛选栏收起后网格列数、间距和 View More 位置'],
         actions:[
           {label:'Filters expanded',device:'pc',action:'result-normal'},
@@ -293,13 +302,15 @@
       {
         title:'PC 结果异常状态',
         device:'pc',
-        script:'首次 Loading｜保留 Header、结果信息和页面框架，商品区展示骨架\n首次失败｜显示加载失败和 Try again，不使用 No results\n下一页失败｜保留商品，在 View More 区域重试\n搜索无结果｜保留原词和 0 items，下方展示独立 You May Also Like 商品区及 Search again\n筛选无结果｜单独提示无匹配并提供 Clear filters，不展示推荐商品\n发现模块｜Recent / Popular searches 独立加载与降级；评审控件中的 all empty / all failed 仅示意全部动态模块不可用',
-        focus:['首次失败、下一页失败和无结果的视觉层级','搜索无结果、筛选无结果和请求失败必须明确区分','You May Also Like 不计入结果数，也不应用搜索 Sort / Filter','骨架网格与 Collection PC 商品卡结构一致'],
+        script:'首次 Loading｜保留 Header 和页面框架；展示 Results for “搜索词” 与商品骨架\n首次失败｜展示 Results for “搜索词”、加载失败和 Try again\n成功返回｜展示 Results for “搜索词”, N items\n下一页失败｜保留商品，在 View More 区域展示重试\n搜索无结果｜展示原词、0 items、We couldn’t find any matches、Try searching for a different brand or item.；下方挂载首页 For You，标题为 You May Also Like\n筛选无结果｜展示当前筛选条件、无匹配提示和 Clear filters\n发现模块｜Recent / Popular searches 独立加载与降级；评审控件中的 all empty / all failed 仅示意全部动态模块不可用',
+        focus:['首次失败、下一页失败和无结果的视觉层级','搜索无结果、筛选无结果和请求失败的视觉区分','搜索无结果空态与首页 For You 模块的衔接','For You 直接复用首页模块样式与状态'],
         actions:[
           {label:'First loading',device:'pc',action:'result-loading'},
           {label:'Request failed',device:'pc',action:'result-first-failed'},
           {label:'Next failed',device:'pc',action:'result-next-failed'},
           {label:'Keyword · 0 results',device:'pc',action:'result-empty'},
+          {label:'Recommendation loading',device:'pc',action:'recommend-loading'},
+          {label:'Recommendation hidden',device:'pc',action:'recommend-unavailable'},
           {label:'Filtered · 0 results',device:'pc',action:'filter-empty'}
         ],
         defaultAction:{device:'pc',action:'result-loading'}
@@ -307,8 +318,8 @@
       {
         title:'PC 多语言与收口',
         device:'pc',
-        script:'语言｜en-US + es-US\n静态文案｜Web i18n\n结果恢复｜刷新、分享 URL、浏览器前进后退\n组件复用｜Header · Collection Filter · 商品卡\n体验底线｜长词不遮挡、不溢出',
-        focus:['PC 1024 / 1280 / 1440 宽度下完成响应式走查','西班牙语、超长搜索词和大结果数联合验证','补齐 hover、focus、disabled 和读屏名称'],
+        script:'语言｜继承 Web 当前全局 locale 范围\n静态文案｜Web i18n\n本页范围｜英文 mock 只核对布局边界；最终使用 Web 当前 locale 的真实文案走查\n结果恢复｜刷新、分享 URL、浏览器前进后退\n组件复用｜Header · Collection Filter · 商品卡',
+        focus:['PC 1024 / 1280 / 1440 宽度下完成响应式走查','真实 locale 的长文案、超长搜索词和大结果数联合验证','补齐 hover、focus、disabled 和读屏名称'],
         actions:[
           {label:'Search layer',device:'pc',action:'discovery'},
           {label:'Results',device:'pc',action:'result-normal'}

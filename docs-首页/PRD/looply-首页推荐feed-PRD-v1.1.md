@@ -64,7 +64,7 @@ C Best Sellers 召回
 | 不在 MVP 做长期用户画像 | 先做 24h 行为分层和基础召回 |
 | 不在 MVP 做向量召回 | 向量能力放到后续版本 |
 | 不在 MVP 做深度学习排序 | 当前阶段使用规则召回 + 配额混排 |
-| 不在 MVP 强依赖 Deals | 促销价、降价记录等营销能力未完整定义 |
+| 不在 MVP 强依赖 Deals | Deals 商品池和活动筛选仍依赖营销能力；所有已展示商品卡的主价格均执行到手价规则 |
 | 不在 MVP 直接按 listing 购买数做 Best Sellers | Looply 一物一码，单个 listing 通常只能售出一次，listing 级购买数区分度不足 |
 | 不把 wishlist_click 当作收藏兴趣 | wishlist_click 只是点击收藏按钮，只有 wishlist_add 成功才代表收藏成立 |
 | 不把曝光 / 滚动作为兴趣分 | 曝光和滚动不能稳定代表用户兴趣，MVP 不参与用户状态判断 |
@@ -78,6 +78,7 @@ C Best Sellers 召回
 | Explore Finds Feed | 首页商品流模块 | 本次 PRD 新定义 |
 | Tab | Feed 内的场景切换入口，如 For You、New Arrivals | 本次 PRD 新定义 |
 | 商品卡 | Feed 中每个 listing 的展示卡片 | 本次 PRD 新定义 |
+| 到手价 | 当前用户、Market、Channel 和请求时点下，商品级可确定且用户已满足使用条件的优惠应用后的价格；不含运费、税费及结算阶段才可确定的优惠 | 本次 PRD 新定义 |
 | listing | 渠道商品，一件实物商品在某个销售渠道的上架记录，是 Feed 的展示对象 | 已有，商品系统 listing |
 | product | 实物商品，一物一码，独立成色、质检和鉴定信息 | 已有，商品系统 product |
 | standard_sku | 标品 SKU，SPU 下按销售属性组合拆分的标准规格 | 已有，商品系统 standard_sku |
@@ -173,7 +174,7 @@ Explore Finds Feed 在首页中展示商品卡片流，由模块标题、Tab 区
 | 推荐系统 | A1/A2/B/C 召回、用户状态分层、混排、去重、频控 | 缺失 | 是 | 本 PRD 新增 |
 | 用户行为数据 | 曝光、点击、收藏成功、取消收藏、购买、Tab 切换、加载更多 | 部分缺失 | 是 | 用于推荐、去重、频控、分析 |
 | 订单系统 | listing / product / spu 的购买完成记录 | 待确认 | 是 | 用于 Best Sellers 中的购买热度，以及用户 24h 购买行为统计 |
-| 营销系统 | promotion_price、price_drop、折扣 | 缺失 | 否 | Deals MVP 可隐藏或延后 |
+| 价格 / 营销服务 | 返回 listing_price、final_price、eligible_discount_amount、优惠明细、价格有效期和计算状态 | 待确认 | 是 | 所有 Feed 商品卡必须取到手价；Deals 商品池仍可隐藏或延后 |
 | 埋点系统 | Feed 曝光、点击、收藏、加载更多 | 已有框架，事件需新增 | 是 | MVP 必须接入 |
 | CMS / 运营配置 | Tab 开关、推荐配置默认值 | 缺失 | 否 | MVP 可先通过配置表维护 |
 | 翻译模块 | 商品标题、品牌、类目、属性翻译 | 已有 PRD | 是 | 无翻译时 fallback 默认语言 |
@@ -215,6 +216,7 @@ base_pool =
 + listing_status = 可售
 + product_status = 可售
 + listing_price > 0
++ final_price 有效；价格服务异常时允许按挂牌价降级
 + main_image_url 不为空
 + grade 不为空
 ```
@@ -228,6 +230,7 @@ base_pool =
 | 可售性来源 | 由商品 / 库存域在 listing_status / product_status 中统一表达 |
 | 图片有效 | 无主图商品不进入首页 Feed |
 | 价格有效 | listing_price <= 0 的商品不进入 Feed |
+| 到手价有效 | 正常态要求 `0 <= final_price <= listing_price`；价格服务异常时按第 16 章降级，不由推荐侧自行计算优惠 |
 | 成色有效 | grade 为空的商品不进入 Feed |
 | Market 隔离 | 不同 Market 使用不同 Channel 下的 listing 池 |
 
@@ -1212,12 +1215,24 @@ MVP 可隐藏 Deals Tab。
 | 商品图片 | main_image_url | product_image / listing.og_image_url | 推荐侧快照派生 |
 | 品牌名 | brand_id / brand name | listing → product → standard_sku → spu → brand | 链路可取 |
 | 商品标题 | listing_title | listing | 商品系统已有展示标题概念 |
-| 当前价格 | listing_price | listing | 已有 |
+| 到手价（主价格） | final_price | 价格 / 营销服务 | 必须返回；异常时降级展示 listing_price |
+| 挂牌价（条件展示） | listing_price | listing | final_price 低于挂牌价时作为对比价展示 |
+| 可用优惠金额 | eligible_discount_amount | 价格 / 营销服务 | `listing_price - final_price`，用于优惠信息展示与核对 |
+| 价格计算状态 | price_display_status | 价格 / 营销服务 / 前端 | `final_price` / `fallback_listing_price` |
+| 价格有效期 | price_valid_until | 价格 / 营销服务 | 到期后刷新，不使用过期优惠价格 |
 | 货币 | currency_code | listing / Market | 已有 |
 | 成色 | grade | 商品系统成色等级，枚举：NWT / Excellent / Good / Fair | 快照表同步，源字段名待确认 |
 | 收藏状态 | wishlist relation | 收藏模块 | 待确认 |
 | 鉴定标识 | is_authenticated | product_inspection | 可用于 V1.1 展示 |
 | Sold Out | listing_status / product_status | 商品系统 | MVP 不主动展示不可售商品 |
+
+### 16.1.1 到手价统一规则
+
+- `final_price = listing_price - eligible_discount_amount`，且不得小于 0；`standard_sku.market_price` 仅为参考价，不参与到手价计算。
+- 计算上下文必须包含 `user_id / anonymous_id`、`market_id`、`channel_id`、`listing_id`、当前货币和请求时间。游客只应用游客当前可直接享受的优惠。
+- 仅计入商品级可确定且用户已经满足条件的优惠；不计入运费、税费、未满足门槛的满减、未领取或未选择的券、支付方式优惠及结算阶段才可确定的订单级优惠。
+- 展示、价格筛选、价格排序、价格带和推荐多样性必须使用同一价格快照的 `final_price`。优惠或价格有效期届满后，刷新价格及依赖它的价格带。
+- 价格服务超时、失败或返回 `final_price < 0`、`final_price > listing_price` 时，降级展示 `listing_price`，隐藏优惠信息并记录 `price_display_status = fallback_listing_price`；推荐侧和前端不得自行推测优惠。
 
 ### 16.2 商品卡点击
 
@@ -1356,8 +1371,12 @@ event_type 枚举：
 | series_id | 系列，允许为空 |
 | backend_category_id | 后台类目 |
 | listing_price | 挂牌价 |
+| final_price | 当前到手价；用于商品卡展示、价格带及价格相关排序 / 筛选 |
+| eligible_discount_amount | 当前可用优惠金额 |
+| price_display_status | 到手价正常或挂牌价降级状态 |
+| price_valid_until | 当前价格快照有效期 |
 | currency_code | 货币 |
-| price_band | 推荐侧派生价格带 |
+| price_band | 推荐侧基于 final_price 派生的价格带；挂牌价降级时基于当前展示价派生并标记降级状态 |
 | grade | 成色等级，来源：商品系统成色等级字段（源字段名待确认）；枚举：NWT / Excellent / Good / Fair |
 | listing_status | listing 状态 |
 | product_status | product 状态 |

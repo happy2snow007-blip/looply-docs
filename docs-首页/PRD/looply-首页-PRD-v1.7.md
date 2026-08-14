@@ -175,9 +175,14 @@
 
 ### 8.2 商品卡与收藏
 
-- 商品卡展示主图、品牌、商品标题、当前销售价和收藏入口；字段、图片比例、网格列数和视觉样式以最新 UI 及全站商品卡规范为准。
+- 商品卡展示主图、品牌、商品标题、到手价和收藏入口；字段、图片比例、网格列数和视觉样式以最新 UI 及全站商品卡规范为准。
 - 商品主图读取 `listing.og_image_url`，缺失时读取 `product_image.main_image_url`；商品标题读取 `listing.listing_title`，缺失时读取 `product.title`。
-- 当前销售价读取 `listing.listing_price`。当有效 `standard_sku.market_price` 高于 `listing.listing_price` 时，同时展示划线参考价和 Save 差额，差额为两者之差；货币转换与格式化执行全站商品价格规则。
+- 商品卡主价格统一展示价格服务返回的 `final_price`（到手价），即当前用户、Market、Channel 和请求时点下，商品级可确定且用户已满足使用条件的优惠应用后的价格。计算基准为 `listing.listing_price`，`final_price = listing_price - eligible_discount_amount`，且不得小于 0。
+- 商品卡请求价格时必须携带 `user_id / anonymous_id`、`market_id`、`channel_id`、`listing_id`、当前货币和请求时间；游客仅应用游客当前可直接享受的优惠。
+- 到手价不包含运费、税费，以及尚未满足门槛的满减、未领取或未选择的优惠券、支付方式优惠和结算阶段才能确定的订单级优惠。上述优惠只能在满足条件并能确定分摊到当前商品时计入。
+- 当 `final_price < listing.listing_price` 时，以到手价作为高亮主价格，并按统一商品卡规范展示挂牌价及优惠信息；当两者相等时只展示到手价，不制造折扣状态。`standard_sku.market_price` 仅作为参考价，不参与到手价计算。
+- 价格换算、尾差和格式化在同一币种口径下完成；展示、价格排序、价格筛选和价格带划分使用同一请求返回的 `final_price`，不得分别按挂牌价计算。
+- 价格服务超时、失败或返回无效到手价时，商品卡降级展示 `listing.listing_price`，不展示优惠信息，并记录 `price_display_status = fallback_listing_price`；不得由前端自行推测或拼接优惠。
 - 商品图片始终限制在卡片和页面内容区域内；调整窗口宽度或切换端时重新排版并保留已返回商品。
 - 收藏按钮位于商品图片容器内，完整点击热区包含在商品卡内。
 - 点击收藏按钮执行全站 Wishlist 规则并即时更新状态，请求失败时恢复操作前状态；点击商品卡其他区域进入商品详情页。
