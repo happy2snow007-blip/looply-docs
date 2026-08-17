@@ -783,6 +783,10 @@ MODULES = {
                 'subdir': 'UI',
                 'pattern': r'looply-about-us-ui-mobile-v(.+?)\.png',
             },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'About Looply-交付开发 V(.+?)\.zip',
+            },
         },
     },
 }
