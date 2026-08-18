@@ -745,7 +745,7 @@ MODULES = {
         'target': 'docs-数据采集与埋点',
         'keywords': ['数据采集', '埋点', 'data_tracking'],
         'config_key': None,
-        'sidebar_group': 'C端卖场',
+        'sidebar_group': '数据与分析',
         'artifacts': {
             'prd': {
                 'subdir': 'PRD',
