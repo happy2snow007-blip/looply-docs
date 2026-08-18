@@ -1668,14 +1668,21 @@ def update_index_html(updates, all_versions, all_history=None):
             upd = item_map[current_item_start]
             new_ver = upd.get('new_ver', '')
             if new_ver:
-                ver_regex = re.compile(r'(?<=\s)[vV].+?(?=\s*<span)')
-                ver_match = ver_regex.search(new_line)
-                if ver_match:
-                    old_ver_text = ver_match.group(0)
-                    new_ver_text = f'{"V" if upd.get("art_type") == "delivery" else "v"}{new_ver}'
-                    if old_ver_text != new_ver_text:
-                        new_line = new_line[:ver_match.start()] + new_ver_text + new_line[ver_match.end():]
+                if upd.get('art_type') == 'version_diff':
+                    desired_label = f'数据采集与埋点 v1.5 → v{new_ver} 核心差异 '
+                    replaced = re.sub(r'(?<=<div class="doc-name">).*?(?=<span class="badge">)', desired_label, new_line)
+                    if replaced != new_line:
+                        new_line = replaced
                         changed = True
+                else:
+                    ver_regex = re.compile(r'(?<=\s)[vV].+?(?=\s*<span)')
+                    ver_match = ver_regex.search(new_line)
+                    if ver_match:
+                        old_ver_text = ver_match.group(0)
+                        new_ver_text = f'{"V" if upd.get("art_type") == "delivery" else "v"}{new_ver}'
+                        if old_ver_text != new_ver_text:
+                            new_line = new_line[:ver_match.start()] + new_ver_text + new_line[ver_match.end():]
+                            changed = True
         if current_item_start in changed_items and 'doc-desc' in new_line and '更新于' in new_line:
             # 日期用文件 mtime（文件最后更新时间），非脚本运行时间；取不到再退回 now
             file_dt = None
