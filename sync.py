@@ -757,6 +757,11 @@ MODULES = {
                 'source_subdir': 'docs/product',
                 'pattern': r'looply-GA4(?:首版变更清单|埋点变更清单)-v(.+?)\.md',
             },
+            'confirmation': {
+                'subdir': '开发确认',
+                'source_subdir': 'docs/product',
+                'pattern': r'looply-GA4五个埋点开发确认结论-v(.+?)\.md',
+            },
             'delivery': {
                 'subdir': '.',
                 'pattern': r'数据采集与埋点-交付开发 V(.+?)\.zip',
@@ -885,13 +890,14 @@ _CARD_META = {
     'prd_md':       ('PRD 文档',    'icon-md',   'M'),
     'prd_html':     ('PRD 文档',    'icon-html', 'H'),
     'spec':         ('GA4 埋点变更', 'icon-md',   'M'),
+    'confirmation': ('GA4 开发确认', 'icon-md',   'M'),
     'delivery':     ('交付包',      'icon-zip',  'Z'),
     'ui_pc':        ('PC UI 基线',  'icon-html', 'P'),
     'ui_mobile':    ('Mobile UI 基线', 'icon-html', 'M'),
 }
 
 _STAGE2_TYPES = ('er', 'architecture', 'flowchart')
-_STAGE3_TYPES = ('prototype', 'dev_review', 'prd', 'prd_md', 'prd_html', 'spec', 'ui_pc', 'ui_mobile', 'delivery')
+_STAGE3_TYPES = ('prototype', 'dev_review', 'prd', 'prd_md', 'prd_html', 'spec', 'confirmation', 'ui_pc', 'ui_mobile', 'delivery')
 
 
 def _gen_card(mod_name, target_dir, art_type, file_name, ver, today):
@@ -900,6 +906,7 @@ def _gen_card(mod_name, target_dir, art_type, file_name, ver, today):
     subdir = 'PRD' if art_type.startswith('prd') else {
         'er': '实体关系图', 'architecture': '产品架构图',
         'flowchart': '系统流程图', 'prototype': '原型', 'dev_review': '原型', 'spec': '口径说明',
+        'confirmation': '开发确认',
         'ui_pc': 'UI', 'ui_mobile': 'UI',
     }.get(art_type, '')
     href = f'{target_dir}/{subdir}/{file_name}' if subdir else f'{target_dir}/{file_name}'
@@ -915,6 +922,8 @@ def _gen_card(mod_name, target_dir, art_type, file_name, ver, today):
         doc_label = f'{mod_name} PRD v{ver}'
     elif art_type == 'spec':
         doc_label = f'GA4 埋点变更清单 v{ver}'
+    elif art_type == 'confirmation':
+        doc_label = f'GA4 五个埋点开发确认结论 v{ver}'
     elif art_type == 'er':
         doc_label = f'{mod_name}实体关系图 v{ver}'
     elif art_type == 'architecture':
@@ -1304,16 +1313,18 @@ def sync_module_files(source_dir, target_dir, mod_key):
             if not os.path.isfile(dst_latest) or not files_equal(src_latest, dst_latest):
                 shutil.copy2(src_latest, dst_latest)
 
-    # 指标口径等模块专属说明文件；只同步注册正则命中的文件。
-    spec_config = MODULES.get(mod_key, {}).get('artifacts', {}).get('spec', {})
-    if spec_config:
-        src_spec = os.path.normpath(os.path.join(source_dir, spec_config.get('source_subdir', spec_config['subdir'])))
-        dst_spec = os.path.join(REPO_DIR, target_dir, spec_config['subdir'])
-        if os.path.isdir(src_spec):
-            os.makedirs(dst_spec, exist_ok=True)
-            for f in globmod.glob(os.path.join(src_spec, '*.md')):
-                if os.path.isfile(f) and re.fullmatch(spec_config['pattern'], os.path.basename(f)):
-                    smart_cp(f, dst_spec)
+    # 模块专属说明/开发确认文件；只同步注册正则命中的文件。
+    for doc_type in ('spec', 'confirmation'):
+        doc_config = MODULES.get(mod_key, {}).get('artifacts', {}).get(doc_type, {})
+        if not doc_config:
+            continue
+        src_doc = os.path.normpath(os.path.join(source_dir, doc_config.get('source_subdir', doc_config['subdir'])))
+        dst_doc = os.path.join(REPO_DIR, target_dir, doc_config['subdir'])
+        if os.path.isdir(src_doc):
+            os.makedirs(dst_doc, exist_ok=True)
+            for f in globmod.glob(os.path.join(src_doc, '*.md')):
+                if os.path.isfile(f) and re.fullmatch(doc_config['pattern'], os.path.basename(f)):
+                    smart_cp(f, dst_doc)
 
     # 评审记录
     sync_subdir(source_dir, target_dir, '评审记录', ['.md'])
@@ -1721,6 +1732,7 @@ def update_index_html(updates, all_versions, all_history=None):
             'prd': ('V', 'download', 'Markdown'),
             'prd_html': ('V', 'download', 'HTML'),
             'prd_md': ('V', 'download', 'Markdown'),
+            'confirmation': ('v', 'download', '下载'),
             'delivery': ('V', 'download', '下载'),
         }
         final_lines = []
