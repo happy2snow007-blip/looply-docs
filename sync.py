@@ -755,7 +755,7 @@ MODULES = {
             'spec': {
                 'subdir': '口径说明',
                 'source_subdir': 'docs/product',
-                'pattern': r'looply-GA4埋点变更清单-v(.+?)\.md',
+                'pattern': r'looply-GA4(?:首版变更清单|埋点变更清单)-v(.+?)\.md',
             },
             'delivery': {
                 'subdir': '.',
