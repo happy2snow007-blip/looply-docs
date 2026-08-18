@@ -762,6 +762,11 @@ MODULES = {
                 'source_subdir': 'docs/product',
                 'pattern': r'looply-GA4五个埋点开发确认结论-v(.+?)\.md',
             },
+            'version_diff': {
+                'subdir': '版本说明',
+                'source_subdir': 'docs/product',
+                'pattern': r'looply-数据采集与埋点-v1\.5-v(.+?)-核心差异\.md',
+            },
             'delivery': {
                 'subdir': '.',
                 'pattern': r'数据采集与埋点-交付开发 V(.+?)\.zip',
@@ -891,13 +896,14 @@ _CARD_META = {
     'prd_html':     ('PRD 文档',    'icon-html', 'H'),
     'spec':         ('GA4 埋点变更', 'icon-md',   'M'),
     'confirmation': ('GA4 开发确认', 'icon-md',   'M'),
+    'version_diff': ('版本说明',      'icon-md',   'M'),
     'delivery':     ('交付包',      'icon-zip',  'Z'),
     'ui_pc':        ('PC UI 基线',  'icon-html', 'P'),
     'ui_mobile':    ('Mobile UI 基线', 'icon-html', 'M'),
 }
 
 _STAGE2_TYPES = ('er', 'architecture', 'flowchart')
-_STAGE3_TYPES = ('prototype', 'dev_review', 'prd', 'prd_md', 'prd_html', 'spec', 'confirmation', 'ui_pc', 'ui_mobile', 'delivery')
+_STAGE3_TYPES = ('prototype', 'dev_review', 'prd', 'prd_md', 'prd_html', 'version_diff', 'spec', 'confirmation', 'ui_pc', 'ui_mobile', 'delivery')
 
 
 def _gen_card(mod_name, target_dir, art_type, file_name, ver, today):
@@ -907,6 +913,7 @@ def _gen_card(mod_name, target_dir, art_type, file_name, ver, today):
         'er': '实体关系图', 'architecture': '产品架构图',
         'flowchart': '系统流程图', 'prototype': '原型', 'dev_review': '原型', 'spec': '口径说明',
         'confirmation': '开发确认',
+        'version_diff': '版本说明',
         'ui_pc': 'UI', 'ui_mobile': 'UI',
     }.get(art_type, '')
     href = f'{target_dir}/{subdir}/{file_name}' if subdir else f'{target_dir}/{file_name}'
@@ -924,6 +931,8 @@ def _gen_card(mod_name, target_dir, art_type, file_name, ver, today):
         doc_label = f'GA4 埋点变更清单 v{ver}'
     elif art_type == 'confirmation':
         doc_label = f'GA4 五个埋点开发确认结论 v{ver}'
+    elif art_type == 'version_diff':
+        doc_label = f'数据采集与埋点 v1.5 → v{ver} 核心差异'
     elif art_type == 'er':
         doc_label = f'{mod_name}实体关系图 v{ver}'
     elif art_type == 'architecture':
@@ -1314,7 +1323,7 @@ def sync_module_files(source_dir, target_dir, mod_key):
                 shutil.copy2(src_latest, dst_latest)
 
     # 模块专属说明/开发确认文件；只同步注册正则命中的文件。
-    for doc_type in ('spec', 'confirmation'):
+    for doc_type in ('spec', 'confirmation', 'version_diff'):
         doc_config = MODULES.get(mod_key, {}).get('artifacts', {}).get(doc_type, {})
         if not doc_config:
             continue
@@ -1733,6 +1742,7 @@ def update_index_html(updates, all_versions, all_history=None):
             'prd_html': ('V', 'download', 'HTML'),
             'prd_md': ('V', 'download', 'Markdown'),
             'confirmation': ('v', 'download', '下载'),
+            'version_diff': ('v', 'download', '下载'),
             'delivery': ('V', 'download', '下载'),
         }
         final_lines = []
