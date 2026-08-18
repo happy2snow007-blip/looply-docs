@@ -755,7 +755,7 @@ MODULES = {
             'spec': {
                 'subdir': '口径说明',
                 'source_subdir': 'docs/product',
-                'pattern': r'looply-GA4首版变更清单-v(.+?)\.md',
+                'pattern': r'looply-GA4埋点变更清单-v(.+?)\.md',
             },
             'delivery': {
                 'subdir': '.',
@@ -884,7 +884,7 @@ _CARD_META = {
     'prd':          ('PRD 文档',    'icon-md',   'M'),
     'prd_md':       ('PRD 文档',    'icon-md',   'M'),
     'prd_html':     ('PRD 文档',    'icon-html', 'H'),
-    'spec':         ('指标口径',    'icon-md',   'M'),
+    'spec':         ('GA4 埋点变更', 'icon-md',   'M'),
     'delivery':     ('交付包',      'icon-zip',  'Z'),
     'ui_pc':        ('PC UI 基线',  'icon-html', 'P'),
     'ui_mobile':    ('Mobile UI 基线', 'icon-html', 'M'),
@@ -914,7 +914,7 @@ def _gen_card(mod_name, target_dir, art_type, file_name, ver, today):
     elif art_type.startswith('prd'):
         doc_label = f'{mod_name} PRD v{ver}'
     elif art_type == 'spec':
-        doc_label = f'{mod_name}指标口径 v{ver}'
+        doc_label = f'GA4 埋点变更清单 v{ver}'
     elif art_type == 'er':
         doc_label = f'{mod_name}实体关系图 v{ver}'
     elif art_type == 'architecture':
