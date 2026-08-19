@@ -746,6 +746,23 @@ MODULES = {
         'keywords': ['数据采集', '埋点', 'data_tracking'],
         'config_key': None,
         'sidebar_group': '数据与分析',
+        'static_docs': [
+            {
+                'source_subdir': 'docs/product',
+                'subdir': '版本说明',
+                'filename': 'looply-数据采集与埋点-变更日志.md',
+            },
+            {
+                'source_subdir': 'docs/product',
+                'subdir': '版本说明',
+                'filename': 'looply-数据采集与埋点产品需求-修订记录.md',
+            },
+            {
+                'source_subdir': 'docs/product',
+                'subdir': '覆盖清单',
+                'filename': 'looply-PC-Mobile全页面有意义操作覆盖清单-v0.2.md',
+            },
+        ],
         'artifacts': {
             'prd': {
                 'subdir': 'PRD',
@@ -780,6 +797,18 @@ MODULES = {
         'keywords': ['数据分析报表', '报表PRD', 'data_reports'],
         'config_key': None,
         'sidebar_group': '数据与分析',
+        'static_docs': [
+            {
+                'source_subdir': 'docs/product',
+                'subdir': '来源对照',
+                'filename': 'looply-报表指标与数据来源对照表-v0.2.md',
+            },
+            {
+                'source_subdir': 'docs/product',
+                'subdir': '影响评估',
+                'filename': 'looply-数据分析需求对采集方案影响评估-v0.2.md',
+            },
+        ],
         'artifacts': {
             'prd': {
                 'subdir': 'PRD',
@@ -1349,6 +1378,19 @@ def sync_module_files(source_dir, target_dir, mod_key):
             for f in globmod.glob(os.path.join(src_doc, '*.md')):
                 if os.path.isfile(f) and re.fullmatch(doc_config['pattern'], os.path.basename(f)):
                     smart_cp(f, dst_doc)
+
+    # 模块专属的固定名称配套文档；用于变更日志、修订记录及当前配套清单。
+    for doc_config in MODULES.get(mod_key, {}).get('static_docs', []):
+        src_doc = os.path.normpath(os.path.join(
+            source_dir,
+            doc_config.get('source_subdir', '.'),
+            doc_config['filename'],
+        ))
+        if not os.path.isfile(src_doc):
+            continue
+        dst_doc = os.path.join(REPO_DIR, target_dir, doc_config['subdir'])
+        os.makedirs(dst_doc, exist_ok=True)
+        smart_cp(src_doc, dst_doc)
 
     # 评审记录
     sync_subdir(source_dir, target_dir, '评审记录', ['.md'])
