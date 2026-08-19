@@ -773,6 +773,21 @@ MODULES = {
             },
         },
     },
+    'data_reports': {
+        'name': '数据分析报表',
+        'default_source': '/Users/zz/Documents/Looply',
+        'target': 'docs-数据分析报表',
+        'keywords': ['数据分析报表', '报表PRD', 'data_reports'],
+        'config_key': None,
+        'sidebar_group': '数据与分析',
+        'artifacts': {
+            'prd': {
+                'subdir': 'PRD',
+                'source_subdir': 'docs/product',
+                'pattern': r'looply-数据分析报表-PRD-v(.+?)\.md',
+            },
+        },
+    },
     'about': {
         'name': 'About Looply',
         'default_source': '/Users/zz/Documents/Looply/deliveries/about-us',
