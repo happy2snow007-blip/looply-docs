@@ -33,6 +33,14 @@ from urllib.parse import quote as url_quote, unquote as url_unquote
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 _updated_files = set()
 
+
+def markdown_view_href(href):
+    """把 Markdown 文件链接转换为站内阅读器链接。"""
+    if not href.lower().endswith('.md'):
+        return href
+    normalized = url_quote(url_unquote(href), safe='/')
+    return f'markdown-viewer.html?file={normalized}'
+
 # ─── 模块配置 ───────────────────────────────────────────────────────────────────
 # 每个模块：default_source（默认源目录）、target（looply-docs 中的目标目录）、
 #           keywords（用于命令行筛选匹配）、artifacts（用于版本检测的产物配置）
@@ -961,6 +969,7 @@ def _gen_card(mod_name, target_dir, art_type, file_name, ver, today):
         'ui_pc': 'UI', 'ui_mobile': 'UI',
     }.get(art_type, '')
     href = f'{target_dir}/{subdir}/{file_name}' if subdir else f'{target_dir}/{file_name}'
+    view_href = markdown_view_href(href)
 
     # 文档显示名
     if art_type == 'prototype':
@@ -1010,7 +1019,7 @@ def _gen_card(mod_name, target_dir, art_type, file_name, ver, today):
               <div class="doc-desc">更新于 {stamp}</div>
             </div>
             <div class="doc-actions">
-              <a class="btn btn-view" href="{href}" target="_blank">查看</a>
+              <a class="btn btn-view" href="{view_href}" target="_blank">查看</a>
               <a class="btn btn-download" href="{href}" download>{dl_label}</a>
             </div>
           </li>
@@ -2010,6 +2019,27 @@ def update_prd_index_topbar():
         print('  [无变化] PRD index.html topbar 均已是最新')
 
 
+def update_markdown_view_links():
+    """确保首页所有 Markdown“查看”按钮使用站内阅读器，下载链接仍指向原文件。"""
+    index_path = os.path.join(REPO_DIR, 'index.html')
+    content = open(index_path, 'r', encoding='utf-8').read()
+    pattern = re.compile(
+        r'(<a class="btn btn-view" href=")([^"?]+\.md)(" target="_blank">查看</a>)',
+        re.I,
+    )
+
+    def replace(match):
+        return match.group(1) + markdown_view_href(match.group(2)) + match.group(3)
+
+    updated, count = pattern.subn(replace, content)
+    if updated != content:
+        with open(index_path, 'w', encoding='utf-8') as f:
+            f.write(updated)
+        print(f'  [更新] {count} 个 Markdown 查看链接改用在线阅读器')
+    else:
+        print('  [无变化] Markdown 查看链接均已使用在线阅读器')
+
+
 # ─── 主流程 ────────────────────────────────────────────────────────────────────
 
 def main():
@@ -2157,6 +2187,7 @@ def main():
 
     update_prd_variants()
     update_prd_index_topbar()
+    update_markdown_view_links()
 
     # 更新 admin.html 的模块列表
     all_proto_keys = []
