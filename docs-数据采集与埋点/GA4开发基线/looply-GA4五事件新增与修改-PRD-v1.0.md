@@ -2,14 +2,14 @@
 
 > 版本：v1.0  
 > 日期：2026-08-20  
-> 状态：开发基线  
+> 状态：开发实施稿  
 > 测试环境：`https://www.test.looply.com/`  
 > GA4媒体资源：`Looply-test`  
 > Measurement ID：`G-VFBQX6RSB7`
 
 ## 一、目标与范围
 
-本文件是本批GA4 Web埋点修改、测试和验收的唯一开发依据，不需要同时阅读历史GA4 PRD、旧变更清单或旧验收修复单。
+本文件是本批GA4 Web埋点修改的唯一开发依据。开发可以仅依据本文件完成事件触发、字段传递、GTM映射和现有配置调整，不需要同时阅读历史GA4 PRD、旧变更清单或旧验收修复单。
 
 本批只处理五个GA4事件：
 
@@ -23,9 +23,9 @@
 
 为保证同一页面行为能够关联，现有`page_view`和`select_item`同时补充`page_instance_id`参数，但不改变它们的触发点和业务语义。`purchase`及其他现有GA4事件不属于本批修改范围。
 
-## 二、当前验收结果与修改目标
+## 二、现状与开发改动
 
-当前已确认GA4接收链路可用，但以下五个事件尚未通过最终验收。
+当前已确认GA4接收链路可用。开发按下表定位现有事件并完成对应修改。
 
 | GA4事件 | 当前已确认 | 当前问题 | 开发修改目标 |
 |---|---|---|---|
@@ -50,7 +50,7 @@
 | `history_select` | 用户点击搜索历史中的搜索词 | 使用该历史词对应的搜索模块正式分析词 |
 | `popular_term_select` | 用户点击搜索页热门搜索词 | 热门品牌和热门Collection属于目标页面入口，不发送`search` |
 
-必要信息：
+事件参数：
 
 - `search_term`：搜索模块正式输出的清洗后搜索词。
 - `trigger_type`：按上表确定。
@@ -69,6 +69,8 @@
 | `cancelled` | 被新搜索替换、显式取消或离开页面导致请求中止 | 不伪造结果数或失败类型 |
 
 同一次结果请求只产生一个终态。筛选、排序或Reset实际更新结果后，产生新的结果终态，但不新增`search`。
+
+每条`view_search_results`终态事件生成一个`event_id`；同一终态因发送重试而再次组装时保持同一个值。其他四个事件不要求携带`event_id`，分别按各自的成立与去重规则处理。`event_id`无法取得时省略，事件仍发送。
 
 直达搜索URL、刷新和页面恢复允许直接产生`view_search_results`；没有前序用户提交时不补造`search`。结果事件从当前URL读取可用的`search_term`、`trigger_type`、`filter_ids`和`sort_type`。
 
@@ -162,7 +164,7 @@
 
 | 字段 | 适用事件 | 谁提供或生成 | 取值来源 | 无法取得时的处理 |
 |---|---|---|---|---|
-| `event_id` | `view_search_results`及需要事件级幂等的事件 | Web公共事件上下文 | 事件成立时生成；同一事件重试保持同值 | 省略，事件继续发送 |
+| `event_id` | 仅`view_search_results` | Web公共事件上下文 | 终态事件成立时生成；同一终态发送重试保持同值 | 省略，事件继续发送 |
 | `page_instance_id` | `page_view`、`view_search_results`、`view_item_list`、`select_item`、`view_cart` | Web公共页面上下文 | 按第四章生成并由适用事件共同读取 | 省略，事件继续发送，不生成替代值 |
 | `search_term` | `search`、有搜索词的结果和搜索结果曝光 | 搜索模块 | 搜索模块用于构造结果URL的正式分析词 | 省略，事件继续发送，不回退为未经处理的输入原文 |
 | `trigger_type` | `search`；站内提交形成的结果和曝光 | 搜索交互点及结果URL | 按3.1确定并写入结果URL，结果和曝光再从URL读取 | 省略，事件继续发送，不猜测 |
@@ -184,6 +186,26 @@
 业务事实成立时发送事件。参数能够取得时正常携带；无法取得时省略，不伪造默认值，也不因参数缺失停止事件上报。本期不新增线上参数缺失诊断事件或诊断机制。
 
 `filter_ids`采用`维度:稳定值`格式。同一维度多选分别记录，去重并按维度和值稳定排序后用逗号连接，例如`brand:celine,color:black`。价格区间本期不进入`filter_ids`。
+
+`filter_ids`仅使用以下维度：
+
+| 维度 | 取值来源 |
+|---|---|
+| `brand` | 当前已生效的品牌稳定值 |
+| `condition` | 当前已生效的成色稳定值 |
+| `category` | 当前已生效的类目稳定值 |
+| `color` | 当前已生效的颜色稳定值 |
+| `size` | 当前已生效的尺码稳定值 |
+| `material` | 当前已生效的材质稳定值 |
+
+`sort_type`仅使用以下值：
+
+| 枚举值 | 含义 |
+|---|---|
+| `recommended` | 推荐排序，包括默认排序 |
+| `newest` | 最新上架优先 |
+| `price_low_to_high` | 价格从低到高 |
+| `price_high_to_low` | 价格从高到低 |
 
 ## 六、搜索上下文URL规则
 
@@ -207,27 +229,17 @@
 
 GA4 Web数据流保持增强型衡量开启，但关闭其中的“网站搜索”，避免GA4按URL参数自动生成第二条`view_search_results`。
 
-## 八、验收用例
+## 八、开发完成检查
 
-| 编号 | 操作 | 预期结果 |
-|---|---|---|
-| A01 | 未改写轮播词，点击搜索按钮 | 一条`search`，`trigger_type=carousel_term_button`；结果URL、结果和曝光沿用同值 |
-| A02 | 手动输入后按回车 | 一条`search`，`trigger_type=manual_enter` |
-| A03 | 手动输入后点击搜索按钮 | 一条`search`，`trigger_type=manual_search_button` |
-| A04 | 点击输入联想 | 一条`search`，`trigger_type=suggestion_select`，携带从1开始的建议位置 |
-| A05 | 点击搜索历史 | 一条`search`，`trigger_type=history_select` |
-| A06 | 点击热门搜索词 | 一条`search`，`trigger_type=popular_term_select` |
-| A07 | 点击热门品牌或热门Collection | 不发送`search`；记录入口点击和目标页访问 |
-| A08 | 正常有结果搜索 | 一条`search`和一条`view_search_results(success)`；搜索词和触发方式与URL一致 |
-| A09 | 无结果搜索 | 一条`search`和一条`view_search_results(no_results)`，`result_count=0` |
-| A10 | 直达无结果URL | 不补造`search`；发送一条`view_search_results(no_results)` |
-| A11 | 结果页Apply筛选、Apply排序或Reset | 不新增`search`；产生新的结果终态，沿用当前页面实例和原`trigger_type` |
-| A12 | 搜索结果首屏曝光 | 每个达标商品只计一次，具备页面实例、展示位、从1开始的位置和URL搜索上下文 |
-| A13 | 页面后台、失焦或商品不足50%可视／1秒 | 不发送该商品曝光 |
-| A14 | Shopping Bag和PC Cart Drawer | Drawer沿用当前页面实例且同页面实例最多一条；进入Shopping Bag形成新页面实例后可再发送；币种、金额和商品正确 |
-| A15 | 空购物车或只有不可购商品 | 不发送`view_cart` |
-| A16 | 成功删除商品 | 一条`remove_from_cart`，币种、实际减少金额、商品和数量正确 |
-| A17 | 同时观察GA4和一方事件 | 同一页面行为使用相同`page_instance_id` |
+开发完成后按下表自查是否遗漏本批改动。正式运行验收另行执行，不在本文件扩展测试过程。
 
-每项验收保留Tag Assistant、DebugView或浏览器真实`g/collect`请求证据。事件名、触发次数、参数名称和实际值全部符合本文件后，本批五个事件方可判定通过。
-
+| 改动对象 | 完成条件 |
+|---|---|
+| `search` | 六种正式提交入口分别映射唯一`trigger_type`；每次正式提交只发送一次；输入变化、联想展示、筛选、排序和结果返回不产生`search` |
+| `view_search_results` | 初始加载及结果URL参数生效后产生唯一终态；支持`success`、`no_results`、`failed`、`cancelled`；直达URL不补造`search`；仅本事件使用`event_id` |
+| `view_item_list` | 单件商品达到50%可视且持续1秒后发送；同一页面实例按展示位和商品去重；只携带本次达标商品及可取得的列表位置、展示位和搜索上下文 |
+| `view_cart` | Shopping Bag和PC Cart Drawer均保留；Drawer沿用当前页面实例，Shopping Bag使用新页面实例；携带可取得的`currency`、`value`及全部可购商品 |
+| `remove_from_cart` | 商品真实删除成功后发送一次；携带可取得的`currency`、实际减少金额及数量为1的被删除商品；失败或无变化不发送 |
+| 公共页面实例 | `page_view`、`view_search_results`、`view_item_list`、`select_item`和`view_cart`统一读取Web公共页面上下文中的`page_instance_id` |
+| 字段缺失 | 业务事实成立时事件继续发送；无法取得的参数省略，不伪造默认值；不新增线上参数缺失诊断事件或诊断机制 |
+| GA4配置 | 增强型衡量保持开启，仅关闭“网站搜索”，避免自动生成第二条`view_search_results` |
