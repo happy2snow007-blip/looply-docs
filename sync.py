@@ -756,6 +756,31 @@ MODULES = {
         'sidebar_group': '数据与分析',
         'static_docs': [
             {
+                'source_subdir': 'outputs/019ff9ea-a682-70f2-b988-d69ce69930cd',
+                'subdir': '一方平台开发基线',
+                'filename': 'Looply-一方埋点新增与修改清单-v1.1.xlsx',
+            },
+            {
+                'source_subdir': 'outputs/019ff9ea-a682-70f2-b988-d69ce69930cd',
+                'subdir': '一方平台开发基线',
+                'filename': 'Looply-一方埋点新增公共字段清单-v1.1.xlsx',
+            },
+            {
+                'source_subdir': 'docs/product',
+                'subdir': '一方平台开发基线',
+                'filename': 'looply-一方埋点公共实施规则-v1.1.md',
+            },
+            {
+                'source_subdir': 'docs/product',
+                'subdir': '版本说明',
+                'filename': 'looply-一方埋点开发材料-变更日志.md',
+            },
+            {
+                'source_subdir': 'docs/reviews/C端数据看板',
+                'subdir': '评审记录',
+                'filename': 'looply-一方埋点三份开发材料-v1.1-正式预评审-20260821.md',
+            },
+            {
                 'source_subdir': 'docs/product',
                 'subdir': 'GA4开发基线',
                 'filename': 'looply-GA4五事件新增与修改-PRD-v1.0.md',

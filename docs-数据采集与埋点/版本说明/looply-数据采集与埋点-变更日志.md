@@ -111,6 +111,10 @@
 
 ## v1.7（开发评审稿）
 
+### 新增交付物
+
+- `looply-数据采集与埋点-v1.7开发问题处理结论-v1.0.md`
+
 ### 变更内容
 
 - 取消一方平台与GA4的搜索请求ID要求，不再生成、传递或验收该字段。
@@ -118,6 +122,18 @@
 - 搜索次数直接按去重`search`事件计数；结果状态按`view_search_results.event_id`计数。
 - 搜索结果曝光、点击与商详来源使用结果页`page_instance_id`、结构化URL上下文、商品标识、Session和事件时间关联。
 - 筛选、排序和Reset只记录结果页操作及更新后的`view_search_results`，不再产生新的`search`。
+- 开发问题处理结论明确：`anonymous_id`由身份模块生成并作为稳定匿名主体ID上传，Snowplow `domain_userid`作为浏览器辅助标识同时上传但不参与身份合并；PC无Shop和Favorites聚合入口但覆盖PC Wishlist和Recently Viewed；支付枚举增加`apple_pay`；搜索结果请求使用四种唯一终态且不设置搜索请求关联ID；旧分享调用按打开、关闭、渠道选择、复制链接和系统分享迁移为`ui_interaction`，入口曝光、旧完成记录和短码记录停止进入一方平台；当前不存在的Account Privacy下载数据和删除账号操作不预埋。
+- 授权技术团队决定字段类型、长度、空值、ID格式、Schema／SDK版本和兼容实现；业务事件语义、业务枚举、PII边界及防重复原则继续以产品文档为准。
+- 明确五类服务端权威事实另建服务端／数据平台任务，不由Web SDK上报。
+
+#### GA4 `trigger_type`验收与变更清单补齐
+
+- **文件版本**：GA4埋点变更清单v1.3 → v1.4。
+- **变更内容**：
+  - 完整定义`carousel_term_button`、`manual_enter`、`manual_search_button`、`suggestion_select`、`history_select`和`popular_term_select`六种枚举及判定边界。
+  - 明确同一枚举从搜索提交动作进入结果页URL，再由`search`、`view_search_results`和搜索结果`view_item_list`读取并进入GA4。
+  - 明确筛选、排序和Reset保留原`trigger_type`且不新增`search`；直达URL无该参数时留空，不伪造。
+  - 同步修正测试环境验收记录，移除已取消的搜索请求ID验收要求。
 - 同步形成GA4变更清单v1.3、GA4开发确认结论v1.1、页面操作覆盖清单v0.2、数据分析报表PRD v0.2、指标来源对照表v0.2和采集影响评估v0.2。
 
 ### 影响范围

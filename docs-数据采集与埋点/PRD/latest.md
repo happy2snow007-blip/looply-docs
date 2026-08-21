@@ -1,7 +1,7 @@
 # Looply 数据采集与埋点产品需求
 
 > 版本：v1.7  
-> 日期：2026-08-19  
+> 日期：2026-08-20  
 > 状态：开发评审稿  
 > 变更依据：搜索结果页URL承载搜索上下文的产品确认  
 > 版本关系：v1.6保留为历史版本；后续评审与实施以本稿为准。
@@ -12,7 +12,7 @@
 
 本方案定义 Looply 一方数据平台需要记录的客户端业务行为、公共业务上下文、身份与 Session 业务口径、权威业务事实输入，以及存量埋点迁移目标。
 
-本期覆盖当前 PC Web 和 Mobile Web 已存在的页面与有意义用户操作。PC没有独立Shop和Favorites页面；Mobile包含独立Shop和Favorites页面。Tablet和App不在本期范围。
+本期覆盖当前 PC Web 和 Mobile Web 已存在的页面与有意义用户操作。PC没有独立Shop和Favorites聚合页面，但覆盖现有Wishlist和Recently Viewed页面；Mobile包含独立Shop和Favorites页面。Tablet和App不在本期范围。
 
 本方案不定义 GA4、广告平台或搜推算法专项字段，不定义 SDK、网关、消息队列、存储表及发送重试机制。
 
@@ -42,7 +42,7 @@
 
 | 类别 | 业务信息 |
 |---|---|
-| 身份 | `anonymous_id`；已登录时增加`user_id`和`identity_state`；身份模块已返回时增加`canonical_person_id` |
+| 身份 | 身份模块生成的稳定`anonymous_id`与Snowplow生成的`domain_userid`；已登录时增加`user_id`和`identity_state`；身份模块已返回时增加`canonical_person_id` |
 | Session | `session_id` |
 | 页面 | `page_type`、`page_id`、`page_instance_id`、清洗后的页面URL、上一页面类型 |
 | 设备与市场 | 设备类别、浏览器、操作系统、Market、国家／地区；具体取得方式由技术方案确定 |
@@ -50,6 +50,8 @@
 | 站外原始来源 | 首次到达时可取得的referrer、UTM、广告点击标识和落地页；保留原始触点，不在采集环节计算首次／末次归因结果 |
 | 站内原始来源 | 引导当前事实发生的来源页面、模块、入口和前序事件；归因结果不得覆盖原始触点 |
 | 结果 | 适用时记录`result_state`和低基数`failure_type` |
+
+`page_instance_id`唯一识别用户实际进入的这一次页面实例，不是页面URL、`session_id`或用户ID。该ID由Web页面公共上下文在页面实例建立时统一生成并保存；适用的一方客户端事件均从同一公共上下文读取该值，用于页面实例关联和去重。业务页面、搜索、商品、收藏和购物车等模块不得各自生成另一套`page_instance_id`。
 
 ### 3.3 业务对象标识
 
@@ -66,8 +68,8 @@
 
 ### 4.1 身份
 
-1. `anonymous_id`是统一匿名身份字段，直接使用现有业务`looply_anonymous_id`的值。Snowplow `domain_userid`、搜索指纹等是源系统标识，不得替代`anonymous_id`或参与身份合并。
-2. 统一事件对外字段名使用`anonymous_id`，不得再生成另一套长期匿名ID。
+1. `anonymous_id`是身份模块生成并提供给埋点使用的稳定匿名主体ID，用于串联登录前行为及登录后的`user_id`。统一事件直接携带身份模块输出的`anonymous_id`，不再由埋点模块生成另一套长期匿名ID。
+2. `domain_userid`由Snowplow生成，作为浏览器侧辅助标识与`anonymous_id`同时上传；它不替代`anonymous_id`，不参与身份模块的用户合并，也不用于跨设备自动合并。
 3. 数据分析与报表文档中的`visitor_id`对应本方案的`anonymous_id`，不新增第二套访客标识。
 4. 首次访问和页面初始化时，身份模块创建或解析匿名身份，并返回当前identity context。
 5. 注册／登录成功后，身份模块建立`anonymous_id → user_id`确定性关系；底层分析可使用身份模块返回的`canonical_person_id`串联匿名、登录和下单路径。事件保留发生时身份，历史原始事件不回写。
@@ -148,13 +150,13 @@
 | `ui_interaction` | 第8.2节页面／模块中由8.4映射的控件 | 用户完成没有专属事件的有意义操作 | 新增统一事件；复用或迁移旧通用操作 |
 | `search` | Header或Mobile搜索面板、搜索页 | 用户通过回车、搜索按钮、输入联想、搜索历史、轮播词或热门搜索词正式提交搜索 | 调整现有提交点；筛选、排序和重置不产生新的`search` |
 | `view_search_results` | 搜索结果页 | 初始加载或URL参数更新后的结果进入成功有结果、成功无结果、失败或取消的唯一终态 | 将结果位置的现有`search`改名并调整字段 |
-| `view_item_list` | 首页Feed、Collection、搜索结果、无结果推荐、商详推荐、Mobile Favorites／Recently Viewed | 单件商品达到50%可视且持续1秒 | 将现有`item_impression`改名并调整字段 |
+| `view_item_list` | 首页Feed、Collection、搜索结果、无结果推荐、商详推荐、PC＋Mobile Wishlist／Recently Viewed及Mobile Favorites推荐 | 单件商品达到50%可视且持续1秒 | 将现有`item_impression`改名并调整字段 |
 | `select_item` | 上述商品列表／推荐位及Shopping Bag商品卡 | 用户点击商品卡 | 将现有`item_click`改名并调整字段 |
 | `view_item` | 商品详情 | 商品核心内容成功显示 | 现有事件调整字段 |
 | `sign_up` | 注册流程 | 注册事务真实成功 | 现有事件调整字段 |
 | `login` | 登录流程 | 登录事务真实成功 | 现有事件调整字段 |
-| `add_to_wishlist` | 商品详情、Mobile Favorites及其他现有收藏入口 | 收藏关系真实新增 | 现有事件调整字段 |
-| `remove_from_wishlist` | 商品详情、Mobile Favorites／Wishlist | 收藏关系真实删除 | 现有事件调整字段 |
+| `add_to_wishlist` | 商品详情、PC＋Mobile Wishlist／Recently Viewed、Mobile Favorites及其他现有收藏入口 | 收藏关系真实新增 | 现有事件调整字段 |
+| `remove_from_wishlist` | 商品详情、PC＋Mobile Wishlist／Recently Viewed及Mobile Favorites | 收藏关系真实删除 | 现有事件调整字段 |
 | `add_to_cart` | 商品详情 | 加购成功且Shopping Bag状态真实变化 | 现有事件调整字段 |
 | `view_cart` | Shopping Bag | 至少一件可购商品成功显示；全失效商品不产生 | 新增 |
 | `remove_from_cart` | Shopping Bag | 商品成功从Shopping Bag删除 | 现有事件调整字段 |
@@ -197,8 +199,13 @@ Web不得用点击、成功页、缓存或回调重复生成这些权威事实�
 | `checkout_start` | 从Shopping Bag或Buy Now开始进入Checkout | `begin_checkout` | 改名 | 沿用现有触发点，不新增第二条开始结算事件 |
 | 提交位置的现有`search` | 用户通过回车、搜索按钮、输入联想、搜索历史、轮播词或热门搜索词正式提交 | `search` | 沿用＋调整字段 | 增加`trigger_type`和搜索模块正式分析字段，并进入携带搜索上下文参数的结果页URL |
 | 搜索结果页的筛选／排序／重置提交点 | 用户正式Apply筛选、Apply排序或Reset后更新结果 | `ui_interaction`＋`view_search_results` | 沿用操作并调整结果字段 | 不产生新的`search`；操作记录结构化筛选／排序，结果事件解析更新后的结果页URL上下文 |
-| 结果位置的现有`search` | 当前已确认在搜索结果返回位置发送`search`；现有代码是否覆盖失败／取消尚待开发按调用点核对 | `view_search_results` | 改名＋调整字段 | 使用结果页`page_instance_id`和URL搜索上下文；目标必须补齐`success/no_results/failed/cancelled`唯一终态；直达URL可无前序`search` |
-| 当前代码中的6个`share_*`物理事件 | 商品详情分享面板的打开、关闭、渠道选择、复制链接或系统分享 | `ui_interaction` | 改名并合并 | 统一`interaction_name=product_share`，使用`action`和`share_channel`区分；旧名不得继续形成一方记录。真实物理名称和调用点由开发扫描当前Web代码，并登记在技术迁移清单中 |
+| 结果位置的现有`search` | 搜索结果请求返回时发送的现有`search` | `view_search_results` | 改名＋调整字段 | 使用结果页`page_instance_id`和URL搜索上下文；补齐`success/no_results/failed/cancelled`唯一终态；直达URL可无前序`search` |
+| `sheet_open` | 打开商品分享面板 | `ui_interaction` | 改名 | `interaction_name=product_share`、`action=open` |
+| `sheet_dismiss` | 关闭商品分享面板 | `ui_interaction` | 改名 | `interaction_name=product_share`、`action=close` |
+| `channel_click` | 选择分享渠道或复制链接 | `ui_interaction` | 改名并拆分语义 | 分享渠道使用`action=select_channel`并携带`share_channel`；复制链接使用`action=copy_link` |
+| `more_click` | 打开系统分享面板 | `ui_interaction` | 改名 | `interaction_name=product_share`、`action=open_system_share` |
+| `share_entry_view` | 分享入口展示 | 无 | 停止进入一方平台 | 不作为有意义用户操作 |
+| `share_complete`／`short_code` | 旧分享完成或短码记录 | 无 | 停止进入一方平台 | 本期不形成统一业务事件 |
 | 无 | 没有专属业务事件的页面有意义操作 | `ui_interaction` | 新增 | 按第8章操作表实施 |
 | 无 | 非空Shopping Bag成功显示 | `view_cart` | 新增 | 每个`page_instance_id`一次，携带可购商品明细 |
 | 无 | Checkout配送信息和配送方式首次达到可继续状态 | `add_shipping_info` | 新增 | 覆盖新填、复用已有和修改已有；不含地址明文 |
@@ -223,7 +230,8 @@ Web不得用点击、成功页、缓存或回调重复生成这些权威事实�
 | PC＋Mobile | `listing/collection` | `collection_list_controls`、`collection_product_list` |
 | PC＋Mobile | `listing/search_results` | `search_panel`、`search_suggestions`、`search_submit`、`search_list_controls`、`search_results_list`、`search_no_results_recommendations` |
 | PC＋Mobile | `product/product_detail` | `product_header`、`product_gallery`、`product_information`、`product_actions`、`product_share`、`product_recommendations` |
-| Mobile | `listing/favorites`、`listing/wishlist`、`listing/recently_viewed` | `saved_list_tabs`、`saved_product_list`、`saved_product_actions`、`saved_recommendations` |
+| Mobile | `listing/favorites` | `saved_list_tabs`、`saved_product_list`、`saved_product_actions`、`saved_recommendations` |
+| PC＋Mobile | `listing/wishlist`、`listing/recently_viewed` | `saved_list_tabs`、`saved_product_list`、`saved_product_actions` |
 | PC＋Mobile | `cart/cart` | `cart_items`、`cart_selection`、`cart_item_actions`、`cart_checkout`、`cart_empty_state`、`cart_unavailable_items`、`cart_authentication` |
 | PC＋Mobile | `checkout/checkout` | `checkout_contact`、`checkout_shipping`、`checkout_payment`、`checkout_coupon`、`checkout_submit` |
 | Mobile | `checkout/order_confirmation` | `order_confirmation` |
@@ -233,7 +241,7 @@ Web不得用点击、成功页、缓存或回调重复生成这些权威事实�
 | PC＋Mobile | `account/account`、`account/profile`、`account/address_list`、`account/address_edit`、`account/privacy` | `account_orders`、`account_navigation`、`account_profile`、`account_addresses`、`account_preferences`、`account_privacy`、`account_authentication` |
 | PC＋Mobile | `content/contact_us`、`content/about`、`content/authentication`、`content/privacy_policy`、`content/terms_of_service`、`content/accessibility_statement`、`content/your_privacy_choices` | `contact_form`、`contact_information`、`content_navigation`、`footer` |
 
-PC不定义`listing/shop`、`listing/favorites`、`listing/wishlist`或`listing/recently_viewed`页面。Delivery是订单页内的物流详情模块，不定义独立`page_id`。
+PC不定义`listing/shop`或`listing/favorites`聚合页面；PC现有`listing/wishlist`和`listing/recently_viewed`页面纳入本期。Delivery是订单页内的物流详情模块，不定义独立`page_id`。
 
 商品曝光与点击使用下列封闭`placement_id`：
 
@@ -246,14 +254,14 @@ PC不定义`listing/shop`、`listing/favorites`、`listing/wishlist`或`listing/
 | 搜索无结果推荐 | `search_no_results_recommendations` |
 | 商详You May Also Like | `product_you_may_also_like` |
 | 商详Recently Viewed | `product_recently_viewed` |
-| Mobile Wishlist | `favorites_wishlist` |
-| Mobile Recently Viewed | `favorites_recently_viewed` |
+| PC＋Mobile Wishlist | `favorites_wishlist` |
+| PC＋Mobile Recently Viewed | `favorites_recently_viewed` |
 | Mobile Favorites推荐 | `favorites_recommendations` |
 | Shopping Bag商品列表 | `shopping_bag_items` |
 
 ### 8.3 页面覆盖索引
 
-本期需覆盖的页面组为：全站公共导航、首页、Mobile Shop、搜索、Collection、商品详情、Mobile Favorites／Wishlist／Recently Viewed、Shopping Bag、Checkout与订单确认页、登录注册与密码找回、Orders／Order Detail、Returns、Account／Profile／Address／Privacy、Contact Us、About、Authentication介绍页及政策页。每个实际可访问页面按5.1记录`page_view`；页面内操作的唯一命名以8.4为准。
+本期需覆盖的页面组为：全站公共导航、首页、Mobile Shop、搜索、Collection、商品详情、Mobile Favorites、PC＋Mobile Wishlist／Recently Viewed、Shopping Bag、Checkout与订单确认页、登录注册与密码找回、Orders／Order Detail、Returns、Account／Profile／Address／Privacy、Contact Us、About、Authentication介绍页及政策页。每个实际可访问页面按5.1记录`page_view`；页面内操作的唯一命名以8.4为准。
 
 普通滚动、输入过程、文字选择、组件渲染和无操作的状态展示不采集。
 
@@ -265,12 +273,13 @@ PC不定义`listing/shop`、`listing/favorites`、`listing/wishlist`或`listing/
 
 | 页面／展示位 | 曝光 | 点击进商详 | 收藏／取消 |
 |---|---|---|---|
-| 首页Feed、Collection、搜索结果、搜索无结果推荐、商详推荐、Mobile Wishlist／Recently Viewed／Favorites推荐 | `view_item_list` | `select_item` | `add_to_wishlist`／`remove_from_wishlist` |
+| 首页Feed、Collection、搜索结果、搜索无结果推荐、商详推荐、PC＋Mobile Wishlist／Recently Viewed及Mobile Favorites推荐 | `view_item_list` | `select_item` | `add_to_wishlist`／`remove_from_wishlist` |
 | Shopping Bag商品列表 | `view_cart`承载列表展示 | `select_item` | 无 |
 
 | 端别／页面 | `module_id` | `interaction_name` | 稳定操作映射 |
 |---|---|---|---|
-| PC＋Mobile／全站 | `global_header`／`mobile_bottom_nav` | `global_navigation` | `select` → `logo`／`header_nav_item`／`account_entry`／`favorites_entry`／`cart_entry`／`mobile_nav_item` → 目标`page_id` |
+| PC／全站Header | `global_header` | `global_navigation` | `select` → `logo`／`header_nav_item`／`account_entry`／`cart_entry` → 目标`page_id` |
+| Mobile／底部导航 | `mobile_bottom_nav` | `global_navigation` | `select` → `mobile_nav_item` → 目标`page_id` |
 | PC／全站Header | `global_header` | `navigation_menu` | `open` → `more_navigation_button` → `more_navigation`；`close` → `more_navigation_close` → `more_navigation`；`select` → `more_nav_item` → 目标`page_id` |
 | PC＋Mobile／Market & Language | `global_header` | `market_language` | `open` → `market_language_entry` → `market_language`；`close` → `market_language_close` → `market_language`；`select_market` → `market_option` → Market枚举；`select_language` → `language_option` → Language枚举；`select_currency` → `currency_option` → Currency枚举 |
 | PC＋Mobile／通用失败态 | 当前失败模块 | `retry` | `submit` → `retry_button` → 原失败操作的稳定`element_id` |
@@ -294,7 +303,7 @@ PC不定义`listing/shop`、`listing/favorites`、`listing/wishlist`或`listing/
 | PC＋Mobile／商详 | `product_recommendations` | `recommendation_rail` | `scroll` → `recommendation_rail` → `placement_id`；`previous`／`next` → `recommendation_previous`／`recommendation_next` → `placement_id` |
 | PC＋Mobile／商详 | `product_recommendations` | `product_recommendation_navigation` | `view_all` → `module_view_all` → `listing/recently_viewed`；`find_more` → `find_more_button` → 目标`page_id` |
 | Mobile／Favorites | `saved_list_tabs` | `saved_list_tab` | `change` → `saved_list_tab` → `wishlist`／`recently_viewed` |
-| Mobile／Favorites | `saved_product_actions` | `saved_list_entry` | `select` → `explore_items_button`／`add_more_card` → 目标`page_id` |
+| PC＋Mobile／Wishlist、Recently Viewed | `saved_product_actions` | `saved_list_entry` | `select` → `explore_items_button`／`add_more_card` → 目标`page_id` |
 | PC＋Mobile／Shopping Bag | `cart_selection` | `cart_selection` | `select_item`／`unselect_item` → `cart_item_checkbox` → `listing_public_code`；`select_all`／`unselect_all` → `select_all_checkbox` → `all_items` |
 | Mobile／Shopping Bag | `cart_item_actions` | `cart_action_panel` | `open` → `cart_item` → `listing_public_code`；`close` → `cart_action_panel` → `listing_public_code` |
 | PC＋Mobile／Shopping Bag空态 | `cart_empty_state` | `cart_empty_navigation` | `select` → `continue_shopping_button` → 目标`page_id` |
@@ -303,7 +312,7 @@ PC不定义`listing/shop`、`listing/favorites`、`listing/wishlist`或`listing/
 | PC＋Mobile／Checkout | `checkout_contact` | `marketing_subscription` | `enable`／`disable` → `marketing_subscription_checkbox` → `marketing_subscription` |
 | PC＋Mobile／Checkout | `checkout_shipping` | `shipping_address` | `add` → `add_address_button` → `new_address`；`edit` → `address_edit_button` → 地址内部对象ID；`select` → `address_item` → 地址内部对象ID；`save` → `address_save_button` → 地址内部对象ID或`new_address`；`back` → `address_back_button` → `checkout/checkout` |
 | PC＋Mobile／Checkout | `checkout_shipping` | `shipping_tier` | `select` → `shipping_tier_option` → 配送方式枚举 |
-| PC＋Mobile／Checkout | `checkout_payment` | `payment_method` | `select` → `payment_method_option` → `credit_card`／`paypal`／`klarna` |
+| PC＋Mobile／Checkout | `checkout_payment` | `payment_method` | `select` → `payment_method_option` → `credit_card`／`paypal`／`klarna`／`apple_pay` |
 | PC＋Mobile／Checkout | `checkout_contact` | `phone_information` | `open` → `phone_information_control` → `phone_information`；`close` → `phone_information_close` → `phone_information` |
 | PC／Checkout | `checkout_payment` | `security_code_information` | `open` → `security_code_information_control` → `security_code_information`；`close` → `security_code_information_close` → `security_code_information` |
 | PC＋Mobile／Checkout | `checkout_coupon` | `checkout_coupon` | `apply` → `coupon_apply_button` → `checkout_coupon`；`remove` → `coupon_remove_button` → `checkout_coupon`；不携带优惠码原文 |
@@ -341,7 +350,6 @@ PC不定义`listing/shop`、`listing/favorites`、`listing/wishlist`或`listing/
 | PC＋Mobile／Address | `account_addresses` | `address` | `add` → `address_add_button` → `new_address`；`edit` → `address_edit_button` → 地址内部对象ID；`save` → `address_save_button` → 地址内部对象ID或`new_address`；`set_default` → `address_default_control` → 地址内部对象ID；`open_delete` → `address_delete_button` → 地址内部对象ID；`confirm_delete` → `address_delete_confirm` → 地址内部对象ID；`cancel_delete` → `address_delete_cancel` → 地址内部对象ID；`cancel`／`back` → `address_cancel_button`／`address_back_button` → `account/address_list` |
 | PC＋Mobile／Account偏好 | `account_preferences` | `account_preference` | `open`／`close` → `preference_control`／`preference_close` → `country_region`／`language`／`currency`；`select` → `preference_option` → 选中稳定枚举 |
 | PC＋Mobile／Account订阅 | `account_preferences` | `subscription` | `subscribe`／`unsubscribe` → `subscription_control` → 订阅类型ID |
-| PC＋Mobile／Account隐私 | `account_privacy` | `account_privacy` | `change` → `privacy_preference_control` → 隐私选择类型ID；`download_data` → `download_data_button` → `current_account`；`open_delete_account` → `delete_account_button` → `current_account`；`confirm_delete_account` → `delete_account_confirm` → `current_account`；`cancel_delete_account` → `delete_account_cancel` → `current_account` |
 | PC＋Mobile／Account | `account_authentication` | `account_logout` | `open` → `logout_entry` → `logout`；`confirm` → `logout_confirm_button` → `logout`；`cancel` → `logout_cancel_button` → `logout` |
 | PC＋Mobile／Account游客态 | `account_authentication` | `authentication_entry` | `login` → `login_entry` → `auth/login`；`register` → `register_entry` → `auth/sign_up` |
 | PC＋Mobile／Contact Us | `contact_form` | `contact_request` | `submit` → `contact_submit_button` → `contact_form` |
@@ -362,9 +370,10 @@ PC不定义`listing/shop`、`listing/favorites`、`listing/wishlist`或`listing/
 - 购物车优惠码入口。
 - Cart的Move to Wishlist；当前为Coming Soon。
 - 已保存支付工具的复用或修改；当前`payment_info_source`只取`new`。
+- Account Privacy中的下载数据和删除账号操作；当前页面没有对应可用入口。
 - Tablet和App页面交互。
 
-PC没有独立Shop和Favorites页面，不实现这两个PC页面的埋点。Mobile现有Shop和Favorites按实际页面实施。
+PC没有独立Shop和Favorites聚合页面；PC现有Wishlist和Recently Viewed页面按实际页面实施。Mobile现有Shop和Favorites按实际页面实施。
 
 ## 九、统一枚举
 
@@ -373,7 +382,11 @@ PC没有独立Shop和Favorites页面，不实现这两个PC页面的埋点。Mob
 | `result_state` | `success`、`failed`、`cancelled` |
 | `failure_type` | 低基数失败分类；表单校验失败使用`validation_failed` |
 | `result_status` | `success`、`no_results`、`failed`、`cancelled` |
-| `payment_type` | 直接沿用当前API：`credit_card`、`paypal`、`klarna`，不做额外转换 |
+| `payment_type` | 直接沿用当前API：`credit_card`、`paypal`、`klarna`、`apple_pay`，不做额外转换 |
 | `payment_info_source` | 首期仅`new` |
 | `shipping_info_source` | `new`、`existing`、`modified` |
 | `trigger_type` | `carousel_term_button`、`manual_enter`、`manual_search_button`、`suggestion_select`、`history_select`、`popular_term_select`；筛选、排序和重置属于结果页操作，不写入本字段 |
+
+## 十、技术实施边界
+
+产品文档负责确定事件语义、成立条件、业务字段含义、业务枚举、PII边界及防重复原则。技术团队可在不改变上述产品规则的前提下，在`tracking-plan.yaml`中确定字段技术类型、长度、空值表达、ID格式、Schema／SDK版本及兼容实现；API已有枚举直接引用API。未形成稳定字段名和业务含义的开放对象不进入首期协议。
