@@ -8,7 +8,7 @@
 
 | 类型 | 文件名 | 说明 |
 |------|--------|------|
-| PRD 正文 | `Looply-首页Feed-PRD-v2.3.md` | 当前最新版本，迭代中 |
+| PRD 正文 | `Looply-首页Feed-PRD-v2.4.md` | 当前最新版本，迭代中 |
 | HTML 阅读器 | `looply-首页Feed-PRD.html` | v2.3 单版本，新架构，支持评论/下载 |
 | 字段确认清单 | `looply-feed-字段确认清单.md` | 商品系统字段交叉核验结论 |
 | 变更日志 | `looply-Feed-变更日志.md` | 本文件 |
@@ -23,6 +23,24 @@
 | `looply-feed-PRD.html` | 旧 HTML（v2.2，旧架构） |
 | `looply-feed-PRD-v2.3.html` | 旧 HTML（v2.1+v2.2+v2.3 可切换，旧架构） |
 | `looply-feed-PRD-v2.1.html` | 旧 HTML（v2.1+v2.2 可切换，旧架构） |
+
+---
+
+## 进行中 — v2.4（2026-08-21，未交付）
+
+**PRD 文件**：`Looply-首页Feed-PRD-v2.4.md`
+
+### 变更内容（相对 v2.3）
+
+- 恢复 1.1 未实现的 `Deals` 能力，用户端名称统一为 `Sale`。
+- Feed 保持四个 Tab：For You / New Arrivals / Best Sellers / Sale，不新增第五个 Tab。
+- Sale 商品池消费营销或价格服务返回的有效促销、降价结果。
+
+### 影响范围
+
+- **Feed PRD**：已更新至 v2.4。
+- **首页 PRD**：v1.8 末尾已增加 Sale Tab 展示要求。
+- **营销 / 价格服务**：需提供有效促销或降价商品结果。
 
 ---
 
