@@ -758,17 +758,17 @@ MODULES = {
             {
                 'source_subdir': 'outputs/019ff9ea-a682-70f2-b988-d69ce69930cd',
                 'subdir': '一方平台开发基线',
-                'filename': 'Looply-一方埋点新增与修改清单-v1.1.xlsx',
+                'filename': 'Looply-一方埋点新增与修改清单-v1.2.xlsx',
             },
             {
                 'source_subdir': 'outputs/019ff9ea-a682-70f2-b988-d69ce69930cd',
                 'subdir': '一方平台开发基线',
-                'filename': 'Looply-一方埋点新增公共字段清单-v1.1.xlsx',
+                'filename': 'Looply-一方埋点新增公共字段清单-v1.2.xlsx',
             },
             {
                 'source_subdir': 'docs/product',
                 'subdir': '一方平台开发基线',
-                'filename': 'looply-一方埋点公共实施规则-v1.1.md',
+                'filename': 'looply-一方埋点公共实施规则-v1.2.md',
             },
             {
                 'source_subdir': 'docs/product',
