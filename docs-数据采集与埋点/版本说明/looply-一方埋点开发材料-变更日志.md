@@ -1,5 +1,22 @@
 # Looply 一方埋点开发材料变更日志
 
+## v1.5（2026-08-21，开发实施基线）
+
+- 三份v1.5材料共同构成开发实施基线；旧全量PRD v1.7仅保留为历史来源，不再作为开发必须读取的第四份依赖。
+- `anonymous_id`固定取身份模块已有的HttpOnly `looply_anonymous_id`；由服务端／BFF／采集网关或接收层读取并补入事件，Web JavaScript和SDK不读取Cookie，也不使用Snowplow DUID代填；`domain_userid`继续同时上传。
+- 注册／登录`method`枚举扩展为`email / google / apple / facebook`，明确只记录本次实际成功方式及缺失处理，不在产品材料指定跨页面保存技术。
+- 订单确认页PC＋Mobile的Continue Shopping统一目标为`home/home`。
+- 商详推荐区导航统一为`recommendation_rail`：PC记录左右按钮，Mobile在实际发生列表位移后将左滑／右滑记录为`next / previous`；商品曝光规则保持不变。
+- 推荐请求ID只使用现有`placement.request_id`，不新增顶层`recommendation_request_id`；分析层需要时映射展开。
+- 按真实代码调用名修正四个Share存量物理事件；`short_code`明确为`share_complete`参数而非独立事件，Web不双发新旧事件。
+- 恢复并冻结既有`share_channel`稳定枚举：`whatsapp / message / facebook / pinterest / x / messenger`；未知渠道省略，`copy_link`不写该字段。
+- `market`改为读取当前市场接口／上下文返回的稳定Market Code，支持多市场且不硬编码US；缺失时省略且事件继续发送。
+- 同一搜索结果页仅修改筛选、价格区间、排序或重置条件时，沿用当前`page_instance_id`，不新增`page_view`；结果请求完成后形成新的`view_search_results`。
+- 将PC按钮和Mobile手势分别改写为可直接解析的`interaction_name：action → element_id → target_id`映射；删除事件行与公共规则之间的重复完整定义，保留唯一权威引用。
+- 修复事件工作簿“公共字段”索引Sheet的不可见格式，不改变字段或事件规则。
+- 正式评审及最终冻结复检已通过：P0、P1、P2、P3均为0，准确性、冲突、重复和冗余检查全部通过；三份v1.5材料冻结为开发实施基线。
+- 保留v1.4三份材料不变，新建v1.5开发实施基线。
+
 ## v1.4（2026-08-21，开发实施基线）
 
 - 明确`anonymous_id`由身份模块通过可读取身份上下文提供，且不得与Snowplow `domain_userid`相同；不得读取HttpOnly能力Cookie或直接复用返回DUID的旧Helper。
