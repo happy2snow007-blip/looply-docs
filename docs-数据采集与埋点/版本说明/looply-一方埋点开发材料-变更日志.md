@@ -1,5 +1,25 @@
 # Looply 一方埋点开发材料变更日志
 
+## v1.4（2026-08-21，开发实施基线）
+
+- 明确`anonymous_id`由身份模块通过可读取身份上下文提供，且不得与Snowplow `domain_userid`相同；不得读取HttpOnly能力Cookie或直接复用返回DUID的旧Helper。
+- `session_id`改为直接复用现有Snowplow `domain_sessionid`，接受Snowplow客户端事件续期及30分钟超时口径，不再建设第二套一方Session ID；一方报表仅统计至少包含一个一方有效事件的sid，并补充多标签页、跨设备和`origin_session_id`关联边界。
+- 保留逐商品`view_item_list`语义，新增`exposure_id`生成与`select_item`继承规则。
+- 搜索事件适配现有URL结构：`keyword → query`、离散筛选及价格区间统一进入`filter_ids[]`、`sort → sort_type`；补齐筛选去重、稳定排序，以及完整／单边价格区间的稳定编码。
+- PC订单确认页纳入范围；`global_header / footer / mobile_bottom_nav`明确为实际渲染页面均可使用的全局模块。
+- 删除当前不存在或无独立分析增量的`zoom_in / zoom_out / auto_query / scroll`操作，补齐`cancelled`适用边界。
+- PC Shop仍不纳入当前产品范围；代码中无用户入口的桌面组件不反向扩展埋点范围。
+- 保留v1.3文件不变，新建v1.4开发实施基线。
+
+## v1.3（2026-08-21，开发实施基线）
+
+- 新增`click_id_type`，与`click_id`成对记录广告点击标识的类型和值。
+- 固定广告点击标识白名单：`gclid / gbraid / wbraid / fbclid / msclkid / ttclid`；不接收未知参数，不使用`other`。
+- 同一落地URL同时出现多个白名单参数时，只保留一个，优先级为`gclid > gbraid > wbraid > fbclid > msclkid > ttclid`。
+- 无白名单参数时省略`click_id`和`click_id_type`，字段缺失不阻止触点`page_view`上报。
+- 新增公共字段由20个调整为21个；其余事件、字段、触发和平台规则不变。
+- 保留v1.2文件不变，新建v1.3开发实施基线。
+
 ## v1.2（2026-08-21，开发实施基线）
 
 - 删除首期`canonical_person_id`字段及携带规则，不使用`user_id`重复填充该字段。
