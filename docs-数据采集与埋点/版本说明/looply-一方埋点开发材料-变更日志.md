@@ -1,12 +1,38 @@
 # Looply 一方埋点开发材料变更日志
 
+## 2026-08-22｜v1.6 冻结前口径修正
+
+- 详细埋点工作簿明确区分17个客户端`event_type`与5个权威业务表事实名；仅客户端行由Web／SDK上报，权威业务表事实由数据平台读取业务表形成。
+- 公共实施规则删除对事件工作簿中已不存在“公共字段”Sheet的引用。
+
+## v1.6（2026-08-22，开发实施基线工作稿）
+
+- 新增《Looply 一方埋点最终执行问题与结论 v1.0》，用于记录本轮Review问题和产品答复；确定性结论同步回三份实施基线后，该文档不作为开发实施规则或阶段状态依据。
+- 登录结果只发送一条`login`、注册结果只发送一条`sign_up`，并用`result_state=success/failed`区分；如请求已发起后形成取消终态，可使用`cancelled`，不额外发送`ui_interaction`。
+- 明确`order_created / payment_started / payment_failed / purchase / refund`均不由Web／SDK或业务服务新增埋点事件；由数据平台读取订单、支付、退款权威业务表形成一方分析事实。
+- 明确`payment_failed`不进入Web／SDK YAML Schema，也不使用客户端公共`failure_type`；失败原因字段名、业务表来源、封闭枚举、映射和DataWorks质量规则在独立数据平台接入任务中定义，不阻塞前端埋点实施。
+- 明确一方真实`purchase`只取订单／支付权威成交事实；Flink历史`checkout_start→purchase`代理可继续服务存量下游，但不得进入一方成交事实表或成交指标，落地和统计必须隔离。
+- 搜索结果商品曝光／点击统一使用`module_id=search_results_list`；`view_search_results`作为结果请求终态，能明确属于结果列表时使用该模块，否则省略`module_id`，不得新增`search_results_data`。
+- 明确`/favorites`聚合页及其推荐、Tab和列表点位仅适用于Mobile／H5；PC只覆盖真实存在的Wishlist和Recently Viewed页面，不为PC补不存在的Favorites聚合页点位。
+- 开发确认Web／SDK及一方平台均直接沿用`item_impression`、`item_click`、`checkout_start`，三者不改名、不做平台前映射，也不双发`view_item_list`、`select_item`、`begin_checkout`。
+- 将商品曝光、商品点击、Checkout开始及其`exposure_id`、`source_event_id`关联规则统一改为上述最终事件名。
+- 开发实施基线改为《Looply-v1.4-详细埋点需求定稿-v1.1》《Looply-v1.4-公共基础字段需求定稿-v1.1》和《Looply一方埋点公共实施规则v1.6》三份材料；不再依赖“9条补充结论”或历史PRD。
+- 订单确认页Continue Shopping的稳定目标统一为`home`，到达首页后由`home/home`的`page_view`记录页面访问。
+- 认证`method`只约束`login/sign_up`携带本次实际认证方式；跨OAuth跳转如何取得该值由技术方案确定，产品材料不再指定暂存、回调读取或清理步骤。
+- 删除Flink、DWD和DataWorks“零改动／零DDL”的产品承诺；是否改动、字段如何落地及下游如何读取由技术负责人验证确定，产品只冻结语义、可用性、防重复和历史代理隔离边界。
+- 修正公共规则对已不存在“结果字段映射”Sheet的引用；`result_state`和`failure_type`改为直接以详细执行表“详细点位”Sheet对应行的成立时机和专属参数为唯一依据。
+- 统一`failure_type`适用范围：首期仅为`validation_failed`，可用于详细执行表明确要求记录校验失败的客户端结果事件，包括适用的`ui_interaction`、`login`和`sign_up`；不适用于数据平台从权威业务表形成的`payment_failed`。
+- 删除详细执行表K列和公共字段表L列逐行重复的技术方案占位；表头统一说明具体实现由技术负责人验证，避免产品材料重复维护技术方案。
+- 删除事件处理矩阵G／H列逐事件重复的技术验证文案，仅在表头统一保留技术验证与数据可用性边界，不改变任何事件语义或责任端。
+- 保留v1.5公共实施规则和两份v1.0最终执行表不变，新建v1.6规则及两份v1.1执行表。
+
 ## v1.5（2026-08-21，开发实施基线）
 
 - 三份v1.5材料共同构成开发实施基线；旧全量PRD v1.7仅保留为历史来源，不再作为开发必须读取的第四份依赖。
 - `anonymous_id`固定取身份模块已有的HttpOnly `looply_anonymous_id`；由服务端／BFF／采集网关或接收层读取并补入事件，Web JavaScript和SDK不读取Cookie，也不使用Snowplow DUID代填；`domain_userid`继续同时上传。
 - 注册／登录`method`枚举扩展为`email / google / apple / facebook`，明确只记录本次实际成功方式及缺失处理，不在产品材料指定跨页面保存技术。
 - 订单确认页PC＋Mobile的Continue Shopping统一目标为`home/home`。
-- 商详推荐区导航统一为`recommendation_rail`：PC记录左右按钮，Mobile在实际发生列表位移后将左滑／右滑记录为`next / previous`；商品曝光规则保持不变。
+- 商详推荐区导航：PC的`previous/next`分别使用`element_id=recommendation_previous/recommendation_next`；Mobile／H5仅在列表实际移动时记录，左滑且列表向后为`action=next`、右滑且列表向前为`action=previous`，统一使用`element_id=recommendation_rail`、`target_id=placement_id`；回弹或未移动不发送。商品曝光规则保持不变。
 - 推荐请求ID只使用现有`placement.request_id`，不新增顶层`recommendation_request_id`；分析层需要时映射展开。
 - 按真实代码调用名修正四个Share存量物理事件；`short_code`明确为`share_complete`参数而非独立事件，Web不双发新旧事件。
 - 恢复并冻结既有`share_channel`稳定枚举：`whatsapp / message / facebook / pinterest / x / messenger`；未知渠道省略，`copy_link`不写该字段。
@@ -56,7 +82,7 @@
 
 - 将三份材料的职责调整为事件表、公共字段表、公共规则三个唯一权威位置，删除重复维护。
 - 补入完整页面、模块、展示位字典以及搜索结构化字段。
-- 补全服务端五类权威事实和商品行级金额规则。
+- 补全五类权威业务表事实和商品行级金额规则。
 - 补全分享事件迁移、收藏页面范围、合法页面示例和通用失败结果边界。
 - 明确参数缺失不抑制已经成立的业务事件，且不得伪造默认值。
 - 删除新增公共字段`identity_state`；登录态统一根据事件发生时是否携带`user_id`判断。
@@ -77,7 +103,7 @@
 - 收敛重复定义：站外来源字段的取值、来源和缺失处理只在《新增公共字段清单》中维护；公共规则仅保留触点成立、承载和不继承规则。
 - 收敛事件表通用时机与`payment_type`枚举的重复维护，不改变任何事件触发或字段口径。
 - 明确`landing_page_clean`由Web页面公共层读取`location.pathname`生成，统一埋点SDK负责随触点`page_view`发送；字段缺失不阻止事件上报。
-- 新增工作簿“结果字段映射”Sheet，逐项冻结`interaction_name + action`是否携带`result_state/failure_type`、专属成功事件替代规则及Pay Now服务端事实边界。
+- 新增工作簿“结果字段映射”Sheet，逐项冻结`interaction_name + action`是否携带`result_state/failure_type`、专属成功事件替代规则及Pay Now与权威业务表事实边界。
 - 最终收敛唯一权威位置：结果映射Sheet只维护逐动作适用关系，枚举与未列动作默认规则引用公共实施规则；`landing_page_clean`生产方、取值与缺失处理只在新增公共字段清单维护。
 - 保留 v1.0 文件不变，新建 v1.1 工作稿。
 
