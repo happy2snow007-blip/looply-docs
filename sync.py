@@ -2044,10 +2044,19 @@ def update_prd_index_topbar():
         if not version:
             continue
         content = open(index_html, 'r', encoding='utf-8').read()
+
+        # 标题命名不统一（有的叫「XX PRD」、有的叫「XX功能说明文档」），
+        # 且部分标题原本就没有版本号。统一做法：取 title 文本 → 去掉末尾已有版本号
+        # → 追加当前版本。不要求标题里出现字面「PRD」，否则命名不同的模块会被静默跳过。
+        def _retitle(m):
+            base = re.sub(r'\s*[vV][\d.]+\s*$', '', m.group(1)).rstrip()
+            return '<span class="title">' + base + ' V' + version + '</span>'
+
         new_content = re.sub(
-            r'(<span class="title">[^<]*?PRD\s+)[vV][\d.]+',
-            lambda m: m.group(1) + 'V' + version,
-            content
+            r'<span class="title">([^<]*)</span>',
+            _retitle,
+            content,
+            count=1
         )
         if new_content != content:
             with open(index_html, 'w', encoding='utf-8') as f:
