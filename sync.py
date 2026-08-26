@@ -781,6 +781,11 @@ MODULES = {
                 'filename': 'looply-一方埋点开发材料-变更日志.md',
             },
             {
+                'source_subdir': 'docs/product',
+                'subdir': '版本说明',
+                'filename': 'looply-一方埋点三份开发基线-20260826版本差异-v1.0.md',
+            },
+            {
                 'source_subdir': 'docs/reviews/C端数据看板',
                 'subdir': '评审记录',
                 'filename': 'looply-一方埋点三份开发基线-v1.6-权威业务表修正后全量Review-20260822.md',
