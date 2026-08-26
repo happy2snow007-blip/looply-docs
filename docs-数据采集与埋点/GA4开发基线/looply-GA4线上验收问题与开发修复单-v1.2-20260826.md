@@ -297,27 +297,3 @@
 **闭环标准**
 
 - 从线上实际容器启动Preview，逐事件取得`Tags Fired / Tags Not Fired`、触发次数、变量值和GA4 Event Tag证据。
-
-## 三、配置状态与不纳入项
-
-| 范围 | 当前处理 |
-|---|---|
-| GA自动网站搜索`view_search_results` | 当前生产开关已关闭；待开发补齐`view_search_results_source=looply_custom`并注册GA4自定义维度后，由GA4管理员临时开启24～48小时进行双来源对比，结束后再次关闭 |
-| 自动＋主动`page_view` | 按当前确认属于预期双来源，不作为缺陷；只修复主动事件自身的重复或漏发，并由主动事件显式携带`page_view_source=looply_custom`以区分来源 |
-| `item_brand` | 明确不要求传；不修复、不复测，不影响事件判定 |
-| PC Cart Drawer `view_cart` | 后续PC补测已取得HTTP 204，首次展示与同实例去重通过；旧v1.0中的“漏发”结论已撤销 |
-| GA请求整体稳定性 | 正式重测已取得代表事件真实`g/collect`与HTTP 204；不再把早期短窗口或特定网络错误列为普遍代码缺陷 |
-| `shipping_tier=address_saved`语义 | 仍待产品／开发确认，不在本单要求开发自行改枚举 |
-| Contact Us成功、真实支付令牌、`purchase`、`refund` | 尚未完成对应真实业务验收，不写成失败或修复项 |
-
-## 四、修复后验收证据
-
-每个修复点至少提供以下五层证据，各层不得互相替代：
-
-1. 页面实际动作、页面状态和业务接口结果；
-2. `dataLayer.push`事件、载荷和逻辑次数；
-3. 线上实际GTM容器的Tag、Trigger、Variable及触发次数；
-4. GA4 `g/collect`请求参数和HTTP结果；
-5. GA4 DebugView或可归属本次会话的原始事件接收证据。
-
-PC与Mobile分别执行；没有真实入口或未执行的场景记录为“未执行”，不得写成通过或失败。
