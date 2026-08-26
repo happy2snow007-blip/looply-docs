@@ -146,3 +146,35 @@
 
 - [ ] 开发确认结果页URL参数与事件结构化字段映射。
 - [ ] 按v1.7和GA4变更清单v1.3完成搜索链路验收。
+
+## v1.8（开发实施基线）
+
+### 新增交付物
+
+- `looply-数据采集与埋点产品需求-v1.8.md`
+- `looply-GA4数据分析-PRD-v1.5.md`
+- `looply-GA4五事件新增与修改-PRD-v1.1.md`
+- `looply-GA4埋点变更清单-v1.5.md`
+- `looply-一方埋点公共实施规则-v1.7.md`
+- `Looply-v1.4-详细埋点需求定稿-v1.2.xlsx`
+
+### 变更内容
+
+- Search与Collection筛选上下文统一由后台稳定`dimension_code`和`option_code`形成，不再由前端固定维度白名单决定可上报范围。
+- GA4把最终已Apply离散筛选集合序列化为逗号连接的`filter_ids`；一方埋点保留`filter_ids[]`数组，两者读取同一公共筛选事实。
+- Search／Collection筛选组交互使用`dimension_code`，筛选项选择使用`dimension_code:option_code`，Apply携带最终集合；选择后取消、关闭或Reset不得残留旧值。
+- Collection商品曝光与点击补充最终筛选和排序上下文。
+- 后台／数据平台维护稳定Code到展示名称的可追溯映射，报表展示阶段关联名称。
+
+### 影响范围
+
+- **Web／SDK**：统一Search／Collection动态筛选事实及GA4、一方两个适配出口。
+- **GA4**：更新`view_search_results`及Search／Collection筛选后商品曝光的`filter_ids`。
+- **一方平台**：更新筛选Apply、Collection曝光／点击及筛选交互的稳定Code字段。
+- **公共字段表**：无新增公共字段，继续使用v1.1。
+- **数据平台**：补充筛选维度／选项Code到展示名称的可追溯映射。
+
+### 待办事项
+
+- [ ] 开发按新基线完成Search／Collection动态筛选上下文改造。
+- [ ] 测试按PC／Mobile的单选、多选、动态`Series`、选择后取消、Reset和无筛选完成双平台复验。

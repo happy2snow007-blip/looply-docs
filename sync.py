@@ -756,9 +756,9 @@ MODULES = {
         'sidebar_group': '数据与分析',
         'static_docs': [
             {
-                'source_subdir': 'outputs/019ff9ea-a682-70f2-b988-d69ce69930cd',
+                'source_subdir': 'outputs/01a01e36-08de-7e73-9b6f-7064185b6f07',
                 'subdir': '一方平台开发基线',
-                'filename': 'Looply-v1.4-详细埋点需求定稿-v1.1.xlsx',
+                'filename': 'Looply-v1.4-详细埋点需求定稿-v1.2.xlsx',
             },
             {
                 'source_subdir': 'outputs/019ff9ea-a682-70f2-b988-d69ce69930cd',
@@ -768,7 +768,7 @@ MODULES = {
             {
                 'source_subdir': 'docs/product',
                 'subdir': '一方平台开发基线',
-                'filename': 'looply-一方埋点公共实施规则-v1.6.md',
+                'filename': 'looply-一方埋点公共实施规则-v1.7.md',
             },
             {
                 'source_subdir': 'docs/product',
@@ -788,7 +788,17 @@ MODULES = {
             {
                 'source_subdir': 'docs/product',
                 'subdir': 'GA4开发基线',
-                'filename': 'looply-GA4五事件新增与修改-PRD-v1.0.md',
+                'filename': 'looply-GA4五事件新增与修改-PRD-v1.1.md',
+            },
+            {
+                'source_subdir': 'docs/product',
+                'subdir': 'GA4开发基线',
+                'filename': 'looply-GA4数据分析-PRD-v1.5.md',
+            },
+            {
+                'source_subdir': 'docs/reviews/C端数据看板',
+                'subdir': 'GA4开发基线',
+                'filename': 'looply-GA4线上验收问题与开发修复单-v1.2-20260826.md',
             },
             {
                 'source_subdir': 'docs/product',

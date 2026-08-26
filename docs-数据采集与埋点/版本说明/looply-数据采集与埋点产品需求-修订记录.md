@@ -55,3 +55,11 @@
 - 筛选、排序和Reset不产生新的`search`，只记录操作及更新后的结果终态。
 - 重复打开相同URL由`page_instance_id`区分页面实例；同一页面内多次结果更新由各自`event_id`区分。
 - 同步调整GA4开发清单、全页面操作覆盖清单及数据分析报表相关文档。
+
+## V1.8｜2026-08-26
+
+- Search与Collection筛选统一使用后台稳定`dimension_code`和`option_code`形成最终已Apply筛选事实。
+- 前端不维护固定筛选维度白名单；后台新增`Series`等维度时无需再次修改前端枚举。
+- 一方使用`filter_ids[]`结构化数组，GA4使用逗号连接的`filter_ids`字符串，两者从同一公共事实生成。
+- 筛选组交互使用`dimension_code`，单项选择使用`dimension_code:option_code`；Apply携带最终集合，取消和Reset不得残留。
+- 后台／数据平台维护可追溯的Code到展示名称映射；事件只保留稳定Code。

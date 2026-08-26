@@ -1,5 +1,15 @@
 # Looply 一方埋点开发材料变更日志
 
+## 2026-08-26｜v1.7 动态筛选上下文
+
+- 开发实施基线更新为《Looply-v1.4-详细埋点需求定稿-v1.2》《Looply-v1.4-公共基础字段需求定稿-v1.1》和《Looply一方埋点公共实施规则v1.7》；公共字段表没有新增字段。
+- Search与Collection统一使用后台稳定`dimension_code`和`option_code`形成最终已Apply筛选事实，前端不维护固定筛选维度白名单。
+- 一方`filter_ids[]`每项使用`dimension_code:option_code`；筛选组交互使用`dimension_code`，筛选项交互使用对应Code对。
+- Search／Collection的Apply携带最终`filter_ids[]`；选择后取消、关闭或未Apply的值不进入，Reset后集合为空。
+- Collection商品曝光与点击增加最终`filter_ids[] / sort_type`上下文。
+- 后台／数据平台负责维护Code到展示名称的可追溯映射；事件不上传展示名称代替ID。
+- 保留v1.6公共规则及两份v1.1执行表不变，新建v1.7规则及详细点位v1.2。
+
 ## 2026-08-26｜订单归因关联与交易事实唯一权威位置收口
 
 - `origin_session_id`由“可确定时携带”改为正常Web Checkout下单必传必存；Web／埋点SDK传入当时Snowplow `session_id`，订单服务随订单或归因上下文保存，支付和成交数据按`order_id`沿用。仅明确不经过Web Checkout且能由订单来源识别的例外允许为空。
