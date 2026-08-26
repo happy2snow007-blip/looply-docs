@@ -772,6 +772,11 @@ MODULES = {
             },
             {
                 'source_subdir': 'docs/product',
+                'subdir': '一方平台开发基线',
+                'filename': 'looply-订单与交易数据接入需求-v1.0.md',
+            },
+            {
+                'source_subdir': 'docs/product',
                 'subdir': '版本说明',
                 'filename': 'looply-一方埋点开发材料-变更日志.md',
             },

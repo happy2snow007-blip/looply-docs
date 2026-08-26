@@ -11,9 +11,9 @@
 
 1. 《Looply-v1.4-详细埋点需求定稿-v1.1》：事件、页面、模块、动作、触发时机、业务参数及存量处理的唯一权威表。
 2. 《Looply-v1.4-公共基础字段需求定稿-v1.1》：相对现有埋点服务需要新增的公共字段及字段来源的唯一权威表。
-3. 本文档：跨事件规则、稳定页面／模块／展示位字典和权威业务表事实的唯一权威位置。
+3. 本文档：客户端跨事件规则、稳定页面／模块／展示位字典，以及客户端与权威业务表之间边界的唯一权威位置。
 
-以上三份材料共同构成当前开发实施基线；历史PRD、旧版本清单、口头补充和评审记录不得补充或覆盖本基线。
+以上三份材料共同构成客户端埋点开发实施基线；历史PRD、旧版本清单、口头补充和评审记录不得补充或覆盖本基线。订单、支付、成交、退款和售后数据的来源、字段与接入要求，以《Looply 订单与交易数据接入需求 v1.0》为唯一权威位置，不在客户端埋点基线中重复定义。
 
 现有公共字段继续沿用埋点服务当前基线；本次只按独立公共字段表增加尚未存在的字段。
 
@@ -74,16 +74,16 @@
 
 ### 4.1 身份
 
-1. `anonymous_id`直接使用身份模块已经生成并持久化的稳定`looply_anonymous_id`，用于串联登录前后行为；不得另建、迁移或重新生成第二套长期匿名ID。
-2. `domain_userid`由Snowplow生成，作为浏览器侧辅助标识与`anonymous_id`同时上传，但不替代`anonymous_id`，也不用于跨设备自动合并。
-3. `looply_anonymous_id`继续保持HttpOnly。Web JavaScript和一方SDK不得读取该Cookie，也不得使用Snowplow DUID填充`anonymous_id`；由服务端、同源BFF、采集网关或数据接收层从请求Cookie读取，并在接收侧公共上下文中补入事件。
-4. 已登录事件同时携带当前`user_id`。本期身份串联使用`anonymous_id → user_id`，不新增或上传`canonical_person_id`。
-5. 登录态直接根据事件发生时是否携带`user_id`判断；公共字段表和事件协议均不新增`identity_state`。
-6. 注册或登录成功后，由身份模块建立`anonymous_id → user_id`确定性关系。历史原始事件保留发生时身份，不回写。
-7. 登出或切换账号后，后续事件使用身份模块返回的、已经隔离的当前身份上下文。
+1. 本期同时上传并分别保存`domain_userid`和`anonymous_id`，两者不互相替代，也不得复制填充。
+2. `domain_userid`由Snowplow生成，用于标识当前浏览器环境；清除Cookie、更换浏览器或设备后可能变化。
+3. `anonymous_id`使用当前系统实际产生的`looply_anonymous_id`。该Cookie保持HttpOnly，由服务端、同源BFF、采集网关或数据接收层从请求Cookie读取并补入事件；无法取得时省略，不得使用Snowplow DUID代填。
+4. 已登录事件同时携带当前`user_id`；未登录事件不携带`user_id`。登录态直接根据事件发生时是否携带`user_id`判断，不新增`identity_state`或`canonical_person_id`。
+5. 本期保留各事件发生时实际取得的三个身份字段，不回写历史事件，也不根据相同`domain_userid`或`anonymous_id`自动合并不同`user_id`。
+6. 登出或切换账号后，事件继续记录当时实际取得的`domain_userid`、`anonymous_id`和当前`user_id`；本期不新增ID轮换规则。
+7. 数据平台分别保留两类ID，后续比较两者的覆盖率、连续性及与`user_id`的关联差异；如现有ID不能满足身份串联需求，再另行提出身份模块建设需求。
 8. IP、User-Agent、设备信息、浏览路径或广告来源不得触发自动合并。
 9. 登录Token和`auth_session_id`不得作为行为`session_id`。
-10. 数据分析文档中的`visitor_id`对应本方案的`anonymous_id`，不新增第二套访客标识。
+10. 本期不新增`visitor_id`字段，也不得将任一浏览器ID直接解释为跨设备的自然人标识。
 
 ### 4.2 Session
 
@@ -91,7 +91,7 @@
 2. 连续30分钟没有新的Snowplow客户端事件后，由Snowplow在后续事件发生时生成新的sid；任何实际发送给Snowplow的客户端事件都会续期当前Session。登录、登出和账号切换不强制切断当前Session。
 3. 同一浏览器配置中的多个标签页共享当前sid；不同浏览器配置或设备分别产生Session，即使属于同一用户也不合并。
 4. 一方报表只统计至少包含一个一方有效事件的`session_id`。报表中的Session开始和结束时间根据该`session_id`内第一条和最后一条一方有效事件派生，不新增`session_start`或`session_end`业务事件；技术心跳、接口重试、预加载、后台自动变化和服务端延迟事实即使可能续期Snowplow Session，也不作为一方有效事件或独立Session统计。
-5. `checkout_start`携带当前`session_id`。订单、支付和成交事实能够通过Checkout／订单链路确定来源Session时记录为`origin_session_id`；无法确定时省略，不猜测。具体贯通方式由服务端与数据平台接入任务确定。
+5. `checkout_start`携带当前Snowplow `session_id`。正常Web Checkout下单时，Web／埋点SDK必须把该值作为`origin_session_id`传入订单链路，订单服务必须随订单或订单归因上下文保存；后续支付和成交数据通过`order_id`沿用该值。正常Web下单缺失`origin_session_id`属于实施缺口，不按可选字段处理。只有明确不经过Web Checkout的订单可以为空，且必须能通过订单现有来源类型识别该例外；不得猜测或补造Session ID。完整存储和接入要求见《Looply 订单与交易数据接入需求 v1.0》。
 
 ## 五、业务对象与关联规则
 
@@ -143,7 +143,7 @@
 
 | 本期字段 | 相关现有字段 | 唯一语义与处理结论 |
 |---|---|---|
-| `anonymous_id` | `domain_userid` | 两者同时上传。`anonymous_id`取HttpOnly Cookie中的稳定`looply_anonymous_id`，由服务端／接收侧补入；`domain_userid`是Snowplow浏览器辅助标识。两者不得重复填充。 |
+| `anonymous_id` | `domain_userid` | 两者同时上传并分别保存。`anonymous_id`取当前HttpOnly Cookie中的`looply_anonymous_id`，由服务端／接收侧补入；`domain_userid`是Snowplow浏览器标识。两者不得重复填充或用于自动合并不同`user_id`，后续基于实际数据比较差异。 |
 | `session_id` | Snowplow `domain_sessionid` | 直接复用现有sid作为一方行为Session标识；Snowplow客户端事件按30分钟超时规则续期，不再生成第二套Session ID，登录Session和GA4 Session不得替代。 |
 | `page_instance_id` | `page_type`、`page_id`、`page_url` | 新增一次页面访问实例标识；现有字段继续描述页面类型、页面ID和URL。 |
 | `previous_page_type` | `referrer_url` | 新增稳定的上一页面业务类型；`referrer_url`继续保留原始来源URL，两者不互相推导。 |
@@ -273,21 +273,9 @@ PC不定义`listing/shop`或`listing/favorites`聚合页面；PC现有`listing/w
 
 ## 七、权威业务表事实与Web边界
 
-以下五项是一方分析使用的逻辑事实名称，不是Web／SDK事件，也不要求订单、支付或退款服务新增埋点上报。接入方式已经确定为：由数据平台读取订单、支付、退款权威业务表，形成一方分析事实。
+`order_created`、`payment_started`、`payment_failed`、`purchase`和`refund`是报表使用的权威业务表事实名，不是Web／SDK事件，也不要求订单、支付或退款服务新增埋点上报。Web不得根据按钮点击、成功页、缓存或回调生成这些事实。
 
-| 统一事实名 | 权威来源 | 唯一业务键 | 最小业务信息 |
-|---|---|---|---|
-| `order_created` | 订单系统／订单表 | `order_id` | `order_id`、创建时间、金额、币种、`items[]`（`order_item_id`、`listing_public_code`）；能够确定关联时增加`origin_session_id`，否则标记未关联且不得猜测 |
-| `payment_started` | 支付系统／支付尝试表 | `payment_attempt_id` | `payment_attempt_id`、`order_id`、支付方式、开始时间 |
-| `payment_failed` | 支付系统／支付结果表 | `payment_attempt_id` | `payment_attempt_id`、`order_id`、失败时间；支付失败原因分类在独立数据平台接入任务中定义业务表来源字段、封闭枚举、映射和质量校验；客户端`failure_type`不适用，且不得读取或落地支付网关原始错误文本 |
-| `purchase` | 支付成功与订单成交事实 | `order_id` | `order_id`、支付成功时间、成交金额、币种、`items[]`（每行至少含`order_item_id`、`listing_public_code`、该行成交金额）；整单金额不得替代商品行金额；同一订单只形成一次成交事实；能够确定关联时增加`origin_session_id`，否则标记未关联且不得猜测 |
-| `refund` | 退款／售后权威表 | `refund_id` | `refund_id`、`order_id`、退款金额、币种、退款时间、`items[]`（每行至少含`order_item_id`、`listing_public_code`、该行退款金额）；整单退款金额不得替代商品行退款金额 |
-
-以上五项不进入本期Web／SDK YAML Schema，也不要求生成对应的客户端或服务端埋点类型。数据平台需要另建业务表接入任务，确定同步方式、字段映射、去重和DataWorks质量规则。Web不得根据按钮点击、成功页、缓存或回调重复生成上述事实。
-
-`payment_failed`由数据平台从支付结果权威表中识别明确失败终态并生成，不使用客户端公共`failure_type`。支付失败原因字段名和封闭枚举属于独立数据平台接入规则；该规则尚未完成时，不阻塞Web／SDK埋点实施，但对应失败原因分析不得宣称已可用。Flink现有`checkout_start→purchase`只属于历史代理链路，可以继续服务存量下游，但不得写入一方成交事实表或成交指标；一方`purchase`只读取订单／支付权威成交事实，两条链路必须在数据落地和统计层隔离。
-
-上线时必须按唯一业务键核对一方平台与权威业务表的订单数、成交金额、退款金额及订单商品行。
+上述事实以及订单商品行、退款商品行和售后过程的权威来源、唯一键、最少字段、`origin_session_id`保存规则、支付失败分类和报表数仓接入要求，统一见《Looply 订单与交易数据接入需求 v1.0》。本文档不再重复维护交易事实字段定义。
 
 ## 八、数据内容边界
 
