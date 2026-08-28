@@ -695,6 +695,33 @@ MODULES = {
             },
         },
     },
+    'google_ads': {
+        'name': 'Google广告',
+        'default_source': '$HOME/Desktop/广告投放',
+        'target': 'docs-广告服务/Google广告',
+        'keywords': ['Google广告', '广告服务', 'google_ads'],
+        'config_key': None,
+        'sidebar_group': '广告服务',
+        'sync_prd_only': True,
+        'artifacts': {
+            'prd': {
+                'subdir': 'PRD',
+                'source_subdir': 'PRD',
+                'pattern': r'looply-Google广告投放系统-PRD-v(1\.5)\.md',
+            },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'Google广告-交付开发 V(.+?)\\.zip',
+            },
+        },
+        'static_docs': [
+            {
+                'source_subdir': '/Users/zz/Documents/Codex/2026-07-22/3-8-catalog-pending-outbox-worker',
+                'subdir': 'PRD',
+                'filename': 'looply-gmc-custom-label-rules-migration-v2.6.md',
+            },
+        ],
+    },
     'aftersale': {
         'name': '售后',
         'default_source': '$HOME/Desktop/海外业务/售后',
@@ -1411,6 +1438,18 @@ def sync_module_files(source_dir, target_dir, mod_key):
             dst_latest = os.path.join(dst_prd, 'latest.md')
             if not os.path.isfile(dst_latest) or not files_equal(src_latest, dst_latest):
                 shutil.copy2(src_latest, dst_latest)
+
+        for doc_config in MODULES[mod_key].get('static_docs', []):
+            src_doc = os.path.normpath(os.path.join(
+                source_dir,
+                doc_config.get('source_subdir', '.'),
+                doc_config['filename'],
+            ))
+            if not os.path.isfile(src_doc):
+                continue
+            dst_doc = os.path.join(REPO_DIR, target_dir, doc_config['subdir'])
+            os.makedirs(dst_doc, exist_ok=True)
+            smart_cp(src_doc, dst_doc)
         return
 
     # 调研
