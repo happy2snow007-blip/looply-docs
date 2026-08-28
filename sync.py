@@ -916,6 +916,21 @@ MODULES = {
             },
         },
     },
+    'seo': {
+        'name': 'SEO优化',
+        'default_source': '$HOME/Desktop/SEO优化',
+        'target': 'docs-SEO优化',
+        'keywords': ['SEO优化', 'SEO', 'seo'],
+        'config_key': None,
+        'sidebar_group': 'C端卖场',
+        'sync_prd_only': True,
+        'artifacts': {
+            'prd': {
+                'subdir': 'PRD',
+                'pattern': r'Looply-核心页面-SEO-GEO-技术代码实现说明-v(2\.1)\.md',
+            },
+        },
+    },
 }
 
 # ─── 自动发现新模块 ────────────────────────────────────────────────────────────────
