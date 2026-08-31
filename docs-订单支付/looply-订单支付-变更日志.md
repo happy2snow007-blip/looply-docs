@@ -142,4 +142,5 @@
   - **ER v9.1 → v9.2**（`实体关系图/looply-订单模块实体关系图-v9.2.svg`，数据源 `gen_订单_er.py`）：checkout_session 12 → **40 字段**（新增 28）；新增实体 **checkout_discount_attempt**（10 字段）+ 1:N 关系；DESIGN_RULES 44 → 49（新增 checkout_progress_enum / checkout_address_snapshot / checkout_discount_attempt_rule / discount_code_marketing_boundary / checkout_data_capture，并重写 checkout_abandonment）。全表 17 → 18，关系 21 → 22。JSON 与 YAML 两块 metadata 已校验一致。
   - **原型 v7 → v8**（`原型/looply-订单管理后台原型-v8.html` + 同名 `-report.md`）：弃单列表 +4 筛选项 +3 列 + 导出按钮与弹窗；弃单详情 + 结算进度 / 地址区块常显 + 空态 / 优惠码尝试记录区块 / 时间线新事件；详情页改为按点击的会话渲染（原来 6 条点进去都是同一条）；mock 扩成 6 种典型形态。顺手修了 `.lp-detail` 缺 `align-content:start` 的存量缺陷。
   - ⚠️ **一个流程教训**：`check.sh` 14 项全过（Fail 0），但产物**其实编译不过**——新增列拼 style 少一层大括号，浏览器打开必白屏。原因是 check.sh **不含 JSX 编译**，而第 14 项「渲染仿真」因为详情页组件入参不匹配脚本的识别规则被静默跳过，却仍打印「✅ 无渲染硬伤」（零结果假阴性）。补跑 Babel 编译 + 本地依赖 headless 渲染后才抓到，并顺带修了时间线时间倒挂、表头折行、创建时间被固定列遮挡 3 处。**结论：这份产物的自检必须额外跑「Babel 编译」与「真实渲染」两步，不能只信 check.sh。**
-- 未完成：交付包待打；PRD/ER/原型三者已对齐。
+- **交付包 V1.3-20260831 已打**（7 件）：《V1.2-V1.3 核心差异汇总》· 迭代 PRD V1.3（开发依据）· 完整 PRD v1.3 · 原型 v8 · ER v9.2 · 系统流程图 v2.0（未变，沿用）· 支付渠道对接集成说明 v1.0（未变，沿用）。
+- **已上文档中心**（2026-08-31 18:08，Pages 构建成功、线上实测 5 个链接全 200）：ER v9.2 / PRD v1.3 / 原型 v8 / 交付包 V1.3 四项由 sync.py 自动更新；**迭代 PRD 走 `static_docs` 注册**（源在 `迭代需求/`，同步到文档中心 `PRD/`，本地存放规范不变），index.html 新增「迭代 PRD」card。顺带补回被漏掉的 PRD V1.2 历史版本条目。
