@@ -391,6 +391,13 @@ MODULES = {
                 'pattern': r'订单支付-交付开发 V(.+?)\.zip',
             },
         },
+        'static_docs': [
+            {
+                'source_subdir': '迭代需求',
+                'subdir': 'PRD',
+                'filename': 'looply-订单支付-迭代PRD-V1.3-20260831.md',
+            },
+        ],
     },
     'plm': {
         'name': '红布林商品对接',
