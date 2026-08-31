@@ -63,3 +63,10 @@
 - 一方使用`filter_ids[]`结构化数组，GA4使用逗号连接的`filter_ids`字符串，两者从同一公共事实生成。
 - 筛选组交互使用`dimension_code`，单项选择使用`dimension_code:option_code`；Apply携带最终集合，取消和Reset不得残留。
 - 后台／数据平台维护可追溯的Code到展示名称映射；事件只保留稳定Code。
+
+## V1.9｜2026-08-31
+
+- `add_shipping_info`统一为同一`checkout_id`首次形成有效`shipping_tier`时记录，之后仅在有效tier变化时递增`step_version`并再次记录。
+- 地址新建、复用、切换或修改但最终tier未变化时不产生新事件；撤销`shipping_info_source`必填要求。
+- PC Favorites Drawer不形成新页面实例、不发送新`page_view`，Wishlist曝光与点击沿用打开前当前页面的`page_instance_id`。
+- 与GA4 PRD v1.8及GA4剩余问题收口开发包v1.4统一验收口径。

@@ -830,12 +830,12 @@ MODULES = {
             {
                 'source_subdir': 'docs/product',
                 'subdir': 'GA4开发基线',
-                'filename': 'looply-GA4五事件新增与修改-PRD-v1.1.md',
+                'filename': 'looply-GA4五事件新增与修改-PRD-v1.2.md',
             },
             {
                 'source_subdir': 'docs/product',
                 'subdir': 'GA4开发基线',
-                'filename': 'looply-GA4数据分析-PRD-v1.7.md',
+                'filename': 'looply-GA4数据分析-PRD-v1.8.md',
             },
             {
                 'source_subdir': 'docs/product',
@@ -861,6 +861,21 @@ MODULES = {
                 'source_subdir': 'docs/reviews/C端数据看板',
                 'subdir': '评审记录',
                 'filename': 'looply-GA4数据分析-PRD-v1.7-正式复检-20260831.md',
+            },
+            {
+                'source_subdir': 'deliveries/GA4',
+                'subdir': 'GA4开发基线',
+                'filename': 'looply-GA4剩余问题收口开发包-v1.4.md',
+            },
+            {
+                'source_subdir': 'deliveries/GA4',
+                'subdir': '版本说明',
+                'filename': 'looply-GA4剩余问题收口开发包-修订记录.md',
+            },
+            {
+                'source_subdir': 'docs/reviews/C端数据看板',
+                'subdir': '评审记录',
+                'filename': 'looply-GA4剩余问题统一收口-正式复检-20260831.md',
             },
             {
                 'source_subdir': 'docs/product',
