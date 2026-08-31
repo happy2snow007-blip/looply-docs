@@ -835,7 +835,7 @@ MODULES = {
             {
                 'source_subdir': 'docs/product',
                 'subdir': 'GA4开发基线',
-                'filename': 'looply-GA4数据分析-PRD-v1.5.md',
+                'filename': 'looply-GA4数据分析-PRD-v1.7.md',
             },
             {
                 'source_subdir': 'docs/product',
@@ -856,6 +856,11 @@ MODULES = {
                 'source_subdir': 'docs/reviews/C端数据看板',
                 'subdir': '评审记录',
                 'filename': 'looply-GA4数据分析-PRD-v1.4-冻结前正式需求评审-20260820.md',
+            },
+            {
+                'source_subdir': 'docs/reviews/C端数据看板',
+                'subdir': '评审记录',
+                'filename': 'looply-GA4数据分析-PRD-v1.7-正式复检-20260831.md',
             },
             {
                 'source_subdir': 'docs/product',
