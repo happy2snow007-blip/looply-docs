@@ -396,6 +396,9 @@ MODULES = {
                 'source_subdir': '迭代需求',
                 'subdir': 'PRD',
                 'filename': 'looply-订单支付-迭代PRD-V1.3-20260831.md',
+                # index.html 里这一条是手工卡片，不走 artifacts 版本检测；
+                # 声明 index_href 后由 refresh_static_doc_stamps() 按文件 mtime 刷新「更新于」
+                'index_href': 'docs-订单支付/PRD/looply-订单支付-迭代PRD-V1.3-20260831.md',
             },
         ],
     },
@@ -2054,6 +2057,50 @@ def update_index_html(updates, all_versions, all_history=None):
         print('  [无变化] index.html 无需更新')
 
 
+def refresh_static_doc_stamps():
+    """刷新 static_docs 手工卡片的「更新于」时间戳。
+
+    背景：index.html 里由人手工写的卡片不在 artifacts 的版本检测范围内，
+    sync.py 原有的时间戳更新只覆盖 changed_items，手工卡片会被永久冻在写入时的值。
+    本函数只处理 MODULES 中显式声明了 index_href 的 static_docs 条目，
+    按仓库内该文件的 mtime 刷新，其余条目一概不动
+    （全局按 mtime 刷新是错的：clone / 批量复制会把一堆无关文件的 mtime 改成同一时刻）。
+    """
+    index_path = os.path.join(REPO_DIR, 'index.html')
+    if not os.path.isfile(index_path):
+        return
+    with open(index_path, encoding='utf-8') as f:
+        html = f.read()
+    changed = 0
+    for mod_config in MODULES.values():
+        for doc in mod_config.get('static_docs', []):
+            href = doc.get('index_href')
+            if not href:
+                continue
+            fpath = os.path.join(REPO_DIR, href)
+            if not os.path.isfile(fpath):
+                continue
+            stamp = datetime.fromtimestamp(os.path.getmtime(fpath)).strftime('%Y-%m-%d %H:%M')
+            # 只在包含该 href 的 <li> 块内替换，避免误伤同页其他条目
+            pattern = re.compile(
+                r'(<li class="doc-item">(?:(?!</li>).)*?' + re.escape(href) + r'(?:(?!</li>).)*?</li>)',
+                re.DOTALL,
+            )
+            def _sub(m):
+                nonlocal changed
+                block = m.group(1)
+                new_block = re.sub(r'更新于 \d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?',
+                                   f'更新于 {stamp}', block)
+                if new_block != block:
+                    changed += 1
+                return new_block
+            html = pattern.sub(_sub, html)
+    if changed:
+        with open(index_path, 'w', encoding='utf-8') as f:
+            f.write(html)
+        print(f'  [更新] index.html 手工卡片时间戳 x{changed}')
+
+
 def update_prd_variants():
     """多 PRD 混装目录：为每份 PRD 维护独立的 latest-{key}.md 与命名阅读器。
 
@@ -2320,6 +2367,7 @@ def main():
     if index_updates:
         update_index_html(index_updates, all_versions, all_history)
 
+    refresh_static_doc_stamps()
     update_prd_variants()
     update_prd_index_topbar()
     update_markdown_view_links()
