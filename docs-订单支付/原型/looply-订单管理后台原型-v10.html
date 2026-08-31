@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Looply 订单管理后台原型 v10</title>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/dayjs@1.11.21/dayjs.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/antd@6.4.3/dist/antd.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/@ant-design/icons@6.2.1/dist/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.28.4/babel.min.js"></script>
+<style>
+html,body,#root{height:100%;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937}
+#root::before{content:'正在加载 antd 原型……';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#9CA3AF;font-size:14px}
+#root:not(:empty)::before{display:none}
+.lp-kpi{background:linear-gradient(180deg,#FEFCFF 0%,#F3EEFF 100%);border:1px solid #DDD6FE;border-radius:14px;padding:14px 16px}
+.lp-kpi .num{font-size:24px;font-weight:700;color:#7C3AED;line-height:1;margin-bottom:6px;font-variant-numeric:tabular-nums}
+.lp-kpi .label{font-size:12px;color:#6B7280}
+.lp-pagination{display:flex;align-items:center;justify-content:center;gap:24px;padding:12px 16px;font-size:13px;color:#6B7280}
+.lp-pagination .divider{width:1px;height:20px;background:#E5E7EB}
+.lp-tip-trigger{cursor:help;border-bottom:1px dashed #9CA3AF;padding-bottom:1px}
+.lp-note{padding:14px;border-radius:10px;background:#F3EEFF;border:1px solid #DDD6FE;color:#6D28D9;font-size:12px;line-height:1.8}
+.lp-section-purple{font-size:14px;font-weight:700;color:#7C3AED;margin:0 0 12px}
+.lp-section{font-size:15px;font-weight:600;color:#1F2937;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #E5E7EB}
+.lp-oplog-title{font-size:14px;font-weight:700;color:#7C3AED;margin:24px 0 12px}
+.lp-empty{display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center}
+.lp-empty .icon{font-size:48px;margin-bottom:16px;color:#9CA3AF}
+.lp-empty .icon.err{color:#DC2626}
+.lp-empty .title{font-size:16px;font-weight:600;color:#1F2937;margin-bottom:8px}
+.lp-empty .desc{font-size:13px;color:#6B7280;margin-bottom:24px;max-width:360px}
+.lp-form-row{display:flex;gap:16px;margin-bottom:12px;align-items:center}
+.lp-form-row:first-of-type{margin-top:8px}
+.lp-form-row .lp-form-label{width:96px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0}
+.lp-form-row .lp-form-label .req{color:#DC2626;margin-right:4px}
+.lp-form-row .lp-form-control{flex:1}
+.lp-helper{font-size:12px;color:#9CA3AF;margin:-4px 0 12px 112px}
+.lp-detail{display:grid;grid-template-columns:120px 1fr;gap:10px 16px;font-size:13px;margin-bottom:24px;align-content:start}
+.lp-nodata{color:#9CA3AF;font-size:13px;padding:2px 0 0;margin-bottom:24px}
+.lp-detail .dl{color:#6B7280}
+.lp-detail .dv{color:#1F2937}
+:focus-visible{outline:none;box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useMemo } = React;
+const LOGO_SRC = "data:image/png;base64,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";
+const {
+  ConfigProvider, Layout, Menu, Card, Button, Input, InputNumber, Select, DatePicker,
+  Checkbox, Radio, Upload, Table, Dropdown, Tag, Tooltip, Tree, Badge, Progress,
+  Modal, Alert, Space, Breadcrumb, Tabs, Steps, Divider, Timeline
+} = antd;
+const {
+  AppstoreOutlined, ShoppingCartOutlined, ProfileOutlined, ShoppingOutlined,
+  SearchOutlined, ReloadOutlined, PlusOutlined, DownloadOutlined, InboxOutlined,
+  ExclamationCircleOutlined, EllipsisOutlined, EditOutlined, DeleteOutlined,
+  SendOutlined, RollbackOutlined, CheckCircleOutlined, FileTextOutlined,
+  LeftOutlined, EyeOutlined, MailOutlined,
+  DollarOutlined, CreditCardOutlined, SwapOutlined, AuditOutlined,
+  SyncOutlined, WarningOutlined, BankOutlined, LinkOutlined
+} = icons;
+
+/* ── Theme ── */
+const looplyTheme = {
+  token: {
+    colorPrimary:'#7C3AED',colorInfo:'#7C3AED',colorBgLayout:'#F9FAFB',colorBgContainer:'#FFFFFF',
+    colorText:'#1F2937',colorTextSecondary:'#374151',colorTextTertiary:'#4B5563',
+    colorTextDescription:'#6B7280',colorTextPlaceholder:'#9CA3AF',colorBorder:'#E5E7EB',
+    colorBorderSecondary:'#F3F4F6',colorSuccess:'#16A34A',colorWarning:'#D97706',colorError:'#DC2626',
+    borderRadius:8,borderRadiusLG:14,borderRadiusSM:6,
+    fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize:14,controlHeight:34,controlHeightSM:28,
+  },
+  components:{
+    Layout:{headerBg:'#FFFFFF',headerHeight:60,headerPadding:'0 24px',siderBg:'#FFFFFF',bodyBg:'#F9FAFB'},
+    Menu:{itemBg:'transparent',subMenuItemBg:'transparent',itemHoverBg:'rgba(0,0,0,.03)',
+      itemSelectedBg:'#F3EEFF',itemSelectedColor:'#7C3AED',itemBorderRadius:0,itemMarginInline:0,
+      itemMarginBlock:0,itemHeight:40,subMenuItemBorderRadius:0},
+    Card:{borderRadiusLG:16,paddingLG:28},
+    Table:{headerBg:'#FFFFFF',headerColor:'#6B7280',rowHoverBg:'#FAF5FF',borderColor:'#E5E7EB',
+      headerSplitColor:'transparent',cellFontSize:13,cellFontSizeMD:13,cellFontSizeSM:13,
+      cellPaddingBlock:11,cellPaddingInline:12,cellPaddingBlockMD:11,cellPaddingInlineMD:12,
+      cellPaddingBlockSM:9,cellPaddingInlineSM:12,headerBorderRadius:0},
+    Tag:{defaultBg:'#F3F4F6',defaultColor:'#6B7280'},
+    Tabs:{itemSelectedColor:'#7C3AED',itemHoverColor:'#374151',inkBarColor:'#7C3AED'},
+    Steps:{colorPrimary:'#7C3AED'},
+    Button:{controlHeight:34,paddingInline:14,fontSize:13},
+    Input:{controlHeight:34,paddingInline:12},
+    Select:{controlHeight:34},
+    DatePicker:{controlHeight:34},
+    Modal:{borderRadiusLG:16,paddingContentHorizontalLG:28},
+  },
+};
+
+const CARD_STYLE = { boxShadow:'0 10px 24px rgba(16,24,40,.06)', marginBottom:20 };
+const TABLE_STYLES = { root:{ borderRadius:14, border:'1px solid #E5E7EB', overflow:'hidden' } };
+const SIDER_STYLE = { boxShadow:'3px 0 12px rgba(0,0,0,0.06)', padding:'8px 0', overflowY:'auto', height:'100%' };
+
+/* ── Business Components ── */
+const TAG_COLORS = {
+  on:{bg:'#F0FDF4',color:'#16A34A'}, sale:{bg:'#EFF6FF',color:'#2563EB'},
+  pending:{bg:'#FFFBEB',color:'#D97706'}, off:{bg:'#F3F4F6',color:'#6B7280'},
+  req:{bg:'#FEF2F2',color:'#DC2626'}, warn:{bg:'#FFF1F2',color:'#E11D48'},
+};
+function StatusTag({ variant, children }) {
+  const c = TAG_COLORS[variant] || TAG_COLORS.off;
+  return <Tag bordered={false} style={{ background:c.bg, color:c.color, borderRadius:999, padding:'2px 8px', fontSize:12, lineHeight:'18px', marginInlineEnd:4 }}>{children}</Tag>;
+}
+function Kpi({ num, label, numStyle }) {
+  return <div className="lp-kpi"><div className="label" style={{marginBottom:6}}>{label}</div><div className="num" style={numStyle}>{num}</div></div>;
+}
+function TipText({ label, tip }) {
+  return <Tooltip title={<div style={{whiteSpace:'pre-line',lineHeight:1.6}}>{tip}</div>} color="#fff" styles={{body:{color:'#374151',fontSize:12,padding:'10px 14px'}}}><span className="lp-tip-trigger">{label}</span></Tooltip>;
+}
+function CompactPagination({ total, current=1, pageSize=10 }) {
+  const tp = Math.ceil(total/pageSize)||1;
+  const pages = useMemo(()=>{
+    const out=[{k:'prev',label:'<',disabled:current===1,arrow:true}];
+    if(tp<=6) for(let i=1;i<=tp;i++) out.push({k:i,label:i});
+    else{out.push({k:1,label:1},{k:2,label:2},{k:3,label:3},{k:'gap',label:'…',disabled:true},{k:tp,label:tp});}
+    out.push({k:'next',label:'>',disabled:current===tp,arrow:true});
+    return out;
+  },[current,tp]);
+  return(
+    <div className="lp-pagination">
+      <span>{'共 '+total.toLocaleString()+' 条，每页 '}<Select size="small" value={pageSize} style={{width:72,marginInline:4}} options={[{value:10,label:10},{value:20,label:20},{value:50,label:50}]} />{' 条'}</span>
+      <div className="divider"/>
+      <Space size={2}>{pages.map(p=><span key={p.k} style={{minWidth:32,height:32,display:'inline-flex',alignItems:'center',justifyContent:'center',borderRadius:8,fontSize:13,cursor:p.disabled?'default':'pointer',background:p.k===current?'#7C3AED':(p.arrow?'#fff':'transparent'),color:p.k===current?'#fff':'#374151',border:p.arrow?'1px solid #E5E7EB':'none',fontWeight:p.k===current?600:400,opacity:p.disabled?0.35:1}}>{p.label}</span>)}</Space>
+      <div className="divider"/>
+      <span>{'第 '+current+'/'+tp+' 页'}</span>
+    </div>
+  );
+}
+function EmptyZero({ entity, cta, onCta }) {
+  return <div className="lp-empty"><InboxOutlined className="icon"/><div className="title">{'暂无'+entity}</div><div className="desc">{'点击下方按钮创建第一个'+entity}</div>{cta&&<Button type="primary" onClick={onCta}>{cta}</Button>}</div>;
+}
+function EmptyNoMatch({ onClear }) {
+  return <div className="lp-empty"><SearchOutlined className="icon"/><div className="title">未找到匹配结果</div><div className="desc">请尝试调整搜索关键词或筛选条件</div><Button onClick={onClear}>清除筛选条件</Button></div>;
+}
+function EmptyError({ onRetry }) {
+  return <div className="lp-empty"><ExclamationCircleOutlined className="icon err"/><div className="title">加载失败</div><div className="desc">网络异常，请检查网络连接后重试</div><Button type="primary" onClick={onRetry}>重试</Button></div>;
+}
+function EmptyStateSwitcher({ mode, setMode }) {
+  return <div style={{marginTop:12,display:'flex',gap:8,justifyContent:'center'}}>{[['data','正常数据'],['zero','零数据态'],['no-match','无匹配态'],['error','异常态']].map(([k,l])=><Button key={k} type={mode===k?'primary':'default'} onClick={()=>setMode(k)}>{l}</Button>)}</div>;
+}
+function FormRow({ label, required, children, helper }) {
+  return <><div className="lp-form-row"><div className="lp-form-label">{required&&<span className="req">*</span>}{label}</div><div className="lp-form-control">{children}</div></div>{helper&&<div className="lp-helper">{helper}</div>}</>;
+}
+function OpLog({ data }) {
+  const rows = data || [
+    {i:1,at:'2026-06-15 14:30:25',who:'系统',type:'创建订单',detail:'支付成功，自动创建订单 ORD20260615001'},
+    {i:2,at:'2026-06-15 14:30:00',who:'sarah@email.com',type:'提交订单',detail:'买家完成结算，父订单 PO20260615001 拆分生成'},
+  ];
+  return <>
+    <div className="lp-oplog-title">操作日志</div>
+    <Table size="small" rowKey="i" pagination={false} styles={TABLE_STYLES}
+      columns={[
+        {title:'操作时间',dataIndex:'at',width:180},
+        {title:'操作人',dataIndex:'who',width:180},
+        {title:'操作类型',dataIndex:'type',width:120,render:v=><StatusTag variant={v==='创建订单'||v==='提交订单'?'on':'pending'}>{v}</StatusTag>},
+        {title:'操作内容',dataIndex:'detail'},
+      ]} dataSource={rows} />
+  </>;
+}
+
+/* ── Data ── */
+/* 本区数据对应 ER v9.2 的 checkout_session + checkout_discount_attempt。
+   attempts：优惠码尝试记录，每次校验记一条、通过与否都记；详情页不单独成模块，
+            由它派生「事件时间线」里的应用 / 校验失败 / 移除三类事件。
+   code / codeAmt / codeStatus / progress：会话级冗余，界面不展示，
+            由导出（41 列）取值，保留在此供开发对照字段。 */
+const ABANDON_DATA = [
+  {id:'CS20260615001',buyer:'sarah@email.com',registered:true,regAt:'2026-03-10',items:2,amount:'$245.00',status:'pending',createdAt:'2026-06-15 14:23',lastAt:'2026-06-15 14:38',
+    progress:'payment_submitted',addrStatus:'complete',billStatus:'complete',billSame:false,
+    ship:{name:'Jane Smith',phone:'+1 213-555-0147',l1:'1234 Sunset Blvd',l2:'Apt 5B',city:'Los Angeles',state:'CA',zip:'90028',country:'US'},
+    bill:{name:'Jane Smith',phone:'+1 213-555-0147',l1:'5678 Wilshire Blvd',l2:'Suite 300',city:'Los Angeles',state:'CA',zip:'90036',country:'US'},
+    code:'SAVE30',codeAmt:'$30.00',codeStatus:'applied',
+    attempts:[
+      {i:1,at:'2026-06-15 14:23:30',code:'WELCOME10',source:'manual',result:'rejected',reason:'region',amt:'',removedAt:''},
+      {i:2,at:'2026-06-15 14:23:55',code:'SAVE30',source:'link',result:'applied',reason:'',amt:'$30.00',removedAt:''},
+    ],
+    items_list:[{name:'Vintage Chanel Classic Flap',grade:'A-优秀',price:'$165.00',qty:1,currency:'USD'},{name:'Pre-owned Gucci Marmont',grade:'B-良好',price:'$80.00',qty:1,currency:'USD'}],
+    mails:[{i:1,at:'2026-06-15 16:23:00',trigger:'auto',sendStatus:'sent'},{i:2,at:'2026-06-15 18:00:00',trigger:'manual',sendStatus:'sent'}],
+    timeline:[
+      {at:'14:23:00',type:'info',text:'Checkout session created',detail:'2 items added to cart, subtotal $245.00'},
+      {at:'14:23:12',type:'info',text:'Entered contact email',detail:'sarah@email.com'},
+      {at:'14:23:15',type:'info',text:'Entered shipping address',detail:'1234 Sunset Blvd, Los Angeles, CA 90028'},
+      {at:'14:23:30',type:'warn',text:'Discount code rejected',detail:'WELCOME10（买家手输）· 未通过：地区不支持'},
+      {at:'14:23:42',type:'info',text:'Selected shipping method',detail:'Standard Shipping ($5.99)'},
+      {at:'14:23:55',type:'info',text:'Discount code applied',detail:'SAVE30（链接带入）· 已应用，减免 $30.00'},
+      {at:'14:24:10',type:'error',text:'Unable to process a payment for $250.99 USD on Airwallex',detail:'Error from Airwallex - Your card was declined. Insufficient funds.'},
+      {at:'14:25:33',type:'error',text:'Payment retry failed on Airwallex',detail:'Error from Airwallex - Your card was declined. Please try a different payment method.'},
+      {at:'14:38:00',type:'warn',text:'Buyer left checkout page',detail:'Session idle for 12 minutes, buyer navigated away'},
+    ]},
+  {id:'CS20260615002',buyer:'mike@email.com',registered:true,regAt:'2026-01-22',items:1,amount:'$189.00',status:'converted',createdAt:'2026-06-15 15:01',lastAt:'2026-06-15 16:11',convertedOrder:'PO20260615004',
+    progress:'payment_submitted',addrStatus:'complete',billStatus:'complete',billSame:true,
+    ship:{name:'Mike Chen',phone:'+1 646-555-0182',l1:'567 Oak Ave',l2:'',city:'New York',state:'NY',zip:'10001',country:'US'},
+    bill:null,
+    code:'',codeAmt:'',codeStatus:'none',
+    attempts:[],
+    items_list:[{name:'Vintage Dior Saddle Bag',grade:'B+良好',price:'$189.00',qty:1,currency:'USD'}],
+    mails:[{i:1,at:'2026-06-15 15:45:00',trigger:'auto',sendStatus:'sent'}],
+    timeline:[
+      {at:'15:01:00',type:'info',text:'Checkout session created',detail:'1 item added to cart, subtotal $189.00'},
+      {at:'15:01:30',type:'info',text:'Entered shipping address',detail:'567 Oak Ave, New York, NY 10001'},
+      {at:'15:02:15',type:'warn',text:'Buyer left checkout page',detail:'Session idle, buyer navigated away'},
+      {at:'15:45:00',type:'info',text:'Recovery email sent',detail:'Automated recovery email delivered to mike@email.com'},
+      {at:'16:10:22',type:'info',text:'Buyer returned via recovery link',detail:'Clicked recovery link from email'},
+      {at:'16:11:05',type:'info',text:'Payment succeeded on Airwallex',detail:'Visa **** 8901, $194.99 (incl. shipping + tax)'},
+    ]},
+  {id:'CS20260614003',buyer:'emma@email.com',registered:false,regAt:'',items:3,amount:'$520.00',status:'pending',createdAt:'2026-06-14 09:45',lastAt:'2026-06-14 10:16',
+    progress:'payment_filling',addrStatus:'complete',billStatus:'empty',billSame:false,
+    ship:{name:'Emma Wilson',phone:'+1 415-555-0193',l1:'890 Pine St',l2:'',city:'San Francisco',state:'CA',zip:'94102',country:'US'},
+    bill:null,
+    code:'',codeAmt:'',codeStatus:'failed',
+    attempts:[
+      {i:1,at:'2026-06-14 09:47:10',code:'67',source:'manual',result:'rejected',reason:'code_invalid',amt:'',removedAt:''},
+      {i:2,at:'2026-06-14 09:47:38',code:'777',source:'manual',result:'rejected',reason:'code_invalid',amt:'',removedAt:''},
+      {i:3,at:'2026-06-14 09:48:20',code:'SAVE30',source:'manual',result:'rejected',reason:'threshold',amt:'',removedAt:''},
+    ],
+    items_list:[{name:'Prada Nylon Backpack',grade:'A-优秀',price:'$220.00',qty:1,currency:'USD'},{name:'Burberry Check Wallet',grade:'B-良好',price:'$150.00',qty:1,currency:'USD'},{name:'Fendi Baguette Clutch',grade:'A+极佳',price:'$150.00',qty:1,currency:'USD'}],
+    mails:[],
+    timeline:[
+      {at:'09:45:00',type:'info',text:'Checkout session created',detail:'3 items added to cart, subtotal $520.00'},
+      {at:'09:45:20',type:'info',text:'Entered shipping address',detail:'890 Pine St, San Francisco, CA 94102'},
+      {at:'09:46:10',type:'info',text:'Selected shipping method',detail:'Express Shipping ($12.99)'},
+      {at:'09:47:10',type:'warn',text:'Discount code rejected',detail:'67（买家手输）· 未通过：码无效或已失效'},
+      {at:'09:47:38',type:'warn',text:'Discount code rejected',detail:'777（买家手输）· 未通过：码无效或已失效'},
+      {at:'09:48:20',type:'warn',text:'Discount code rejected',detail:'SAVE30（买家手输）· 未通过：未达使用门槛'},
+      {at:'10:16:45',type:'warn',text:'Buyer abandoned at payment step',detail:'Reached payment form but did not submit. Session ended after 30 min timeout.'},
+    ]},
+  {id:'CS20260614004',buyer:'john@email.com',registered:true,regAt:'2025-11-08',items:1,amount:'$78.00',status:'pending',createdAt:'2026-06-14 20:12',lastAt:'2026-06-14 20:15',
+    progress:'payment_submitted',addrStatus:'complete',billStatus:'complete',billSame:true,
+    ship:{name:'John Davis',phone:'+1 312-555-0166',l1:'22 Lake Shore Dr',l2:'Unit 12',city:'Chicago',state:'IL',zip:'60601',country:'US'},
+    bill:null,
+    code:'',codeAmt:'',codeStatus:'failed',
+    attempts:[
+      {i:1,at:'2026-06-14 20:12:20',code:'LOOPLY30',source:'link',result:'applied',reason:'',amt:'$10.00',removedAt:'2026-06-14 20:12:52'},
+    ],
+    items_list:[{name:'Coach Tabby Shoulder Bag',grade:'B+良好',price:'$78.00',qty:1,currency:'USD'}],
+    mails:[{i:1,at:'2026-06-14 22:12:00',trigger:'auto',sendStatus:'failed'}],
+    timeline:[
+      {at:'20:12:00',type:'info',text:'Checkout session created',detail:'1 item added to cart, subtotal $78.00'},
+      {at:'20:12:20',type:'info',text:'Discount code applied',detail:'LOOPLY30（链接带入）· 已应用，减免 $10.00'},
+      {at:'20:12:30',type:'error',text:'Unable to process a payment for $83.99 USD on PayPal',detail:'Error from PayPal - Shopper failed to complete the payment'},
+      {at:'20:12:52',type:'warn',text:'Discount code removed by buyer',detail:'LOOPLY30 · 买家主动移除，本单不再享受该优惠'},
+      {at:'20:13:15',type:'error',text:'Payment retry failed on Airwallex',detail:'Error from Airwallex - Card authentication failed (3D Secure)'},
+      {at:'20:15:00',type:'warn',text:'Buyer left checkout page',detail:'No further activity after payment failures'},
+    ]},
+  {id:'CS20260613005',buyer:'lisa@email.com',registered:false,regAt:'',items:2,amount:'$312.00',status:'pending',createdAt:'2026-06-13 11:33',lastAt:'2026-06-13 11:34',
+    progress:'email_filled',addrStatus:'partial',billStatus:'empty',billSame:false,
+    ship:{name:'Lisa Brown',phone:'',l1:'',l2:'',city:'Seattle',state:'WA',zip:'',country:'US'},
+    bill:null,
+    code:'',codeAmt:'',codeStatus:'none',
+    attempts:[],
+    items_list:[{name:'Louis Vuitton Pochette',grade:'A-优秀',price:'$195.00',qty:1,currency:'USD'},{name:'Celine Belt Bag Mini',grade:'B+良好',price:'$117.00',qty:1,currency:'USD'}],
+    mails:[{i:1,at:'2026-06-13 13:33:00',trigger:'auto',sendStatus:'sent'}],
+    timeline:[
+      {at:'11:33:00',type:'info',text:'Checkout session created',detail:'2 items added to cart, subtotal $312.00'},
+      {at:'11:33:20',type:'info',text:'Entered contact email',detail:'lisa@email.com'},
+      {at:'11:33:45',type:'warn',text:'Buyer left before completing address',detail:'Session abandoned at shipping step. Address partially filled.'},
+    ]},
+  {id:'CS20260613006',buyer:'alex@email.com',registered:true,regAt:'2026-02-14',items:1,amount:'$156.00',status:'converted',createdAt:'2026-06-13 16:08',lastAt:'2026-06-13 17:03',convertedOrder:'PO20260613008',
+    progress:'payment_submitted',addrStatus:'complete',billStatus:'complete',billSame:true,
+    ship:{name:'Alex Turner',phone:'+1 206-555-0121',l1:'45 Broadway',l2:'',city:'Seattle',state:'WA',zip:'98122',country:'US'},
+    bill:null,
+    code:'',codeAmt:'',codeStatus:'failed',
+    attempts:[
+      {i:1,at:'2026-06-13 16:08:15',code:'SAVE30',source:'manual',result:'rejected',reason:'user_limit',amt:'',removedAt:''},
+    ],
+    items_list:[{name:'Marc Jacobs Snapshot Bag',grade:'A-优秀',price:'$156.00',qty:1,currency:'USD'}],
+    mails:[{i:1,at:'2026-06-13 16:30:00',trigger:'manual',sendStatus:'sent'}],
+    timeline:[
+      {at:'16:08:00',type:'info',text:'Checkout session created',detail:'1 item added to cart, subtotal $156.00'},
+      {at:'16:08:15',type:'warn',text:'Discount code rejected',detail:'SAVE30（买家手输）· 未通过：该买家已用过'},
+      {at:'16:08:20',type:'warn',text:'Buyer left checkout page',detail:'Session idle after 5 minutes'},
+      {at:'16:30:00',type:'info',text:'Recovery email sent manually',detail:'Operator sent recovery email to alex@email.com'},
+      {at:'17:02:10',type:'info',text:'Buyer returned via recovery link',detail:'Clicked recovery link from email'},
+      {at:'17:03:00',type:'info',text:'Payment succeeded on Airwallex',detail:'Amex **** 9999, $161.99 (incl. shipping + tax)'},
+    ]},
+];
+const ORDER_DATA = [
+  {id:'PO20260615009',parentNo:'PO20260615009',buyer:'nina@email.com',merchant:'—（待到账拆单）',items:1,amount:'$210.00',discount:'$0.00',status:'pending_payment',paidAt:'—'},
+  {id:'ORD20260615001',parentNo:'PO20260615001',buyer:'sarah@email.com',merchant:'Looply Official',items:2,amount:'$258.50',discount:'$30.00',status:'paid',paidAt:'2026-06-15 14:30'},
+  {id:'ORD20260615002',parentNo:'PO20260615001',buyer:'sarah@email.com',merchant:'Vintage Luxe',items:1,amount:'$189.00',discount:'$0.00',status:'shipped',paidAt:'2026-06-15 14:30'},
+  {id:'ORD20260614003',parentNo:'PO20260614002',buyer:'mike@email.com',merchant:'Looply Official',items:1,amount:'$445.00',discount:'$10.00',status:'completed',paidAt:'2026-06-14 10:15'},
+  {id:'ORD20260614004',parentNo:'PO20260614003',buyer:'emma@email.com',merchant:'Second Style',items:3,amount:'$520.00',discount:'$0.00',status:'paid',paidAt:'2026-06-14 09:50'},
+  {id:'ORD20260613005',parentNo:'PO20260613004',buyer:'john@email.com',merchant:'Vintage Luxe',items:1,amount:'$78.00',discount:'$0.00',status:'cancelled',paidAt:'2026-06-13 20:30'},
+  {id:'ORD20260613006',parentNo:'PO20260613005',buyer:'lisa@email.com',merchant:'Looply Official',items:2,amount:'$312.00',discount:'$15.00',status:'shipped',paidAt:'2026-06-13 11:45'},
+  {id:'ORD20260612007',parentNo:'PO20260612006',buyer:'alex@email.com',merchant:'Pre-Loved Co',items:1,amount:'$156.00',discount:'$0.00',status:'completed',paidAt:'2026-06-12 16:20'},
+  {id:'ORD20260612008',parentNo:'PO20260612007',buyer:'kate@email.com',merchant:'Second Style',items:2,amount:'$398.00',discount:'$0.00',status:'completed',paidAt:'2026-06-12 08:55'},
+];
+const ORDER_ITEMS_MAP = {
+  'ORD20260615001':[{id:'I001',name:'Gucci Marmont Mini Bag',grade:'A',price:'$168.00',qty:1,f_status:'pending'},{id:'I002',name:'Chanel No.5 Perfume Set',grade:'A+',price:'$120.50',qty:1,f_status:'pending'}],
+  'ORD20260615002':[{id:'I003',name:'Vintage Dior Saddle Bag',grade:'B+',price:'$189.00',qty:1,f_status:'shipped'}],
+  'ORD20260614003':[{id:'I004',name:'Hermès Silk Scarf',grade:'A',price:'$455.00',qty:1,f_status:'signed'}],
+  'ORD20260614004':[{id:'I005',name:'Prada Nylon Backpack',grade:'A',price:'$220.00',qty:1,f_status:'pending'},{id:'I006',name:'Burberry Check Wallet',grade:'B',price:'$150.00',qty:1,f_status:'pending'},{id:'I007',name:'Fendi Baguette Clutch',grade:'A+',price:'$150.00',qty:1,f_status:'pending'}],
+  'ORD20260613006':[{id:'I008',name:'Louis Vuitton Pochette',grade:'A',price:'$195.00',qty:1,f_status:'shipped'},{id:'I009',name:'Celine Belt Bag Mini',grade:'B+',price:'$132.00',qty:1,f_status:'pending'}],
+};
+const STATUS_MAP = {pending_payment:'待付款',paid:'已付款',shipped:'已发货',completed:'已完成',cancelled:'已取消'};
+const STATUS_TAG = {pending_payment:'warn',paid:'sale',shipped:'pending',completed:'on',cancelled:'off'};
+const CHECKOUT_STATUS_MAP = {pending:'待转化',converted:'已转化'};
+const CHECKOUT_TAG = {pending:'pending',converted:'on'};
+const PROGRESS_MAP = {entered:'进入结算页',email_filled:'已填邮箱',address_filled:'已填收货地址',shipping_selected:'已选配送方式',payment_filling:'已填支付信息',payment_submitted:'已提交支付'};
+/* ── Payment Data ── */
+const PAYMENT_ORDER_DATA = [
+  {id:'PAY20260615001',paymentNo:'PAY20260615001',parentOrderNo:'PO20260615001',buyer:'sarah@email.com',channel:'Airwallex',payMethod:'Credit Card',instrument:'Visa **** 4242',amount:'$295.06',currency:'USD',status:'succeeded',paidAt:'2026-06-15 14:30:25',createdAt:'2026-06-15 14:30:00',remark:''},
+  {id:'PAY20260615002',paymentNo:'PAY20260615002',parentOrderNo:'PO20260615001',buyer:'sarah@email.com',channel:'PayPal',payMethod:'PayPal',instrument:'paypal@email.com',amount:'$189.00',currency:'USD',status:'succeeded',paidAt:'2026-06-15 14:31:10',createdAt:'2026-06-15 14:30:30',remark:''},
+  {id:'PAY20260615009',paymentNo:'PAY20260615009',parentOrderNo:'PO20260615009',buyer:'nina@email.com',channel:'Airwallex',payMethod:'Credit Card',instrument:'Visa **** 3131',amount:'$210.00',currency:'USD',status:'processing',paidAt:'—',createdAt:'2026-06-15 15:02:00',remark:''},
+  {id:'PAY20260614003',paymentNo:'PAY20260614003',parentOrderNo:'PO20260614002',buyer:'mike@email.com',channel:'Airwallex',payMethod:'Apple Pay',instrument:'Mastercard **** 5678',amount:'$445.00',currency:'USD',status:'succeeded',paidAt:'2026-06-14 10:15:30',createdAt:'2026-06-14 10:15:00',remark:''},
+  {id:'PAY20260614004',paymentNo:'PAY20260614004',parentOrderNo:'PO20260614003',buyer:'emma@email.com',channel:'Airwallex',payMethod:'Credit Card',instrument:'Visa **** 1234',amount:'$520.00',currency:'USD',status:'succeeded',paidAt:'2026-06-14 09:50:45',createdAt:'2026-06-14 09:50:00',remark:''},
+  {id:'PAY20260613005',paymentNo:'PAY20260613005',parentOrderNo:'PO20260613004',buyer:'john@email.com',channel:'PayPal',payMethod:'PayPal',instrument:'john@paypal.com',amount:'$78.00',currency:'USD',status:'failed',paidAt:'—',createdAt:'2026-06-13 20:28:00',remark:''},
+  {id:'PAY20260612006',paymentNo:'PAY20260612006',parentOrderNo:'PO20260612006',buyer:'alex@email.com',channel:'Airwallex',payMethod:'Google Pay',instrument:'Amex **** 9999',amount:'$156.00',currency:'USD',status:'succeeded',paidAt:'2026-06-12 16:20:15',createdAt:'2026-06-12 16:20:00',remark:''},
+  {id:'PAY20260611007',paymentNo:'PAY20260611007',parentOrderNo:'PO20260611008',buyer:'kate@email.com',channel:'Airwallex',payMethod:'Klarna',instrument:'Visa **** 7777',amount:'$398.00',currency:'USD',status:'closed',paidAt:'—',createdAt:'2026-06-11 08:55:00',remark:''},
+  {id:'PAY20260610008',paymentNo:'PAY20260610008',parentOrderNo:'PO20260610010',buyer:'tom@email.com',channel:'Airwallex',payMethod:'Credit Card',instrument:'Visa **** 5566',amount:'$132.00',currency:'USD',status:'failed',paidAt:'—',createdAt:'2026-06-10 11:20:00',remark:'渠道处理超72小时未成功'},
+];
+const TRANSACTION_DATA = [
+  {id:'TXN20260615001',transNo:'TXN20260615001',paymentNo:'PAY20260615001',type:'payment',channelTxnId:'ch_3PqXabcd',amount:'$295.06',fee:'$8.85',net:'$286.21',currency:'USD',status:'succeeded',reconStatus:'reconciled',reconAt:'2026-06-16 03:00',createdAt:'2026-06-15 14:30',remark:''},
+  {id:'TXN20260615002',transNo:'TXN20260615002',paymentNo:'PAY20260615002',type:'payment',channelTxnId:'pp_5Rqefgh',amount:'$189.00',fee:'$5.67',net:'$183.33',currency:'USD',status:'succeeded',reconStatus:'reconciled',reconAt:'2026-06-16 03:00',createdAt:'2026-06-15 14:31',remark:''},
+  {id:'TXN20260614003',transNo:'TXN20260614003',paymentNo:'PAY20260614003',type:'payment',channelTxnId:'ch_3Pqijkl',amount:'$445.00',fee:'$13.35',net:'$431.65',currency:'USD',status:'succeeded',reconStatus:'reconciled',reconAt:'2026-06-15 03:00',createdAt:'2026-06-14 10:15',remark:''},
+  {id:'TXN20260614004',transNo:'TXN20260614004',paymentNo:'PAY20260614004',type:'payment',channelTxnId:'ch_3Pqmnop',amount:'$520.00',fee:'$15.60',net:'$504.40',currency:'USD',status:'succeeded',reconStatus:'reconciled',reconAt:'2026-06-15 03:00',createdAt:'2026-06-14 09:50',remark:''},
+  {id:'TXN20260616004',transNo:'TXN20260616004',paymentNo:'PAY20260614004',type:'refund',channelTxnId:'re_7Stmnop',amount:'$165.00',fee:'$0.00',net:'-$165.00',currency:'USD',status:'succeeded',reconStatus:'discrepant',reconAt:'—',createdAt:'2026-06-16 10:20',remark:''},
+  {id:'TXN20260613005',transNo:'TXN20260613005',paymentNo:'PAY20260613005',type:'payment',channelTxnId:'pp_5Rqqrst',amount:'$78.00',fee:'$0.00',net:'$0.00',currency:'USD',status:'failed',reconStatus:'unreconciled',reconAt:'—',createdAt:'2026-06-13 20:28',remark:''},
+  {id:'TXN20260612006',transNo:'TXN20260612006',paymentNo:'PAY20260612006',type:'payment',channelTxnId:'ch_3Pquvwx',amount:'$156.00',fee:'$4.68',net:'$151.32',currency:'USD',status:'succeeded',reconStatus:'unreconciled',reconAt:'—',createdAt:'2026-06-12 16:20',remark:''},
+  {id:'TXN20260617007',transNo:'TXN20260617007',paymentNo:'PAY20260614004',type:'refund',channelTxnId:'re_7Styzab',amount:'$93.50',fee:'$0.00',net:'-$93.50',currency:'USD',status:'pending',reconStatus:'unreconciled',reconAt:'—',createdAt:'2026-06-17 09:15',remark:''},
+];
+const PAY_STATUS_MAP = {pending:'待支付',processing:'处理中',succeeded:'成功',failed:'失败',closed:'关闭'};
+const PAY_TAG = {pending:'pending',processing:'sale',succeeded:'on',failed:'req',closed:'off'};
+const TXN_TYPE_MAP = {payment:'收款',refund:'退款'};
+const TXN_TYPE_TAG = {payment:'sale',refund:'req'};
+const TXN_STATUS_MAP = {pending:'处理中',succeeded:'成功',failed:'失败'};
+const TXN_STATUS_TAG = {pending:'pending',succeeded:'on',failed:'req'};
+const SETTLE_STATUS_MAP = {unsettled:'待结算',settled:'已结算'};
+const SETTLE_TAG = {unsettled:'off',settled:'on'};
+const RECON_STATUS_MAP = {unreconciled:'未对账',reconciled:'已对账',discrepant:'差异待处理'};
+const RECON_TAG = {unreconciled:'pending',reconciled:'on',discrepant:'warn'};
+
+/* ── Reconciliation Order Data (订单维度) ── */
+const RECON_ORDER_DATA = [
+  {id:'ORD20260615001',orderNo:'ORD20260615001',paymentNo:'PAY20260615001',buyer:'sarah@email.com',merchant:'Looply Official',channel:'Airwallex',orderAmount:'$258.50',
+   sysPayment:'$258.50',chPayment:'$258.50',sysFee:'$7.76',chFee:'$7.76',sysRefund:'$0.00',chRefund:'$0.00',
+   settleStatus:'settled',reconStatus:'reconciled',reconAt:'2026-06-16 10:00',paidAt:'2026-06-15 14:30',
+   txns:[{transNo:'TXN20260615001',type:'payment',channelTxnId:'ch_3PqXabcd',amount:'$258.50',fee:'$7.76',status:'succeeded'}]},
+  {id:'ORD20260615002',orderNo:'ORD20260615002',paymentNo:'PAY20260615002',buyer:'sarah@email.com',merchant:'Vintage Luxe',channel:'PayPal',orderAmount:'$189.00',
+   sysPayment:'$189.00',chPayment:'$189.00',sysFee:'$5.67',chFee:'$5.67',sysRefund:'$0.00',chRefund:'$0.00',
+   settleStatus:'settled',reconStatus:'reconciled',reconAt:'2026-06-16 10:00',paidAt:'2026-06-15 14:31',
+   txns:[{transNo:'TXN20260615002',type:'payment',channelTxnId:'pp_5Rqefgh',amount:'$189.00',fee:'$5.67',status:'succeeded'}]},
+  {id:'ORD20260614003',orderNo:'ORD20260614003',paymentNo:'PAY20260614003',buyer:'mike@email.com',merchant:'Looply Official',channel:'Airwallex',orderAmount:'$445.00',
+   sysPayment:'$445.00',chPayment:'$445.00',sysFee:'$13.35',chFee:'$13.35',sysRefund:'$0.00',chRefund:'$0.00',
+   settleStatus:'settled',reconStatus:'reconciled',reconAt:'2026-06-15 10:00',paidAt:'2026-06-14 10:15',
+   txns:[{transNo:'TXN20260614003',type:'payment',channelTxnId:'ch_3Pqijkl',amount:'$445.00',fee:'$13.35',status:'succeeded'}]},
+  {id:'ORD20260614004',orderNo:'ORD20260614004',paymentNo:'PAY20260614004',buyer:'emma@email.com',merchant:'Second Style',channel:'Airwallex',orderAmount:'$520.00',
+   sysPayment:'$520.00',chPayment:'$519.50',sysFee:'$15.60',chFee:'$16.10',sysRefund:'$165.00',chRefund:'$164.50',
+   settleStatus:'settled',reconStatus:'discrepant',reconAt:'—',paidAt:'2026-06-14 09:50',
+   txns:[{transNo:'TXN20260614004',type:'payment',channelTxnId:'ch_3Pqmnop',amount:'$520.00',fee:'$15.60',status:'succeeded'},
+         {transNo:'TXN20260616004',type:'refund',channelTxnId:'re_7Stmnop',amount:'$165.00',fee:'$0.00',status:'succeeded'}]},
+  {id:'ORD20260612007',orderNo:'ORD20260612007',paymentNo:'PAY20260612007',buyer:'alex@email.com',merchant:'Pre-Loved Co',channel:'Airwallex',orderAmount:'$156.00',
+   sysPayment:'$156.00',chPayment:'$156.00',sysFee:'$4.68',chFee:'$4.68',sysRefund:'$0.00',chRefund:'$0.00',
+   settleStatus:'settled',reconStatus:'unreconciled',reconAt:'—',paidAt:'2026-06-12 16:20',
+   txns:[{transNo:'TXN20260612006',type:'payment',channelTxnId:'ch_3Pquvwx',amount:'$156.00',fee:'$4.68',status:'succeeded'}]},
+  {id:'ORD20260613006',orderNo:'ORD20260613006',paymentNo:'PAY20260613006',buyer:'lisa@email.com',merchant:'Looply Official',channel:'Airwallex',orderAmount:'$312.00',
+   sysPayment:'$312.00',chPayment:'—',sysFee:'$9.36',chFee:'—',sysRefund:'$0.00',chRefund:'—',
+   settleStatus:'unsettled',reconStatus:'unreconciled',reconAt:'—',paidAt:'2026-06-13 11:45',
+   txns:[{transNo:'TXN20260613006',type:'payment',channelTxnId:'ch_3Pqrstu',amount:'$312.00',fee:'$9.36',status:'succeeded'}]},
+  {id:'ORD20260612008',orderNo:'ORD20260612008',paymentNo:'PAY20260612008',buyer:'kate@email.com',merchant:'Second Style',channel:'Airwallex',orderAmount:'$398.00',
+   sysPayment:'$398.00',chPayment:'—',sysFee:'$11.94',chFee:'—',sysRefund:'$0.00',chRefund:'—',
+   settleStatus:'unsettled',reconStatus:'unreconciled',reconAt:'—',paidAt:'2026-06-12 08:55',
+   txns:[{transNo:'TXN20260612008',type:'payment',channelTxnId:'ch_3Pqwxyz',amount:'$398.00',fee:'$11.94',status:'succeeded'}]},
+];
+
+/* ── Refund Order Data ── */
+const REFUND_ORDER_DATA = [
+  {id:'RO20260616001',refundNo:'RO20260616001',paymentNo:'PAY20260614004',buyer:'emma@email.com',channel:'Airwallex',refundMethod:'Credit Card',amount:'$165.00',currency:'USD',status:'succeeded',refundedAt:'2026-06-16 10:25',createdAt:'2026-06-16 10:20',remark:''},
+  {id:'RO20260617002',refundNo:'RO20260617002',paymentNo:'PAY20260614004',buyer:'emma@email.com',channel:'Airwallex',refundMethod:'Credit Card',amount:'$93.50',currency:'USD',status:'pending',refundedAt:'—',createdAt:'2026-06-17 09:15',remark:''},
+  {id:'RO20260618003',refundNo:'RO20260618003',paymentNo:'PAY20260615001',buyer:'sarah@email.com',channel:'Airwallex',refundMethod:'Credit Card',amount:'$165.00',currency:'USD',status:'succeeded',refundedAt:'2026-06-18 14:30',createdAt:'2026-06-18 14:25',remark:''},
+  {id:'RO20260619004',refundNo:'RO20260619004',paymentNo:'PAY20260613005',buyer:'john@email.com',channel:'PayPal',refundMethod:'PayPal',amount:'$78.00',currency:'USD',status:'failed',refundedAt:'—',createdAt:'2026-06-19 11:00',remark:''},
+];
+const REFUND_O_STATUS = {pending:'退款中',succeeded:'退款成功',failed:'退款失败'};
+const REFUND_O_TAG = {pending:'pending',succeeded:'on',failed:'req'};
+
+/* ── Page: 弃单管理 ── */
+function AddrBlock({ addr, status, same, emptyText }) {
+  if (same) return <div className="lp-nodata">同收货地址</div>;
+  if (status === 'empty' || !addr) return <div className="lp-nodata">{emptyText}</div>;
+  const v = x => x ? x : <span style={{color:'#9CA3AF'}}>—</span>;
+  return (
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:0}}>
+      <div className="lp-detail">
+        <div className="dl">收件人</div><div className="dv">{v(addr.name)}</div>
+        <div className="dl">电话</div><div className="dv">{v(addr.phone)}</div>
+        <div className="dl">地址行1</div><div className="dv">{v(addr.l1)}</div>
+        <div className="dl">地址行2</div><div className="dv">{v(addr.l2)}</div>
+      </div>
+      <div className="lp-detail">
+        <div className="dl">城市</div><div className="dv">{v(addr.city)}</div>
+        <div className="dl">州</div><div className="dv">{v(addr.state)}</div>
+        <div className="dl">邮编</div><div className="dv">{v(addr.zip)}</div>
+        <div className="dl">国家</div><div className="dv">{v(addr.country)}</div>
+      </div>
+    </div>
+  );
+}
+
+function AbandonedCartPage({ go }) {
+  const [mode, setMode] = useState('data');
+  const [recoverOpen, setRecoverOpen] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null);
+  const [strategyOpen, setStrategyOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportDone, setExportDone] = useState(false);
+  const columns = [
+    {title:'会话编号',dataIndex:'id',width:160,render:v=><span style={{fontFamily:'Menlo,Monaco,Consolas,monospace',fontSize:12,color:'#374151',background:'#F3F4F6',padding:'1px 6px',borderRadius:4}}>{v}</span>},
+    {title:'买家',dataIndex:'buyer',width:180},
+    {title:'商品数',dataIndex:'items',width:80,render:v=>v+'件'},
+    {title:'预估金额',dataIndex:'amount',width:120},
+    {title:'状态',dataIndex:'status',width:100,render:v=><StatusTag variant={CHECKOUT_TAG[v]}>{CHECKOUT_STATUS_MAP[v]}</StatusTag>},
+    {title:'创建时间',dataIndex:'createdAt',width:160},
+    {title:'操作',key:'op',width:200,fixed:'right',render:(_,r)=>(
+      <Space size={6}>
+        <Button size="small" onClick={()=>go('abandoned-detail',r.id)}>查看详情</Button>
+        {r.status==='pending'&&<Button size="small" onClick={()=>{setSelectedRow(r);setRecoverOpen(true);}}>发送恢复链接</Button>}
+      </Space>
+    )},
+  ];
+  return (
+    <Card style={CARD_STYLE}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16,marginBottom:18}}>
+        <div><div style={{fontSize:20,fontWeight:700,marginBottom:6}}>弃单管理</div><div style={{color:'#6B7280',fontSize:13}}>查看结算会话弃单数据，支持手动及自动发送恢复链接</div></div>
+        <Space>
+          <Button icon={<EditOutlined/>} onClick={()=>setStrategyOpen(true)}>恢复策略设置</Button>
+          <Button icon={<DownloadOutlined/>} onClick={()=>{setExportDone(false);setExportOpen(true)}}>导出</Button>
+        </Space>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:18}}>
+        <Kpi num="23" label="今日弃单数"/><Kpi num="18.5%" label="弃单率"/><Kpi num="5" label="已恢复数"/><Kpi num="21.7%" label="恢复率"/>
+      </div>
+      {mode==='data'&&<Space size={12} wrap style={{marginBottom:16}}>
+        <Input placeholder="买家邮箱" prefix={<SearchOutlined style={{color:'#9CA3AF'}}/>} allowClear style={{width:200}}/>
+        <Select defaultValue="" style={{width:140}} options={[{value:'',label:'全部状态'},{value:'pending',label:'待转化'},{value:'converted',label:'已转化'}]}/>
+        <DatePicker.RangePicker placeholder={['开始日期','结束日期']}/>
+        <Button type="primary" icon={<SearchOutlined/>}>查询</Button>
+        <Button icon={<ReloadOutlined/>}>重置</Button>
+      </Space>}
+      {mode==='data'&&<><Table rowKey="id" columns={columns} dataSource={ABANDON_DATA} pagination={false} styles={TABLE_STYLES} scroll={{x:'max-content'}}/><CompactPagination total={ABANDON_DATA.length}/></>}
+      {mode==='zero'&&<EmptyZero entity="弃单记录"/>}
+      {mode==='no-match'&&<EmptyNoMatch onClear={()=>setMode('data')}/>}
+      {mode==='error'&&<EmptyError onRetry={()=>setMode('data')}/>}
+      <EmptyStateSwitcher mode={mode} setMode={setMode}/>
+
+      {/* 发送恢复链接确认 */}
+      <Modal title="发送恢复链接" open={recoverOpen} onCancel={()=>setRecoverOpen(false)} closable={false} maskClosable={false} centered={true} width={480}
+        footer={[<Button key="c" onClick={()=>setRecoverOpen(false)}>取消</Button>,<Button key="s" type="primary" icon={<SendOutlined/>} onClick={()=>setRecoverOpen(false)}>确认发送</Button>]}>
+        {selectedRow&&<>
+          <Alert type="info" showIcon={false} message={'将向 '+selectedRow.buyer+' 发送弃单恢复邮件，邮件中包含恢复链接，买家点击后可回到结算页继续购买。'} style={{marginBottom:16}}/>
+          <div className="lp-detail">
+            <div className="dl">会话编号</div><div className="dv">{selectedRow.id}</div>
+            <div className="dl">预估金额</div><div className="dv">{selectedRow.amount}</div>
+            <div className="dl">创建时间</div><div className="dv">{selectedRow.createdAt}</div>
+          </div>
+        </>}
+      </Modal>
+
+      {/* 自动恢复策略配置 */}
+      <Modal title="自动恢复策略设置" open={strategyOpen} onCancel={()=>setStrategyOpen(false)} closable={false} maskClosable={false} centered={true} width={520}
+        footer={[<Button key="c" onClick={()=>setStrategyOpen(false)}>取消</Button>,<Button key="s" type="primary" onClick={()=>setStrategyOpen(false)}>保存</Button>]}>
+        <Alert type="info" showIcon={false} message="配置弃单后自动向买家发送恢复邮件的规则" style={{marginBottom:16}}/>
+        <FormRow label="自动发送" required><Radio.Group defaultValue="on" options={[{value:'on',label:'开启'},{value:'off',label:'关闭'}]}/></FormRow>
+        <FormRow label="发送时机" required><Space><InputNumber defaultValue={2} min={1} style={{width:80}}/><Select defaultValue="hour" style={{width:100}} options={[{value:'hour',label:'小时后'},{value:'day',label:'天后'}]}/><span style={{color:'#6B7280',fontSize:13}}>弃单后自动发送恢复邮件</span></Space></FormRow>
+      </Modal>
+
+      {/* 导出弃单数据 */}
+      <Modal title="导出弃单数据" open={exportOpen} onCancel={()=>setExportOpen(false)} closable={false} maskClosable={false} centered={true} width={520}
+        footer={exportDone
+          ?[<Button key="c" type="primary" onClick={()=>setExportOpen(false)}>完成</Button>]
+          :[<Button key="c" onClick={()=>setExportOpen(false)}>取消</Button>,<Button key="s" type="primary" icon={<DownloadOutlined/>} onClick={()=>setExportDone(true)}>开始导出</Button>]}>
+        {!exportDone?<>
+          <Alert type="info" showIcon={false} message="导出当前筛选条件下的弃单数据，包含买家联系方式、地址、优惠码使用情况等信息，用于线下召回分析" style={{marginBottom:16}}/>
+          <FormRow label="导出范围" required>
+            <Radio.Group defaultValue="filtered" style={{display:'flex',flexDirection:'column',gap:8}}>
+              <Radio value="filtered">当前筛选结果（{ABANDON_DATA.length} 条）</Radio>
+              <Radio value="all">全部数据（{ABANDON_DATA.length} 条）</Radio>
+            </Radio.Group>
+          </FormRow>
+          <FormRow label="状态">
+            <Select defaultValue="" style={{width:'100%'}} options={[{value:'',label:'全部状态'},{value:'pending',label:'待转化'},{value:'converted',label:'已转化'}]}/>
+          </FormRow>
+          <FormRow label="创建时间">
+            <DatePicker.RangePicker style={{width:'100%'}} placeholder={['开始日期','结束日期']}/>
+          </FormRow>
+          <FormRow label="文件格式" required>
+            <Radio.Group defaultValue="xlsx">
+              <Radio value="xlsx">Excel (.xlsx)</Radio>
+              <Radio value="csv">CSV (.csv)</Radio>
+            </Radio.Group>
+          </FormRow>
+        </>:<>
+          <div style={{textAlign:'center',padding:'32px 0'}}>
+            <CheckCircleOutlined style={{fontSize:48,color:'#10B981'}}/>
+            <div style={{fontSize:16,fontWeight:600,marginTop:12,color:'#111827'}}>导出成功</div>
+            <div style={{color:'#6B7280',fontSize:13,marginTop:6}}>文件已开始下载，请在浏览器下载列表中查看</div>
+            <div style={{marginTop:16,padding:'12px 16px',background:'#F9FAFB',borderRadius:8,display:'inline-block'}}>
+              <span style={{color:'#374151',fontSize:13}}>looply-弃单数据-20260831.xlsx</span>
+            </div>
+          </div>
+        </>}
+      </Modal>
+    </Card>
+  );
+}
+
+/* ── Page: 弃单详情 ── */
+function AbandonedDetailPage({ go, sessionId }) {
+  const [recoverOpen, setRecoverOpen] = useState(false);
+  const row = ABANDON_DATA.find(x=>x.id===sessionId) || ABANDON_DATA[0];
+  return (
+    <Card style={CARD_STYLE}>
+      {/* 页头 */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16,marginBottom:8}}>
+        <div>
+          <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:6}}>
+            <Button type="text" icon={<LeftOutlined/>} onClick={()=>go('abandoned-cart')} style={{padding:'4px 8px'}}/>
+            <span style={{fontSize:20,fontWeight:700}}>弃单详情</span>
+            <span style={{fontFamily:'Menlo,Monaco,Consolas,monospace',fontSize:13,color:'#6B7280'}}>{row.id}</span>
+            <StatusTag variant={CHECKOUT_TAG[row.status]}>{CHECKOUT_STATUS_MAP[row.status]}</StatusTag>
+          </div>
+          <div style={{color:'#6B7280',fontSize:13,marginLeft:40}}>创建于 {row.createdAt}</div>
+        </div>
+        <Space>
+          {row.status==='pending'&&<Button type="primary" icon={<SendOutlined/>} onClick={()=>setRecoverOpen(true)}>发送恢复链接</Button>}
+        </Space>
+      </div>
+      <Divider style={{margin:'12px 0 24px'}}/>
+
+      {/* 基本信息 */}
+      <h4 className="lp-section">基本信息</h4>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:0}}>
+        <div className="lp-detail">
+          <div className="dl">会话编号</div><div className="dv">{row.id}</div>
+          <div className="dl">买家邮箱</div><div className="dv">{row.buyer}</div>
+          <div className="dl">注册时间</div><div className="dv">{row.registered?row.regAt:<span style={{color:'#9CA3AF'}}>未注册</span>}</div>
+          <div className="dl">结算进度</div><div className="dv">{PROGRESS_MAP[row.progress]}</div>
+        </div>
+        <div className="lp-detail">
+          <div className="dl">状态</div><div className="dv"><StatusTag variant={CHECKOUT_TAG[row.status]}>{CHECKOUT_STATUS_MAP[row.status]}</StatusTag></div>
+          <div className="dl">商品数</div><div className="dv">{row.items} 件</div>
+          <div className="dl">预估金额</div><div className="dv" style={{fontWeight:600,color:'#7C3AED'}}>{row.amount}</div>
+          {row.status==='converted'&&<><div className="dl">转化订单号</div><div className="dv">{row.convertedOrder}</div></>}
+        </div>
+        <div className="lp-detail">
+          <div className="dl">创建时间</div><div className="dv">{row.createdAt}</div>
+          <div className="dl">最后活动</div><div className="dv">{row.lastAt}</div>
+          <div className="dl">设备</div><div className="dv">Chrome 126 · macOS</div>
+          <div className="dl">IP 地址</div><div className="dv">72.134.88.xxx</div>
+        </div>
+      </div>
+
+      {/* 收货地址 */}
+      <h4 className="lp-section">收货地址（Shipping Address）</h4>
+      <AddrBlock addr={row.ship} status={row.addrStatus} same={false} emptyText="买家未填写收货地址"/>
+
+      {/* 账单地址 */}
+      <h4 className="lp-section">账单地址（Billing Address）</h4>
+      <AddrBlock addr={row.bill} status={row.billStatus} same={row.billSame} emptyText="买家未填写账单地址"/>
+
+      {/* 结算商品 */}
+      <h4 className="lp-section">结算商品</h4>
+      <Table size="small" rowKey="name" pagination={false} styles={TABLE_STYLES}
+        columns={[
+          {title:'主图',dataIndex:'img',width:72,render:()=><div style={{width:48,height:48,background:'#F3F4F6',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',color:'#9CA3AF',fontSize:18}}>📷</div>},
+          {title:'商品名称',dataIndex:'name'},
+          {title:'成色等级',dataIndex:'grade',width:100},
+          {title:'单价',dataIndex:'price',width:100},
+          {title:'数量',dataIndex:'qty',width:60},
+          {title:'币种',dataIndex:'currency',width:80},
+        ]}
+        dataSource={row.items_list}/>
+      <div style={{marginBottom:24}}/>
+
+      {/* 事件时间线（优惠码尝试记录已并入本时间线，不单独成模块）*/}
+      <h4 className="lp-section">事件时间线</h4>
+      <Timeline items={row.timeline.map(e=>({
+        color:e.type==='error'?'#DC2626':e.type==='warn'?'#D97706':'#6B7280',
+        children:<div>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
+            <span style={{fontSize:13,fontWeight:600,color:e.type==='error'?'#DC2626':e.type==='warn'?'#92400E':'#374151'}}>{e.text}</span>
+            <span style={{fontSize:12,color:'#9CA3AF',flexShrink:0}}>{e.at}</span>
+          </div>
+          <div style={{fontSize:12,color:'#6B7280',marginTop:2}}>{e.detail}</div>
+        </div>
+      }))}/>
+
+      {/* 恢复邮件记录 */}
+      <h4 className="lp-section">恢复邮件记录</h4>
+      {row.mails.length===0
+        ?<div className="lp-nodata">尚未发送恢复邮件</div>
+        :<>
+          <Table size="small" rowKey="i" pagination={false} styles={TABLE_STYLES}
+            columns={[
+              {title:'发送时间',dataIndex:'at',width:180},
+              {title:'触发方式',dataIndex:'trigger',width:100,render:v=><StatusTag variant={v==='auto'?'sale':'pending'}>{v==='auto'?'自动':'手动'}</StatusTag>},
+              {title:'发送状态',dataIndex:'sendStatus',width:100,render:v=><StatusTag variant={v==='sent'?'on':'req'}>{v==='sent'?'已发送':'发送失败'}</StatusTag>},
+            ]}
+            dataSource={row.mails}/>
+          <div style={{marginBottom:8}}/>
+          <div className="lp-note">累计发送 {row.mails.length} 次</div>
+          <div style={{marginBottom:24}}/>
+        </>}
+
+      {/* 发送恢复链接弹窗 */}
+      <Modal title="发送恢复链接" open={recoverOpen} onCancel={()=>setRecoverOpen(false)} closable={false} maskClosable={false} centered={true} width={480}
+        footer={[<Button key="c" onClick={()=>setRecoverOpen(false)}>取消</Button>,<Button key="s" type="primary" icon={<SendOutlined/>} onClick={()=>setRecoverOpen(false)}>确认发送</Button>]}>
+        <Alert type="info" showIcon={false} message={'将向 '+row.buyer+' 发送弃单恢复邮件，邮件中包含恢复链接，买家点击后可回到结算页继续购买。'} style={{marginBottom:16}}/>
+        <div className="lp-detail">
+          <div className="dl">会话编号</div><div className="dv">{row.id}</div>
+          <div className="dl">预估金额</div><div className="dv">{row.amount}</div>
+          <div className="dl">创建时间</div><div className="dv">{row.createdAt}</div>
+        </div>
+      </Modal>
+    </Card>
+  );
+}
+
+/* ── Page: 订单管理（方案A 状态Tab） ── */
+function OrderListPage({ go }) {
+  const [mode, setMode] = useState('data');
+  const [statusTab, setStatusTab] = useState('all');
+  const [shipOpen, setShipOpen] = useState(false);
+  const [shipRow, setShipRow] = useState(null);
+  const [shipChecked, setShipChecked] = useState([]);
+  const [refundOpen, setRefundOpen] = useState(false);
+  const [refundRow, setRefundRow] = useState(null);
+  const [refundChecked, setRefundChecked] = useState([]);
+  const filtered = useMemo(()=>{
+    if(statusTab==='all') return ORDER_DATA;
+    return ORDER_DATA.filter(r=>r.status===statusTab);
+  },[statusTab]);
+  const columns = [
+    {title:'订单号',dataIndex:'id',width:160,render:v=><span style={{fontFamily:'Menlo,Monaco,Consolas,monospace',fontSize:12,color:'#374151',background:'#F3F4F6',padding:'1px 6px',borderRadius:4}}>{v}</span>},
+    {title:'买家',dataIndex:'buyer',width:180},
+    {title:'商家',dataIndex:'merchant',width:140},
+    {title:'商品数',dataIndex:'items',width:80,render:v=>v+'件'},
+    {title:'订单金额',dataIndex:'amount',width:120},
+    {title:'优惠',dataIndex:'discount',width:80,render:v=>v&&v!=='$0.00'?<span style={{color:'#E11D48',fontSize:12}}>-{v}</span>:null},
+    {title:'订单状态',dataIndex:'status',width:100,render:v=><StatusTag variant={STATUS_TAG[v]}>{STATUS_MAP[v]}</StatusTag>},
+    {title:'付款时间',dataIndex:'paidAt',width:160},
+    {title:'操作',key:'op',width:220,fixed:'right',render:(_,r)=>(
+      <Space size={6}>
+        <Button size="small" onClick={()=>go('order-detail')}>查看详情</Button>
+        {r.status==='paid'&&<Button size="small" type="primary" onClick={()=>{setShipRow(r);setShipChecked((ORDER_ITEMS_MAP[r.id]||[]).filter(x=>x.f_status==='pending').map(x=>x.id));setShipOpen(true);}}>发货</Button>}
+        {r.status==='paid'&&<Button size="small" danger onClick={()=>{setRefundRow(r);setRefundChecked((ORDER_ITEMS_MAP[r.id]||[]).filter(x=>x.f_status==='pending').map(x=>x.id));setRefundOpen(true);}}>发起退款</Button>}
+      </Space>
+    )},
+  ];
+  const tabCounts = useMemo(()=>{
+    const base = ORDER_DATA;
+    return {all:base.length,pending_payment:base.filter(r=>r.status==='pending_payment').length,paid:base.filter(r=>r.status==='paid').length,shipped:base.filter(r=>r.status==='shipped').length,completed:base.filter(r=>r.status==='completed').length,cancelled:base.filter(r=>r.status==='cancelled').length};
+  },[]);
+  const tabItems = [
+    {key:'all',label:'全部('+tabCounts.all+')'},{key:'pending_payment',label:'待付款('+tabCounts.pending_payment+')'},{key:'paid',label:'已付款·待发货('+tabCounts.paid+')'},{key:'shipped',label:'已发货('+tabCounts.shipped+')'},
+    {key:'completed',label:'已完成('+tabCounts.completed+')'},{key:'cancelled',label:'已取消('+tabCounts.cancelled+')'},
+  ];
+  return (
+    <Card style={CARD_STYLE}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16,marginBottom:18}}>
+        <div><div style={{fontSize:20,fontWeight:700,marginBottom:6}}>订单管理</div><div style={{color:'#6B7280',fontSize:13}}>管理所有订单，跟踪订单生命周期（待付款为整体订单 parent_order，支付到账后按商家拆子订单）</div></div>
+        <Button icon={<DownloadOutlined/>}>导出</Button>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:18}}>
+        <Kpi num="47" label="今日新订单"/><Kpi num="12" label="待发货"/><Kpi num="3" label="退款处理中"/><Kpi num="28" label="今日已完成"/>
+      </div>
+      {mode==='data'&&<>
+        <Space size={12} wrap style={{marginBottom:12}}>
+          <Input placeholder="订单号" prefix={<SearchOutlined style={{color:'#9CA3AF'}}/>} allowClear style={{width:180}}/>
+          <Input placeholder="买家邮箱" prefix={<SearchOutlined style={{color:'#9CA3AF'}}/>} allowClear style={{width:180}}/>
+          <Select defaultValue="" style={{width:160}} options={[{value:'',label:'全部商家'},{value:'looply',label:'Looply Official'},{value:'vintage',label:'Vintage Luxe'},{value:'second',label:'Second Style'},{value:'preloved',label:'Pre-Loved Co'}]}/>
+          <DatePicker.RangePicker placeholder={['开始日期','结束日期']}/>
+          <Button type="primary" icon={<SearchOutlined/>}>查询</Button>
+          <Button icon={<ReloadOutlined/>}>重置</Button>
+        </Space>
+        <Tabs activeKey={statusTab} onChange={setStatusTab} items={tabItems} style={{marginBottom:0}}/>
+        <Table rowKey="id" columns={columns} dataSource={filtered} pagination={false} styles={TABLE_STYLES} scroll={{x:'max-content'}}/>
+        <CompactPagination total={filtered.length}/>
+      </>}
+      {mode==='zero'&&<EmptyZero entity="订单"/>}
+      {mode==='no-match'&&<EmptyNoMatch onClear={()=>setMode('data')}/>}
+      {mode==='error'&&<EmptyError onRetry={()=>setMode('data')}/>}
+      <EmptyStateSwitcher mode={mode} setMode={setMode}/>
+
+      {/* 列表发货弹窗 */}
+      <Modal title="订单发货" open={shipOpen} onCancel={()=>{setShipOpen(false);setShipChecked([]);}} closable={false} maskClosable={false} centered={true} width={600}
+        footer={[<Button key="c" onClick={()=>{setShipOpen(false);setShipChecked([]);}}>取消</Button>,<Button key="s" type="primary" disabled={shipChecked.length===0} onClick={()=>{setShipOpen(false);setShipChecked([]);}}>确认发货{shipChecked.length>0&&'（'+shipChecked.length+'件）'}</Button>]}>
+        {shipRow&&<>
+          <div className="lp-detail" style={{marginBottom:16}}>
+            <div className="dl">订单号</div><div className="dv">{shipRow.id}</div>
+            <div className="dl">买家</div><div className="dv">{shipRow.buyer}</div>
+          </div>
+          <Alert type="info" showIcon={false} message="选择本次发货的商品，未选中的商品可在后续批次中发货" style={{marginBottom:16}}/>
+          <h4 className="lp-section-purple">选择发货商品</h4>
+          <Table size="small" rowKey="id" pagination={false} styles={TABLE_STYLES}
+            rowSelection={{selectedRowKeys:shipChecked,onChange:setShipChecked}}
+            columns={[{title:'商品名称',dataIndex:'name'},{title:'成色等级',dataIndex:'grade',width:100},{title:'单价',dataIndex:'price',width:100},{title:'数量',dataIndex:'qty',width:60}]}
+            dataSource={(ORDER_ITEMS_MAP[shipRow.id]||[]).filter(x=>x.f_status==='pending')}/>
+          <div style={{marginTop:20}}/>
+          <FormRow label="承运商" required><Select placeholder="请选择承运商" style={{width:'100%'}} options={[{value:'fedex',label:'FedEx'},{value:'ups',label:'UPS'},{value:'usps',label:'USPS'},{value:'dhl',label:'DHL'}]}/></FormRow>
+          <FormRow label="快递单号" required><Input placeholder="请输入快递追踪号"/></FormRow>
+        </>}
+      </Modal>
+
+      {/* 列表发起退款弹窗 */}
+      <Modal title="发起退款" open={refundOpen} onCancel={()=>{setRefundOpen(false);setRefundChecked([]);}} closable={false} maskClosable={false} centered={true} width={600}
+        footer={[<Button key="c" onClick={()=>{setRefundOpen(false);setRefundChecked([]);}}>取消</Button>,<Button key="s" type="primary" disabled={refundChecked.length===0} onClick={()=>{setRefundOpen(false);setRefundChecked([]);}}>确认提交{refundChecked.length>0&&'（'+refundChecked.length+'件）'}</Button>]}>
+        {refundRow&&<>
+          <div className="lp-detail" style={{marginBottom:16}}>
+            <div className="dl">订单号</div><div className="dv">{refundRow.id}</div>
+            <div className="dl">买家</div><div className="dv">{refundRow.buyer}</div>
+          </div>
+          <h4 className="lp-section-purple">选择退款商品</h4>
+          <Table size="small" rowKey="id" pagination={false} styles={TABLE_STYLES}
+            rowSelection={{selectedRowKeys:refundChecked,onChange:setRefundChecked}}
+            columns={[{title:'商品名称',dataIndex:'name'},{title:'成色等级',dataIndex:'grade',width:100},{title:'单价',dataIndex:'price',width:100},{title:'数量',dataIndex:'qty',width:60}]}
+            dataSource={(ORDER_ITEMS_MAP[refundRow.id]||[]).filter(x=>x.f_status==='pending')}/>
+          <div style={{marginTop:20}}/>
+          <Alert type="info" showIcon={false} message="退款金额基于商品实付金额（已扣除优惠），非商品原价" style={{marginBottom:12}}/>
+          <FormRow label="退款金额" required><InputNumber defaultValue={parseFloat(refundRow.amount.replace('$','').replace(',',''))} step={0.01} prefix="$" style={{width:'100%'}}/></FormRow>
+          <FormRow label="退款原因" required><Select placeholder="请选择" style={{width:'100%'}} options={[{value:'buyer',label:'买家申请'},{value:'product',label:'商品问题'},{value:'oos',label:'缺货'},{value:'other',label:'其他'}]}/></FormRow>
+          <FormRow label="备注"><Input.TextArea rows={3} placeholder="请输入退款备注"/></FormRow>
+        </>}
+      </Modal>
+    </Card>
+  );
+}
+
+/* ── Page: 订单详情 ── */
+function OrderDetailPage({ go }) {
+  const [shipOpen, setShipOpen] = useState(false);
+  const [refundOpen, setRefundOpen] = useState(false);
+  const [remarkOpen, setRemarkOpen] = useState(false);
+  const [shipChecked, setShipChecked] = useState([]);
+  const [refundChecked, setRefundChecked] = useState([]);
+
+  const orderItems = [
+    {id:'OI001',img:null,name:'Vintage Chanel Classic Flap Bag',grade:'A-优秀',price:'$165.00',qty:1,discount:'$18.00',total:'$147.00',f_status:'pending',r_status:'none'},
+    {id:'OI002',img:null,name:'Pre-owned Ray-Ban Aviator Sunglasses',grade:'B-良好',price:'$93.50',qty:1,discount:'$12.00',total:'$81.50',f_status:'pending',r_status:'none'},
+  ];
+  const ITEM_F_MAP = {pending:'待发货',shipped:'已发货',received:'已签收'};
+  const ITEM_F_TAG = {pending:'pending',shipped:'sale',received:'on'};
+  const ITEM_R_MAP = {none:'无退款',refunding:'退款中',refunded:'已退款'};
+  const ITEM_R_TAG = {none:'off',refunding:'warn',refunded:'req'};
+  const PKG_STATUS_MAP = {pending:'待发货',shipped:'已发货',received:'已签收'};
+  const PKG_TAG = {pending:'pending',shipped:'sale',received:'on'};
+  const REFUND_STATUS_MAP = {pending:'待处理',processing:'处理中',completed:'已完成',rejected:'已拒绝'};
+  const REFUND_TAG = {pending:'pending',processing:'sale',completed:'on',rejected:'req'};
+
+  return (
+    <Card style={CARD_STYLE}>
+      {/* 页头 */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16,marginBottom:8}}>
+        <div>
+          <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:6}}>
+            <Button type="text" icon={<LeftOutlined/>} onClick={()=>go('order-list')} style={{padding:'4px 8px'}}/>
+            <span style={{fontSize:20,fontWeight:700}}>订单详情</span>
+            <span style={{fontFamily:'Menlo,Monaco,Consolas,monospace',fontSize:13,color:'#6B7280'}}>ORD20260615001</span>
+            <StatusTag variant="sale">已付款</StatusTag>
+          </div>
+          <div style={{color:'#6B7280',fontSize:13,marginLeft:40}}>关联父订单 PO20260615001</div>
+        </div>
+        <Space>
+          <Button type="primary" icon={<SendOutlined/>} onClick={()=>{setShipChecked(orderItems.filter(x=>x.f_status==='pending').map(x=>x.id));setShipOpen(true);}}>发货</Button>
+          <Button icon={<RollbackOutlined/>} onClick={()=>{setRefundChecked(orderItems.filter(x=>x.f_status==='pending').map(x=>x.id));setRefundOpen(true);}}>发起退款</Button>
+          <Button icon={<EditOutlined/>} onClick={()=>setRemarkOpen(true)}>添加备注</Button>
+        </Space>
+      </div>
+      <Divider style={{margin:'12px 0 24px'}}/>
+
+      {/* 基本信息 */}
+      <h4 className="lp-section">基本信息</h4>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:0}}>
+        <div className="lp-detail">
+          <div className="dl">订单号</div><div className="dv">ORD20260615001</div>
+          <div className="dl">父订单号</div><div className="dv">PO20260615001</div>
+          <div className="dl">买家</div><div className="dv">sarah@email.com</div>
+          <div className="dl">商家</div><div className="dv">Looply Official</div>
+          <div className="dl">下单时间</div><div className="dv">2026-06-15 14:30:00</div>
+        </div>
+        <div className="lp-detail">
+          <div className="dl">订单状态</div><div className="dv"><StatusTag variant="sale">已付款</StatusTag></div>
+          <div className="dl">支付状态</div><div className="dv"><StatusTag variant="on">已支付</StatusTag></div>
+          <div className="dl">付款时间</div><div className="dv">2026-06-15 14:30:25</div>
+          <div className="dl">完成时间</div><div className="dv">—</div>
+          <div className="dl">取消时间</div><div className="dv">—</div>
+        </div>
+        <div className="lp-detail">
+          <div className="dl">商品小计</div><div className="dv">$258.50</div>
+          <div className="dl" style={{color:'#E11D48'}}>优惠金额</div><div className="dv" style={{color:'#E11D48'}}>-$30.00</div>
+          <div className="dl">运费</div><div className="dv">$12.00</div>
+          <div className="dl">税费（CA 9.5%）</div><div className="dv">$24.56</div>
+          <div className="dl" style={{fontWeight:700}}>订单总额</div><div className="dv" style={{fontWeight:700,fontSize:16,color:'#7C3AED'}}>$265.06</div>
+        </div>
+      </div>
+
+      {/* 商品明细 */}
+      <h4 className="lp-section">商品明细</h4>
+      <Table size="small" rowKey="id" pagination={false} styles={TABLE_STYLES}
+        columns={[
+          {title:'主图',dataIndex:'img',width:72,render:()=><div style={{width:48,height:48,background:'#F3F4F6',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',color:'#9CA3AF',fontSize:18}}>📷</div>},
+          {title:'商品名称',dataIndex:'name'},
+          {title:'成色等级',dataIndex:'grade',width:100},
+          {title:'单价',dataIndex:'price',width:100},
+          {title:'数量',dataIndex:'qty',width:60},
+          {title:<TipText label="优惠分摊" tip="该商品分摊的优惠金额，来自 order_discount_item 汇总"/>,dataIndex:'discount',width:100,render:v=>v&&v!=='$0.00'?<span style={{color:'#E11D48'}}>-{v}</span>:<span style={{color:'#9CA3AF'}}>—</span>},
+          {title:<TipText label="实付小计" tip="单价×数量-优惠分摊"/>,dataIndex:'total',width:100},
+          {title:'发货状态',dataIndex:'f_status',width:100,render:v=><StatusTag variant={ITEM_F_TAG[v]}>{ITEM_F_MAP[v]}</StatusTag>},
+          {title:'退款状态',dataIndex:'r_status',width:100,render:v=><StatusTag variant={ITEM_R_TAG[v]}>{ITEM_R_MAP[v]}</StatusTag>},
+        ]}
+        dataSource={orderItems}/>
+      <div style={{marginBottom:24}}/>
+
+      {/* 收货地址 */}
+      <h4 className="lp-section">收货地址（Shipping Address）</h4>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:0}}>
+        <div className="lp-detail">
+          <div className="dl">收件人</div><div className="dv">Sarah Johnson</div>
+          <div className="dl">电话</div><div className="dv">+1 213-555-0147</div>
+          <div className="dl">地址行1</div><div className="dv">1234 Sunset Blvd</div>
+          <div className="dl">地址行2</div><div className="dv">Apt 5B</div>
+        </div>
+        <div className="lp-detail">
+          <div className="dl">城市</div><div className="dv">Los Angeles</div>
+          <div className="dl">州</div><div className="dv">CA</div>
+          <div className="dl">邮编</div><div className="dv">90028</div>
+          <div className="dl">国家</div><div className="dv">US</div>
+        </div>
+      </div>
+
+      {/* 账单地址 */}
+      <h4 className="lp-section">账单地址（Billing Address）</h4>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:0}}>
+        <div className="lp-detail">
+          <div className="dl">姓名</div><div className="dv">Sarah Johnson</div>
+          <div className="dl">电话</div><div className="dv">+1 213-555-0147</div>
+          <div className="dl">地址行1</div><div className="dv">5678 Wilshire Blvd</div>
+          <div className="dl">地址行2</div><div className="dv">Suite 300</div>
+        </div>
+        <div className="lp-detail">
+          <div className="dl">城市</div><div className="dv">Los Angeles</div>
+          <div className="dl">州</div><div className="dv">CA</div>
+          <div className="dl">邮编</div><div className="dv">90036</div>
+          <div className="dl">国家</div><div className="dv">US</div>
+        </div>
+      </div>
+
+      {/* 优惠信息 */}
+      <h4 className="lp-section">优惠信息</h4>
+      <Table size="small" rowKey="id" pagination={false} styles={TABLE_STYLES}
+        columns={[
+          {title:'优惠类型',dataIndex:'type',width:100,render:v=><StatusTag variant="sale">{v}</StatusTag>},
+          {title:'优惠名称',dataIndex:'name'},
+          {title:'优惠金额',dataIndex:'amount',width:120,render:v=><span style={{fontWeight:600,color:'#E11D48'}}>-{v}</span>},
+          {title:'分摊明细',dataIndex:'detail',render:v=><span style={{fontSize:12,color:'#6B7280'}}>{v}</span>},
+        ]}
+        dataSource={[
+          {id:'D001',type:'满减',name:'满 $200 减 $30（跨店）',amount:'$30.00',detail:'Chanel Flap Bag 分摊 $18.00 · Ray-Ban Sunglasses 分摊 $12.00'},
+        ]}/>
+      <div style={{marginBottom:24}}/>
+
+      {/* 支付信息 */}
+      <h4 className="lp-section">支付信息</h4>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:0}}>
+        <div className="lp-detail">
+          <div className="dl">支付单号</div><div className="dv"><Button type="link" size="small" style={{padding:0,fontSize:13}} onClick={()=>go('payment-order-list')}>PAY20260615001</Button></div>
+          <div className="dl">支付通道</div><div className="dv">Airwallex</div>
+          <div className="dl">支付方式</div><div className="dv">Credit Card</div>
+          <div className="dl">支付账户</div><div className="dv">Visa **** 4242</div>
+        </div>
+        <div className="lp-detail">
+          <div className="dl">支付金额</div><div className="dv" style={{fontWeight:600}}>$265.06 USD</div>
+          <div className="dl">支付状态</div><div className="dv"><StatusTag variant="on">成功</StatusTag></div>
+          <div className="dl">支付时间</div><div className="dv">2026-06-15 14:30:25</div>
+        </div>
+      </div>
+
+      {/* 包裹物流 */}
+      <h4 className="lp-section">包裹物流</h4>
+      <div style={{border:'1px solid #E5E7EB',borderRadius:14,overflow:'hidden',marginBottom:24}}>
+        <div style={{padding:'14px 20px',background:'#FAFAFA',borderBottom:'1px solid #E5E7EB',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <div style={{display:'flex',alignItems:'center',gap:12}}>
+            <span style={{fontWeight:600,fontSize:14}}>包裹 PKG001</span>
+            <StatusTag variant="on">已签收</StatusTag>
+          </div>
+          <span style={{fontSize:13,color:'#6B7280',fontFamily:'Menlo,Monaco,Consolas,monospace'}}>FedEx · 794644790126</span>
+        </div>
+        <div style={{padding:'16px 20px',borderBottom:'1px solid #F3F4F6'}}>
+          <div style={{fontSize:12,color:'#9CA3AF',marginBottom:8}}>包裹商品</div>
+          <div style={{display:'flex',flexDirection:'column',gap:4,fontSize:13}}>
+            <div>Vintage Chanel Classic Flap Bag × 1</div>
+            <div>Ray-Ban Vintage Aviator Sunglasses × 1</div>
+          </div>
+        </div>
+        <div style={{padding:'16px 20px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:0}}>
+          <div className="lp-detail">
+            <div className="dl">发货时间</div><div className="dv">2026-06-16 09:00:00</div>
+            <div className="dl">签收时间</div><div className="dv">2026-06-19 14:30:00</div>
+          </div>
+          <div className="lp-detail">
+            <div className="dl">承运商</div><div className="dv">FedEx Ground</div>
+            <div className="dl">追踪号</div><div className="dv">794644790126</div>
+          </div>
+        </div>
+        <div style={{padding:'0 20px 20px'}}>
+          <div style={{fontSize:12,color:'#9CA3AF',marginBottom:12}}>物流轨迹</div>
+          <Timeline items={[
+            {color:'green',children:<div><div style={{display:'flex',justifyContent:'space-between'}}><span style={{fontWeight:600}}>已签收</span><span style={{color:'#9CA3AF',fontSize:12}}>2026-06-19 14:30</span></div><div style={{fontSize:12,color:'#6B7280'}}>Los Angeles, CA — 包裹已签收，签收人：本人</div></div>},
+            {children:<div><div style={{display:'flex',justifyContent:'space-between'}}><span style={{fontWeight:600}}>派送中</span><span style={{color:'#9CA3AF',fontSize:12}}>2026-06-19 08:15</span></div><div style={{fontSize:12,color:'#6B7280'}}>Los Angeles, CA — 快递员正在派送</div></div>},
+            {children:<div><div style={{display:'flex',justifyContent:'space-between'}}><span style={{fontWeight:600}}>到达目的地城市</span><span style={{color:'#9CA3AF',fontSize:12}}>2026-06-18 22:00</span></div><div style={{fontSize:12,color:'#6B7280'}}>Los Angeles, CA — 包裹已到达目的地分拨中心</div></div>},
+            {children:<div><div style={{display:'flex',justifyContent:'space-between'}}><span style={{fontWeight:600}}>运输中</span><span style={{color:'#9CA3AF',fontSize:12}}>2026-06-17 16:30</span></div><div style={{fontSize:12,color:'#6B7280'}}>Memphis, TN — 包裹已离开转运中心</div></div>},
+            {children:<div><div style={{display:'flex',justifyContent:'space-between'}}><span style={{fontWeight:600}}>已揽收</span><span style={{color:'#9CA3AF',fontSize:12}}>2026-06-16 09:00</span></div><div style={{fontSize:12,color:'#6B7280'}}>New York, NY — 商家已发货，快递已揽收</div></div>},
+          ]}/>
+        </div>
+      </div>
+
+      {/* 退款记录 */}
+      <h4 className="lp-section">退款记录</h4>
+      <Table size="small" rowKey="id" pagination={false} styles={TABLE_STYLES}
+        columns={[
+          {title:'退款申请单号',dataIndex:'requestNo',width:160,render:v=><span style={{fontFamily:'Menlo,Monaco,Consolas,monospace',fontSize:12,color:'#374151',background:'#F3F4F6',padding:'1px 6px',borderRadius:4}}>{v}</span>},
+          {title:'退款商品',dataIndex:'items'},
+          {title:'退款类型',dataIndex:'type',width:110,render:v=><StatusTag variant="sale">{v}</StatusTag>},
+          {title:'退款金额',dataIndex:'amount',width:120,render:v=><span style={{fontWeight:600,color:'#E11D48'}}>{v}</span>},
+          {title:'退款原因',dataIndex:'reason',width:100},
+          {title:'退款状态',dataIndex:'refundStatus',width:100,render:v=>{const m={completed:['on','已完成'],failed:['req','退款失败']};const[vt,lb]=m[v]||['',''];return <StatusTag variant={vt}>{lb}</StatusTag>}},
+          {title:'退款单号',dataIndex:'refundNo',width:160,render:v=>v?<Button type="link" size="small" style={{padding:0,fontSize:13}} onClick={()=>go('refund-order-list')}>{v}</Button>:<span style={{color:'#9CA3AF'}}>—</span>},
+          {title:'申请时间',dataIndex:'requestedAt',width:160},
+        ]}
+        dataSource={[
+          {id:'RF001',requestNo:'RFQ20260620001',items:'Vintage Chanel Classic Flap Bag × 1',type:'发货前退款',amount:'$147.00',reason:'买家申请',refundStatus:'completed',refundNo:'RO20260620001',requestedAt:'2026-06-20 10:00:00'},
+        ]}/>
+      <div style={{marginBottom:24}}/>
+
+      {/* 订单备注 */}
+      <h4 className="lp-section">订单备注</h4>
+      <Table size="small" rowKey="i" pagination={false} styles={TABLE_STYLES}
+        columns={[
+          {title:'备注内容',dataIndex:'content'},
+          {title:'操作人',dataIndex:'who',width:150},
+          {title:'添加时间',dataIndex:'at',width:180},
+        ]}
+        dataSource={[
+          {i:1,content:'客户要求使用 FedEx Express 配送，优先处理',who:'admin@looply.com',at:'2026-06-15 15:00:00'},
+          {i:2,content:'已与客户确认收货地址无误',who:'cs@looply.com',at:'2026-06-15 16:30:00'},
+        ]}/>
+      <div style={{marginBottom:24}}/>
+
+      {/* 操作日志 */}
+      <OpLog data={[
+        {i:1,at:'2026-06-15 14:30:25',who:'系统',type:'创建订单',detail:'支付成功，自动创建订单 ORD20260615001'},
+        {i:2,at:'2026-06-15 14:30:00',who:'sarah@email.com',type:'提交订单',detail:'买家完成结算，父订单 PO20260615001 拆分生成'},
+      ]}/>
+
+      {/* 发货弹窗 */}
+      <Modal title="订单发货" open={shipOpen} onCancel={()=>{setShipOpen(false);setShipChecked([]);}} closable={false} maskClosable={false} centered={true} width={600}
+        footer={[<Button key="c" onClick={()=>{setShipOpen(false);setShipChecked([]);}}>取消</Button>,<Button key="s" type="primary" disabled={shipChecked.length===0} onClick={()=>{setShipOpen(false);setShipChecked([]);}}>确认发货{shipChecked.length>0&&'（'+shipChecked.length+'件）'}</Button>]}>
+        <Alert type="info" showIcon={false} message="选择本次发货的商品，未选中的商品可在后续批次中发货" style={{marginBottom:16}}/>
+        <h4 className="lp-section-purple">选择发货商品</h4>
+        <Table size="small" rowKey="id" pagination={false} styles={TABLE_STYLES}
+          rowSelection={{selectedRowKeys:shipChecked,onChange:setShipChecked}}
+          columns={[{title:'商品名称',dataIndex:'name'},{title:'成色等级',dataIndex:'grade',width:100},{title:'单价',dataIndex:'price',width:100},{title:'数量',dataIndex:'qty',width:60}]}
+          dataSource={orderItems.filter(x=>x.f_status==='pending')}/>
+        <div style={{marginTop:20}}/>
+        <FormRow label="承运商" required><Select placeholder="请选择承运商" style={{width:'100%'}} options={[{value:'fedex',label:'FedEx'},{value:'ups',label:'UPS'},{value:'usps',label:'USPS'},{value:'dhl',label:'DHL'}]}/></FormRow>
+        <FormRow label="快递单号" required><Input placeholder="请输入快递追踪号"/></FormRow>
+      </Modal>
+
+      {/* 发起退款弹窗 */}
+      <Modal title="发起退款" open={refundOpen} onCancel={()=>{setRefundOpen(false);setRefundChecked([]);}} closable={false} maskClosable={false} centered={true} width={600}
+        footer={[<Button key="c" onClick={()=>{setRefundOpen(false);setRefundChecked([]);}}>取消</Button>,<Button key="s" type="primary" disabled={refundChecked.length===0} onClick={()=>{setRefundOpen(false);setRefundChecked([]);}}>确认提交{refundChecked.length>0&&'（'+refundChecked.length+'件）'}</Button>]}>
+        <h4 className="lp-section-purple">选择退款商品</h4>
+        <Table size="small" rowKey="id" pagination={false} styles={TABLE_STYLES}
+          rowSelection={{selectedRowKeys:refundChecked,onChange:setRefundChecked}}
+          columns={[{title:'商品名称',dataIndex:'name'},{title:'成色等级',dataIndex:'grade',width:100},{title:'单价',dataIndex:'price',width:100},{title:'数量',dataIndex:'qty',width:60}]}
+          dataSource={orderItems.filter(x=>x.f_status==='pending')}/>
+        <div style={{marginTop:20}}/>
+        <Alert type="info" showIcon={false} message="退款金额基于商品实付金额（已扣除优惠），非商品原价" style={{marginBottom:12}}/>
+        <FormRow label="退款金额" required><InputNumber defaultValue={228.50} step={0.01} prefix="$" style={{width:'100%'}}/></FormRow>
+        <FormRow label="退款原因" required><Select placeholder="请选择" style={{width:'100%'}} options={[{value:'buyer',label:'买家申请'},{value:'product',label:'商品问题'},{value:'oos',label:'缺货'},{value:'other',label:'其他'}]}/></FormRow>
+        <FormRow label="备注"><Input.TextArea rows={3} placeholder="请输入退款备注"/></FormRow>
+      </Modal>
+
+      {/* 添加备注弹窗 */}
+      <Modal title="添加备注" open={remarkOpen} onCancel={()=>setRemarkOpen(false)} closable={false} maskClosable={false} centered={true} width={480}
+        footer={[<Button key="c" onClick={()=>setRemarkOpen(false)}>取消</Button>,<Button key="s" type="primary" onClick={()=>setRemarkOpen(false)}>确认</Button>]}>
+        <FormRow label="备注内容" required><Input.TextArea rows={4} placeholder="请输入备注内容"/></FormRow>
+      </Modal>
+    </Card>
+  );
+}
+
+/* ── Page: 支付单管理 ── */
+function PaymentOrderListPage({ go }) {
+  const [mode, setMode] = useState('data');
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null);
+  const columns = [
+    {title:'支付单号',dataIndex:'paymentNo',width:160,render:v=><span style={{fontFamily:'Menlo,Monaco,Consolas,monospace',fontSize:12,color:'#374151',background:'#F3F4F6',padding:'1px 6px',borderRadius:4}}>{v}</span>},
+    {title:'关联父订单',dataIndex:'parentOrderNo',width:160,render:v=><Button type="link" size="small" style={{padding:0,fontSize:13}}>{v}</Button>},
+    {title:'买家',dataIndex:'buyer',width:170},
+    {title:'支付通道',dataIndex:'channel',width:90},
+    {title:'支付方式',dataIndex:'payMethod',width:110},
+    {title:'支付账户',dataIndex:'instrument',width:170},
+    {title:'金额',dataIndex:'amount',width:100,render:v=><span style={{fontWeight:600}}>{v}</span>},
+    {title:'状态',dataIndex:'status',width:100,render:v=><StatusTag variant={PAY_TAG[v]}>{PAY_STATUS_MAP[v]}</StatusTag>},
+    {title:'支付时间',dataIndex:'paidAt',width:160},
+    {title:'创建时间',dataIndex:'createdAt',width:160},
+    {title:'备注',dataIndex:'remark',width:200,render:v=>v?<span style={{color:'#DC2626',fontSize:12}}>{v}</span>:<span style={{color:'#D1D5DB'}}>—</span>},
+    {title:'操作',key:'op',width:80,fixed:'right',render:(_,r)=><Button size="small" onClick={()=>{setSelectedRow(r);setDetailOpen(true)}}>详情</Button>},
+  ];
+  return (
+    <Card style={CARD_STYLE}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16,marginBottom:18}}>
+        <div><div style={{fontSize:20,fontWeight:700,marginBottom:6}}>支付单管理</div><div style={{color:'#6B7280',fontSize:13}}>管理所有支付单，跟踪支付状态</div></div>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:18}}>
+        <Kpi num="8" label="支付单总数"/><Kpi num="1" label="处理中"/><Kpi num="5" label="已成功"/><Kpi num="1" label="已失败"/>
+      </div>
+      {mode==='data'&&<>
+        <Space size={12} wrap style={{marginBottom:16}}>
+          <Input placeholder="支付单号" prefix={<SearchOutlined style={{color:'#9CA3AF'}}/>} allowClear style={{width:170}}/>
+          <Input placeholder="关联订单号" prefix={<SearchOutlined style={{color:'#9CA3AF'}}/>} allowClear style={{width:170}}/>
+          <Select defaultValue="" style={{width:120}} options={[{value:'',label:'全部通道'},{value:'stripe',label:'Airwallex'},{value:'paypal',label:'PayPal'}]}/>
+          <Select defaultValue="" style={{width:120}} options={[{value:'',label:'全部状态'},{value:'pending',label:'待支付'},{value:'processing',label:'处理中'},{value:'succeeded',label:'成功'},{value:'failed',label:'失败'},{value:'closed',label:'关闭'}]}/>
+          <DatePicker.RangePicker placeholder={['开始日期','结束日期']}/>
+          <Button type="primary" icon={<SearchOutlined/>}>查询</Button>
+          <Button icon={<ReloadOutlined/>}>重置</Button>
+        </Space>
+        <Table rowKey="id" columns={columns} dataSource={PAYMENT_ORDER_DATA} pagination={false} styles={TABLE_STYLES} scroll={{x:'max-content'}}/>
+        <CompactPagination total={PAYMENT_ORDER_DATA.length}/>
+      </>}
+      {mode==='zero'&&<EmptyZero entity="支付单"/>}
+      {mode==='no-match'&&<EmptyNoMatch onClear={()=>setMode('data')}/>}
+      {mode==='error'&&<EmptyError onRetry={()=>setMode('data')}/>}
+      <EmptyStateSwitcher mode={mode} setMode={setMode}/>
+
+      {/* 支付单详情弹窗 */}
+      <Modal title="支付单详情" open={detailOpen} onCancel={()=>setDetailOpen(false)} closable={false} maskClosable={false} centered={true} width={600}
+        footer={[<Button key="c" onClick={()=>setDetailOpen(false)}>关闭</Button>]}>
+        {selectedRow&&<>
+          <h4 className="lp-section">基本信息</h4>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:0}}>
+            <div className="lp-detail">
+              <div className="dl">支付单号</div><div className="dv"><span style={{fontFamily:'Menlo,Monaco,Consolas,monospace',fontSize:12}}>{selectedRow.paymentNo}</span></div>
+              <div className="dl">关联父订单</div><div className="dv">{selectedRow.parentOrderNo}</div>
+              <div className="dl">买家</div><div className="dv">{selectedRow.buyer}</div>
+              <div className="dl">支付通道</div><div className="dv">{selectedRow.channel}</div>
+            </div>
+            <div className="lp-detail">
+              <div className="dl">支付方式</div><div className="dv">{selectedRow.payMethod}</div>
+              <div className="dl">支付账户</div><div className="dv">{selectedRow.instrument}</div>
+              <div className="dl">金额</div><div className="dv" style={{fontWeight:600}}>{selectedRow.amount} {selectedRow.currency}</div>
+              <div className="dl">状态</div><div className="dv"><StatusTag variant={PAY_TAG[selectedRow.status]}>{PAY_STATUS_MAP[selectedRow.status]}</StatusTag></div>
+              <div className="dl">支付时间</div><div className="dv">{selectedRow.paidAt}</div>
+            </div>
+          </div>
+          {selectedRow.remark&&<div style={{margin:'12px 0',padding:'8px 12px',background:'#FEF2F2',borderRadius:6,fontSize:13,color:'#DC2626'}}>备注：{selectedRow.remark}</div>}
+          <h4 className="lp-section">关联流水</h4>
+          <Table size="small" rowKey="id" pagination={false} styles={TABLE_STYLES}
+            columns={[
+              {title:'流水号',dataIndex:'transNo',render:v=><span style={{fontFamily:'Menlo,Monaco,Consolas,monospace',fontSize:12}}>{v}</span>},
+              {title:'类型',dataIndex:'type',width:80,render:v=><StatusTag variant={TXN_TYPE_TAG[v]}>{TXN_TYPE_MAP[v]}</StatusTag>},
+              {title:'金额',dataIndex:'amount',width:100},
+              {title:'手续费',dataIndex:'fee',width:80},
+              {title:'状态',dataIndex:'status',width:80,render:v=><StatusTag variant={TXN_STATUS_TAG[v]}>{TXN_STATUS_MAP[v]}</StatusTag>},
+            ]}
+            dataSource={TRANSACTION_DATA.filter(t=>t.paymentNo===selectedRow.paymentNo)}/>
+        </>}
+      </Modal>
+    </Card>
+  );
+}
+
+/* ── Page: 支付流水 ── */
+function PaymentTransactionListPage({ go }) {
+  const [mode, setMode] = useState('data');
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null);
+  const columns = [
+    {title:'流水号',dataIndex:'transNo',width:160,render:v=><span style={{fontFamily:'Menlo,Monaco,Consolas,monospace',fontSize:12,color:'#374151',background:'#F3F4F6',padding:'1px 6px',borderRadius:4}}>{v}</span>},
+    {title:'支付/退款单号',dataIndex:'paymentNo',width:170,render:v=><Button type="link" size="small" style={{padding:0,fontSize:13}}>{v}</Button>},
+    {title:'类型',dataIndex:'type',width:80,render:v=><StatusTag variant={TXN_TYPE_TAG[v]}>{TXN_TYPE_MAP[v]}</StatusTag>},
+    {title:<TipText label="渠道流水号" tip="三方支付渠道返回的交易标识，用于对账匹配"/>,dataIndex:'channelTxnId',width:160,render:v=><span style={{fontFamily:'Menlo,Monaco,Consolas,monospace',fontSize:12}}>{v}</span>},
+    {title:'金额',dataIndex:'amount',width:100,render:v=><span style={{fontWeight:600}}>{v}</span>},
+    {title:<TipText label="手续费" tip="渠道对该笔交易收取的处理费（来源：渠道回调）"/>,dataIndex:'fee',width:90},
+    {title:'状态',dataIndex:'status',width:90,render:v=><StatusTag variant={TXN_STATUS_TAG[v]}>{TXN_STATUS_MAP[v]}</StatusTag>},
+    {title:'创建时间',dataIndex:'createdAt',width:140},
+    {title:'操作',key:'op',width:80,fixed:'right',render:(_,r)=><Button size="small" onClick={()=>{setSelectedRow(r);setDetailOpen(true)}}>详情</Button>},
+  ];
+  return (
+    <Card style={CARD_STYLE}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16,marginBottom:18}}>
+        <div><div style={{fontSize:20,fontWeight:700,marginBottom:6}}>支付流水</div><div style={{color:'#6B7280',fontSize:13}}>查看所有支付交易流水，跟踪资金流转</div></div>
+        <Button icon={<DownloadOutlined/>}>导出</Button>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:18}}>
+        <Kpi num="7" label="流水总数"/><Kpi num="5" label="收款笔数"/><Kpi num="2" label="退款笔数"/>
+      </div>
+      {mode==='data'&&<>
+        <Space size={12} wrap style={{marginBottom:16}}>
+          <Input placeholder="流水号" prefix={<SearchOutlined style={{color:'#9CA3AF'}}/>} allowClear style={{width:170}}/>
+          <Input placeholder="渠道流水号" prefix={<SearchOutlined style={{color:'#9CA3AF'}}/>} allowClear style={{width:170}}/>
+          <Select defaultValue="" style={{width:120}} options={[{value:'',label:'全部类型'},{value:'payment',label:'收款'},{value:'refund',label:'退款'}]}/>
+          <Select defaultValue="" style={{width:120}} options={[{value:'',label:'全部状态'},{value:'pending',label:'处理中'},{value:'succeeded',label:'成功'},{value:'failed',label:'失败'}]}/>
+          <DatePicker.RangePicker placeholder={['开始日期','结束日期']}/>
+          <Button type="primary" icon={<SearchOutlined/>}>查询</Button>
+          <Button icon={<ReloadOutlined/>}>重置</Button>
+        </Space>
+        <Table rowKey="id" columns={columns} dataSource={TRANSACTION_DATA} pagination={false} styles={TABLE_STYLES} scroll={{x:'max-content'}}/>
+        <CompactPagination total={TRANSACTION_DATA.length}/>
+      </>}
+      {mode==='zero'&&<EmptyZero entity="支付流水"/>}
+      {mode==='no-match'&&<EmptyNoMatch onClear={()=>setMode('data')}/>}
+      {mode==='error'&&<EmptyError onRetry={()=>setMode('data')}/>}
+      <EmptyStateSwitcher mode={mode} setMode={setMode}/>
+
+      {/* 流水详情弹窗 */}
+      <Modal title="流水详情" open={detailOpen} onCancel={()=>setDetailOpen(false)} closable={false} maskClosable={false} centered={true} width={600}
+        footer={[<Button key="c" onClick={()=>setDetailOpen(false)}>关闭</Button>]}>
+        {selectedRow&&<>
+          <h4 className="lp-section">交易信息</h4>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:0}}>
+            <div className="lp-detail">
+              <div className="dl">流水号</div><div className="dv"><span style={{fontFamily:'Menlo,Monaco,Consolas,monospace',fontSize:12}}>{selectedRow.transNo}</span></div>
+              <div className="dl">支付单号</div><div className="dv">{selectedRow.paymentNo}</div>
+              <div className="dl">交易类型</div><div className="dv"><StatusTag variant={TXN_TYPE_TAG[selectedRow.type]}>{TXN_TYPE_MAP[selectedRow.type]}</StatusTag></div>
+              <div className="dl">渠道流水号</div><div className="dv"><span style={{fontFamily:'Menlo,Monaco,Consolas,monospace',fontSize:12}}>{selectedRow.channelTxnId}</span></div>
+            </div>
+            <div className="lp-detail">
+              <div className="dl">交易金额</div><div className="dv" style={{fontWeight:600}}>{selectedRow.amount} {selectedRow.currency}</div>
+              <div className="dl">渠道手续费</div><div className="dv">{selectedRow.fee}</div>
+              <div className="dl">交易状态</div><div className="dv"><StatusTag variant={TXN_STATUS_TAG[selectedRow.status]}>{TXN_STATUS_MAP[selectedRow.status]}</StatusTag></div>
+              <div className="dl">创建时间</div><div className="dv">{selectedRow.createdAt}</div>
+            </div>
+          </div>
+        </>}
+      </Modal>
+    </Card>
+  );
+}
+
+/* ── Page: 对账管理 ── */
+function ReconciliationPage({ go }) {
+  const [mode, setMode] = useState('data');
+  const [pullOpen, setPullOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportDone, setExportDone] = useState(false);
+  const [expandedKeys, setExpandedKeys] = useState([]);
+
+  const parse$ = v => parseFloat(String(v).replace('$','').replace(',',''));
+  const hasDiff = (a,b) => { if(a==='—'||b==='—') return false; return Math.round((parse$(a)-parse$(b))*100)/100!==0; };
+  const hasAnyDiff = r => r.settleStatus==='settled'&&(hasDiff(r.sysPayment,r.chPayment)||hasDiff(r.sysFee,r.chFee)||hasDiff(r.sysRefund,r.chRefund));
+
+  const filtered = RECON_ORDER_DATA;
+  const unsettledCount = RECON_ORDER_DATA.filter(r=>r.settleStatus==='unsettled').length;
+  const settledCount = RECON_ORDER_DATA.filter(r=>r.settleStatus==='settled').length;
+  const discrepantCount = RECON_ORDER_DATA.filter(hasAnyDiff).length;
+  const amtCell = (sys,ch,val,isSys) => {
+    if(val==='—') return <span style={{color:'#9CA3AF'}}>—</span>;
+    const diff = hasDiff(sys,ch);
+    return <span style={{fontWeight:500,color:diff?'#E11D48':'#1F2937'}}>{val}</span>;
+  };
+  const refundAmtCell = (sys,ch,val) => {
+    if(val==='—') return <span style={{color:'#9CA3AF'}}>—</span>;
+    if(val==='$0.00') return <span style={{color:'#9CA3AF'}}>$0.00</span>;
+    const diff = hasDiff(sys,ch);
+    return <span style={{fontWeight:500,color:diff?'#E11D48':'#DC2626'}}>{val}</span>;
+  };
+
+  const txnColumns = [
+    {title:'流水号',dataIndex:'transNo',width:160,render:v=><span style={{fontFamily:'Menlo,Monaco,Consolas,monospace',fontSize:12,color:'#374151',background:'#F3F4F6',padding:'1px 6px',borderRadius:4}}>{v}</span>},
+    {title:'类型',dataIndex:'type',width:80,render:v=><StatusTag variant={TXN_TYPE_TAG[v]}>{TXN_TYPE_MAP[v]}</StatusTag>},
+    {title:'渠道流水号',dataIndex:'channelTxnId',width:160,render:v=><span style={{fontFamily:'Menlo,Monaco,Consolas,monospace',fontSize:12}}>{v}</span>},
+    {title:'金额',dataIndex:'amount',width:100,render:v=><span style={{fontWeight:500}}>{v}</span>},
+    {title:'手续费',dataIndex:'fee',width:90},
+    {title:'状态',dataIndex:'status',width:90,render:v=><StatusTag variant={TXN_STATUS_TAG[v]}>{TXN_STATUS_MAP[v]}</StatusTag>},
+  ];
+
+  const columns = [
+    {title:'订单号',dataIndex:'orderNo',width:160,render:v=><Button type="link" size="small" style={{padding:0,fontSize:13}} onClick={()=>go('order-detail')}>{v}</Button>},
+    {title:'支付单号',dataIndex:'paymentNo',width:160,render:v=><Button type="link" size="small" style={{padding:0,fontSize:13}} onClick={()=>go('payment-order-list')}>{v}</Button>},
+    {title:'买家',dataIndex:'buyer',width:160},
+    {title:'商家',dataIndex:'merchant',width:130},
+    {title:'通道',dataIndex:'channel',width:90},
+    {title:'订单金额',dataIndex:'orderAmount',width:100,render:v=><span style={{fontWeight:600}}>{v}</span>},
+    {title:<TipText label="收款对比" tip="系统记录的收款金额 vs 渠道结算报告确认的收款金额，有差异时标红"/>,children:[
+      {title:'系统',dataIndex:'sysPayment',width:90,render:(_,r)=>amtCell(r.sysPayment,r.chPayment,r.sysPayment,true)},
+      {title:'渠道',dataIndex:'chPayment',width:90,render:(_,r)=>amtCell(r.sysPayment,r.chPayment,r.chPayment,false)},
+    ]},
+    {title:<TipText label="手续费对比" tip="系统记录的渠道手续费 vs 渠道结算报告中实际扣取的手续费，有差异时标红"/>,children:[
+      {title:'系统',dataIndex:'sysFee',width:80,render:(_,r)=>amtCell(r.sysFee,r.chFee,r.sysFee,true)},
+      {title:'渠道',dataIndex:'chFee',width:80,render:(_,r)=>amtCell(r.sysFee,r.chFee,r.chFee,false)},
+    ]},
+    {title:<TipText label="退款对比" tip="系统记录的累计退款金额 vs 渠道结算报告确认的退款金额，有差异时标红"/>,children:[
+      {title:'系统',dataIndex:'sysRefund',width:80,render:(_,r)=>refundAmtCell(r.sysRefund,r.chRefund,r.sysRefund)},
+      {title:'渠道',dataIndex:'chRefund',width:80,render:(_,r)=>refundAmtCell(r.sysRefund,r.chRefund,r.chRefund)},
+    ]},
+    {title:'结算状态',dataIndex:'settleStatus',width:90,render:v=><StatusTag variant={SETTLE_TAG[v]}>{SETTLE_STATUS_MAP[v]}</StatusTag>},
+  ];
+
+  return (
+    <Card style={CARD_STYLE}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16,marginBottom:18}}>
+        <div><div style={{fontSize:20,fontWeight:700,marginBottom:6}}>对账管理</div><div style={{color:'#6B7280',fontSize:13}}>按订单维度核对收款、手续费、退款，确保资金准确到账</div></div>
+        <Space>
+          <Button icon={<SyncOutlined/>} onClick={()=>setPullOpen(true)}>拉取结算报告</Button>
+          <Button icon={<DownloadOutlined/>} onClick={()=>{setExportDone(false);setExportOpen(true)}}>导出</Button>
+        </Space>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:18}}>
+        <Kpi num={String(RECON_ORDER_DATA.length)} label="订单总数"/><Kpi num={String(unsettledCount)} label="待结算"/><Kpi num={String(settledCount)} label="已结算"/><Kpi num={String(discrepantCount)} label="有差异" numStyle={{color:'#E11D48'}}/>
+      </div>
+      {mode==='data'&&<>
+        <Space size={12} wrap style={{marginBottom:16}}>
+          <Input placeholder="订单号" prefix={<SearchOutlined style={{color:'#9CA3AF'}}/>} allowClear style={{width:170}}/>
+          <Input placeholder="买家邮箱" prefix={<SearchOutlined style={{color:'#9CA3AF'}}/>} allowClear style={{width:170}}/>
+          <Select defaultValue="" style={{width:120}} options={[{value:'',label:'全部商家'},{value:'looply',label:'Looply Official'},{value:'vintage',label:'Vintage Luxe'},{value:'second',label:'Second Style'},{value:'preloved',label:'Pre-Loved Co'}]}/>
+          <Select defaultValue="" style={{width:120}} options={[{value:'',label:'全部通道'},{value:'airwallex',label:'Airwallex'},{value:'paypal',label:'PayPal'}]}/>
+          <Select defaultValue="" style={{width:120}} options={[{value:'',label:'结算状态'},{value:'unsettled',label:'待结算'},{value:'settled',label:'已结算'}]}/>
+          <Select defaultValue="" style={{width:120}} options={[{value:'',label:'差异状态'},{value:'yes',label:'有差异'},{value:'no',label:'无差异'}]}/>
+          <DatePicker.RangePicker placeholder={['付款开始','付款结束']}/>
+          <Button type="primary" icon={<SearchOutlined/>}>查询</Button>
+          <Button icon={<ReloadOutlined/>}>重置</Button>
+        </Space>
+        <Table rowKey="id" bordered columns={columns} dataSource={filtered} pagination={false} styles={TABLE_STYLES} scroll={{x:'max-content'}}
+          expandable={{
+            expandedRowKeys:expandedKeys,
+            onExpandedRowsChange:setExpandedKeys,
+            expandedRowRender:r=><div style={{padding:'8px 0'}}>
+              <div style={{fontSize:12,color:'#6B7280',marginBottom:8,fontWeight:500}}>该订单关联的支付流水</div>
+              <Table rowKey="transNo" size="small" columns={txnColumns} dataSource={r.txns} pagination={false}
+                styles={{header:{cell:{background:'#F9FAFB',fontSize:12}},body:{cell:{fontSize:12}}}}/>
+            </div>,
+          }}/>
+        <CompactPagination total={filtered.length}/>
+      </>}
+      {mode==='zero'&&<EmptyZero entity="对账记录"/>}
+      {mode==='no-match'&&<EmptyNoMatch onClear={()=>setMode('data')}/>}
+      {mode==='error'&&<EmptyError onRetry={()=>setMode('data')}/>}
+      <EmptyStateSwitcher mode={mode} setMode={setMode}/>
+
+      {/* 拉取结算报告 */}
+      <Modal title="拉取结算报告" open={pullOpen} onCancel={()=>setPullOpen(false)} closable={false} maskClosable={false} centered={true} width={480}
+        footer={[<Button key="c" onClick={()=>setPullOpen(false)}>取消</Button>,<Button key="s" type="primary" icon={<SyncOutlined/>} onClick={()=>setPullOpen(false)}>开始拉取</Button>]}>
+        <Alert type="info" showIcon={false} message="从支付渠道拉取结算报告，系统将自动按订单匹配并比对收款、手续费、退款金额" style={{marginBottom:16}}/>
+        <FormRow label="支付通道" required><Select placeholder="请选择" style={{width:'100%'}} options={[{value:'airwallex',label:'Airwallex'},{value:'paypal',label:'PayPal'}]}/></FormRow>
+        <FormRow label="时间范围" required><DatePicker.RangePicker style={{width:'100%'}} placeholder={['开始日期','结束日期']}/></FormRow>
+      </Modal>
+
+      {/* 导出对账数据 */}
+      <Modal title="导出对账数据" open={exportOpen} onCancel={()=>setExportOpen(false)} closable={false} maskClosable={false} centered={true} width={520}
+        footer={exportDone
+          ?[<Button key="c" type="primary" onClick={()=>setExportOpen(false)}>完成</Button>]
+          :[<Button key="c" onClick={()=>setExportOpen(false)}>取消</Button>,<Button key="s" type="primary" icon={<DownloadOutlined/>} onClick={()=>setExportDone(true)}>开始导出</Button>]}>
+        {!exportDone?<>
+          <Alert type="info" showIcon={false} message="导出当前筛选条件下的对账数据，包含订单金额、渠道金额、差异对比等信息，用于线下核对处理" style={{marginBottom:16}}/>
+          <FormRow label="导出范围" required>
+            <Radio.Group defaultValue="filtered" style={{display:'flex',flexDirection:'column',gap:8}}>
+              <Radio value="filtered">当前筛选结果（{filtered.length} 条）</Radio>
+              <Radio value="all">全部数据（{RECON_ORDER_DATA.length} 条）</Radio>
+            </Radio.Group>
+          </FormRow>
+          <FormRow label="支付通道">
+            <Select defaultValue="" style={{width:'100%'}} options={[{value:'',label:'全部通道'},{value:'airwallex',label:'Airwallex'},{value:'paypal',label:'PayPal'}]}/>
+          </FormRow>
+          <FormRow label="付款时间">
+            <DatePicker.RangePicker style={{width:'100%'}} placeholder={['开始日期','结束日期']}/>
+          </FormRow>
+          <FormRow label="文件格式" required>
+            <Radio.Group defaultValue="xlsx">
+              <Radio value="xlsx">Excel (.xlsx)</Radio>
+              <Radio value="csv">CSV (.csv)</Radio>
+            </Radio.Group>
+          </FormRow>
+        </>:<>
+          <div style={{textAlign:'center',padding:'32px 0'}}>
+            <CheckCircleOutlined style={{fontSize:48,color:'#10B981'}}/>
+            <div style={{fontSize:16,fontWeight:600,marginTop:12,color:'#111827'}}>导出成功</div>
+            <div style={{color:'#6B7280',fontSize:13,marginTop:6}}>文件已开始下载，请在浏览器下载列表中查看</div>
+            <div style={{marginTop:16,padding:'12px 16px',background:'#F9FAFB',borderRadius:8,display:'inline-block'}}>
+              <span style={{color:'#374151',fontSize:13}}>looply-对账数据-20260629.xlsx</span>
+            </div>
+          </div>
+        </>}
+      </Modal>
+
+    </Card>
+  );
+}
+
+
+/* ── Page: 退款单管理 ── */
+function RefundOrderListPage({ go }) {
+  const [mode, setMode] = useState('data');
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null);
+  const columns = [
+    {title:'退款单号',dataIndex:'refundNo',width:160,render:v=><span style={{fontFamily:'Menlo,Monaco,Consolas,monospace',fontSize:12,color:'#374151',background:'#F3F4F6',padding:'1px 6px',borderRadius:4}}>{v}</span>},
+    {title:'原支付单号',dataIndex:'paymentNo',width:160,render:v=><Button type="link" size="small" style={{padding:0,fontSize:13}} onClick={()=>go('payment-order-list')}>{v}</Button>},
+    {title:'买家',dataIndex:'buyer',width:170},
+    {title:'退款通道',dataIndex:'channel',width:100},
+    {title:'退款方式',dataIndex:'refundMethod',width:110},
+    {title:'退款金额',dataIndex:'amount',width:110,render:v=><span style={{fontWeight:600,color:'#DC2626'}}>{v}</span>},
+    {title:'状态',dataIndex:'status',width:110,render:v=><StatusTag variant={REFUND_O_TAG[v]}>{REFUND_O_STATUS[v]}</StatusTag>},
+    {title:'到账时间',dataIndex:'refundedAt',width:160},
+    {title:'创建时间',dataIndex:'createdAt',width:160},
+    {title:'操作',key:'op',width:80,fixed:'right',render:(_,r)=><Button size="small" onClick={()=>{setSelectedRow(r);setDetailOpen(true)}}>详情</Button>},
+  ];
+  return (
+    <Card style={CARD_STYLE}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16,marginBottom:18}}>
+        <div><div style={{fontSize:20,fontWeight:700,marginBottom:6}}>退款单管理</div><div style={{color:'#6B7280',fontSize:13}}>管理所有退款单，跟踪退款资金状态</div></div>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:18}}>
+        <Kpi num="4" label="退款单总数"/><Kpi num="1" label="退款中"/><Kpi num="2" label="退款成功"/><Kpi num="1" label="退款失败"/>
+      </div>
+      {mode==='data'&&<>
+        <Space size={12} wrap style={{marginBottom:16}}>
+          <Input placeholder="退款单号" prefix={<SearchOutlined style={{color:'#9CA3AF'}}/>} allowClear style={{width:170}}/>
+          <Input placeholder="原支付单号" prefix={<SearchOutlined style={{color:'#9CA3AF'}}/>} allowClear style={{width:170}}/>
+          <Select defaultValue="" style={{width:120}} options={[{value:'',label:'全部通道'},{value:'stripe',label:'Airwallex'},{value:'paypal',label:'PayPal'}]}/>
+          <Select defaultValue="" style={{width:120}} options={[{value:'',label:'全部状态'},{value:'pending',label:'退款中'},{value:'succeeded',label:'退款成功'},{value:'failed',label:'退款失败'}]}/>
+          <DatePicker.RangePicker placeholder={['开始日期','结束日期']}/>
+          <Button type="primary" icon={<SearchOutlined/>}>查询</Button>
+          <Button icon={<ReloadOutlined/>}>重置</Button>
+        </Space>
+        <Table rowKey="id" columns={columns} dataSource={REFUND_ORDER_DATA} pagination={false} styles={TABLE_STYLES} scroll={{x:'max-content'}}/>
+        <CompactPagination total={REFUND_ORDER_DATA.length}/>
+      </>}
+      {mode==='zero'&&<EmptyZero entity="退款单"/>}
+      {mode==='no-match'&&<EmptyNoMatch onClear={()=>setMode('data')}/>}
+      {mode==='error'&&<EmptyError onRetry={()=>setMode('data')}/>}
+      <EmptyStateSwitcher mode={mode} setMode={setMode}/>
+
+      {/* 退款单详情弹窗 */}
+      <Modal title="退款单详情" open={detailOpen} onCancel={()=>setDetailOpen(false)} closable={false} maskClosable={false} centered={true} width={600}
+        footer={[<Button key="c" onClick={()=>setDetailOpen(false)}>关闭</Button>]}>
+        {selectedRow&&<>
+          <h4 className="lp-section">基本信息</h4>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:0}}>
+            <div className="lp-detail">
+              <div className="dl">退款单号</div><div className="dv"><span style={{fontFamily:'Menlo,Monaco,Consolas,monospace',fontSize:12}}>{selectedRow.refundNo}</span></div>
+              <div className="dl">原支付单号</div><div className="dv">{selectedRow.paymentNo}</div>
+              <div className="dl">买家</div><div className="dv">{selectedRow.buyer}</div>
+              <div className="dl">退款通道</div><div className="dv">{selectedRow.channel}</div>
+              <div className="dl">退款方式</div><div className="dv">{selectedRow.refundMethod}</div>
+            </div>
+            <div className="lp-detail">
+              <div className="dl">退款金额</div><div className="dv" style={{fontWeight:600,color:'#DC2626'}}>{selectedRow.amount} {selectedRow.currency}</div>
+              <div className="dl">退款状态</div><div className="dv"><StatusTag variant={REFUND_O_TAG[selectedRow.status]}>{REFUND_O_STATUS[selectedRow.status]}</StatusTag></div>
+              <div className="dl">到账时间</div><div className="dv">{selectedRow.refundedAt}</div>
+              <div className="dl">创建时间</div><div className="dv">{selectedRow.createdAt}</div>
+            </div>
+          </div>
+          <h4 className="lp-section">关联退款流水</h4>
+          <Table size="small" rowKey="id" pagination={false} styles={TABLE_STYLES}
+            columns={[
+              {title:'流水号',dataIndex:'transNo',render:v=><span style={{fontFamily:'Menlo,Monaco,Consolas,monospace',fontSize:12}}>{v}</span>},
+              {title:'类型',dataIndex:'type',width:80,render:v=><StatusTag variant={TXN_TYPE_TAG[v]}>{TXN_TYPE_MAP[v]}</StatusTag>},
+              {title:'金额',dataIndex:'amount',width:100},
+              {title:'手续费',dataIndex:'fee',width:80},
+              {title:'状态',dataIndex:'status',width:80,render:v=><StatusTag variant={TXN_STATUS_TAG[v]}>{TXN_STATUS_MAP[v]}</StatusTag>},
+            ]}
+            dataSource={TRANSACTION_DATA.filter(t=>t.type==='refund'&&t.paymentNo===selectedRow.paymentNo)}/>
+        </>}
+      </Modal>
+    </Card>
+  );
+}
+
+/* ── App ── */
+function App() {
+  const [activeKey, setActiveKey] = useState('abandoned-cart');
+  const [currentPage, setCurrentPage] = useState('abandoned-cart');
+  const [abandonId, setAbandonId] = useState(ABANDON_DATA[0].id);
+  const go = (key, ctx) => { setCurrentPage(key); if(key==='abandoned-detail'&&ctx) setAbandonId(ctx); if(key!=='order-detail'&&key!=='abandoned-detail') setActiveKey(key); };
+  const subLabel = (text, key) => <span style={{fontWeight:activeKey===key?600:400}}>{text}</span>;
+  const menuItems = [
+    {key:'order-group',icon:<ProfileOutlined/>,label:'订单中心',children:[
+      {key:'abandoned-cart',icon:<ShoppingCartOutlined/>,label:subLabel('弃单管理','abandoned-cart')},
+      {key:'order-list',icon:<FileTextOutlined/>,label:subLabel('订单管理','order-list')},
+    ]},
+    {key:'pay-group',icon:<DollarOutlined/>,label:'支付中心',children:[
+      {key:'payment-order-list',icon:<CreditCardOutlined/>,label:subLabel('支付单管理','payment-order-list')},
+      {key:'refund-order-list',icon:<RollbackOutlined/>,label:subLabel('退款单管理','refund-order-list')},
+      {key:'payment-txn-list',icon:<SwapOutlined/>,label:subLabel('支付流水','payment-txn-list')},
+      {key:'reconciliation',icon:<AuditOutlined/>,label:subLabel('对账管理','reconciliation')},
+    ]},
+  ];
+  const breadcrumbMap = {
+    'abandoned-cart':'订单中心 / 弃单管理',
+    'abandoned-detail':'订单中心 / 弃单管理 / 弃单详情',
+    'order-list':'订单中心 / 订单管理',
+    'order-detail':'订单中心 / 订单管理 / 订单详情',
+    'payment-order-list':'支付中心 / 支付单管理',
+    'refund-order-list':'支付中心 / 退款单管理',
+    'payment-txn-list':'支付中心 / 支付流水',
+    'reconciliation':'支付中心 / 对账管理',
+  };
+  return (
+    <ConfigProvider theme={looplyTheme}>
+      <Layout style={{height:'100vh'}}>
+        <Layout.Header style={{borderBottom:'1px solid #E5E7EB',display:'flex',alignItems:'center'}}>
+          <img src={LOGO_SRC} alt="Looply" style={{height:32,display:'block'}}/>
+          <div style={{width:1,height:20,background:'#E5E7EB',margin:'0 16px'}}/>
+          <span style={{fontSize:14,fontWeight:500,color:'#6B7280'}}>订单 · 支付系统</span>
+          <span style={{marginLeft:'auto',color:'#9CA3AF',fontSize:13}}>{breadcrumbMap[currentPage]||''}</span>
+        </Layout.Header>
+        <Layout>
+          <Layout.Sider width={220} theme="light" style={SIDER_STYLE}>
+            <Menu mode="inline" items={menuItems} selectedKeys={[activeKey]} defaultOpenKeys={['order-group','pay-group']} style={{borderInlineEnd:'none'}}
+              onClick={({key})=>go(key)}/>
+          </Layout.Sider>
+          <Layout.Content style={{padding:28,overflow:'auto'}}>
+            {currentPage==='abandoned-cart'&&<AbandonedCartPage go={go}/>}
+            {currentPage==='abandoned-detail'&&<AbandonedDetailPage go={go} sessionId={abandonId}/>}
+            {currentPage==='order-list'&&<OrderListPage go={go}/>}
+            {currentPage==='order-detail'&&<OrderDetailPage go={go}/>}
+            {currentPage==='payment-order-list'&&<PaymentOrderListPage go={go}/>}
+            {currentPage==='refund-order-list'&&<RefundOrderListPage go={go}/>}
+            {currentPage==='payment-txn-list'&&<PaymentTransactionListPage go={go}/>}
+            {currentPage==='reconciliation'&&<ReconciliationPage go={go}/>}
+          </Layout.Content>
+        </Layout>
+      </Layout>
+    </ConfigProvider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
