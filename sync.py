@@ -391,16 +391,6 @@ MODULES = {
                 'pattern': r'订单支付-交付开发 V(.+?)\.zip',
             },
         },
-        'static_docs': [
-            {
-                'source_subdir': '迭代需求',
-                'subdir': 'PRD',
-                'filename': 'looply-订单支付-迭代PRD-V1.3-20260831.md',
-                # index.html 里这一条是手工卡片，不走 artifacts 版本检测；
-                # 声明 index_href 后由 refresh_static_doc_stamps() 按文件 mtime 刷新「更新于」
-                'index_href': 'docs-订单支付/PRD/looply-订单支付-迭代PRD-V1.3-20260831.md',
-            },
-        ],
     },
     'plm': {
         'name': '红布林商品对接',
@@ -705,33 +695,6 @@ MODULES = {
             },
         },
     },
-    'google_ads': {
-        'name': 'Google广告',
-        'default_source': '$HOME/Desktop/广告投放',
-        'target': 'docs-广告服务/Google广告',
-        'keywords': ['Google广告', '广告服务', 'google_ads'],
-        'config_key': None,
-        'sidebar_group': '广告服务',
-        'sync_prd_only': True,
-        'artifacts': {
-            'prd': {
-                'subdir': 'PRD',
-                'source_subdir': 'PRD',
-                'pattern': r'looply-Google广告投放系统-PRD-v(1\.5)\.md',
-            },
-            'delivery': {
-                'subdir': '.',
-                'pattern': r'Google广告-交付开发 V(.+?)\\.zip',
-            },
-        },
-        'static_docs': [
-            {
-                'source_subdir': '/Users/zz/Documents/Codex/2026-07-22/3-8-catalog-pending-outbox-worker',
-                'subdir': 'PRD',
-                'filename': 'looply-gmc-custom-label-rules-migration-v2.6.md',
-            },
-        ],
-    },
     'aftersale': {
         'name': '售后',
         'default_source': '$HOME/Desktop/海外业务/售后',
@@ -830,12 +793,12 @@ MODULES = {
             {
                 'source_subdir': 'docs/product',
                 'subdir': 'GA4开发基线',
-                'filename': 'looply-GA4五事件新增与修改-PRD-v1.2.md',
+                'filename': 'looply-GA4五事件新增与修改-PRD-v1.1.md',
             },
             {
                 'source_subdir': 'docs/product',
                 'subdir': 'GA4开发基线',
-                'filename': 'looply-GA4数据分析-PRD-v1.8.md',
+                'filename': 'looply-GA4数据分析-PRD-v1.9.md',
             },
             {
                 'source_subdir': 'docs/product',
@@ -863,19 +826,14 @@ MODULES = {
                 'filename': 'looply-GA4数据分析-PRD-v1.7-正式复检-20260831.md',
             },
             {
-                'source_subdir': 'deliveries/GA4',
-                'subdir': 'GA4开发基线',
-                'filename': 'looply-GA4剩余问题收口开发包-v1.4.md',
-            },
-            {
-                'source_subdir': 'deliveries/GA4',
-                'subdir': '版本说明',
-                'filename': 'looply-GA4剩余问题收口开发包-修订记录.md',
+                'source_subdir': 'docs/reviews/C端数据看板',
+                'subdir': '评审记录',
+                'filename': 'looply-GA4生产环境全量验收测试用例-v0.2-20260827.md',
             },
             {
                 'source_subdir': 'docs/reviews/C端数据看板',
                 'subdir': '评审记录',
-                'filename': 'looply-GA4剩余问题统一收口-正式复检-20260831.md',
+                'filename': 'looply-GA4三项变更专项验收用例-v0.1.md',
             },
             {
                 'source_subdir': 'docs/product',
@@ -970,21 +928,6 @@ MODULES = {
             'delivery': {
                 'subdir': '.',
                 'pattern': r'About Looply-交付开发 V(.+?)\.zip',
-            },
-        },
-    },
-    'seo': {
-        'name': 'SEO优化',
-        'default_source': '$HOME/Desktop/SEO优化',
-        'target': 'docs-SEO优化',
-        'keywords': ['SEO优化', 'SEO', 'seo'],
-        'config_key': None,
-        'sidebar_group': 'C端卖场',
-        'sync_prd_only': True,
-        'artifacts': {
-            'prd': {
-                'subdir': 'PRD',
-                'pattern': r'Looply-核心页面-SEO-GEO-技术代码实现说明-v(2\.1)\.md',
             },
         },
     },
@@ -1468,18 +1411,6 @@ def sync_module_files(source_dir, target_dir, mod_key):
             dst_latest = os.path.join(dst_prd, 'latest.md')
             if not os.path.isfile(dst_latest) or not files_equal(src_latest, dst_latest):
                 shutil.copy2(src_latest, dst_latest)
-
-        for doc_config in MODULES[mod_key].get('static_docs', []):
-            src_doc = os.path.normpath(os.path.join(
-                source_dir,
-                doc_config.get('source_subdir', '.'),
-                doc_config['filename'],
-            ))
-            if not os.path.isfile(src_doc):
-                continue
-            dst_doc = os.path.join(REPO_DIR, target_dir, doc_config['subdir'])
-            os.makedirs(dst_doc, exist_ok=True)
-            smart_cp(src_doc, dst_doc)
         return
 
     # 调研
@@ -2077,50 +2008,6 @@ def update_index_html(updates, all_versions, all_history=None):
         print('  [无变化] index.html 无需更新')
 
 
-def refresh_static_doc_stamps():
-    """刷新 static_docs 手工卡片的「更新于」时间戳。
-
-    背景：index.html 里由人手工写的卡片不在 artifacts 的版本检测范围内，
-    sync.py 原有的时间戳更新只覆盖 changed_items，手工卡片会被永久冻在写入时的值。
-    本函数只处理 MODULES 中显式声明了 index_href 的 static_docs 条目，
-    按仓库内该文件的 mtime 刷新，其余条目一概不动
-    （全局按 mtime 刷新是错的：clone / 批量复制会把一堆无关文件的 mtime 改成同一时刻）。
-    """
-    index_path = os.path.join(REPO_DIR, 'index.html')
-    if not os.path.isfile(index_path):
-        return
-    with open(index_path, encoding='utf-8') as f:
-        html = f.read()
-    changed = 0
-    for mod_config in MODULES.values():
-        for doc in mod_config.get('static_docs', []):
-            href = doc.get('index_href')
-            if not href:
-                continue
-            fpath = os.path.join(REPO_DIR, href)
-            if not os.path.isfile(fpath):
-                continue
-            stamp = datetime.fromtimestamp(os.path.getmtime(fpath)).strftime('%Y-%m-%d %H:%M')
-            # 只在包含该 href 的 <li> 块内替换，避免误伤同页其他条目
-            pattern = re.compile(
-                r'(<li class="doc-item">(?:(?!</li>).)*?' + re.escape(href) + r'(?:(?!</li>).)*?</li>)',
-                re.DOTALL,
-            )
-            def _sub(m):
-                nonlocal changed
-                block = m.group(1)
-                new_block = re.sub(r'更新于 \d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?',
-                                   f'更新于 {stamp}', block)
-                if new_block != block:
-                    changed += 1
-                return new_block
-            html = pattern.sub(_sub, html)
-    if changed:
-        with open(index_path, 'w', encoding='utf-8') as f:
-            f.write(html)
-        print(f'  [更新] index.html 手工卡片时间戳 x{changed}')
-
-
 def update_prd_variants():
     """多 PRD 混装目录：为每份 PRD 维护独立的 latest-{key}.md 与命名阅读器。
 
@@ -2387,7 +2274,6 @@ def main():
     if index_updates:
         update_index_html(index_updates, all_versions, all_history)
 
-    refresh_static_doc_stamps()
     update_prd_variants()
     update_prd_index_topbar()
     update_markdown_view_links()
