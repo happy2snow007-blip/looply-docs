@@ -9,3 +9,5 @@
 | v1.7 | 2026-08-31 | Looply产品 | 按已发布《数据采集与埋点产品需求 v1.8》统一Purchase为服务端权威事实与唯一投递路径：订单／支付服务端首次确认父订单进入最终`paid`即成立，由唯一服务端发送者通过Measurement Protocol投递，`transaction_id=order_id`；浏览器不发送、不claim、不确认、不补发；删除5分钟兜底、浏览器确认表、相关状态、示例与验收用例，并补充关联上下文缺失不阻断成交事实、服务端幂等和订单对账要求。规则确认不代表生产已经实现。 |
 | v1.8 | 2026-08-31 | Looply产品 | 收口A01–A05最终口径：区分事件发生时`page_location`与页面实例上一来源`page_referrer`；`add_shipping_info`改为同一checkout首次有效tier及后续tier变化，撤销地址变化即递增和`shipping_info_source`必填；明确PC Favorites Drawer沿用当前页面实例；主动来源字段增加Web、dataLayer、GTM、生产容器和真实请求全链路验收。同步五事件PRD v1.2、采集PRD v1.9与收口开发包v1.4。 |
 | v1.9 | 2026-09-01 | Looply产品 | 临时收口数据污染：`view_item_list`改为新列表结果成功展示时每次一条，滚动／分页不再发送并新增`list_instance_id`；暂停Looply主动`page_view`、保留GA自动`page_view`；继续由Looply按搜索请求唯一终态发送`view_search_results`，网站搜索自动衡量保持关闭。同步全量验收用例与三项变更专项用例。 |
+
+| v1.10 | 2026-09-02 | Looply产品 | 产品逐项确认并统一收口：Search滚动／分页追加不发送`view_search_results`；PC Wishlist Drawer保留列表展示与商品点击记录，滚动追加和相同结果重开不重复；暂停Looply主动`page_view`并保留GA4自动页面浏览；不以独立“干净日”重建历史基线。 |
