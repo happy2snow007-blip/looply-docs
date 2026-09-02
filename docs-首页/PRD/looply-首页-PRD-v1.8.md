@@ -1,6 +1,6 @@
 # Looply · 首页 PRD v1.8
 
-> 版本：v1.8 | 更新日期：2026-08-21 | 端：Mobile Web + PC Web
+> 版本：v1.8 | 更新日期：2026-08-28 | 端：Mobile Web + PC Web
 > 状态：🔄 迭代中
 
 ## 1. 概述
@@ -306,6 +306,14 @@ Feed 和搜索事件分别以对应模块 PRD 为唯一事件规则来源。
 2. `Sale` 对应此前未在 1.1 实现的 `Deals` 能力，不新增第五个 Tab。
 3. 商品范围、状态和异常处理执行《Looply 首页 Explore Finds Feed PRD v2.4》§25.1。
 
+### 17.3 PC Web Header 常驻搜索框
+
+PC Web 首页使用全站 Header 常驻搜索框，入口、搜索发现层、Sug、提交及 Mobile Web 边界统一执行《Looply Web 全局搜索 PRD v0.4》§10.2。
+
+### 17.4 PC Web 账户菜单增加个人中心入口
+
+PC Web 首页账户菜单执行《Looply PC Web 账户菜单 PRD v0.1》：头像、姓名和邮箱组成的用户信息区整体可点击，点击进入 `Account Home`；菜单不新增独立的 `My Account` 项。
+
 ---
 
-*文档维护：Looply 产品团队 | 首页 PRD v1.8 | 2026-08-21*
+*文档维护：Looply 产品团队 | 首页 PRD v1.8 | 2026-08-28*
