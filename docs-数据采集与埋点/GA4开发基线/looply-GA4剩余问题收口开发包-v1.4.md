@@ -2,7 +2,8 @@
 
 > 版本：v1.4  
 > 日期：2026-08-31  
-> 状态：开发收口基线  
+> 状态：开发收口基线
+> 说明：历史版本，不再作为当前开发依据；当前依据为 GA4 PRD v1.10。
 > 适用环境：生产站 `https://www.looply.com/`  
 > GA4：Property `531542304`，Measurement ID `G-Z2EKP8QGT7`  
 > 文档中心正式需求基线：《looply-GA4数据分析-PRD-v1.8》《looply-数据采集与埋点产品需求-v1.9》  

@@ -4,7 +4,7 @@
 > 日期：2026-08-31  
 > 状态：GA4剩余问题统一收口开发基线  
 > 变更依据：GA4生产验收、开发反馈及跨文档复检结论  
-> 版本关系：v1.9保留为历史版本；后续评审与实施以本稿为准。
+> 版本关系：v1.8保留为历史版本；后续评审与实施以本稿为准。
 
 身份规则输入依据：[《Looply 唯一用户身份识别 PRD v2.19》](https://zhuanspirit.feishu.cn/wiki/N5RLwnrxMi6FJCkVfWZcvJa8nee)。本稿已摘录本次数据采集实施所需规则，开发不需要依赖外部文档理解第四章。
 
@@ -96,7 +96,8 @@
 | `ui_interaction` | 用户完成一个没有专属业务事件的有意义操作 | 稳定动作实际发生；成功业务结果另有专属事件时不重复记录同义成功事件 | `interaction_name`、`action`、`element_id`、`target_id`、结果 |
 | `search` | 用户正式提交一次站内搜索 | 轮播词＋搜索按钮、输入后回车／搜索按钮、输入联想、搜索历史或热门搜索词 | `trigger_type`、搜索模块正式输出的分析字段、目标结果页URL中的搜索上下文参数 |
 | `view_search_results` | 搜索结果页初始加载或URL参数生效后的结果取得终态 | 每次结果更新只记录成功有结果、成功无结果、失败或取消中的一个终态 | `event_id`、`page_instance_id`、`result_status`、从当前结果页URL解析的结构化搜索上下文；成功时`result_count`，失败时`failure_type` |
-| `view_item_list` | 一件商品在列表或推荐位形成有效曝光 | 商品在前台视口达到50%且持续1秒；同一`page_instance_id`内按`placement_id + listing_public_code`去重 | `listing_public_code`、`exposure_id`、模块、展示位、位置；搜索结果页增加从当前URL解析的结构化搜索上下文 |
+| `view_item_list` | 一版商品列表成功形成并展示 | 首次结果或已提交条件形成新结果时记录一次；滚动、分页追加及相同结果重开不记录 | 初始已加载商品、列表和位置等列表上下文；与后续商品点击关联 |
+| `item_impression` | 单件商品达到有效曝光阈值 | 商品达到50%可视且持续1秒时记录；按页面、展示位和商品去重 | 一方曝光数据，不发送GA4 `view_item_list` |
 | `select_item` | 用户从列表或推荐位点击商品 | 点击真实发生 | `listing_public_code`、模块、展示位、位置；有前序曝光时增加`exposure_id` |
 | `view_item` | 商品详情核心内容成功可分析 | 每个商详`page_instance_id`一次 | `listing_public_code`、价格、币种、来源 |
 | `sign_up` | 注册事务成功 | 新账号真实建立一次 | `anonymous_id`、`user_id`、`sign_up_method`；不含PII |

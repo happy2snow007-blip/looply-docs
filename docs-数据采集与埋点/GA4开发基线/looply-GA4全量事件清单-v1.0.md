@@ -1,5 +1,7 @@
 # Looply GA4 全量事件清单
 
+> 历史版本：仅供追溯；当前开发基线以 GA4 PRD v1.10 及最新验收用例为准。
+
 | Looply事件 | dataLayer Custom Event | GA4事件 | 权威触发时机 | 应传业务信息 |
 |---|---|---|---|---|
 | page_view | looply_ga4_page_view | page_view | 首次页面主路由确认、有效SPA路由完成或硬刷新形成新页面生命周期 | page_instance_id、page_location、page_title、page_language |
