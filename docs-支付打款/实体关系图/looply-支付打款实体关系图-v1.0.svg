@@ -1,0 +1,1687 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2632pt" height="1840pt" viewBox="0.00 0.00 2632.00 1840.00">
+<metadata><er-schema format="json" version="1.0">
+{
+  "title": "looply · 支付打款模块 实体关系图",
+  "version": "v1.0 · 2026-09-02",
+  "tables": [
+    {
+      "name": "payout_funding_account",
+      "comment": "资金账户",
+      "columns": [
+        {
+          "name": "id",
+          "comment": "主键",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "account_no",
+          "comment": "资金账户编号（摩根侧账户标识）",
+          "constraint": "UNIQUE"
+        },
+        {
+          "name": "account_name",
+          "comment": "账户名称",
+          "constraint": ""
+        },
+        {
+          "name": "channel",
+          "comment": "所属渠道（jpmorgan）",
+          "constraint": ""
+        },
+        {
+          "name": "currency_code",
+          "comment": "币种（ISO 4217）",
+          "constraint": ""
+        },
+        {
+          "name": "available_balance",
+          "comment": "可用余额（摩根侧同步值，非权威）",
+          "constraint": ""
+        },
+        {
+          "name": "balance_synced_at",
+          "comment": "余额同步时间",
+          "constraint": ""
+        },
+        {
+          "name": "warning_threshold",
+          "comment": "余额预警阈值",
+          "constraint": ""
+        },
+        {
+          "name": "status",
+          "comment": "账户状态（启用/停用）",
+          "constraint": ""
+        },
+        {
+          "name": "created_at",
+          "comment": "创建时间",
+          "constraint": ""
+        },
+        {
+          "name": "updated_at",
+          "comment": "更新时间",
+          "constraint": ""
+        }
+      ],
+      "note": "本模块产生。looply 在摩根开立的出款资金账户。V1 仅一个 USD 账户，available_balance 是摩根侧余额的本地同步值，仅用于列表展示与预警；打款前的余额校验以摩根实时查询结果为准（见设计规则 balance_check）。"
+    },
+    {
+      "name": "payout_deposit",
+      "comment": "预充值单",
+      "columns": [
+        {
+          "name": "id",
+          "comment": "主键",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "deposit_no",
+          "comment": "充值单号",
+          "constraint": "UNIQUE"
+        },
+        {
+          "name": "funding_account_id",
+          "comment": "目标资金账户（→ payout_funding_account）",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "amount",
+          "comment": "充值金额",
+          "constraint": ""
+        },
+        {
+          "name": "currency_code",
+          "comment": "币种（ISO 4217）",
+          "constraint": ""
+        },
+        {
+          "name": "deposit_method",
+          "comment": "充值方式（银行转账/内部划转）",
+          "constraint": ""
+        },
+        {
+          "name": "external_ref",
+          "comment": "外部凭证号（银行回单号/摩根入账编号）",
+          "constraint": ""
+        },
+        {
+          "name": "status",
+          "comment": "充值状态（待到账/已到账/充值失败）",
+          "constraint": ""
+        },
+        {
+          "name": "confirmed_at",
+          "comment": "到账确认时间",
+          "constraint": ""
+        },
+        {
+          "name": "operator_id",
+          "comment": "操作人（运营）",
+          "constraint": ""
+        },
+        {
+          "name": "remark",
+          "comment": "备注",
+          "constraint": ""
+        },
+        {
+          "name": "created_at",
+          "comment": "创建时间",
+          "constraint": ""
+        },
+        {
+          "name": "updated_at",
+          "comment": "更新时间",
+          "constraint": ""
+        }
+      ],
+      "note": "本模块产生。运营发起的一次资金池充值。资金实际到账由运营在摩根侧确认后回填，系统不自动判定到账（V1 无摩根入账回调，见待确认项 W3）。"
+    },
+    {
+      "name": "payout_balance_change",
+      "comment": "余额变动明细",
+      "columns": [
+        {
+          "name": "id",
+          "comment": "主键",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "funding_account_id",
+          "comment": "资金账户（→ payout_funding_account）",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "change_type",
+          "comment": "变动类型（充值入账/打款出账/打款失败退回）",
+          "constraint": ""
+        },
+        {
+          "name": "change_amount",
+          "comment": "变动金额（入账为正、出账为负）",
+          "constraint": ""
+        },
+        {
+          "name": "balance_before",
+          "comment": "变动前余额",
+          "constraint": ""
+        },
+        {
+          "name": "balance_after",
+          "comment": "变动后余额",
+          "constraint": ""
+        },
+        {
+          "name": "ref_type",
+          "comment": "关联单据类型（充值单/打款单）",
+          "constraint": ""
+        },
+        {
+          "name": "ref_id",
+          "comment": "关联单据 ID",
+          "constraint": ""
+        },
+        {
+          "name": "created_at",
+          "comment": "变动时间",
+          "constraint": ""
+        }
+      ],
+      "note": "本模块产生。资金台账，每一行是一次真实的资金增减事实（非操作留痕）。财务按此追溯资金池每一分钱的来源与去向。balance_before 与 balance_after 记录变动前后余额，用于事后核对连续性。"
+    },
+    {
+      "name": "payout_order",
+      "comment": "打款单",
+      "columns": [
+        {
+          "name": "id",
+          "comment": "主键",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "payout_no",
+          "comment": "打款单号",
+          "constraint": "UNIQUE"
+        },
+        {
+          "name": "funding_account_id",
+          "comment": "出款资金账户（→ payout_funding_account）",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "channel",
+          "comment": "打款渠道（jpmorgan）",
+          "constraint": ""
+        },
+        {
+          "name": "payout_method",
+          "comment": "打款方式（zelle / paypal / venmo / rtp）",
+          "constraint": ""
+        },
+        {
+          "name": "payee_name",
+          "comment": "收款人姓名（通道校验用）",
+          "constraint": ""
+        },
+        {
+          "name": "payee_alias",
+          "comment": "收款别名（邮箱或手机号；zelle/paypal/venmo 用，加密存储）",
+          "constraint": ""
+        },
+        {
+          "name": "payee_bank_routing_number",
+          "comment": "银行路由号（rtp 用，加密存储）",
+          "constraint": ""
+        },
+        {
+          "name": "payee_bank_account_number",
+          "comment": "银行账号（rtp 用，加密存储）",
+          "constraint": ""
+        },
+        {
+          "name": "payee_bank_name",
+          "comment": "开户行名称（由路由号反查所得，供录入时回显确认）",
+          "constraint": ""
+        },
+        {
+          "name": "payee_masked",
+          "comment": "收款信息脱敏值（由明文派生，界面与导出只用此值）",
+          "constraint": ""
+        },
+        {
+          "name": "amount",
+          "comment": "打款金额",
+          "constraint": ""
+        },
+        {
+          "name": "currency_code",
+          "comment": "币种（ISO 4217）",
+          "constraint": ""
+        },
+        {
+          "name": "status",
+          "comment": "打款单状态（见设计规则 payout_order_status）",
+          "constraint": ""
+        },
+        {
+          "name": "paid_at",
+          "comment": "打款成功时间",
+          "constraint": ""
+        },
+        {
+          "name": "remark",
+          "comment": "业务备注（自由文本，本单唯一业务追溯依据）",
+          "constraint": ""
+        },
+        {
+          "name": "operator_id",
+          "comment": "录入人（运营）",
+          "constraint": ""
+        },
+        {
+          "name": "created_at",
+          "comment": "创建时间",
+          "constraint": ""
+        },
+        {
+          "name": "updated_at",
+          "comment": "更新时间",
+          "constraint": ""
+        }
+      ],
+      "note": "本模块产生。一笔应付给 C 端个人卖家的款项，由运营在后台手工录入（A6：本期无回收单、无上游系统对接）。结构对齐订单支付 payment_order（A12）。收款信息以快照形式随单存储、不建收款人档案（A8）；payee_alias 与 payee_bank_ 两组字段按 payout_method 二选一存值。remark 是本单唯一的业务追溯依据（A9）。"
+    },
+    {
+      "name": "payout_transaction",
+      "comment": "打款流水",
+      "columns": [
+        {
+          "name": "id",
+          "comment": "主键",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "transaction_no",
+          "comment": "内部流水号",
+          "constraint": "UNIQUE"
+        },
+        {
+          "name": "payout_order_id",
+          "comment": "所属打款单（→ payout_order）",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "transaction_type",
+          "comment": "交易类型（payout；与支付流水同一取值域）",
+          "constraint": ""
+        },
+        {
+          "name": "channel_transaction_id",
+          "comment": "渠道交易号（对账匹配键）",
+          "constraint": "UNIQUE"
+        },
+        {
+          "name": "amount",
+          "comment": "交易金额",
+          "constraint": ""
+        },
+        {
+          "name": "currency_code",
+          "comment": "币种（ISO 4217）",
+          "constraint": ""
+        },
+        {
+          "name": "channel_fee",
+          "comment": "渠道手续费",
+          "constraint": ""
+        },
+        {
+          "name": "channel_fee_currency",
+          "comment": "手续费币种",
+          "constraint": ""
+        },
+        {
+          "name": "net_amount",
+          "comment": "实际出账金额",
+          "constraint": ""
+        },
+        {
+          "name": "status",
+          "comment": "流水状态（打款中/成功/失败）",
+          "constraint": ""
+        },
+        {
+          "name": "failure_reason",
+          "comment": "失败原因分类（见设计规则 failure_handling）",
+          "constraint": ""
+        },
+        {
+          "name": "channel_raw_data",
+          "comment": "渠道原始响应（JSON）",
+          "constraint": ""
+        },
+        {
+          "name": "reconciliation_status",
+          "comment": "对账状态（待结算/已结算，与订单支付同枚举）",
+          "constraint": ""
+        },
+        {
+          "name": "reconciled_at",
+          "comment": "对账时间",
+          "constraint": ""
+        },
+        {
+          "name": "created_at",
+          "comment": "创建时间",
+          "constraint": ""
+        },
+        {
+          "name": "updated_at",
+          "comment": "更新时间",
+          "constraint": ""
+        }
+      ],
+      "note": "本模块产生。每向摩根发起一次打款指令产生一条，一张打款单可有多条（失败重发）。字段与订单支付 payment_transaction 一一对应（A12），transaction_type 取值 payout，将来两模块合并时可直接 UNION、无需字段映射。channel_transaction_id 是与摩根结算数据的对账匹配键。"
+    },
+    {
+      "name": "payout_settlement_record",
+      "comment": "渠道结算记录",
+      "columns": [
+        {
+          "name": "id",
+          "comment": "主键",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "channel",
+          "comment": "渠道（jpmorgan）",
+          "constraint": ""
+        },
+        {
+          "name": "settlement_date",
+          "comment": "结算日期",
+          "constraint": ""
+        },
+        {
+          "name": "channel_transaction_id",
+          "comment": "渠道交易号（匹配键）",
+          "constraint": ""
+        },
+        {
+          "name": "channel_amount",
+          "comment": "渠道侧金额",
+          "constraint": ""
+        },
+        {
+          "name": "channel_fee",
+          "comment": "渠道侧手续费",
+          "constraint": ""
+        },
+        {
+          "name": "currency_code",
+          "comment": "币种（ISO 4217）",
+          "constraint": ""
+        },
+        {
+          "name": "channel_status",
+          "comment": "渠道侧交易状态（原样保留）",
+          "constraint": ""
+        },
+        {
+          "name": "payout_transaction_id",
+          "comment": "匹配到的本方流水（→ payout_transaction；未匹配时无值）",
+          "constraint": "FOREIGN KEY"
+        },
+        {
+          "name": "match_status",
+          "comment": "匹配状态（已匹配/我方无此笔/金额不符）",
+          "constraint": ""
+        },
+        {
+          "name": "handle_status",
+          "comment": "差错处理状态（待处理/处理中/已闭环）",
+          "constraint": ""
+        },
+        {
+          "name": "handle_note",
+          "comment": "差错处理说明",
+          "constraint": ""
+        },
+        {
+          "name": "handled_by",
+          "comment": "处理人（运营）",
+          "constraint": ""
+        },
+        {
+          "name": "handled_at",
+          "comment": "处理时间",
+          "constraint": ""
+        },
+        {
+          "name": "pulled_at",
+          "comment": "数据拉取时间",
+          "constraint": ""
+        },
+        {
+          "name": "created_at",
+          "comment": "创建时间",
+          "constraint": ""
+        }
+      ],
+      "note": "本模块产生（数据源为摩根）。日终从摩根拉回的逐笔结算数据，按 channel_transaction_id 与本方流水匹配。匹配不上的记录留在本表，是「摩根侧有、我方无」这类差异的唯一落点。差错处理结论也记在本表，构成对账闭环。"
+    },
+    {
+      "name": "payout_limit_config",
+      "comment": "限额配置",
+      "columns": [
+        {
+          "name": "id",
+          "comment": "主键",
+          "constraint": "PRIMARY KEY"
+        },
+        {
+          "name": "limit_type",
+          "comment": "限额类型（单笔上限/单日累计上限/单操作人单日上限）",
+          "constraint": ""
+        },
+        {
+          "name": "limit_scope",
+          "comment": "适用范围（全局/按打款方式）",
+          "constraint": ""
+        },
+        {
+          "name": "payout_method",
+          "comment": "适用打款方式（limit_scope 为按打款方式时取值）",
+          "constraint": ""
+        },
+        {
+          "name": "limit_amount",
+          "comment": "限额金额",
+          "constraint": ""
+        },
+        {
+          "name": "currency_code",
+          "comment": "币种（ISO 4217）",
+          "constraint": ""
+        },
+        {
+          "name": "status",
+          "comment": "启用状态（启用/停用）",
+          "constraint": ""
+        },
+        {
+          "name": "operator_id",
+          "comment": "最后修改人（运营）",
+          "constraint": ""
+        },
+        {
+          "name": "created_at",
+          "comment": "创建时间",
+          "constraint": ""
+        },
+        {
+          "name": "updated_at",
+          "comment": "更新时间",
+          "constraint": ""
+        }
+      ],
+      "note": "本模块产生。A2 定「不设人工审核」，限额是本模块唯一的事前内控手段，因此必须可配置、可审计。一行一条限额规则，打款单提交时逐条校验，任一不通过即拦截。"
+    }
+  ],
+  "relations": [
+    {
+      "from": "payout_deposit",
+      "to": "payout_funding_account",
+      "type": "N:1",
+      "label": "充入",
+      "color": "#1565C0",
+      "penwidth": 1.4
+    },
+    {
+      "from": "payout_balance_change",
+      "to": "payout_funding_account",
+      "type": "N:1",
+      "label": "记录变动",
+      "color": "#1565C0"
+    },
+    {
+      "from": "payout_order",
+      "to": "payout_funding_account",
+      "type": "N:1",
+      "label": "从此账户出款",
+      "color": "#E8833A",
+      "penwidth": 1.4
+    },
+    {
+      "from": "payout_transaction",
+      "to": "payout_order",
+      "type": "N:1",
+      "label": "每次发起一条（失败可重发）",
+      "color": "#E8833A",
+      "penwidth": 1.4
+    },
+    {
+      "from": "payout_settlement_record",
+      "to": "payout_transaction",
+      "type": "N:1",
+      "label": "按渠道交易号匹配",
+      "color": "#3F9A72",
+      "style": "dashed"
+    }
+  ],
+  "design_rules": {
+    "scope_v1": "V1 范围：运营后台充值资金池、手工录入打款单、经 zelle / paypal / venmo / rtp 四种方式出款、全量流水与日终对账。不含回收单、卖家自助入口、人工审核、税务采集、对外通知。",
+    "isomorphism_a12": "与订单支付三处同构（决策 A12）：① payout_order 字段命名对齐 payment_order；② payout_transaction 与 payment_transaction 字段一一对应，transaction_type 取值 payout，与支付侧 payment / refund 同属一个取值域，将来合并可直接 UNION；③ reconciliation_status 沿用订单支付对账枚举（待结算/已结算），不另立一套。新增字段仅两处：failure_reason（打款失败分类）与 payee_ 系列（收款信息快照），因支付侧无对应概念。",
+    "balance_check": "打款前余额校验（决策 A3）：以摩根侧实时查询结果为准，payout_funding_account.available_balance 仅供列表展示与预警，不作为放行依据。余额不足时打款单直接置失败，不进入排队等待补款。",
+    "balance_ledger": "资金池余额的每一次增减都要在 payout_balance_change 落一行，并回填 balance_before 与 balance_after，使任意时点余额可由台账重算复现。三类变动来源：充值到账、打款出账、打款失败资金退回。",
+    "payee_info": "收款信息处理（决策 A7 / A8）：本期不建收款人档案，收款信息以快照随打款单存储、不跨单复用。payee_alias 与 payee_bank_ 两组字段按 payout_method 二选一存值；两者均加密存储，界面、列表、导出一律只呈现 payee_masked。明文的解密访问需留痕（承载见 operation_log_requirement）。",
+    "payout_order_status": "打款单状态机：待打款（录入提交且通过限额与余额校验后进入）；打款中（已向摩根发出指令，等待回调）；打款成功（收到摩根成功回调，终态）；打款失败（余额不足、限额拦截或摩根返回失败）；待补收款信息（失败原因属收款方不可达，等待运营更新收款信息后重回待打款）。本期无取消态与作废态。",
+    "failure_handling": "打款失败分两类处置：① 可原单重发 —— 余额不足、摩根侧临时故障、超时无回调，补足资金或排除故障后在原单重发，产生新的 payout_transaction 记录，打款单号不变；② 需更换收款方式 —— 收款别名未注册、账户不存在、开户行不支持 RTP，打款单转「待补收款信息」，由运营线下联系卖家后更新收款信息。本期不接 ACH 兜底，「zelle 未注册 + 钱包未注册 + 开户行不支持 RTP」的卖家会落到第二类，此时挂起等待而非置失败，因款项客观仍然欠付（决策 A1 已接受的代价）。",
+    "reconciliation": "日终对账：按 channel_transaction_id 将 payout_settlement_record 与 payout_transaction 逐笔匹配。匹配成功且金额一致则将流水 reconciliation_status 置为已结算；匹配不上或金额不符的记录留在 payout_settlement_record 并标记 match_status，进入差错处理流程直至 handle_status 闭环。「摩根侧有、我方无」的记录只存在于 payout_settlement_record，本方流水中无对应行。",
+    "limit_control": "限额是本模块唯一的事前内控手段（决策 A2 不设人工审核）。打款单提交时按 payout_limit_config 中所有启用状态的规则逐条校验，任一不通过即拦截、不产生打款流水。限额的取值由运营配置，具体数值在 PRD 阶段确定。",
+    "operation_log_requirement": "资金操作日志按用户决策交技术侧设计，不进产品 ER；但本模块对其提出业务约束：① 必须覆盖的动作 —— 打款单录入、打款发起、打款重发、收款信息修改、收款信息明文解密访问、充值单创建、充值到账确认、限额配置变更；② 每条须可还原「谁、何时、对哪张单、把什么值改成了什么」，并记录操作来源 IP；③ 运营与财务可按打款单号与操作人检索；④ 保留期不短于资金台账的保留期。此约束的存在理由：A2 取消了人工审核环节，事后审计成为唯一内控手段。",
+    "currency": "V1 仅支持 USD，所有金额字段的 currency_code 恒为 USD。字段保留是为多币种扩展预留，本期不做汇率换算、不接汇率模块。",
+    "irrevocable": "zelle 与 rtp 属终局清算、不可撤销，paypal / venmo 到账后亦不可由付款方追回。因此打款成功为终态，本模块不提供撤销与冲正能力；打错款的处置属线下追偿，不在系统内建模。",
+    "no_upstream": "本期无上游回收系统对接（决策 A6），打款单不关联任何订单或回收单，与订单支付模块的表之间无外键关系。业务追溯仅依赖 payout_order.remark 自由文本（决策 A9）。",
+    "ownership": "数据所有权：全部七张表均由本模块产生与维护。payout_settlement_record 的原始数据来自摩根，由本模块拉取后落库并追加匹配与处理结论。operator_id 与 handled_by 引用运营账号，为外部模块提供的只读引用，本模块不管理其生命周期。"
+  }
+}
+</er-schema><er-tech-spec format="yaml"><![CDATA[
+title: looply · 支付打款模块 实体关系图
+version: v1.0 · 2026-09-02
+tables:
+- name: payout_funding_account
+  comment: 资金账户
+  note: 本模块产生。looply 在摩根开立的出款资金账户。V1 仅一个 USD 账户，available_balance 是摩根侧余额的本地同步值，仅用于列表展示与预警；打款前的余额校验以摩根实时查询结果为准（见设计规则 balance_check）。
+  columns:
+  - name: id
+    comment: 主键
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: account_no
+    comment: 资金账户编号（摩根侧账户标识）
+    constraint: UNIQUE
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: account_name
+    comment: 账户名称
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: channel
+    comment: 所属渠道（jpmorgan）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: currency_code
+    comment: 币种（ISO 4217）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: available_balance
+    comment: 可用余额（摩根侧同步值，非权威）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: balance_synced_at
+    comment: 余额同步时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: warning_threshold
+    comment: 余额预警阈值
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: status
+    comment: 账户状态（启用/停用）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: created_at
+    comment: 创建时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: updated_at
+    comment: 更新时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: payout_deposit
+  comment: 预充值单
+  note: 本模块产生。运营发起的一次资金池充值。资金实际到账由运营在摩根侧确认后回填，系统不自动判定到账（V1 无摩根入账回调，见待确认项 W3）。
+  columns:
+  - name: id
+    comment: 主键
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: deposit_no
+    comment: 充值单号
+    constraint: UNIQUE
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: funding_account_id
+    comment: 目标资金账户（→ payout_funding_account）
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: amount
+    comment: 充值金额
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: currency_code
+    comment: 币种（ISO 4217）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: deposit_method
+    comment: 充值方式（银行转账/内部划转）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: external_ref
+    comment: 外部凭证号（银行回单号/摩根入账编号）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: status
+    comment: 充值状态（待到账/已到账/充值失败）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: confirmed_at
+    comment: 到账确认时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: operator_id
+    comment: 操作人（运营）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: remark
+    comment: 备注
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: created_at
+    comment: 创建时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: updated_at
+    comment: 更新时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: payout_balance_change
+  comment: 余额变动明细
+  note: 本模块产生。资金台账，每一行是一次真实的资金增减事实（非操作留痕）。财务按此追溯资金池每一分钱的来源与去向。balance_before 与 balance_after 记录变动前后余额，用于事后核对连续性。
+  columns:
+  - name: id
+    comment: 主键
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: funding_account_id
+    comment: 资金账户（→ payout_funding_account）
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: change_type
+    comment: 变动类型（充值入账/打款出账/打款失败退回）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: change_amount
+    comment: 变动金额（入账为正、出账为负）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: balance_before
+    comment: 变动前余额
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: balance_after
+    comment: 变动后余额
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: ref_type
+    comment: 关联单据类型（充值单/打款单）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: ref_id
+    comment: 关联单据 ID
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: created_at
+    comment: 变动时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: payout_order
+  comment: 打款单
+  note: 本模块产生。一笔应付给 C 端个人卖家的款项，由运营在后台手工录入（A6：本期无回收单、无上游系统对接）。结构对齐订单支付 payment_order（A12）。收款信息以快照形式随单存储、不建收款人档案（A8）；payee_alias
+    与 payee_bank_ 两组字段按 payout_method 二选一存值。remark 是本单唯一的业务追溯依据（A9）。
+  columns:
+  - name: id
+    comment: 主键
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: payout_no
+    comment: 打款单号
+    constraint: UNIQUE
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: funding_account_id
+    comment: 出款资金账户（→ payout_funding_account）
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: channel
+    comment: 打款渠道（jpmorgan）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: payout_method
+    comment: 打款方式（zelle / paypal / venmo / rtp）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: payee_name
+    comment: 收款人姓名（通道校验用）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: payee_alias
+    comment: 收款别名（邮箱或手机号；zelle/paypal/venmo 用，加密存储）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: payee_bank_routing_number
+    comment: 银行路由号（rtp 用，加密存储）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: payee_bank_account_number
+    comment: 银行账号（rtp 用，加密存储）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: payee_bank_name
+    comment: 开户行名称（由路由号反查所得，供录入时回显确认）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: payee_masked
+    comment: 收款信息脱敏值（由明文派生，界面与导出只用此值）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: amount
+    comment: 打款金额
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: currency_code
+    comment: 币种（ISO 4217）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: status
+    comment: 打款单状态（见设计规则 payout_order_status）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: paid_at
+    comment: 打款成功时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: remark
+    comment: 业务备注（自由文本，本单唯一业务追溯依据）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: operator_id
+    comment: 录入人（运营）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: created_at
+    comment: 创建时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: updated_at
+    comment: 更新时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: payout_transaction
+  comment: 打款流水
+  note: 本模块产生。每向摩根发起一次打款指令产生一条，一张打款单可有多条（失败重发）。字段与订单支付 payment_transaction 一一对应（A12），transaction_type 取值 payout，将来两模块合并时可直接
+    UNION、无需字段映射。channel_transaction_id 是与摩根结算数据的对账匹配键。
+  columns:
+  - name: id
+    comment: 主键
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: transaction_no
+    comment: 内部流水号
+    constraint: UNIQUE
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: payout_order_id
+    comment: 所属打款单（→ payout_order）
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: transaction_type
+    comment: 交易类型（payout；与支付流水同一取值域）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: channel_transaction_id
+    comment: 渠道交易号（对账匹配键）
+    constraint: UNIQUE
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: amount
+    comment: 交易金额
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: currency_code
+    comment: 币种（ISO 4217）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: channel_fee
+    comment: 渠道手续费
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: channel_fee_currency
+    comment: 手续费币种
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: net_amount
+    comment: 实际出账金额
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: status
+    comment: 流水状态（打款中/成功/失败）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: failure_reason
+    comment: 失败原因分类（见设计规则 failure_handling）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: channel_raw_data
+    comment: 渠道原始响应（JSON）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: reconciliation_status
+    comment: 对账状态（待结算/已结算，与订单支付同枚举）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: reconciled_at
+    comment: 对账时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: created_at
+    comment: 创建时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: updated_at
+    comment: 更新时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: payout_settlement_record
+  comment: 渠道结算记录
+  note: 本模块产生（数据源为摩根）。日终从摩根拉回的逐笔结算数据，按 channel_transaction_id 与本方流水匹配。匹配不上的记录留在本表，是「摩根侧有、我方无」这类差异的唯一落点。差错处理结论也记在本表，构成对账闭环。
+  columns:
+  - name: id
+    comment: 主键
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: channel
+    comment: 渠道（jpmorgan）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: settlement_date
+    comment: 结算日期
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: channel_transaction_id
+    comment: 渠道交易号（匹配键）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: channel_amount
+    comment: 渠道侧金额
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: channel_fee
+    comment: 渠道侧手续费
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: currency_code
+    comment: 币种（ISO 4217）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: channel_status
+    comment: 渠道侧交易状态（原样保留）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: payout_transaction_id
+    comment: 匹配到的本方流水（→ payout_transaction；未匹配时无值）
+    constraint: FOREIGN KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: match_status
+    comment: 匹配状态（已匹配/我方无此笔/金额不符）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: handle_status
+    comment: 差错处理状态（待处理/处理中/已闭环）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: handle_note
+    comment: 差错处理说明
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: handled_by
+    comment: 处理人（运营）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: handled_at
+    comment: 处理时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: pulled_at
+    comment: 数据拉取时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: created_at
+    comment: 创建时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+- name: payout_limit_config
+  comment: 限额配置
+  note: 本模块产生。A2 定「不设人工审核」，限额是本模块唯一的事前内控手段，因此必须可配置、可审计。一行一条限额规则，打款单提交时逐条校验，任一不通过即拦截。
+  columns:
+  - name: id
+    comment: 主键
+    constraint: PRIMARY KEY
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: limit_type
+    comment: 限额类型（单笔上限/单日累计上限/单操作人单日上限）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: limit_scope
+    comment: 适用范围（全局/按打款方式）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: payout_method
+    comment: 适用打款方式（limit_scope 为按打款方式时取值）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: limit_amount
+    comment: 限额金额
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: currency_code
+    comment: 币种（ISO 4217）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: status
+    comment: 启用状态（启用/停用）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: operator_id
+    comment: 最后修改人（运营）
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: created_at
+    comment: 创建时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+  - name: updated_at
+    comment: 更新时间
+    constraint:
+    type:
+    nullable:
+    default:
+    enum_values:
+    index:
+relations:
+- from: payout_deposit
+  to: payout_funding_account
+  type: N:1
+  label: 充入
+  color: '#1565C0'
+  penwidth: 1.4
+- from: payout_balance_change
+  to: payout_funding_account
+  type: N:1
+  label: 记录变动
+  color: '#1565C0'
+- from: payout_order
+  to: payout_funding_account
+  type: N:1
+  label: 从此账户出款
+  color: '#E8833A'
+  penwidth: 1.4
+- from: payout_transaction
+  to: payout_order
+  type: N:1
+  label: 每次发起一条（失败可重发）
+  color: '#E8833A'
+  penwidth: 1.4
+- from: payout_settlement_record
+  to: payout_transaction
+  type: N:1
+  label: 按渠道交易号匹配
+  color: '#3F9A72'
+  style: dashed
+design_rules:
+  scope_v1: V1 范围：运营后台充值资金池、手工录入打款单、经 zelle / paypal / venmo / rtp 四种方式出款、全量流水与日终对账。不含回收单、卖家自助入口、人工审核、税务采集、对外通知。
+  isomorphism_a12: 与订单支付三处同构（决策 A12）：① payout_order 字段命名对齐 payment_order；② payout_transaction 与 payment_transaction 字段一一对应，transaction_type
+    取值 payout，与支付侧 payment / refund 同属一个取值域，将来合并可直接 UNION；③ reconciliation_status 沿用订单支付对账枚举（待结算/已结算），不另立一套。新增字段仅两处：failure_reason（打款失败分类）与
+    payee_ 系列（收款信息快照），因支付侧无对应概念。
+  balance_check: 打款前余额校验（决策 A3）：以摩根侧实时查询结果为准，payout_funding_account.available_balance 仅供列表展示与预警，不作为放行依据。余额不足时打款单直接置失败，不进入排队等待补款。
+  balance_ledger: 资金池余额的每一次增减都要在 payout_balance_change 落一行，并回填 balance_before 与 balance_after，使任意时点余额可由台账重算复现。三类变动来源：充值到账、打款出账、打款失败资金退回。
+  payee_info: 收款信息处理（决策 A7 / A8）：本期不建收款人档案，收款信息以快照随打款单存储、不跨单复用。payee_alias 与 payee_bank_ 两组字段按 payout_method 二选一存值；两者均加密存储，界面、列表、导出一律只呈现
+    payee_masked。明文的解密访问需留痕（承载见 operation_log_requirement）。
+  payout_order_status: 打款单状态机：待打款（录入提交且通过限额与余额校验后进入）；打款中（已向摩根发出指令，等待回调）；打款成功（收到摩根成功回调，终态）；打款失败（余额不足、限额拦截或摩根返回失败）；待补收款信息（失败原因属收款方不可达，等待运营更新收款信息后重回待打款）。本期无取消态与作废态。
+  failure_handling: 打款失败分两类处置：① 可原单重发 —— 余额不足、摩根侧临时故障、超时无回调，补足资金或排除故障后在原单重发，产生新的 payout_transaction 记录，打款单号不变；② 需更换收款方式 ——
+    收款别名未注册、账户不存在、开户行不支持 RTP，打款单转「待补收款信息」，由运营线下联系卖家后更新收款信息。本期不接 ACH 兜底，「zelle 未注册 + 钱包未注册 + 开户行不支持 RTP」的卖家会落到第二类，此时挂起等待而非置失败，因款项客观仍然欠付（决策
+    A1 已接受的代价）。
+  reconciliation: 日终对账：按 channel_transaction_id 将 payout_settlement_record 与 payout_transaction 逐笔匹配。匹配成功且金额一致则将流水 reconciliation_status
+    置为已结算；匹配不上或金额不符的记录留在 payout_settlement_record 并标记 match_status，进入差错处理流程直至 handle_status 闭环。「摩根侧有、我方无」的记录只存在于 payout_settlement_record，本方流水中无对应行。
+  limit_control: 限额是本模块唯一的事前内控手段（决策 A2 不设人工审核）。打款单提交时按 payout_limit_config 中所有启用状态的规则逐条校验，任一不通过即拦截、不产生打款流水。限额的取值由运营配置，具体数值在
+    PRD 阶段确定。
+  operation_log_requirement: 资金操作日志按用户决策交技术侧设计，不进产品 ER；但本模块对其提出业务约束：① 必须覆盖的动作 —— 打款单录入、打款发起、打款重发、收款信息修改、收款信息明文解密访问、充值单创建、充值到账确认、限额配置变更；②
+    每条须可还原「谁、何时、对哪张单、把什么值改成了什么」，并记录操作来源 IP；③ 运营与财务可按打款单号与操作人检索；④ 保留期不短于资金台账的保留期。此约束的存在理由：A2 取消了人工审核环节，事后审计成为唯一内控手段。
+  currency: V1 仅支持 USD，所有金额字段的 currency_code 恒为 USD。字段保留是为多币种扩展预留，本期不做汇率换算、不接汇率模块。
+  irrevocable: zelle 与 rtp 属终局清算、不可撤销，paypal / venmo 到账后亦不可由付款方追回。因此打款成功为终态，本模块不提供撤销与冲正能力；打错款的处置属线下追偿，不在系统内建模。
+  no_upstream: 本期无上游回收系统对接（决策 A6），打款单不关联任何订单或回收单，与订单支付模块的表之间无外键关系。业务追溯仅依赖 payout_order.remark 自由文本（决策 A9）。
+  ownership: 数据所有权：全部七张表均由本模块产生与维护。payout_settlement_record 的原始数据来自摩根，由本模块拉取后落库并追加匹配与处理结论。operator_id 与 handled_by 引用运营账号，为外部模块提供的只读引用，本模块不管理其生命周期。
+]]></er-tech-spec></metadata><g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(57.6 1782.6)">
+<title>ER</title>
+<polygon fill="#f8f9fc" stroke="none" points="-57.6,57.6 -57.6,-1782.6 2574.85,-1782.6 2574.85,57.6 -57.6,57.6" />
+<g id="clust1" class="cluster">
+<title>cluster_funding</title>
+<path fill="#ebf3fb" stroke="#a3c4e9" stroke-width="2.5" d="M1464.38,-778C1464.38,-778 2497.25,-778 2497.25,-778 2503.25,-778 2509.25,-784 2509.25,-790 2509.25,-790 2509.25,-1705 2509.25,-1705 2509.25,-1711 2503.25,-1717 2497.25,-1717 2497.25,-1717 1464.38,-1717 1464.38,-1717 1458.38,-1717 1452.38,-1711 1452.38,-1705 1452.38,-1705 1452.38,-790 1452.38,-790 1452.38,-784 1458.38,-778 1464.38,-778" />
+<text xml:space="preserve" text-anchor="start" x="1952.31" y="-1700.7" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="#4a90d9">资金供给</text>
+</g>
+<g id="clust2" class="cluster">
+<title>cluster_payout</title>
+<path fill="#fdf2e9" stroke="#f2c9a3" stroke-width="2.5" d="M747.75,-8C747.75,-8 1976.25,-8 1976.25,-8 1982.25,-8 1988.25,-14 1988.25,-20 1988.25,-20 1988.25,-758 1988.25,-758 1988.25,-764 1982.25,-770 1976.25,-770 1976.25,-770 747.75,-770 747.75,-770 741.75,-770 735.75,-764 735.75,-758 735.75,-758 735.75,-20 735.75,-20 735.75,-14 741.75,-8 747.75,-8" />
+<text xml:space="preserve" text-anchor="start" x="1333.5" y="-753.7" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="#e8833a">出款执行</text>
+</g>
+<g id="clust3" class="cluster">
+<title>cluster_recon</title>
+<path fill="#e9f7f0" stroke="#a3d9c0" stroke-width="2.5" d="M20,-62C20,-62 612.5,-62 612.5,-62 618.5,-62 624.5,-68 624.5,-74 624.5,-74 624.5,-704 624.5,-704 624.5,-710 618.5,-716 612.5,-716 612.5,-716 20,-716 20,-716 14,-716 8,-710 8,-704 8,-704 8,-74 8,-74 8,-68 14,-62 20,-62" />
+<text xml:space="preserve" text-anchor="start" x="280.62" y="-699.7" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="#3f9a72">账目与核对</text>
+</g>
+<g id="clust4" class="cluster">
+<title>cluster_config</title>
+<path fill="#f0eef9" stroke="#c4bfe0" stroke-width="2.5" d="M72.88,-995C72.88,-995 559.62,-995 559.62,-995 565.62,-995 571.62,-1001 571.62,-1007 571.62,-1007 571.62,-1434 571.62,-1434 571.62,-1440 565.62,-1446 559.62,-1446 559.62,-1446 72.87,-1446 72.87,-1446 66.87,-1446 60.88,-1440 60.88,-1434 60.88,-1434 60.88,-1007 60.88,-1007 60.88,-1001 66.88,-995 72.88,-995" />
+<text xml:space="preserve" text-anchor="start" x="302" y="-1429.7" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="#7e76b8">配置</text>
+</g>
+
+<g id="node1" class="node">
+<title>payout_funding_account</title>
+<polygon fill="#4a90d9" stroke="none" points="2096,-1225.25 2096,-1257.5 2450.75,-1257.5 2450.75,-1225.25 2096,-1225.25" />
+<text xml:space="preserve" text-anchor="start" x="2161.25" y="-1239.2" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">资金账户 payout_funding_account</text>
+<text xml:space="preserve" text-anchor="start" x="2102" y="-1204.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 主键</text>
+<text xml:space="preserve" text-anchor="start" x="2457.12" y="-1204.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="2102" y="-1172" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">account_no 资金账户编号（摩根侧账户标识）</text>
+<text xml:space="preserve" text-anchor="start" x="2456.75" y="-1172" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[UK]</text>
+<text xml:space="preserve" text-anchor="start" x="2102" y="-1139.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">account_name 账户名称</text>
+<text xml:space="preserve" text-anchor="start" x="2102" y="-1107.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">channel 所属渠道（jpmorgan）</text>
+<text xml:space="preserve" text-anchor="start" x="2102" y="-1075.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">currency_code 币种（ISO 4217）</text>
+<text xml:space="preserve" text-anchor="start" x="2102" y="-1043" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">available_balance 可用余额（摩根侧同步值，非权威）</text>
+<text xml:space="preserve" text-anchor="start" x="2102" y="-1010.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">balance_synced_at 余额同步时间</text>
+<text xml:space="preserve" text-anchor="start" x="2102" y="-978.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">warning_threshold 余额预警阈值</text>
+<text xml:space="preserve" text-anchor="start" x="2102" y="-946.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">status 账户状态（启用/停用）</text>
+<text xml:space="preserve" text-anchor="start" x="2102" y="-914" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">created_at 创建时间</text>
+<text xml:space="preserve" text-anchor="start" x="2102" y="-881.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">updated_at 更新时间</text>
+<polygon fill="#e3f2fd" stroke="none" points="2096,-818.5 2096,-870.5 2491.25,-870.5 2491.25,-818.5 2096,-818.5" />
+<text xml:space="preserve" text-anchor="start" x="2102" y="-856" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">本模块产生。looply 在摩根开立的出款资金账户。V1 仅一个 USD </text>
+<text xml:space="preserve" text-anchor="start" x="2102" y="-846" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">账户，available_balance 是摩根侧余额的本地同步值，仅用于列表展示与预警；</text>
+<text xml:space="preserve" text-anchor="start" x="2102" y="-836" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">打款前的余额校验以摩根实时查询结果为准（见设计规则 balance_check）</text>
+<text xml:space="preserve" text-anchor="start" x="2269.25" y="-826" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">。</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="2095,-817.5 2095,-1258.5 2492.25,-1258.5 2492.25,-817.5 2095,-817.5" />
+</g>
+
+<g id="node2" class="node">
+<title>payout_deposit</title>
+<polygon fill="#4a90d9" stroke="none" points="1470.38,-1247.5 1470.38,-1279.75 1900.12,-1279.75 1900.12,-1247.5 1470.38,-1247.5" />
+<text xml:space="preserve" text-anchor="start" x="1603.5" y="-1261.45" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">预充值单 payout_deposit</text>
+<text xml:space="preserve" text-anchor="start" x="1476.38" y="-1226.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 主键</text>
+<text xml:space="preserve" text-anchor="start" x="1906.5" y="-1226.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="1476.38" y="-1194.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">deposit_no 充值单号</text>
+<text xml:space="preserve" text-anchor="start" x="1906.12" y="-1194.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[UK]</text>
+<text xml:space="preserve" text-anchor="start" x="1476.38" y="-1162" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">funding_account_id 目标资金账户（→ payout_funding_account）</text>
+<text xml:space="preserve" text-anchor="start" x="1906.88" y="-1162" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="1476.38" y="-1129.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">amount 充值金额</text>
+<text xml:space="preserve" text-anchor="start" x="1476.38" y="-1097.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">currency_code 币种（ISO 4217）</text>
+<text xml:space="preserve" text-anchor="start" x="1476.38" y="-1065.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">deposit_method 充值方式（银行转账/内部划转）</text>
+<text xml:space="preserve" text-anchor="start" x="1476.38" y="-1033" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">external_ref 外部凭证号（银行回单号/摩根入账编号）</text>
+<text xml:space="preserve" text-anchor="start" x="1476.38" y="-1000.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">status 充值状态（待到账/已到账/充值失败）</text>
+<text xml:space="preserve" text-anchor="start" x="1476.38" y="-968.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">confirmed_at 到账确认时间</text>
+<text xml:space="preserve" text-anchor="start" x="1476.38" y="-936.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">operator_id 操作人（运营）</text>
+<text xml:space="preserve" text-anchor="start" x="1476.38" y="-904" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">remark 备注</text>
+<text xml:space="preserve" text-anchor="start" x="1476.38" y="-871.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">created_at 创建时间</text>
+<text xml:space="preserve" text-anchor="start" x="1476.38" y="-839.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">updated_at 更新时间</text>
+<polygon fill="#e3f2fd" stroke="none" points="1470.38,-796.25 1470.38,-828.25 1940.62,-828.25 1940.62,-796.25 1470.38,-796.25" />
+<text xml:space="preserve" text-anchor="start" x="1476.38" y="-813.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">本模块产生。运营发起的一次资金池充值。资金实际到账由运营在摩根侧确认后回填，</text>
+<text xml:space="preserve" text-anchor="start" x="1524" y="-803.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">系统不自动判定到账（V1 无摩根入账回调，见待确认项 W3）。</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="1469.38,-795.25 1469.38,-1280.75 1941.62,-1280.75 1941.62,-795.25 1469.38,-795.25" />
+</g>
+
+<g id="edge1" class="edge">
+<title>payout_deposit-&gt;payout_funding_account</title>
+<path fill="none" stroke="#1565c0" stroke-width="1.4" d="M1942.37,-1038C1989.73,-1038 2039.17,-1038 2085.48,-1038" />
+<polygon fill="#1565c0" stroke="#1565c0" stroke-width="1.4" points="2085.27,-1040.45 2092.27,-1038 2085.27,-1035.55 2085.27,-1040.45" />
+<text xml:space="preserve" text-anchor="middle" x="2034.12" y="-1043.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#1565c0">N:1 充入</text>
+</g>
+
+<g id="node3" class="node">
+<title>payout_balance_change</title>
+<polygon fill="#4a90d9" stroke="none" points="1485,-1638 1485,-1670.25 1886.25,-1670.25 1886.25,-1638 1485,-1638" />
+<text xml:space="preserve" text-anchor="start" x="1560.38" y="-1651.95" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">余额变动明细 payout_balance_change</text>
+<text xml:space="preserve" text-anchor="start" x="1491" y="-1617" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 主键</text>
+<text xml:space="preserve" text-anchor="start" x="1892.25" y="-1617" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="1491" y="-1584.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">funding_account_id 资金账户（→ payout_funding_account）</text>
+<text xml:space="preserve" text-anchor="start" x="1892.62" y="-1584.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="1491" y="-1552.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">change_type 变动类型（充值入账/打款出账/打款失败退回）</text>
+<text xml:space="preserve" text-anchor="start" x="1491" y="-1520.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">change_amount 变动金额（入账为正、出账为负）</text>
+<text xml:space="preserve" text-anchor="start" x="1491" y="-1488" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">balance_before 变动前余额</text>
+<text xml:space="preserve" text-anchor="start" x="1491" y="-1455.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">balance_after 变动后余额</text>
+<text xml:space="preserve" text-anchor="start" x="1491" y="-1423.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">ref_type 关联单据类型（充值单/打款单）</text>
+<text xml:space="preserve" text-anchor="start" x="1491" y="-1391.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">ref_id 关联单据 ID</text>
+<text xml:space="preserve" text-anchor="start" x="1491" y="-1359" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">created_at 变动时间</text>
+<polygon fill="#e3f2fd" stroke="none" points="1485,-1305.75 1485,-1347.75 1926,-1347.75 1926,-1305.75 1485,-1305.75" />
+<text xml:space="preserve" text-anchor="start" x="1491" y="-1333.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">本模块产生。资金台账，每一行是一次真实的资金增减事实（非操作留痕）</text>
+<text xml:space="preserve" text-anchor="start" x="1491" y="-1323.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">。财务按此追溯资金池每一分钱的来源与去向。balance_before 与 balance_after </text>
+<text xml:space="preserve" text-anchor="start" x="1575.75" y="-1313.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">记录变动前后余额，用于事后核对连续性。</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="1484,-1304.75 1484,-1671.25 1927,-1671.25 1927,-1304.75 1484,-1304.75" />
+</g>
+
+<g id="edge2" class="edge">
+<title>payout_balance_change-&gt;payout_funding_account</title>
+<path fill="none" stroke="#1565c0" d="M1927.84,-1337.69C1948.44,-1322.84 1968.85,-1307.79 1988.25,-1293 2020.89,-1268.12 2054.8,-1241.02 2087.64,-1214.08" />
+<polygon fill="#1565c0" stroke="#1565c0" points="2089.17,-1215.99 2093.02,-1209.66 2086.06,-1212.21 2089.17,-1215.99" />
+<text xml:space="preserve" text-anchor="middle" x="2034.12" y="-1292.03" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#1565c0">N:1 记录变动</text>
+</g>
+
+<g id="node4" class="node">
+<title>payout_order</title>
+<polygon fill="#e8833a" stroke="none" points="1440.75,-691.25 1440.75,-723.5 1929.75,-723.5 1929.75,-691.25 1440.75,-691.25" />
+<text xml:space="preserve" text-anchor="start" x="1617.75" y="-705.2" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">打款单 payout_order</text>
+<text xml:space="preserve" text-anchor="start" x="1446.75" y="-670.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 主键</text>
+<text xml:space="preserve" text-anchor="start" x="1936.12" y="-670.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="1446.75" y="-638" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">payout_no 打款单号</text>
+<text xml:space="preserve" text-anchor="start" x="1935.75" y="-638" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[UK]</text>
+<text xml:space="preserve" text-anchor="start" x="1446.75" y="-605.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">funding_account_id 出款资金账户（→ payout_funding_account）</text>
+<text xml:space="preserve" text-anchor="start" x="1936.5" y="-605.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="1446.75" y="-573.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">channel 打款渠道（jpmorgan）</text>
+<text xml:space="preserve" text-anchor="start" x="1446.75" y="-541.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">payout_method 打款方式（zelle / paypal / venmo / rtp）</text>
+<text xml:space="preserve" text-anchor="start" x="1446.75" y="-509" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">payee_name 收款人姓名（通道校验用）</text>
+<text xml:space="preserve" text-anchor="start" x="1446.75" y="-476.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">payee_alias 收款别名（邮箱或手机号；zelle/paypal/venmo 用，加密存储）</text>
+<text xml:space="preserve" text-anchor="start" x="1446.75" y="-444.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">payee_bank_routing_number 银行路由号（rtp 用，加密存储）</text>
+<text xml:space="preserve" text-anchor="start" x="1446.75" y="-412.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">payee_bank_account_number 银行账号（rtp 用，加密存储）</text>
+<text xml:space="preserve" text-anchor="start" x="1446.75" y="-380" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">payee_bank_name 开户行名称（由路由号反查所得，供录入时回显确认）</text>
+<text xml:space="preserve" text-anchor="start" x="1446.75" y="-347.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">payee_masked 收款信息脱敏值（由明文派生，界面与导出只用此值）</text>
+<text xml:space="preserve" text-anchor="start" x="1446.75" y="-315.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">amount 打款金额</text>
+<text xml:space="preserve" text-anchor="start" x="1446.75" y="-283.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">currency_code 币种（ISO 4217）</text>
+<text xml:space="preserve" text-anchor="start" x="1446.75" y="-251" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">status 打款单状态（见设计规则 payout_order_status）</text>
+<text xml:space="preserve" text-anchor="start" x="1446.75" y="-218.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">paid_at 打款成功时间</text>
+<text xml:space="preserve" text-anchor="start" x="1446.75" y="-186.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">remark 业务备注（自由文本，本单唯一业务追溯依据）</text>
+<text xml:space="preserve" text-anchor="start" x="1446.75" y="-154.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">operator_id 录入人（运营）</text>
+<text xml:space="preserve" text-anchor="start" x="1446.75" y="-122" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">created_at 创建时间</text>
+<text xml:space="preserve" text-anchor="start" x="1446.75" y="-89.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">updated_at 更新时间</text>
+<polygon fill="#e3f2fd" stroke="none" points="1440.75,-26.5 1440.75,-78.5 1970.25,-78.5 1970.25,-26.5 1440.75,-26.5" />
+<text xml:space="preserve" text-anchor="start" x="1446.75" y="-64" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">本模块产生。一笔应付给 C 端个人卖家的款项，由运营在后台手工录入（A6：本期无回收单、</text>
+<text xml:space="preserve" text-anchor="start" x="1446.75" y="-54" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">无上游系统对接）。结构对齐订单支付 payment_order（A12）。收款信息以快照形式随单存储、</text>
+<text xml:space="preserve" text-anchor="start" x="1446.75" y="-44" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">不建收款人档案（A8）；payee_alias 与 payee_bank_ 两组字段按 payout_method 二选一存值。</text>
+<text xml:space="preserve" text-anchor="start" x="1562.62" y="-34" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">remark 是本单唯一的业务追溯依据（A9）。</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="1439.75,-25.5 1439.75,-724.5 1971.25,-724.5 1971.25,-25.5 1439.75,-25.5" />
+</g>
+
+<g id="edge3" class="edge">
+<title>payout_order-&gt;payout_funding_account</title>
+<path fill="none" stroke="#e8833a" stroke-width="1.4" d="M1972.12,-675.46C2012.17,-720.76 2052.91,-766.84 2091.3,-810.27" />
+<polygon fill="#e8833a" stroke="#e8833a" stroke-width="1.4" points="2089.32,-811.73 2095.8,-815.36 2093,-808.49 2089.32,-811.73" />
+<text xml:space="preserve" text-anchor="middle" x="2034.12" y="-790.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#e8833a">N:1 从此账户出款</text>
+</g>
+
+<g id="node5" class="node">
+<title>payout_transaction</title>
+<polygon fill="#e8833a" stroke="none" points="753.75,-659 753.75,-691.25 1208.25,-691.25 1208.25,-659 753.75,-659" />
+<text xml:space="preserve" text-anchor="start" x="886.12" y="-672.95" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">打款流水 payout_transaction</text>
+<text xml:space="preserve" text-anchor="start" x="759.75" y="-638" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 主键</text>
+<text xml:space="preserve" text-anchor="start" x="1214.62" y="-638" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="759.75" y="-605.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">transaction_no 内部流水号</text>
+<text xml:space="preserve" text-anchor="start" x="1214.25" y="-605.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[UK]</text>
+<text xml:space="preserve" text-anchor="start" x="759.75" y="-573.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">payout_order_id 所属打款单（→ payout_order）</text>
+<text xml:space="preserve" text-anchor="start" x="1215" y="-573.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="759.75" y="-541.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">transaction_type 交易类型（payout；与支付流水同一取值域）</text>
+<text xml:space="preserve" text-anchor="start" x="759.75" y="-509" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">channel_transaction_id 渠道交易号（对账匹配键）</text>
+<text xml:space="preserve" text-anchor="start" x="1214.25" y="-509" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[UK]</text>
+<text xml:space="preserve" text-anchor="start" x="759.75" y="-476.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">amount 交易金额</text>
+<text xml:space="preserve" text-anchor="start" x="759.75" y="-444.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">currency_code 币种（ISO 4217）</text>
+<text xml:space="preserve" text-anchor="start" x="759.75" y="-412.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">channel_fee 渠道手续费</text>
+<text xml:space="preserve" text-anchor="start" x="759.75" y="-380" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">channel_fee_currency 手续费币种</text>
+<text xml:space="preserve" text-anchor="start" x="759.75" y="-347.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">net_amount 实际出账金额</text>
+<text xml:space="preserve" text-anchor="start" x="759.75" y="-315.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">status 流水状态（打款中/成功/失败）</text>
+<text xml:space="preserve" text-anchor="start" x="759.75" y="-283.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">failure_reason 失败原因分类（见设计规则 failure_handling）</text>
+<text xml:space="preserve" text-anchor="start" x="759.75" y="-251" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">channel_raw_data 渠道原始响应（JSON）</text>
+<text xml:space="preserve" text-anchor="start" x="759.75" y="-218.75" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">reconciliation_status 对账状态（待结算/已结算，与订单支付同枚举）</text>
+<text xml:space="preserve" text-anchor="start" x="759.75" y="-186.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">reconciled_at 对账时间</text>
+<text xml:space="preserve" text-anchor="start" x="759.75" y="-154.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">created_at 创建时间</text>
+<text xml:space="preserve" text-anchor="start" x="759.75" y="-122" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">updated_at 更新时间</text>
+<polygon fill="#e3f2fd" stroke="none" points="753.75,-58.75 753.75,-110.75 1248.75,-110.75 1248.75,-58.75 753.75,-58.75" />
+<text xml:space="preserve" text-anchor="start" x="759.75" y="-96.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">本模块产生。每向摩根发起一次打款指令产生一条，一张打款单可有多条（失败重发）</text>
+<text xml:space="preserve" text-anchor="start" x="759.75" y="-86.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">。字段与订单支付 payment_transaction 一一对应（A12），transaction_type </text>
+<text xml:space="preserve" text-anchor="start" x="759.75" y="-76.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">取值 payout，将来两模块合并时可直接 UNION、无需字段映射。channel_transaction_id </text>
+<text xml:space="preserve" text-anchor="start" x="882" y="-66.25" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">是与摩根结算数据的对账匹配键。</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="752.75,-57.75 752.75,-692.25 1249.75,-692.25 1249.75,-57.75 752.75,-57.75" />
+</g>
+
+<g id="edge4" class="edge">
+<title>payout_transaction-&gt;payout_order</title>
+<path fill="none" stroke="#e8833a" stroke-width="1.4" d="M1250.33,-375C1308.43,-375 1370.66,-375 1429.85,-375" />
+<polygon fill="#e8833a" stroke="#e8833a" stroke-width="1.4" points="1429.82,-377.45 1436.82,-375 1429.82,-372.55 1429.82,-377.45" />
+<text xml:space="preserve" text-anchor="middle" x="1344.75" y="-380.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#e8833a">N:1 每次发起一条（失败可重发）</text>
+</g>
+
+<g id="node6" class="node">
+<title>payout_settlement_record</title>
+<polygon fill="#3f9a72" stroke="none" points="26,-637.88 26,-670.12 566.75,-670.12 566.75,-637.88 26,-637.88" />
+<text xml:space="preserve" text-anchor="start" x="164" y="-651.83" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">渠道结算记录 payout_settlement_record</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-616.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 主键</text>
+<text xml:space="preserve" text-anchor="start" x="572.75" y="-616.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-584.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">channel 渠道（jpmorgan）</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-552.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">settlement_date 结算日期</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-520.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">channel_transaction_id 渠道交易号（匹配键）</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-487.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">channel_amount 渠道侧金额</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-455.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">channel_fee 渠道侧手续费</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-423.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">currency_code 币种（ISO 4217）</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-391.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">channel_status 渠道侧交易状态（原样保留）</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-358.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">payout_transaction_id 匹配到的本方流水（→ payout_transaction；未匹配时无值）</text>
+<text xml:space="preserve" text-anchor="start" x="573.12" y="-358.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[FK]</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-326.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">match_status 匹配状态（已匹配/我方无此笔/金额不符）</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-294.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">handle_status 差错处理状态（待处理/处理中/已闭环）</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-262.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">handle_note 差错处理说明</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-229.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">handled_by 处理人（运营）</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-197.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">handled_at 处理时间</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-165.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">pulled_at 数据拉取时间</text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-133.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">created_at 创建时间</text>
+<polygon fill="#e3f2fd" stroke="none" points="26,-79.88 26,-121.88 606.5,-121.88 606.5,-79.88 26,-79.88" />
+<text xml:space="preserve" text-anchor="start" x="32" y="-107.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">本模块产生（数据源为摩根）。日终从摩根拉回的逐笔结算数据，按 channel_transaction_id </text>
+<text xml:space="preserve" text-anchor="start" x="32" y="-97.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">与本方流水匹配。匹配不上的记录留在本表，是「摩根侧有、我方无」这类差异的唯一落点。</text>
+<text xml:space="preserve" text-anchor="start" x="140.38" y="-87.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">差错处理结论也记在本表，构成对账闭环。</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="25,-78.88 25,-671.12 607.5,-671.12 607.5,-78.88 25,-78.88" />
+</g>
+
+<g id="edge5" class="edge">
+<title>payout_settlement_record-&gt;payout_transaction</title>
+<path fill="none" stroke="#3f9a72" stroke-dasharray="5,2" d="M608.39,-375C653.3,-375 699.39,-375 743.48,-375" />
+<polygon fill="#3f9a72" stroke="#3f9a72" points="743.46,-377.45 750.46,-375 743.46,-372.55 743.46,-377.45" />
+<text xml:space="preserve" text-anchor="middle" x="680.12" y="-380.5" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="10.00" fill="#3f9a72">N:1 按渠道交易号匹配</text>
+</g>
+
+<g id="node7" class="node">
+<title>payout_limit_config</title>
+<polygon fill="#7e76b8" stroke="none" points="78.88,-1367.12 78.88,-1399.38 513.88,-1399.38 513.88,-1367.12 78.88,-1367.12" />
+<text xml:space="preserve" text-anchor="start" x="200.75" y="-1381.08" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-weight="bold" font-size="14.00" fill="white">限额配置 payout_limit_config</text>
+<text xml:space="preserve" text-anchor="start" x="84.88" y="-1346.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">id 主键</text>
+<text xml:space="preserve" text-anchor="start" x="519.88" y="-1346.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">[PK]</text>
+<text xml:space="preserve" text-anchor="start" x="84.88" y="-1313.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">limit_type 限额类型（单笔上限/单日累计上限/单操作人单日上限）</text>
+<text xml:space="preserve" text-anchor="start" x="84.88" y="-1281.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">limit_scope 适用范围（全局/按打款方式）</text>
+<text xml:space="preserve" text-anchor="start" x="84.88" y="-1249.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">payout_method 适用打款方式（limit_scope 为按打款方式时取值）</text>
+<text xml:space="preserve" text-anchor="start" x="84.88" y="-1217.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">limit_amount 限额金额</text>
+<text xml:space="preserve" text-anchor="start" x="84.88" y="-1184.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">currency_code 币种（ISO 4217）</text>
+<text xml:space="preserve" text-anchor="start" x="84.88" y="-1152.62" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">status 启用状态（启用/停用）</text>
+<text xml:space="preserve" text-anchor="start" x="84.88" y="-1120.38" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">operator_id 最后修改人（运营）</text>
+<text xml:space="preserve" text-anchor="start" x="84.88" y="-1088.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">created_at 创建时间</text>
+<text xml:space="preserve" text-anchor="start" x="84.88" y="-1055.88" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-size="14.00">updated_at 更新时间</text>
+<polygon fill="#e3f2fd" stroke="none" points="78.88,-1012.62 78.88,-1044.62 553.62,-1044.62 553.62,-1012.62 78.88,-1012.62" />
+<text xml:space="preserve" text-anchor="start" x="84.88" y="-1030.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">本模块产生。A2 定「不设人工审核」，限额是本模块唯一的事前内控手段，</text>
+<text xml:space="preserve" text-anchor="start" x="84.88" y="-1020.12" font-family="PingFang SC, Microsoft YaHei, Helvetica, sans-serif" font-style="italic" font-size="10.00">因此必须可配置、可审计。一行一条限额规则，打款单提交时逐条校验，任一不通过即拦截。</text>
+<polygon fill="none" stroke="black" stroke-width="2" points="77.88,-1011.62 77.88,-1400.38 554.62,-1400.38 554.62,-1011.62 77.88,-1011.62" />
+</g>
+</g>
+</svg>

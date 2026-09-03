@@ -1,0 +1,462 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1508" height="3340" viewBox="0 0 1508 3340" font-family="'PingFang SC','Microsoft YaHei','Helvetica Neue',Arial,sans-serif">
+<metadata>
+<![CDATA[
+# looply &#183; 支付打款模块 系统流程图 V1.0
+# 研发编码参考数据，从 SVG <metadata> 提取
+
+swimlanes:
+  - key: "A"
+    name: "支付打款系统（业务服务 + 运营后台）"
+  - key: "B"
+    name: "Payment Service（统一渠道适配层）"
+  - key: "C"
+    name: "摩根 Global Payments"
+
+sections:
+  - name: "① 打款单录入与出款"
+    steps:
+      - type: start_end
+        text: "运营新建打款单"
+      - type: process
+        lane: "A"
+        text: "录入收款人姓名、打款方式、收款信息、金额、业务备注"
+      - type: decision
+        lane: "A"
+        text: "收款信息格式校验通过?"
+        on_no: "提示格式错误"
+        yes_label: "是"
+        no_label: "否"
+      - type: decision
+        lane: "A"
+        text: "限额校验通过?"
+        on_no: "拦截并提示超限"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "提交打款单，收款信息加密落库、只留脱敏值"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "请求发起打款"
+      - type: cross_lane
+        from: "B"
+        to: "C"
+        text: "查询资金账户实时余额"
+      - type: cross_lane
+        from: "C"
+        to: "B"
+        text: "返回当前可用余额"
+      - type: decision
+        lane: "B"
+        text: "余额充足?"
+        on_no: "打款单置失败"
+        yes_label: "是"
+        no_label: "否"
+      - type: cross_lane
+        from: "B"
+        to: "C"
+        text: "创建打款流水并提交打款指令"
+      - type: process
+        lane: "C"
+        text: "按打款方式执行出款（Zelle / PayPal / Venmo / RTP）"
+      - type: cross_lane
+        from: "C"
+        to: "B"
+        text: "异步回调打款结果"
+      - type: decision
+        lane: "B"
+        text: "摩根返回成功?"
+        on_no: "转 ② 失败处理"
+        yes_label: "是"
+        no_label: "否"
+      - type: cross_lane
+        from: "B"
+        to: "A"
+        text: "打款单置成功，回写流水与到账时间"
+      - type: start_end
+        text: "卖家账户到账"
+      - type: note
+        title: "段① 关键口径"
+        lines:
+          - "· 打款方式四选一：zelle / paypal / venmo / rtp。前三种只需邮箱或手机号，rtp 需路由号 + 账号（决策 A1）"
+          - "· 录入 rtp 收款信息时，界面按路由号反查开户行名回显给运营确认（表单内字段联动，非独立流程步骤）。RTP 不可撤销，账号填错即追不回"
+          - "· 余额校验以摩根实时查询为准，本地 available_balance 仅供展示与预警，不作放行依据"
+          - "· 余额不足直接置失败、不排队等补款（决策 A3）"
+          - "· 本流程无人工审核环节（决策 A2）。限额是唯一的事前内控，事后靠操作日志审计"
+          - "· 三道校验按成本排序：格式校验（前端）→ 限额校验（查库）→ 余额校验（调摩根）。限额校验在落库之前，超限的单据不产生记录"
+          - "· zelle 与 rtp 为终局清算、不可撤销，paypal / venmo 到账后亦不可由付款方追回，故打款成功即终态"
+          - "· 录入、提交、发起、重发四个动作均须写资金操作日志（该表交技术侧设计，业务约束见 ER 设计规则）"
+  - name: "② 打款失败处理"
+    steps:
+      - type: start_end
+        text: "运营处理失败打款单"
+      - type: process
+        lane: "A"
+        text: "查看失败原因分类"
+      - type: multi_branch
+        lane: "A"
+        text: "失败原因属于哪一类?"
+        branches:
+          - label: "余额不足"
+            nodes:
+              - type: process
+                text: "等财务线下补充资金"
+          - label: "摩根侧故障 / 超时"
+            nodes:
+              - type: process
+                text: "无需改单，直接重发"
+          - label: "收款方不可达"
+            nodes:
+              - type: process
+                text: "线下联系卖家改收款方式"
+              - type: process
+                text: "更新收款信息，单据转待打款"
+      - type: process
+        lane: "A"
+        text: "原单重发，生成新一条打款流水"
+      - type: start_end
+        text: "转 ① 重新发起打款"
+      - type: note
+        title: "段② 关键口径"
+        lines:
+          - "· 失败分两类处置：可原单重发（余额不足、摩根侧临时故障、超时无回调）；需更换收款方式（收款别名未注册、账户不存在、开户行不支持 RTP）"
+          - "· 重发不产生新打款单，打款单号不变，只新增一条 payout_transaction"
+          - "· 本期不接 ACH 兜底：zelle 未注册 + 钱包未注册 + 开户行不支持 RTP 的卖家，单据挂「待补收款信息」等待，不置失败——款项客观仍然欠付（决策 A1 已接受的代价）"
+  - name: "③ 余额监控与告警"
+    steps:
+      - type: start_end
+        text: "定时任务触发"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "请求查询资金账户余额"
+      - type: cross_lane
+        from: "B"
+        to: "C"
+        text: "调用摩根余额查询接口"
+      - type: cross_lane
+        from: "C"
+        to: "B"
+        text: "返回当前可用余额"
+      - type: cross_lane
+        from: "B"
+        to: "A"
+        text: "回写余额与同步时间"
+      - type: decision
+        lane: "A"
+        text: "余额低于预警阈值?"
+        on_no: "本轮不告警、结束"
+        yes_label: "是"
+        no_label: "否"
+      - type: process
+        lane: "A"
+        text: "向运营发出资金池余额不足告警"
+      - type: start_end
+        text: "运营线下补充资金"
+      - type: note
+        title: "段③ 关键口径"
+        lines:
+          - "· 本期充值完全线下处理：不对接摩根充值接口、不建充值单、不做余额台账记账（决策 A13）"
+          - "· 系统对充值的全部参与就是这一段——把余额同步回来、低于阈值时喊人"
+          - "· 预警阈值由运营配置，具体取值在 PRD 阶段确定"
+  - name: "④ 日终对账与差错处理"
+    steps:
+      - type: start_end
+        text: "日终定时任务触发"
+      - type: cross_lane
+        from: "A"
+        to: "B"
+        text: "请求拉取前一日结算数据"
+      - type: cross_lane
+        from: "B"
+        to: "C"
+        text: "调用摩根结算数据接口"
+      - type: cross_lane
+        from: "C"
+        to: "B"
+        text: "返回逐笔结算记录"
+      - type: process
+        lane: "B"
+        text: "过滤：仅保留出款方向记录，入账记录直接丢弃"
+      - type: cross_lane
+        from: "B"
+        to: "A"
+        text: "逐笔落库结算记录，按渠道交易号匹配本方流水"
+      - type: condition_branch
+        lane: "A"
+        text: "匹配成功且金额一致?"
+        yes_label: "是"
+        no_label: "否"
+        yes_branch:
+          - text: "标记已匹配，流水置为已结算"
+        no_branch:
+          - text: "标记差异类型，进入差错处理"
+      - type: process
+        lane: "A"
+        text: "运营查看差异清单"
+      - type: multi_branch
+        lane: "A"
+        text: "差异属于哪一类?"
+        branches:
+          - label: "我方无此笔"
+            nodes:
+              - type: process
+                text: "核实是否漏记或误打"
+          - label: "金额不符"
+            nodes:
+              - type: process
+                text: "核对手续费与实付金额"
+      - type: process
+        lane: "A"
+        text: "记录处理结论，差错状态置已闭环"
+      - type: start_end
+        text: "对账完成"
+      - type: note
+        title: "段④ 关键口径"
+        lines:
+          - "· 「过滤入账记录」是必须做的一步：充值不入系统（决策 A13），摩根日终数据里的入账记录在本方必然无对应流水，若参与比对会每充值一次就产生一条固定噪音差异"
+          - "· 对账匹配键是 channel_transaction_id（与订单支付同一字段，决策 A12 三处同构）"
+          - "· 对账状态枚举沿用订单支付：待结算 / 已结算，不另立一套"
+          - "· 拉回的结算记录**全量落库**、用 match_status 标记匹配结果，不是只存差异——否则审计不出「摩根说这一天有几笔」"
+          - "· 「摩根侧有、我方无」的记录只存在于 payout_settlement_record，本方流水中无对应行"
+]]>
+</metadata>
+<defs>
+<marker id="arr" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#475569"/></marker>
+<marker id="arr-r" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#DC2626"/></marker>
+</defs>
+<rect width="1508" height="3340" fill="#F8FAFC"/>
+<rect width="1508" height="46" fill="#1E1F2E"/>
+<text x="754" y="30" text-anchor="middle" fill="#fff" font-size="17" font-weight="600">looply &#183; 支付打款模块 系统流程图</text>
+<text x="1478" y="30" text-anchor="end" fill="rgba(255,255,255,0.5)" font-size="10">V1.0</text>
+<rect x="40" y="46" width="716" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="398" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">支付打款系统（业务服务 + 运营后台）</text>
+<rect x="756" y="46" width="432" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="972" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">Payment Service（统一渠道适配层）</text>
+<rect x="1188" y="46" width="320" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="1348" y="63" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">摩根 Global Payments</text>
+<rect x="40" y="46" width="716" height="1092" fill="rgba(74,108,247,0.04)"/>
+<rect x="756" y="46" width="432" height="1092" fill="rgba(245,158,11,0.04)"/>
+<line x1="756" y1="46" x2="756" y2="1138" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1188" y="46" width="320" height="1092" fill="rgba(239,68,68,0.04)"/>
+<line x1="1188" y1="46" x2="1188" y2="1138" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="1138" x2="1508" y2="1138" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="46" width="40" height="1092" fill="#DBEAFE" rx="0"/>
+<text x="20" y="525" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">①</text>
+<text x="20" y="543" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">打</text>
+<text x="20" y="561" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">款</text>
+<text x="20" y="579" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">单</text>
+<text x="20" y="597" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">录</text>
+<text x="20" y="615" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">入</text>
+<text x="20" y="633" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">与</text>
+<text x="20" y="651" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">出</text>
+<text x="20" y="669" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">款</text>
+<rect x="40" y="1146" width="716" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="398" y="1163" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">支付打款系统（业务服务 + 运营后台）</text>
+<rect x="756" y="1146" width="432" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="972" y="1163" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">Payment Service（统一渠道适配层）</text>
+<rect x="1188" y="1146" width="320" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="1348" y="1163" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">摩根 Global Payments</text>
+<rect x="40" y="1146" width="716" height="558" fill="rgba(74,108,247,0.04)"/>
+<rect x="756" y="1146" width="432" height="558" fill="rgba(245,158,11,0.04)"/>
+<line x1="756" y1="1146" x2="756" y2="1704" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1188" y="1146" width="320" height="558" fill="rgba(239,68,68,0.04)"/>
+<line x1="1188" y1="1146" x2="1188" y2="1704" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="1704" x2="1508" y2="1704" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="1146" width="40" height="558" fill="#DBEAFE" rx="0"/>
+<text x="20" y="1376" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">②</text>
+<text x="20" y="1394" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">打</text>
+<text x="20" y="1412" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">款</text>
+<text x="20" y="1430" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">失</text>
+<text x="20" y="1448" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">败</text>
+<text x="20" y="1466" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">处</text>
+<text x="20" y="1484" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">理</text>
+<rect x="40" y="1712" width="716" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="398" y="1729" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">支付打款系统（业务服务 + 运营后台）</text>
+<rect x="756" y="1712" width="432" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="972" y="1729" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">Payment Service（统一渠道适配层）</text>
+<rect x="1188" y="1712" width="320" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="1348" y="1729" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">摩根 Global Payments</text>
+<rect x="40" y="1712" width="716" height="606" fill="rgba(74,108,247,0.04)"/>
+<rect x="756" y="1712" width="432" height="606" fill="rgba(245,158,11,0.04)"/>
+<line x1="756" y1="1712" x2="756" y2="2318" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1188" y="1712" width="320" height="606" fill="rgba(239,68,68,0.04)"/>
+<line x1="1188" y1="1712" x2="1188" y2="2318" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="2318" x2="1508" y2="2318" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="1712" width="40" height="606" fill="#DBEAFE" rx="0"/>
+<text x="20" y="1957" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">③</text>
+<text x="20" y="1975" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">余</text>
+<text x="20" y="1993" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">额</text>
+<text x="20" y="2011" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">监</text>
+<text x="20" y="2029" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">控</text>
+<text x="20" y="2047" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">与</text>
+<text x="20" y="2065" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">告</text>
+<text x="20" y="2083" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">警</text>
+<rect x="40" y="2326" width="716" height="24" fill="#4A6CF7" opacity="0.85"/>
+<text x="398" y="2343" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">支付打款系统（业务服务 + 运营后台）</text>
+<rect x="756" y="2326" width="432" height="24" fill="#F59E0B" opacity="0.85"/>
+<text x="972" y="2343" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">Payment Service（统一渠道适配层）</text>
+<rect x="1188" y="2326" width="320" height="24" fill="#EF4444" opacity="0.85"/>
+<text x="1348" y="2343" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">摩根 Global Payments</text>
+<rect x="40" y="2326" width="716" height="936" fill="rgba(74,108,247,0.04)"/>
+<rect x="756" y="2326" width="432" height="936" fill="rgba(245,158,11,0.04)"/>
+<line x1="756" y1="2326" x2="756" y2="3262" stroke="#E2E8F0" stroke-width="0.7"/>
+<rect x="1188" y="2326" width="320" height="936" fill="rgba(239,68,68,0.04)"/>
+<line x1="1188" y1="2326" x2="1188" y2="3262" stroke="#E2E8F0" stroke-width="0.7"/>
+<line x1="0" y1="3262" x2="1508" y2="3262" stroke="#E2E8F0" stroke-width="0.8"/>
+<rect x="0" y="2326" width="40" height="936" fill="#DBEAFE" rx="0"/>
+<text x="20" y="2718" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">④</text>
+<text x="20" y="2736" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">日</text>
+<text x="20" y="2754" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">终</text>
+<text x="20" y="2772" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">对</text>
+<text x="20" y="2790" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">账</text>
+<text x="20" y="2808" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">与</text>
+<text x="20" y="2826" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">差</text>
+<text x="20" y="2844" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">错</text>
+<text x="20" y="2862" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">处</text>
+<text x="20" y="2880" text-anchor="middle" fill="#1E40AF" font-size="13" font-weight="700">理</text>
+<line x1="398" y1="116" x2="398" y2="132" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="398" y1="164" x2="398" y2="183" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="493" y1="208" x2="504" y2="208" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="499" y="201" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="398" y1="233" x2="398" y2="253" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="410" y="246" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="478" y1="278" x2="489" y2="278" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="484" y="271" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="398" y1="303" x2="398" y2="320" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="410" y="316" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="398,352 398,388 892,388" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="972,404 972,440 1268,440" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1348,456 1348,492 1052,492" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="972" y1="508" x2="972" y2="527" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1042" y1="552" x2="1053" y2="552" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="1048" y="545" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<text x="984" y="590" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="972,577 972,610 1268,610" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1348" y1="626" x2="1348" y2="646" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1348,678 1348,714 1052,714" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="972" y1="730" x2="972" y2="749" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="1052" y1="774" x2="1063" y2="774" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="1058" y="767" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<text x="984" y="812" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<polyline points="972,799 972,832 478,832" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="398" y1="848" x2="398" y2="867" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="398" y1="1216" x2="398" y2="1232" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="398" y1="1264" x2="398" y2="1283" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="303,1308 163,1308 163,1350" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="233" y="1301" text-anchor="middle" fill="#64748B" font-size="8">余额不足</text>
+<line x1="398" y1="1333" x2="398" y2="1350" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="410" y="1346" text-anchor="middle" fill="#64748B" font-size="8">摩根侧故障 / 超时</text>
+<polyline points="493,1308 618,1308 618,1350" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="555" y="1301" text-anchor="middle" fill="#64748B" font-size="8">收款方不可达</text>
+<line x1="618" y1="1382" x2="618" y2="1398" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="163,1382 163,1478 273,1478" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="398" y1="1382" x2="398" y2="1462" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="618,1430 618,1478 523,1478" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="398" y1="1494" x2="398" y2="1513" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="398,1782 398,1818 892,1818" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="972,1834 972,1870 1268,1870" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1348,1886 1348,1922 1052,1922" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="972,1938 972,1974 478,1974" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="398" y1="1990" x2="398" y2="2009" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="493" y1="2034" x2="504" y2="2034" stroke="#DC2626" stroke-width="1.1" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="499" y="2027" text-anchor="middle" fill="#DC2626" font-size="8">否</text>
+<line x1="398" y1="2059" x2="398" y2="2076" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="410" y="2072" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="398" y1="2108" x2="398" y2="2127" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="398,2396 398,2432 892,2432" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="972,2448 972,2484 1268,2484" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="1348,2500 1348,2536 1052,2536" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="972" y1="2552" x2="972" y2="2572" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="972,2604 972,2640 478,2640" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="398" y1="2656" x2="398" y2="2675" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="398" y1="2725" x2="398" y2="2742" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="410" y="2738" text-anchor="middle" fill="#64748B" font-size="8">否</text>
+<polyline points="493,2700 638,2700 638,2742" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="500" y="2693" text-anchor="middle" fill="#64748B" font-size="8">是</text>
+<line x1="398" y1="2774" x2="398" y2="2806" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="638,2774 638,2822 488,2822" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="398" y1="2838" x2="398" y2="2857" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="308,2882 278,2882 278,2924" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="293" y="2875" text-anchor="middle" fill="#64748B" font-size="8">我方无此笔</text>
+<polyline points="488,2882 513,2882 513,2924" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="500" y="2875" text-anchor="middle" fill="#64748B" font-size="8">金额不符</text>
+<polyline points="278,2956 278,3004 273,3004" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<polyline points="513,2956 513,3004 523,3004" fill="none" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="398" y1="3020" x2="398" y2="3039" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+<rect x="348" y="87" width="100" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="398" y="104" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">运营新建打款单</text>
+<rect x="248" y="132" width="300" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="398" y="152" text-anchor="middle" fill="#1E293B" font-size="9.5">录入收款人姓名、打款方式、收款信息、金额、业务备注</text>
+<polygon points="398,183 493,208 398,233 303,208" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="398" y="212" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">收款信息格式校验通过?</text>
+<rect x="505" y="195" width="110" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="560" y="212" text-anchor="middle" fill="#1E293B" font-size="9.5">提示格式错误</text>
+<polygon points="398,253 478,278 398,303 318,278" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="398" y="282" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">限额校验通过?</text>
+<rect x="490" y="265" width="120" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="550" y="282" text-anchor="middle" fill="#1E293B" font-size="9.5">拦截并提示超限</text>
+<rect x="253" y="320" width="290" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="398" y="340" text-anchor="middle" fill="#1E293B" font-size="9.5">提交打款单，收款信息加密落库、只留脱敏值</text>
+<rect x="897" y="372" width="150" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="972" y="392" text-anchor="middle" fill="#1E293B" font-size="9.5">请求发起打款</text>
+<rect x="1248" y="424" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1348" y="444" text-anchor="middle" fill="#1E293B" font-size="9.5">查询资金账户实时余额</text>
+<rect x="882" y="476" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="972" y="496" text-anchor="middle" fill="#1E293B" font-size="9.5">返回当前可用余额</text>
+<polygon points="972,527 1042,552 972,577 902,552" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="972" y="556" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">余额充足?</text>
+<rect x="1054" y="539" width="110" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1109" y="556" text-anchor="middle" fill="#1E293B" font-size="9.5">打款单置失败</text>
+<rect x="1228" y="594" width="240" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1348" y="614" text-anchor="middle" fill="#1E293B" font-size="9.5">创建打款流水并提交打款指令</text>
+<rect x="1193" y="646" width="310" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1348" y="666" text-anchor="middle" fill="#1E293B" font-size="9.5">按打款方式执行出款（Zelle / PayPal / Venmo / RTP）</text>
+<rect x="882" y="698" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="972" y="718" text-anchor="middle" fill="#1E293B" font-size="9.5">异步回调打款结果</text>
+<polygon points="972,749 1052,774 972,799 892,774" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="972" y="778" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">摩根返回成功?</text>
+<rect x="1064" y="761" width="120" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1124" y="778" text-anchor="middle" fill="#1E293B" font-size="9.5">转 ② 失败处理</text>
+<rect x="263" y="816" width="270" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="398" y="836" text-anchor="middle" fill="#1E293B" font-size="9.5">打款单置成功，回写流水与到账时间</text>
+<rect x="353" y="867" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="398" y="884" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">卖家账户到账</text>
+<rect x="338" y="1187" width="120" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="398" y="1204" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">运营处理失败打款单</text>
+<rect x="308" y="1232" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="398" y="1252" text-anchor="middle" fill="#1E293B" font-size="9.5">查看失败原因分类</text>
+<polygon points="398,1283 493,1308 398,1333 303,1308" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="398" y="1312" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">失败原因属于哪一类?</text>
+<rect x="73" y="1350" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="163" y="1370" text-anchor="middle" fill="#1E293B" font-size="9.5">等财务线下补充资金</text>
+<rect x="308" y="1350" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="398" y="1370" text-anchor="middle" fill="#1E293B" font-size="9.5">无需改单，直接重发</text>
+<rect x="518" y="1350" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="618" y="1370" text-anchor="middle" fill="#1E293B" font-size="9.5">线下联系卖家改收款方式</text>
+<rect x="513" y="1398" width="210" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="618" y="1418" text-anchor="middle" fill="#1E293B" font-size="9.5">更新收款信息，单据转待打款</text>
+<rect x="273" y="1462" width="250" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="398" y="1482" text-anchor="middle" fill="#1E293B" font-size="9.5">原单重发，生成新一条打款流水</text>
+<rect x="338" y="1513" width="121" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="398" y="1530" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">转 ① 重新发起打款</text>
+<rect x="353" y="1753" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="398" y="1770" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">定时任务触发</text>
+<rect x="867" y="1802" width="210" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="972" y="1822" text-anchor="middle" fill="#1E293B" font-size="9.5">请求查询资金账户余额</text>
+<rect x="1243" y="1854" width="210" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1348" y="1874" text-anchor="middle" fill="#1E293B" font-size="9.5">调用摩根余额查询接口</text>
+<rect x="882" y="1906" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="972" y="1926" text-anchor="middle" fill="#1E293B" font-size="9.5">返回当前可用余额</text>
+<rect x="298" y="1958" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="398" y="1978" text-anchor="middle" fill="#1E293B" font-size="9.5">回写余额与同步时间</text>
+<polygon points="398,2009 493,2034 398,2059 303,2034" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="398" y="2038" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">余额低于预警阈值?</text>
+<rect x="505" y="2021" width="130" height="26" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="570" y="2038" text-anchor="middle" fill="#1E293B" font-size="9.5">本轮不告警、结束</text>
+<rect x="268" y="2076" width="260" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="398" y="2096" text-anchor="middle" fill="#1E293B" font-size="9.5">向运营发出资金池余额不足告警</text>
+<rect x="343" y="2127" width="110" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="398" y="2144" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">运营线下补充资金</text>
+<rect x="343" y="2367" width="110" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="398" y="2384" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">日终定时任务触发</text>
+<rect x="862" y="2416" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="972" y="2436" text-anchor="middle" fill="#1E293B" font-size="9.5">请求拉取前一日结算数据</text>
+<rect x="1243" y="2468" width="210" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="1348" y="2488" text-anchor="middle" fill="#1E293B" font-size="9.5">调用摩根结算数据接口</text>
+<rect x="882" y="2520" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="972" y="2540" text-anchor="middle" fill="#1E293B" font-size="9.5">返回逐笔结算记录</text>
+<rect x="817" y="2572" width="310" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="972" y="2592" text-anchor="middle" fill="#1E293B" font-size="9.5">过滤：仅保留出款方向记录，入账记录直接丢弃</text>
+<rect x="243" y="2624" width="310" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="398" y="2644" text-anchor="middle" fill="#1E293B" font-size="9.5">逐笔落库结算记录，按渠道交易号匹配本方流水</text>
+<polygon points="398,2675 493,2700 398,2725 303,2700" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="398" y="2704" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">匹配成功且金额一致?</text>
+<rect x="288" y="2742" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="398" y="2762" text-anchor="middle" fill="#1E293B" font-size="9.5">标记差异类型，进入差错处理</text>
+<rect x="528" y="2742" width="220" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="638" y="2762" text-anchor="middle" fill="#1E293B" font-size="9.5">标记已匹配，流水置为已结算</text>
+<rect x="308" y="2806" width="180" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="398" y="2826" text-anchor="middle" fill="#1E293B" font-size="9.5">运营查看差异清单</text>
+<polygon points="398,2857 488,2882 398,2907 308,2882" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/><text x="398" y="2886" text-anchor="middle" fill="#92400E" font-size="8.5" font-weight="600">差异属于哪一类?</text>
+<rect x="183" y="2924" width="190" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="278" y="2944" text-anchor="middle" fill="#1E293B" font-size="9.5">核实是否漏记或误打</text>
+<rect x="413" y="2924" width="200" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="513" y="2944" text-anchor="middle" fill="#1E293B" font-size="9.5">核对手续费与实付金额</text>
+<rect x="273" y="2988" width="250" height="32" rx="4" fill="#fff" stroke="#475569" stroke-width="1.4"/><text x="398" y="3008" text-anchor="middle" fill="#1E293B" font-size="9.5">记录处理结论，差错状态置已闭环</text>
+<rect x="353" y="3039" width="90" height="26" rx="15" fill="#fff" stroke="#4A6CF7" stroke-width="1.5"/><text x="398" y="3056" text-anchor="middle" fill="#4A6CF7" font-size="10" font-weight="600">对账完成</text>
+<rect x="163" y="910" width="631" height="188" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="478" y="932" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">段① 关键口径</text><text x="478" y="950" text-anchor="middle" fill="#7F1D1D" font-size="9">· 打款方式四选一：zelle / paypal / venmo / rtp。前三种只需邮箱或手机号，rtp 需路由号 + 账号（决策 A1）</text><text x="478" y="966" text-anchor="middle" fill="#7F1D1D" font-size="9">· 录入 rtp 收款信息时，界面按路由号反查开户行名回显给运营确认（表单内字段联动，非独立流程步骤）。RTP 不可撤销，账号填错即追不回</text><text x="478" y="982" text-anchor="middle" fill="#7F1D1D" font-size="9">· 余额校验以摩根实时查询为准，本地 available_balance 仅供展示与预警，不作放行依据</text><text x="478" y="998" text-anchor="middle" fill="#7F1D1D" font-size="9">· 余额不足直接置失败、不排队等补款（决策 A3）</text><text x="478" y="1014" text-anchor="middle" fill="#7F1D1D" font-size="9">· 本流程无人工审核环节（决策 A2）。限额是唯一的事前内控，事后靠操作日志审计</text><text x="478" y="1030" text-anchor="middle" fill="#7F1D1D" font-size="9">· 三道校验按成本排序：格式校验（前端）→ 限额校验（查库）→ 余额校验（调摩根）。限额校验在落库之前，超限的单据不产生记录</text><text x="478" y="1046" text-anchor="middle" fill="#7F1D1D" font-size="9">· zelle 与 rtp 为终局清算、不可撤销，paypal / venmo 到账后亦不可由付款方追回，故打款成功即终态</text><text x="478" y="1062" text-anchor="middle" fill="#7F1D1D" font-size="9">· 录入、提交、发起、重发四个动作均须写资金操作日志（该表交技术侧设计，业务约束见 ER 设计规则）</text>
+<rect x="96" y="1556" width="764" height="108" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="478" y="1578" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">段② 关键口径</text><text x="478" y="1596" text-anchor="middle" fill="#7F1D1D" font-size="9">· 失败分两类处置：可原单重发（余额不足、摩根侧临时故障、超时无回调）；需更换收款方式（收款别名未注册、账户不存在、开户行不支持 RTP）</text><text x="478" y="1612" text-anchor="middle" fill="#7F1D1D" font-size="9">· 重发不产生新打款单，打款单号不变，只新增一条 payout_transaction</text><text x="478" y="1628" text-anchor="middle" fill="#7F1D1D" font-size="9">· 本期不接 ACH 兜底：zelle 未注册 + 钱包未注册 + 开户行不支持 RTP 的卖家，单据挂「待补收款信息」等待，不置失败——款项客观仍然欠付（决策 A1 已接受的代价）</text>
+<rect x="261" y="2170" width="434" height="108" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="478" y="2192" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">段③ 关键口径</text><text x="478" y="2210" text-anchor="middle" fill="#7F1D1D" font-size="9">· 本期充值完全线下处理：不对接摩根充值接口、不建充值单、不做余额台账记账（决策 A13）</text><text x="478" y="2226" text-anchor="middle" fill="#7F1D1D" font-size="9">· 系统对充值的全部参与就是这一段——把余额同步回来、低于阈值时喊人</text><text x="478" y="2242" text-anchor="middle" fill="#7F1D1D" font-size="9">· 预警阈值由运营配置，具体取值在 PRD 阶段确定</text>
+<rect x="113" y="3082" width="731" height="140" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1" opacity="0.7"/><text x="478" y="3104" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="600">段④ 关键口径</text><text x="478" y="3122" text-anchor="middle" fill="#7F1D1D" font-size="9">· 「过滤入账记录」是必须做的一步：充值不入系统（决策 A13），摩根日终数据里的入账记录在本方必然无对应流水，若参与比对会每充值一次就产生一条固定噪音差异</text><text x="478" y="3138" text-anchor="middle" fill="#7F1D1D" font-size="9">· 对账匹配键是 channel_transaction_id（与订单支付同一字段，决策 A12 三处同构）</text><text x="478" y="3154" text-anchor="middle" fill="#7F1D1D" font-size="9">· 对账状态枚举沿用订单支付：待结算 / 已结算，不另立一套</text><text x="478" y="3170" text-anchor="middle" fill="#7F1D1D" font-size="9">· 拉回的结算记录**全量落库**、用 match_status 标记匹配结果，不是只存差异——否则审计不出「摩根说这一天有几笔」</text><text x="478" y="3186" text-anchor="middle" fill="#7F1D1D" font-size="9">· 「摩根侧有、我方无」的记录只存在于 payout_settlement_record，本方流水中无对应行</text>
+<rect x="0" y="3280" width="1508" height="60" fill="#fff" stroke="#E2E8F0" stroke-width="1"/>
+<text x="20" y="3305" fill="#1E293B" font-size="12" font-weight="600">图例：</text>
+<rect x="75" y="3293" width="50" height="20" rx="10" fill="#fff" stroke="#64748B" stroke-width="1.2"/>
+<text x="100" y="3307" text-anchor="middle" fill="#64748B" font-size="8">开始/结束</text>
+<rect x="140" y="3293" width="50" height="20" rx="3" fill="#fff" stroke="#475569" stroke-width="1.2"/>
+<text x="165" y="3307" text-anchor="middle" fill="#475569" font-size="8">操作步骤</text>
+<polygon points="225,3293 240,3303 225,3313 210,3303" fill="#FEF3C7" stroke="#D97706" stroke-width="1.2"/>
+<text x="225" y="3307" text-anchor="middle" fill="#92400E" font-size="7">判断</text>
+<line x1="260" y1="3303" x2="310" y2="3303" stroke="#475569" stroke-width="1.3" marker-end="url(#arr)"/>
+<text x="285" y="3298" text-anchor="middle" fill="#475569" font-size="8">正常流向</text>
+<line x1="330" y1="3303" x2="380" y2="3303" stroke="#DC2626" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr-r)"/>
+<text x="355" y="3298" text-anchor="middle" fill="#DC2626" font-size="8">异常/回退</text>
+<rect x="420" y="3295" width="12" height="12" rx="2" fill="#4A6CF7" opacity="0.3"/>
+<text x="438" y="3306" fill="#4A6CF7" font-size="9">支付打款系统（业务服务 + 运营后台）</text>
+<rect x="617" y="3295" width="12" height="12" rx="2" fill="#F59E0B" opacity="0.3"/>
+<text x="635" y="3306" fill="#F59E0B" font-size="9">Payment Service（统一渠道适配层）</text>
+<rect x="814" y="3295" width="12" height="12" rx="2" fill="#EF4444" opacity="0.3"/>
+<text x="832" y="3306" fill="#EF4444" font-size="9">摩根 Global Payments</text>
+</svg>

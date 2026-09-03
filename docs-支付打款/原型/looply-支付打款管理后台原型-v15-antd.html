@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>looply · 支付打款管理后台原型 v15</title>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/dayjs@1.11.21/dayjs.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/antd@6.4.3/dist/antd.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/@ant-design/icons@6.2.1/dist/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.28.4/babel.min.js"></script>
+<style>
+html,body,#root{height:100%;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937}
+#root::before{content:'正在加载 antd 原型……';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#9CA3AF;font-size:14px}
+#root:not(:empty)::before{display:none}
+.lp-kpi{background:linear-gradient(180deg,#FEFCFF 0%,#F3EEFF 100%);border:1px solid #DDD6FE;border-radius:14px;padding:14px 16px}
+.lp-kpi .num{font-size:24px;font-weight:700;color:#7C3AED;line-height:1;margin-bottom:6px;font-variant-numeric:tabular-nums}
+.lp-kpi .label{font-size:12px;color:#6B7280}
+.lp-pagination{display:flex;align-items:center;justify-content:center;gap:24px;padding:12px 16px;font-size:13px;color:#6B7280}
+.lp-pagination .divider{width:1px;height:20px;background:#E5E7EB}
+.lp-tip-trigger{cursor:help;border-bottom:1px dashed #9CA3AF;padding-bottom:1px}
+.lp-note{padding:14px;border-radius:10px;background:#F3EEFF;border:1px solid #DDD6FE;color:#6D28D9;font-size:12px;line-height:1.8}
+.lp-note-sm{padding:10px 14px;background:#F3EEFF;border:1px solid #DDD6FE;border-radius:8px;font-size:12px;color:#6D28D9}
+.lp-section-purple{font-size:14px;font-weight:700;color:#7C3AED;margin:0 0 12px}
+.lp-section{font-size:15px;font-weight:600;color:#1F2937;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #E5E7EB}
+.lp-oplog-title{font-size:14px;font-weight:700;color:#7C3AED;margin:24px 0 12px}
+/* ===== 移动端发起打款（终端识别后渲染，与 PC 共用同一套登录鉴权）===== */
+.lp-mb{width:375px;margin:0 auto;background:#fff;min-height:640px;display:flex;flex-direction:column;
+  box-shadow:0 10px 40px rgba(16,24,40,.14);border-radius:20px;overflow:hidden}
+.lp-mb-hd{height:52px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid #F3F4F6;flex-shrink:0}
+.lp-mb-hd .t{font-size:16px;font-weight:600}
+.lp-mb-bd{flex:1;overflow-y:auto;padding:16px}
+.lp-mb-ft{padding:12px 16px;border-top:1px solid #F3F4F6;flex-shrink:0}
+.lp-mb-lab{font-size:13px;color:#374151;font-weight:500;margin:16px 0 6px}
+.lp-mb-lab .req{color:#DC2626;margin-right:3px}
+.lp-mb-help{font-size:12px;color:#9CA3AF;margin-top:6px;line-height:1.5}
+.lp-mb-err{font-size:12px;color:#DC2626;margin-top:6px;line-height:1.5}
+.lp-mb-bal{font-size:12px;color:#6B7280;margin-top:6px}
+.lp-mb-cf .row{display:flex;align-items:baseline;gap:10px;padding:11px 0;border-bottom:1px solid #F3F4F6}
+.lp-mb-cf .k{width:72px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0}
+.lp-mb-cf .v{font-size:15px;color:#1F2937;word-break:break-all}
+.lp-mb-cf .amt{font-size:30px;font-weight:700;color:#7C3AED;line-height:1.1}
+/* ===== 小屏适配：Sider 收起后内容占满，手机框还原为全宽页面 ===== */
+.lp-content{padding:28px}
+.lp-burger{display:none}
+@media (max-width:768px){
+  .lp-content{padding:12px}
+  .lp-burger{display:inline-flex!important}
+  .lp-hd-pc{display:none!important}
+  /* 手机框在真机上不再是"预览框"，直接铺满 */
+  .lp-mb{width:100%;min-height:auto;box-shadow:none;border-radius:12px}
+  .lp-kpi{padding:12px}
+  .lp-kpi .num{font-size:20px}
+}
+.lp-empty{display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center}
+.lp-empty .icon{font-size:48px;margin-bottom:16px;color:#9CA3AF}
+.lp-empty .icon.err{color:#DC2626}
+.lp-empty .title{font-size:16px;font-weight:600;color:#1F2937;margin-bottom:8px}
+.lp-empty .desc{font-size:13px;color:#6B7280;margin-bottom:24px;max-width:360px}
+.lp-form-row{display:flex;gap:16px;margin-bottom:12px;align-items:center}
+.lp-form-row:first-of-type{margin-top:8px}
+.lp-form-row .lp-form-label{width:96px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0}
+.lp-form-row .lp-form-label .req{color:#DC2626;margin-right:4px}
+.lp-form-row .lp-form-control{flex:1}
+.lp-helper{font-size:12px;color:#9CA3AF;margin:-4px 0 12px 112px}
+.lp-code{font-family:Menlo,Monaco,Consolas,monospace;font-size:12px;color:#374151;background:#F3F4F6;padding:1px 6px;border-radius:4px}
+.lp-module{margin-bottom:24px}
+.lp-module:last-child{margin-bottom:0}
+.lp-module>.lp-detail:last-child,.lp-module>div:last-child>.lp-detail{margin-bottom:0}
+.lp-nodata{font-size:13px;color:#9CA3AF;padding:2px 0 10px}
+.lp-subtitle{position:relative;font-size:13px;font-weight:700;color:#1F2937;margin:22px 0 10px;padding-left:10px}
+.lp-subtitle::before{content:'';position:absolute;left:0;top:2px;bottom:2px;width:3px;border-radius:2px;background:#7C3AED}
+.lp-detail{display:grid;grid-template-columns:120px 1fr;gap:10px 16px;font-size:13px;margin-bottom:20px;align-content:start}
+.lp-detail .dl{color:#6B7280;text-align:right}
+.lp-detail .dv{color:#1F2937}
+.lp-detail.lp-flow-row>.dv{padding-right:20px}
+.lp-card{border:1px solid #E5E7EB;border-radius:14px;overflow:hidden;margin-bottom:24px}
+.lp-card:last-child{margin-bottom:0}
+.lp-card-head{padding:14px 20px;background:#FAFAFA;border-bottom:1px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.lp-card-head .main{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:14px;font-weight:600;color:#1F2937;flex-shrink:0}
+.lp-card-head .side{font-size:13px;color:#6B7280;text-align:right;min-width:0}
+.lp-card-part{padding:16px 20px;border-bottom:1px solid #F3F4F6}
+.lp-card-part:last-child{border-bottom:none}
+.lp-card-label{font-size:12px;color:#9CA3AF;margin-bottom:12px}
+:focus-visible{outline:none;box-shadow:inset 0 0 0 2px rgba(124,58,237,.4)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo } = React;
+const { ConfigProvider, Layout, Menu, Breadcrumb, Card, Table, Button, Space, Input, Select,
+        InputNumber, DatePicker, Tag, Tooltip, Modal, Alert, Dropdown, Timeline, Radio, Checkbox,
+        App: AntApp } = antd;
+const { SearchOutlined, ReloadOutlined, PlusOutlined, DownloadOutlined, EllipsisOutlined,
+        InboxOutlined, ExclamationCircleOutlined, WalletOutlined, TransactionOutlined,
+        AuditOutlined, SafetyCertificateOutlined, EyeOutlined, BankOutlined,
+        DollarOutlined, WarningOutlined, SyncOutlined, SendOutlined, MobileOutlined,
+        DesktopOutlined, MenuFoldOutlined, MenuUnfoldOutlined } = icons;
+
+const LOGO_SRC = "data:image/png;base64,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";
+
+/* ============ 主题 ============ */
+const looplyTheme = {
+  token: {
+    colorPrimary:'#7C3AED', colorInfo:'#7C3AED', colorBgLayout:'#F9FAFB', colorBgContainer:'#FFFFFF',
+    colorText:'#1F2937', colorTextSecondary:'#374151', colorTextTertiary:'#4B5563',
+    colorTextDescription:'#6B7280', colorTextPlaceholder:'#9CA3AF',
+    colorBorder:'#E5E7EB', colorBorderSecondary:'#F3F4F6',
+    colorSuccess:'#16A34A', colorWarning:'#D97706', colorError:'#DC2626',
+    borderRadius:8, borderRadiusLG:14, borderRadiusSM:6,
+    fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize:14, controlHeight:34, controlHeightSM:28,
+  },
+  components: {
+    Layout:{ headerBg:'#FFFFFF', headerHeight:60, headerPadding:'0 24px', siderBg:'#FFFFFF', bodyBg:'#F9FAFB' },
+    Menu:{ itemBg:'transparent', subMenuItemBg:'transparent', itemHoverBg:'rgba(0,0,0,.03)',
+           itemSelectedBg:'#F3EEFF', itemSelectedColor:'#7C3AED', itemBorderRadius:0,
+           itemMarginInline:0, itemMarginBlock:0, itemHeight:40, subMenuItemBorderRadius:0 },
+    Card:{ borderRadiusLG:16, paddingLG:28 },
+    Table:{ headerBg:'#FFFFFF', headerColor:'#6B7280', rowHoverBg:'#FAF5FF', borderColor:'#E5E7EB',
+            headerSplitColor:'transparent', cellFontSize:13, cellFontSizeMD:13, cellFontSizeSM:13,
+            cellPaddingBlock:11, cellPaddingInline:12, cellPaddingBlockMD:11, cellPaddingInlineMD:12,
+            cellPaddingBlockSM:9, cellPaddingInlineSM:12, headerBorderRadius:0 },
+    Tag:{ defaultBg:'#F3F4F6', defaultColor:'#6B7280' },
+    Tabs:{ itemSelectedColor:'#7C3AED', itemHoverColor:'#374151', inkBarColor:'#7C3AED' },
+    Steps:{ colorPrimary:'#7C3AED' },
+    Button:{ controlHeight:34, paddingInline:14, fontSize:13 },
+    Input:{ controlHeight:34, paddingInline:12 },
+    Select:{ controlHeight:34 }, DatePicker:{ controlHeight:34 },
+    Modal:{ borderRadiusLG:16, paddingContentHorizontalLG:28 },
+  },
+};
+const CARD_STYLE = { boxShadow:'0 10px 24px rgba(16,24,40,.06)', marginBottom:20 };
+const TABLE_STYLES = { root:{ borderRadius:14, border:'1px solid #E5E7EB', overflow:'hidden' } };
+const SIDER_STYLE = { boxShadow:'3px 0 12px rgba(0,0,0,0.06)', padding:'8px 0', overflowY:'auto', height:'100%' };
+
+/* 标签列宽常量：一个场景一个（rules.md A.21-5） */
+const DETAIL_LABEL_W = 116;   // 详情页 1~2 栏 / 整行（最长标签「出款资金账户」6 字 ×13px + 余量）
+const MODAL_LABEL_W  = 112;   // 弹窗内只读区
+const CARD_LABEL_W   = 96;    // 详情页边框卡分区内（.lp-card-part 左内边距 20，116-20=96，与卡外标签同一条竖线）
+const EXPAND_LABEL_W = 120;   // 列表页展开行内的只读区（最长标签「摩根渠道交易号」7 字 ×13px ≈ 91 + 余量）
+
+/* ============ 业务组件 ============ */
+const TAG_COLORS = {
+  on:{bg:'#F0FDF4',color:'#16A34A'}, sale:{bg:'#EFF6FF',color:'#2563EB'},
+  pending:{bg:'#FFFBEB',color:'#D97706'}, off:{bg:'#F3F4F6',color:'#6B7280'},
+  req:{bg:'#FEF2F2',color:'#DC2626'}, warn:{bg:'#FFF1F2',color:'#E11D48'},
+};
+function StatusTag({ variant, children }) {
+  const c = TAG_COLORS[variant] || TAG_COLORS.off;
+  return <Tag bordered={false} style={{ background:c.bg, color:c.color, borderRadius:999,
+    padding:'2px 8px', fontSize:12, lineHeight:'18px', marginInlineEnd:4 }}>{children}</Tag>;
+}
+function TipText({ label, tip }) {
+  return <Tooltip title={<div style={{ whiteSpace:'pre-line', lineHeight:1.6 }}>{tip}</div>} color="#fff"
+    styles={{ body:{ color:'#374151', fontSize:12, padding:'10px 14px' } }}>
+    <span className="lp-tip-trigger">{label}</span></Tooltip>;
+}
+function Kpi({ num, label, numStyle }) {
+  return <div className="lp-kpi"><div className="label" style={{ marginBottom:6 }}>{label}</div>
+    <div className="num" style={numStyle}>{num}</div></div>;
+}
+function CompactPagination({ total, current=1, pageSize=10 }) {
+  const tp = Math.ceil(total / pageSize) || 1;
+  const pages = [{ k:'prev', label:'<', disabled:current===1, arrow:true }];
+  if (tp <= 6) { for (let i=1;i<=tp;i++) pages.push({ k:i, label:i }); }
+  else { pages.push({k:1,label:1},{k:2,label:2},{k:3,label:3},{k:'gap',label:'…',disabled:true},{k:tp,label:tp}); }
+  pages.push({ k:'next', label:'>', disabled:current===tp, arrow:true });
+  return <div className="lp-pagination">
+    <span>共 {total.toLocaleString()} 条，每页{' '}
+      <Select size="small" value={pageSize} style={{ width:72, marginInline:4 }}
+        options={[{value:10,label:10},{value:20,label:20},{value:50,label:50}]} />{' '}条</span>
+    <div className="divider" />
+    <Space size={2}>{pages.map(p => <span key={p.k} style={{
+      minWidth:32, height:32, display:'inline-flex', alignItems:'center', justifyContent:'center',
+      borderRadius:8, fontSize:13, cursor:p.disabled?'default':'pointer',
+      background:p.k===current?'#7C3AED':(p.arrow?'#fff':'transparent'),
+      color:p.k===current?'#fff':'#374151', border:p.arrow?'1px solid #E5E7EB':'none',
+      fontWeight:p.k===current?600:400, opacity:p.disabled?0.35:1 }}>{p.label}</span>)}</Space>
+    <div className="divider" /><span>第 {current}/{tp} 页</span></div>;
+}
+function EmptyZero({ entity, cta, onCta }) {
+  return <div className="lp-empty"><InboxOutlined className="icon" />
+    <div className="title">暂无{entity}</div><div className="desc">点击下方按钮创建第一个{entity}</div>
+    {cta && <Button type="primary" onClick={onCta}>{cta}</Button>}</div>;
+}
+function EmptyNoMatch({ onClear }) {
+  return <div className="lp-empty"><SearchOutlined className="icon" />
+    <div className="title">未找到匹配结果</div><div className="desc">请尝试调整搜索关键词或筛选条件</div>
+    <Button onClick={onClear}>清除筛选条件</Button></div>;
+}
+function EmptyError({ onRetry }) {
+  return <div className="lp-empty"><ExclamationCircleOutlined className="icon err" />
+    <div className="title">加载失败</div><div className="desc">网络异常，请检查网络连接后重试</div>
+    <Button type="primary" onClick={onRetry}>重试</Button></div>;
+}
+function EmptyStateSwitcher({ mode, setMode }) {
+  return <div style={{ marginTop:12, display:'flex', gap:8, justifyContent:'center' }}>
+    {[['data','正常数据'],['zero','零数据态'],['no-match','无匹配态'],['error','异常态']].map(([k,l]) =>
+      <Button key={k} type={mode===k?'primary':'default'} onClick={() => setMode(k)}>{l}</Button>)}</div>;
+}
+function FormRow({ label, required, children, helper }) {
+  return <><div className="lp-form-row">
+    <div className="lp-form-label">{required && <span className="req">*</span>}{label}</div>
+    <div className="lp-form-control">{children}</div></div>
+    {helper && <div className="lp-helper">{helper}</div>}</>;
+}
+function DetailGrid({ rows, cols, labelWidth, flow, groups }) {
+  const list = (rows || []).filter(Boolean);
+  const n = groups ? groups.length : (cols || 1);
+  const lw = (labelWidth || (n === 1 ? 132 : 104)) + 'px 1fr';
+  const cell = (x, i) => <React.Fragment key={x.rk || i}>
+    <div className="dl">{x.k}</div><div className="dv">{x.v}</div></React.Fragment>;
+  if (!groups && n === 1) return <div className="lp-detail" style={{ gridTemplateColumns:lw }}>{list.map(cell)}</div>;
+  if (!groups && flow === 'row') return <div className="lp-detail lp-flow-row"
+    style={{ gridTemplateColumns:(labelWidth||104)+'px 1fr '+((labelWidth||104)+'px 1fr ').repeat(n-1) }}>
+    {list.map(cell)}</div>;
+  let cg;
+  if (groups) { cg = groups.map(g => (g || []).filter(Boolean)); }
+  else { const per = Math.ceil(list.length / n); cg = []; for (let i=0;i<n;i++) cg.push(list.slice(i*per,(i+1)*per)); }
+  return <div style={{ display:'grid', gridTemplateColumns:'repeat('+n+',1fr)', gap:0 }}>
+    {cg.map((g, gi) => <div className="lp-detail" key={'g'+gi}
+      style={{ gridTemplateColumns:lw, paddingRight: gi < n-1 ? 20 : 0 }}>{g.map(cell)}</div>)}</div>;
+}
+const DEFAULT_OPLOG = [
+  { i:1, at:'2026-09-02 14:22', who:'Zhang Wei', type:'发起打款', detail:'向摩根提交打款指令，流水号 PT20260902001' },
+  { i:2, at:'2026-09-02 14:21', who:'Zhang Wei', type:'创建', detail:'录入打款单，金额 $1,850.00，打款方式 Zelle' },
+];
+function OpLog({ types, data }) {
+  const { message } = AntApp.useApp();
+  const d = data || DEFAULT_OPLOG;
+  return <><div className="lp-oplog-title">操作记录</div>
+    <Space size={8} wrap style={{ marginBottom:12 }}>
+      <Select size="small" defaultValue="" style={{ width:150 }} options={[{ value:'', label:'全部操作类型' },
+        ...(types || ['创建','发起打款','重发打款','更新收款信息','查看收款明文']).map(x => ({ value:x, label:x }))]} />
+      <Select size="small" defaultValue="" style={{ width:130 }} options={[{ value:'', label:'全部操作人' },
+        { value:'a', label:'Zhang Wei' }, { value:'b', label:'Li Na' }]} />
+      <DatePicker.RangePicker size="small" placeholder={['开始日期','结束日期']} />
+      <Button size="small" icon={<SearchOutlined />} onClick={() => message.info('已按条件筛选操作记录')}>查询</Button>
+    </Space>
+    <Table size="small" rowKey="i" pagination={false} styles={TABLE_STYLES} columns={[
+      { title:'操作时间', dataIndex:'at', width:150 },
+      { title:'操作人', dataIndex:'who', width:100 },
+      { title:'操作类型', dataIndex:'type', width:130,
+        render:v => <StatusTag variant={v==='创建'?'on':(v.indexOf('明文')>=0?'warn':'pending')}>{v}</StatusTag> },
+      { title:'操作内容', dataIndex:'detail' },
+    ]} dataSource={d} />
+    <CompactPagination total={d.length} pageSize={10} /></>;
+}
+function ListPage({ title, desc, headActions, kpis, filters, columns, data, total,
+                    entity, createKey, go, scrollX, expandable, bordered }) {
+  const [mode, setMode] = useState('data');
+  return <Card style={CARD_STYLE}>
+    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:16, marginBottom:18 }}>
+      <div><div style={{ fontSize:20, fontWeight:700, marginBottom:6 }}>{title}</div>
+        {desc && <div style={{ color:'#6B7280', fontSize:13 }}>{desc}</div>}</div>
+      <div>{headActions}</div></div>
+    {kpis && <div style={{ display:'grid', gridTemplateColumns:`repeat(${kpis.length},1fr)`, gap:12, marginBottom:18 }}>
+      {kpis.map((k,i) => <Kpi key={i} num={k.num} label={k.label} numStyle={k.numStyle} />)}</div>}
+    {filters && <Space size={12} wrap style={{ marginBottom:16 }}>{filters}</Space>}
+    {mode === 'data' && <><Table rowKey={r => r.id || r.no || r.key} columns={columns} dataSource={data}
+      pagination={false} styles={TABLE_STYLES} scroll={scrollX ? { x:scrollX } : undefined}
+      expandable={expandable} bordered={bordered} />
+      <CompactPagination total={total || data.length} pageSize={10} /></>}
+    {mode==='zero' && <EmptyZero entity={entity} cta={createKey?('新增'+entity):null} onCta={createKey?(()=>go(createKey)):null} />}
+    {mode==='no-match' && <EmptyNoMatch onClear={() => setMode('data')} />}
+    {mode==='error' && <EmptyError onRetry={() => setMode('data')} />}
+    <EmptyStateSwitcher mode={mode} setMode={setMode} />
+  </Card>;
+}
+/* ============ 数据层 ============ */
+const PAYOUT_STATUS = {
+  pending:    { label:'待打款',       variant:'pending' },
+  processing: { label:'打款中',       variant:'sale' },
+  succeeded:  { label:'打款成功',     variant:'on' },
+  failed:     { label:'打款失败',     variant:'req' },
+  awaiting:   { label:'待补收款信息', variant:'warn' },
+};
+const PAYOUT_METHOD = { zelle:'Zelle', paypal:'PayPal', venmo:'Venmo', rtp:'RTP 银行账户' };
+/* 出款渠道：本期仅摩根，后续新增渠道在此扩展即可，列表与筛选自动跟随 */
+const PAYOUT_CHANNEL = { jpmorgan:'J.P. Morgan' };
+const TXN_STATUS = { processing:{label:'打款中',variant:'sale'}, succeeded:{label:'成功',variant:'on'}, failed:{label:'失败',variant:'req'} };
+/* 对账状态统一用 RECON_RESULT（定义见对账页）——出款场景没有「结算」这一资金动作，
+   曾用的「待结算/已结算」是从订单支付（收款）照搬的旧口径，已随 ER v1.2 废弃 */
+/* 「开户行不支持 RTP」已在录入时由可达性校验拦掉（A15），不再作为打款失败原因。
+   「余额不足」语义收窄为并发场景：提交时校验通过，校验到发起之间余额被其他打款占用（A14）。 */
+const FAIL_REASON = {
+  insufficient_balance: { label:'摩根返回余额不足（并发占用）', kind:'resend' },
+  channel_timeout:      { label:'摩根侧超时无回调',           kind:'resend' },
+  channel_error:        { label:'摩根侧临时故障',             kind:'resend' },
+  payee_unregistered:   { label:'收款别名未注册',             kind:'repayee' },
+  account_not_found:    { label:'银行账户不存在',             kind:'repayee' },
+};
+const FUNDING_ACCOUNT = {
+  no:'JPM-DDA-8842019', name:'Looply US Payout Account', channel:'jpmorgan', currency:'USD',
+  balance:128450.00, syncedAt:'2026-09-02 15:40:12', threshold:50000.00, status:'active',
+};
+const PAYOUTS = [
+  { no:'PO2026090201', payeeName:'Sarah Chen',   method:'zelle',  masked:'s***@gmail.com',   amount:1850.00, status:'succeeded',
+    createdAt:'2026-09-02 14:21', operator:'Zhang Wei', paidAt:'2026-09-02 14:22', remark:'上门回收 · Chanel 经典口盖包 · 线下协议号 RC-20260902-018' },
+  { no:'PO2026090202', payeeName:'Michael Ross', method:'venmo',  masked:'(415) ***-8823',   amount:3200.00, status:'processing',
+    createdAt:'2026-09-02 15:08', operator:'Zhang Wei', paidAt:'', remark:'上门回收 · Rolex Datejust 36 · 线下协议号 RC-20260902-021' },
+  { no:'PO2026090203', payeeName:'Emily Watson', method:'rtp',    masked:'****6789',         amount:8500.00, status:'pending',
+    createdAt:'2026-09-02 15:33', operator:'Li Na', paidAt:'', bankName:'JPMorgan Chase Bank, N.A.',
+    remark:'上门回收 · Hermès Birkin 30 · 线下协议号 RC-20260902-024' },
+  { no:'PO2026090204', payeeName:'David Kim',    method:'zelle',  masked:'d***@outlook.com', amount:1200.00, status:'failed',
+    createdAt:'2026-09-02 11:05', operator:'Zhang Wei', paidAt:'', remark:'上门回收 · Gucci Marmont 链条包 · 线下协议号 RC-20260902-009' },
+  { no:'PO2026090205', payeeName:'Jessica Liu',  method:'zelle',  masked:'j***@yahoo.com',   amount:950.00,  status:'awaiting',
+    createdAt:'2026-09-02 10:47', operator:'Li Na', paidAt:'', remark:'上门回收 · Coach Tabby 26 · 线下协议号 RC-20260902-006' },
+  { no:'PO2026090106', payeeName:'Robert Zhang', method:'paypal', masked:'r***@gmail.com',   amount:4600.00, status:'succeeded',
+    createdAt:'2026-09-01 16:12', operator:'Zhang Wei', paidAt:'2026-09-01 17:30', remark:'上门回收 · Omega Speedmaster · 线下协议号 RC-20260901-031' },
+];
+const TXN_MAP = {
+  PO2026090201: [{ txnNo:'PT2026090201A', channelTxnId:'JPM-ZL-8f21c904', amount:1850.00, fee:0.85, netAmount:1850.00,
+    status:'succeeded', reconStatus:'reconciled', createdAt:'2026-09-02 14:22:03', paidAt:'2026-09-02 14:22:09' }],
+  PO2026090202: [{ txnNo:'PT2026090202A', channelTxnId:'JPM-PW-3a77e211', amount:3200.00, fee:1.20, netAmount:3200.00,
+    status:'processing', reconStatus:'unreconciled', createdAt:'2026-09-02 15:08:41', paidAt:'' }],
+  PO2026090203: [],
+  PO2026090204: [{ txnNo:'PT2026090204A', channelTxnId:'', amount:1200.00, fee:0, netAmount:0,
+    status:'failed', failureReason:'insufficient_balance', reconStatus:'unreconciled', createdAt:'2026-09-02 11:05:52', paidAt:'' }],
+  PO2026090205: [{ txnNo:'PT2026090205A', channelTxnId:'JPM-ZL-1c40b7d5', amount:950.00, fee:0, netAmount:0,
+    status:'failed', failureReason:'payee_unregistered', reconStatus:'unreconciled', createdAt:'2026-09-02 10:47:20', paidAt:'' }],
+  PO2026090106: [
+    { txnNo:'PT2026090106A', channelTxnId:'JPM-PW-9b02f731', amount:4600.00, fee:0, netAmount:0,
+      status:'failed', failureReason:'channel_timeout', reconStatus:'unreconciled', createdAt:'2026-09-01 16:13:07', paidAt:'' },
+    { txnNo:'PT2026090106B', channelTxnId:'JPM-PW-9b02f899', amount:4600.00, fee:1.70, netAmount:4600.00,
+      status:'succeeded', reconStatus:'reconciled', createdAt:'2026-09-01 17:29:44', paidAt:'2026-09-01 17:30:02' },
+  ],
+};
+const OPLOG_MAP = {
+  PO2026090106: [
+    { i:1, at:'2026-09-01 17:29', who:'Zhang Wei', type:'重发打款', detail:'原单重发，生成流水 PT2026090106B' },
+    { i:2, at:'2026-09-01 16:13', who:'System',   type:'发起打款', detail:'向摩根提交打款指令，流水 PT2026090106A' },
+    { i:3, at:'2026-09-01 16:12', who:'Zhang Wei', type:'创建',     detail:'录入打款单，金额 $4,600.00，打款方式 PayPal' },
+  ],
+  PO2026090205: [
+    { i:1, at:'2026-09-02 10:48', who:'System',   type:'发起打款', detail:'摩根返回失败：收款别名未注册 Zelle' },
+    { i:2, at:'2026-09-02 10:47', who:'Li Na', type:'创建',     detail:'录入打款单，金额 $950.00，打款方式 Zelle' },
+  ],
+};
+const money = v => '$' + Number(v).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
+
+/* ============ 打款单列表 ============ */
+function PayoutListPage({ go, onResend, onRepayee }) {
+  const { message } = AntApp.useApp();
+  const [exportOpen, setExportOpen] = useState(false);
+  const columns = [
+    { title:'打款单号', dataIndex:'no', width:140, render:(v,r) =>
+      <Button type="link" size="small" style={{ padding:0, height:'auto' }}
+        onClick={() => go('payout-detail', r.no)}>{v}</Button> },
+    { title:'收款人', dataIndex:'payeeName', width:120 },
+    { title:'打款方式', dataIndex:'method', width:110, render:v => PAYOUT_METHOD[v] },
+    { title:'收款账号', dataIndex:'masked', width:150, render:v => <span className="lp-code">{v}</span> },
+    { title:'打款金额', dataIndex:'amount', width:120, align:'right', render:v => money(v) },
+    { title:'状态', dataIndex:'status', width:110, render:v =>
+      <StatusTag variant={PAYOUT_STATUS[v].variant}>{PAYOUT_STATUS[v].label}</StatusTag> },
+    { title:'创建', dataIndex:'createdAt', width:150, render:(v, r) =>
+      <div><div>{v}</div><div style={{ color:'#6B7280', fontSize:12 }}>{r.operator}</div></div> },
+    { title:'操作', key:'op', width:150, fixed:'right', render:(_, r) => {
+      const ops = [{ key:'detail', label:'详情', onClick:() => go('payout-detail', r.no) }];
+      if (r.status === 'failed')   ops.push({ key:'resend',  label:'重发',       onClick:() => onResend(r) });
+      if (r.status === 'awaiting') ops.push({ key:'repayee', label:'更新收款信息', onClick:() => onRepayee(r) });
+      return <Space size={6}>{ops.map(o =>
+        <Button key={o.key} size="small" onClick={o.onClick}>{o.label}</Button>)}</Space>;
+    } },
+  ];
+  return <><ListPage title="打款单管理"
+    desc="向 C 端个人回收卖家出款。本期打款单由运营手工录入，无上游回收系统对接。"
+    headActions={<Space>
+      <Button icon={<DownloadOutlined />} onClick={() => setExportOpen(true)}>导出</Button>
+      <Button type="primary" icon={<PlusOutlined />} onClick={() => go('payout-create')}>新建打款单</Button>
+    </Space>}
+    filters={<>
+      <Input placeholder="打款单号 / 收款人" prefix={<SearchOutlined />} allowClear style={{ width:220 }} />
+      <Select placeholder="打款方式" allowClear style={{ width:150 }}
+        options={Object.keys(PAYOUT_METHOD).map(k => ({ value:k, label:PAYOUT_METHOD[k] }))} />
+      <Select placeholder="状态" allowClear style={{ width:150 }}
+        options={Object.keys(PAYOUT_STATUS).map(k => ({ value:k, label:PAYOUT_STATUS[k].label }))} />
+      <DatePicker.RangePicker placeholder={['开始日期','结束日期']} />
+      <Button type="primary" icon={<SearchOutlined />} onClick={() => message.info('已按条件查询')}>查询</Button>
+      <Button icon={<ReloadOutlined />} onClick={() => message.info('筛选条件已重置')}>重置</Button>
+    </>}
+    columns={columns} data={PAYOUTS} entity="打款单" createKey="payout-create" go={go}
+    scrollX="max-content" />
+    <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} scene="打款单" total={PAYOUTS.length} />
+  </>;
+}
+
+/* ============ 新建打款单 ============ */
+/* 三道校验全部在落库之前（决策 A14）：收款信息校验 → 限额校验 → 余额校验。
+   任一不通过都不创建打款单——将来有回收单后，欠款凭证是回收单，打款单只是执行凭证。 */
+const RTP_UNREACHABLE_PREFIX = '124';   // 演示用：以 124 开头的路由号模拟未接入 RTP
+function PayoutCreatePage({ go }) {
+  const { message } = AntApp.useApp();
+  const [method, setMethod] = useState('zelle');
+  const [amount, setAmount] = useState(null);
+  const [routing, setRouting] = useState('');
+  const [payeeName, setPayeeName] = useState('');
+  const [account, setAccount] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const isRtp = method === 'rtp';
+  const bal = FUNDING_ACCOUNT.balance;
+  const overBalance = amount != null && amount > bal;
+  const rtpChecked = isRtp && routing.length === 9;
+  const rtpOk = rtpChecked && routing.indexOf(RTP_UNREACHABLE_PREFIX) !== 0;
+  const blocked = overBalance || (isRtp && rtpChecked && !rtpOk);
+  return <Card style={CARD_STYLE}>
+    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:16, marginBottom:18 }}>
+      <div><div style={{ fontSize:20, fontWeight:700, marginBottom:6 }}>新建打款单</div>
+        <div style={{ color:'#6B7280', fontSize:13 }}>录入线下回收协议约定的应付金额与卖家收款信息</div></div>
+      <Button onClick={() => go('payout-list')}>返回列表</Button>
+    </div>
+    <Alert type="warning" showIcon style={{ marginBottom:20 }}
+      message="提交即向摩根发起打款，无人工审核环节"
+      description="Zelle 与 RTP 为终局清算、不可撤销，PayPal / Venmo 到账后亦不可由付款方追回。请核对收款账号与金额后再提交。" />
+    <div className="lp-module">
+      <h4 className="lp-section">收款人信息</h4>
+      <FormRow label="收款人姓名" required><Input placeholder="与收款账户实名一致，如 Sarah Chen"
+        value={payeeName} onChange={e => setPayeeName(e.target.value)} style={{ maxWidth:360 }} /></FormRow>
+      <FormRow label="打款方式" required>
+        <Radio.Group value={method} onChange={e => setMethod(e.target.value)} optionType="button" buttonStyle="solid"
+          options={Object.keys(PAYOUT_METHOD).map(k => ({ value:k, label:PAYOUT_METHOD[k] }))} />
+      </FormRow>
+      {!isRtp && <FormRow label="收款别名" required
+        helper={method === 'zelle' ? '卖家在 Zelle 注册时使用的邮箱或手机号' : '卖家 ' + PAYOUT_METHOD[method] + ' 账户绑定的邮箱或手机号'}>
+        <Input placeholder="邮箱或手机号，如 sarah@gmail.com" value={account}
+          onChange={e => setAccount(e.target.value)} style={{ maxWidth:360 }} /></FormRow>}
+      {isRtp && <>
+        <FormRow label="路由号" required helper="支票底部左起 9 位；注意区分 ACH 与电汇路由号">
+          <Input placeholder="9 位数字，如 021000021" maxLength={9} value={routing}
+            onChange={e => setRouting(e.target.value.replace(/[^0-9]/g, ''))} style={{ maxWidth:360 }} /></FormRow>
+        {rtpChecked && (rtpOk
+          ? <div className="lp-helper" style={{ color:'#16A34A' }}>JPMorgan Chase Bank, N.A. · 已接入 RTP</div>
+          : <div className="lp-helper" style={{ color:'#DC2626' }}>该开户行未接入 RTP，请让卖家改用 Zelle / PayPal / Venmo</div>)}
+        <FormRow label="银行账号" required><Input placeholder="8 至 17 位数字" value={account}
+          onChange={e => setAccount(e.target.value)} style={{ maxWidth:360 }} /></FormRow>
+      </>}
+    </div>
+    <div className="lp-module">
+      <h4 className="lp-section">打款信息</h4>
+      <FormRow label="打款金额" required>
+        <Space size={12}><InputNumber prefix="$" min={0.01} precision={2} placeholder="0.00" value={amount}
+          onChange={v => setAmount(v)} style={{ width:240 }} />
+          <span style={{ fontSize:13, color:'#6B7280' }}>资金池可用余额 {money(bal)}</span></Space></FormRow>
+      {overBalance && <div className="lp-helper" style={{ color:'#DC2626' }}>
+        超出可用余额，补充资金后再录入</div>}
+      <FormRow label="出款账户">
+        <Input value={FUNDING_ACCOUNT.name + '（' + FUNDING_ACCOUNT.no + '）'} disabled style={{ maxWidth:360 }} /></FormRow>
+      <FormRow label="业务备注">
+        <Input.TextArea rows={3} placeholder="回收物品、线下协议号等" style={{ maxWidth:520 }} /></FormRow>
+    </div>
+    <div style={{ display:'flex', justifyContent:'flex-end', gap:12, padding:'16px 0', borderTop:'1px solid #E5E7EB', marginTop:8 }}>
+      <Button onClick={() => go('payout-list')}>取消</Button>
+      <Button type="primary" disabled={blocked}
+        onClick={() => setConfirmOpen(true)}>提交并发起打款</Button>
+    </div>
+    <PayoutConfirmModal open={confirmOpen} onClose={() => setConfirmOpen(false)}
+      onConfirm={() => { setConfirmOpen(false); message.success('打款单已创建并向摩根发起'); go('payout-list'); }}
+      data={{ payeeName, method, amount,
+              account: isRtp ? (routing ? routing + ' / ' + account : account) : account,
+              bankName: isRtp && rtpOk ? 'JPMorgan Chase Bank, N.A.' : '' }} />
+  </Card>;
+}
+
+/* ============ 打款单详情 ============ */
+function PayoutDetailPage({ go, record, onResend = () => {}, onRepayee = () => {}, onViewPlain = () => {} }) {
+  const r = record || PAYOUTS[0];
+  const txns = TXN_MAP[r.no] || [];
+  const st = PAYOUT_STATUS[r.status];
+
+  /* 栏1：这单是什么、给谁（运营录入）  栏2：时间线（系统生成） */
+  const colWhat = [
+    { rk:'payee',  k:'收款人',       v:r.payeeName },
+    { rk:'method', k:'打款方式',     v:PAYOUT_METHOD[r.method] },
+    { rk:'amount', k:'打款金额',     v:<span style={{ fontSize:16, fontWeight:700, color:'#7C3AED' }}>{money(r.amount)}</span> },
+    { rk:'acct',   k:'出款资金账户', v:<span className="lp-code">{FUNDING_ACCOUNT.no}</span> },
+  ];
+  const colTime = [
+    { rk:'created', k:'创建时间', v:r.createdAt },
+    { rk:'oper',    k:'录入人',   v:r.operator },
+    r.paidAt ? { rk:'paid', k:'打款成功时间', v:r.paidAt } : null,
+  ].filter(Boolean);
+
+  return <Card style={CARD_STYLE}>
+    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:16, marginBottom:22 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+        <span style={{ fontSize:20, fontWeight:700 }}>{r.no}</span>
+        <StatusTag variant={st.variant}>{st.label}</StatusTag>
+      </div>
+      <Space>
+        {r.status === 'failed'   && <Button type="primary" onClick={() => onResend(r)}>重发打款</Button>}
+        {r.status === 'awaiting' && <Button type="primary" onClick={() => onRepayee(r)}>更新收款信息</Button>}
+        <Button onClick={() => go && go('payout-list')}>返回列表</Button>
+      </Space>
+    </div>
+
+    <div className="lp-module">
+      <h4 className="lp-section">基本信息</h4>
+      <DetailGrid groups={[colWhat, colTime]} labelWidth={DETAIL_LABEL_W} />
+      <DetailGrid labelWidth={DETAIL_LABEL_W} rows={[{ rk:'remark', k:'业务备注', v:r.remark }]} />
+    </div>
+
+    <div className="lp-module">
+      <h4 className="lp-section">收款信息</h4>
+      <DetailGrid labelWidth={DETAIL_LABEL_W} rows={[
+        { rk:'masked', k:'收款账号', v:<Space size={10}>
+            <span className="lp-code">{r.masked}</span>
+            <Button size="small" icon={<EyeOutlined />} onClick={() => onViewPlain(r)}>查看明文</Button>
+          </Space> },
+        r.bankName ? { rk:'bank', k:'开户行', v:r.bankName } : null,
+      ]} />
+    </div>
+
+    <div className="lp-module">
+      <h4 className="lp-section">打款流水</h4>
+      {txns.length === 0
+        ? <div className="lp-nodata">尚未向摩根发起打款，暂无流水</div>
+        : txns.map(t => {
+            const ts = TXN_STATUS[t.status];
+            const fr = t.failureReason ? FAIL_REASON[t.failureReason] : null;
+            return <div className="lp-card" key={t.txnNo}>
+              <div className="lp-card-head">
+                <div className="main"><span className="lp-code">{t.txnNo}</span>
+                  <StatusTag variant={ts.variant}>{ts.label}</StatusTag></div>
+                <div className="side">{t.channelTxnId
+                  ? <>摩根渠道交易号 <span className="lp-code">{t.channelTxnId}</span></>
+                  : '未生成摩根渠道交易号'}</div>
+              </div>
+              <div className="lp-card-part">
+                <div className="lp-card-label">执行信息</div>
+                <DetailGrid labelWidth={CARD_LABEL_W} groups={[
+                  [{ rk:'c', k:'发起时间', v:t.createdAt },
+                   { rk:'p', k:'到账时间', v:t.paidAt || '—' }],
+                  [{ rk:'f', k:'渠道手续费', v:t.fee ? money(t.fee) : '—' },
+                   { rk:'n', k:'实际出账', v:t.netAmount ? money(t.netAmount) : '—' }],
+                  [{ rk:'rs', k:'对账状态', v:<StatusTag variant={RECON_RESULT[t.reconStatus].variant}>
+                      {RECON_RESULT[t.reconStatus].label}</StatusTag> }],
+                ]} />
+              </div>
+              {fr && <div className="lp-card-part">
+                <div className="lp-card-label">失败原因</div>
+                <DetailGrid labelWidth={CARD_LABEL_W} rows={[
+                  { rk:'fr', k:'摩根返回', v:fr.label },
+                  { rk:'fk', k:'处置方式', v:fr.kind === 'resend'
+                      ? '可原单重发：排除原因后在本单直接重发，打款单号不变'
+                      : '需更换收款方式：线下联系卖家后更新收款信息，单据回到待打款' },
+                  { rk:'fn', k:'当前可用余额', v:fr.kind === 'resend' && t.failureReason === 'insufficient_balance'
+                      ? money(FUNDING_ACCOUNT.balance) : undefined },
+                ]} />
+              </div>}
+            </div>;
+          })}
+    </div>
+
+    <OpLog data={OPLOG_MAP[r.no]} />
+  </Card>;
+}
+
+/* ============ 资金账户与余额 ============ */
+const ALERT_CONFIG = {
+  channel:'feishu', groupName:'looply 资金告警群',
+  webhook:'https://open.feishu.cn/open-apis/bot/v2/hook/****a3f9',
+  frequency:'每 30 分钟最多一次', receivers:'业务负责人、财务',
+};
+function FundingAccountPage() {
+  const { message } = AntApp.useApp();
+  const [alertOpen, setAlertOpen] = useState(false);
+  const a = FUNDING_ACCOUNT;
+  const low = a.balance < a.threshold;
+  return <Card style={CARD_STYLE}>
+    <div style={{ marginBottom:22 }}>
+      <div style={{ fontSize:20, fontWeight:700, marginBottom:6 }}>资金账户与余额</div>
+      <div style={{ color:'#6B7280', fontSize:13 }}>本期充值由财务线下完成，系统只做余额监控与阈值告警</div>
+    </div>
+    <div className="lp-module">
+      <h4 className="lp-section">余额监控</h4>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12, marginBottom:18 }}>
+        <Kpi label="当前可用余额" num={money(a.balance)} numStyle={low ? { color:'#DC2626' } : null} />
+        <Kpi label="预警阈值" num={money(a.threshold)} />
+        <Kpi label="今日已出款" num={money(5050.00)} />
+      </div>
+      <DetailGrid labelWidth={DETAIL_LABEL_W} groups={[
+        [{ rk:'sync', k:'余额同步时间', v:<Space size={10}>{a.syncedAt}
+            <Button size="small" icon={<SyncOutlined />}
+              onClick={() => message.success('已向摩根重新拉取余额')}>立即同步</Button></Space> }],
+        [{ rk:'today', k:'今日打款笔数', v:'2 笔' }],
+      ]} />
+    </div>
+    <div className="lp-module">
+      <h4 className="lp-section">告警通知</h4>
+      <DetailGrid labelWidth={DETAIL_LABEL_W} groups={[
+        [{ rk:'th', k:'预警阈值', v:money(a.threshold) },
+         { rk:'ch', k:'通知渠道', v:'飞书群机器人' },
+         { rk:'gp', k:'接收群', v:ALERT_CONFIG.groupName }],
+        [{ rk:'fq', k:'告警频率', v:ALERT_CONFIG.frequency },
+         { rk:'rc', k:'知会范围', v:ALERT_CONFIG.receivers },
+         { rk:'ed', k:'', v:<Button size="small" onClick={() => setAlertOpen(true)}>修改告警配置</Button> }],
+      ]} />
+    </div>
+    <div className="lp-module">
+      <h4 className="lp-section">账户信息</h4>
+      <DetailGrid labelWidth={DETAIL_LABEL_W} groups={[
+        [{ rk:'no', k:'账户编号', v:<span className="lp-code">{a.no}</span> },
+         { rk:'nm', k:'账户名称', v:a.name }],
+        [{ rk:'ch2', k:'所属渠道', v:'J.P. Morgan Global Payments' },
+         { rk:'cu', k:'币种', v:'USD' },
+         { rk:'st', k:'账户状态', v:<StatusTag variant="on">启用</StatusTag> }],
+      ]} />
+    </div>
+    <AlertConfigModal open={alertOpen} onClose={() => setAlertOpen(false)} />
+  </Card>;
+}
+
+/* ============ 对账与差错 ============ */
+/* ⚠️ 出款场景没有「结算状态」，只有「对账状态」——这一点与订单支付（收款）不同：
+   收款：买家付钱 → 渠道代收 → 渠道 T+N 结算给商户，「结算」是真实的资金动作，所以订单对账页有结算状态；
+   出款：钱从 looply 自己的摩根账户直接出去，不存在「渠道结算给我们」这一步，摩根给的是账户账单而非结算。
+   若强行保留，它会与对账状态说同一件事（摩根账单里有没有这笔），恒等冗余。 */
+const RECON_RESULT = { unreconciled:{label:'未对账',variant:'pending'}, reconciled:{label:'已对账',variant:'on'},
+                       diff:{label:'有差异',variant:'req'} };
+/* date = 打款日期，即创建打款单的日期（我方数据）；渠道单边账我方无此笔，故为空。
+   对账两侧都要有数：ourAmount/ourFee 来自 payout_transaction，channelAmount/channelFee 来自摩根结算数据。
+   isOrphan = 渠道单边账：摩根账单有这笔出款、我方无对应流水。
+   ⚠️ 「孤儿打款」不是行业术语（订单支付侧的「孤儿扣款」是自造词），中文支付对账的标准说法是
+   长款 / 短款 / 单边账，此处用「渠道单边账」。 */
+const SETTLEMENTS = [
+  { id:'S001', date:'2026-09-01', channel:'jpmorgan', payoutNo:'PO2026090106', txnNo:'PT2026090106B', channelTxnId:'JPM-PW-9b02f899',
+    ourAmount:4600.00, channelAmount:4600.00, ourFee:1.70, channelFee:1.70, reconStatus:'reconciled', reconciledAt:'2026-09-02 02:15', isOrphan:false },
+  { id:'S002', date:'', channel:'jpmorgan', payoutNo:'', txnNo:'', channelTxnId:'JPM-ZL-7d11a002',
+    ourAmount:null, channelAmount:2100.00, ourFee:null, channelFee:0.85, reconStatus:'diff', reconciledAt:'2026-09-02 02:15', isOrphan:true },
+  { id:'S003', date:'2026-09-01', channel:'jpmorgan', payoutNo:'PO2026083101', txnNo:'PT2026083101A', channelTxnId:'JPM-ZL-5e88c410',
+    ourAmount:1850.00, channelAmount:1855.00, ourFee:0.85, channelFee:0.85, reconStatus:'diff', reconciledAt:'2026-09-02 02:15', isOrphan:false },
+  { id:'S004', date:'2026-08-31', channel:'jpmorgan', payoutNo:'PO2026083102', txnNo:'PT2026083102A', channelTxnId:'JPM-RTP-2f90d115',
+    ourAmount:7300.00, channelAmount:7300.00, ourFee:2.40, channelFee:2.40, reconStatus:'reconciled', reconciledAt:'2026-09-01 02:15', isOrphan:false },
+  { id:'S005', date:'2026-08-31', channel:'jpmorgan', payoutNo:'PO2026083103', txnNo:'PT2026083103A', channelTxnId:'JPM-PW-4a22b708',
+    ourAmount:980.00, channelAmount:980.00, ourFee:0.40, channelFee:0.55, reconStatus:'diff', reconciledAt:'2026-09-01 02:15', isOrphan:false },
+  { id:'S006', date:'2026-09-02', channel:'jpmorgan', payoutNo:'PO2026090201', txnNo:'PT2026090201A', channelTxnId:'JPM-ZL-8f21c904',
+    ourAmount:1850.00, channelAmount:null, ourFee:null, channelFee:null, reconStatus:'unreconciled', reconciledAt:'', isOrphan:false },
+];
+/* 两侧数值比对：不一致标红。null（我方无此笔）不参与比对，显示 — */
+function CmpCell({ mine, theirs, isMine }) {
+  const v = isMine ? mine : theirs;
+  if (v == null) return <span style={{ color:'#9CA3AF' }}>—</span>;
+  const diff = mine != null && theirs != null && mine !== theirs;
+  return <span style={diff ? { color:'#DC2626', fontWeight:600 } : null}>{money(v)}</span>;
+}
+function ReconciliationPage({ go }) {
+  const { message } = AntApp.useApp();
+  const [exportOpen, setExportOpen] = useState(false);
+  const [pullOpen, setPullOpen] = useState(false);
+  const [orphanOnly, setOrphanOnly] = useState(false);
+  const data = orphanOnly ? SETTLEMENTS.filter(r => r.isOrphan) : SETTLEMENTS;
+  const columns = [
+    /* 打款日期 = 创建打款单的日期（我方数据）。渠道单边账我方无此笔，故无打款日期 */
+    { title:'打款日期', dataIndex:'date', width:100,
+      render:v => v || <span style={{ color:'#9CA3AF' }}>—</span> },
+    { title:'打款单号', dataIndex:'payoutNo', width:128, render:v => v
+      ? <Button type="link" size="small" style={{ padding:0, height:'auto' }}
+          onClick={() => go('payout-detail', v)}>{v}</Button>
+      : <span style={{ color:'#9CA3AF' }}>—</span> },
+    { title:'渠道', dataIndex:'channel', width:104, render:v => PAYOUT_CHANNEL[v] || v },
+    { title:'打款流水号', dataIndex:'txnNo', width:136, render:v => v
+      ? <span className="lp-code">{v}</span> : <span style={{ color:'#9CA3AF' }}>—</span> },
+    /* 渠道交易号与打款流水号是 1:1（它就是 payout_transaction 上的一个字段），
+       没有明细可展开，因此直接放主表，不做展开行 */
+    { title:'渠道交易号', dataIndex:'channelTxnId', width:150, render:v => <span className="lp-code">{v}</span> },
+    { title:<span className="lp-tip-trigger">出款对比</span>, children:[
+      { title:'系统', dataIndex:'ourAmount', width:96,
+        render:(v, r) => <CmpCell mine={r.ourAmount} theirs={r.channelAmount} isMine={true} /> },
+      { title:'渠道', dataIndex:'channelAmount', width:96,
+        render:(v, r) => <CmpCell mine={r.ourAmount} theirs={r.channelAmount} isMine={false} /> },
+    ]},
+    { title:<span className="lp-tip-trigger">手续费对比</span>, children:[
+      { title:'系统', dataIndex:'ourFee', width:84,
+        render:(v, r) => <CmpCell mine={r.ourFee} theirs={r.channelFee} isMine={true} /> },
+      { title:'渠道', dataIndex:'channelFee', width:84,
+        render:(v, r) => <CmpCell mine={r.ourFee} theirs={r.channelFee} isMine={false} /> },
+    ]},
+    { title:'对账时间', dataIndex:'reconciledAt', width:148,
+      render:v => v || <span style={{ color:'#9CA3AF' }}>—</span> },
+    { title:'对账状态', dataIndex:'reconStatus', width:112, fixed:'right', render:v =>
+      <StatusTag variant={RECON_RESULT[v].variant}>{RECON_RESULT[v].label}</StatusTag> },
+  ];
+  const kpis = [
+    { num:SETTLEMENTS.length, label:'结算记录总数' },
+    { num:SETTLEMENTS.filter(r => r.reconStatus === 'unreconciled').length, label:'未对账' },
+    { num:SETTLEMENTS.filter(r => r.reconStatus === 'reconciled').length, label:'已对账' },
+    { num:SETTLEMENTS.filter(r => r.reconStatus === 'diff').length, label:'有差异', numStyle:{ color:'#DC2626' } },
+  ];
+  return <><ListPage title="打款对账"
+    desc="每日拉取摩根结算数据，按渠道交易号与打款流水逐笔比对收款与手续费"
+    headActions={<Space>
+      <Button icon={<DownloadOutlined />} onClick={() => setExportOpen(true)}>导出</Button>
+      <Button type="primary" icon={<SyncOutlined />} onClick={() => setPullOpen(true)}>拉取结算数据</Button>
+    </Space>}
+    kpis={kpis}
+    filters={<>
+      <Input placeholder="打款单号 / 打款流水号" prefix={<SearchOutlined />} allowClear style={{ width:220 }} />
+      <Input placeholder="摩根渠道交易号" prefix={<SearchOutlined />} allowClear style={{ width:200 }} />
+      <Select placeholder="渠道" allowClear style={{ width:150 }}
+        options={Object.keys(PAYOUT_CHANNEL).map(k => ({ value:k, label:PAYOUT_CHANNEL[k] }))} />
+      <Select placeholder="对账状态" allowClear style={{ width:140 }}
+        options={Object.keys(RECON_RESULT).map(k => ({ value:k, label:RECON_RESULT[k].label }))} />
+      <Checkbox checked={orphanOnly} onChange={e => setOrphanOnly(e.target.checked)}>仅看渠道单边账</Checkbox>
+      <DatePicker.RangePicker placeholder={['开始日期','结束日期']} />
+      <Button type="primary" icon={<SearchOutlined />} onClick={() => message.info('已按条件查询')}>查询</Button>
+      <Button icon={<ReloadOutlined />} onClick={() => { setOrphanOnly(false); message.info('筛选条件已重置'); }}>重置</Button>
+    </>}
+    columns={columns} data={data} entity="结算记录" go={go} scrollX="max-content"
+    bordered />
+    <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} scene="对账数据" total={data.length} />
+    <PullSettlementModal open={pullOpen} onClose={() => setPullOpen(false)} />
+  </>;
+}
+
+/* ============ 限额配置 ============ */
+const LIMIT_TYPE = { single:'单笔上限', daily_total:'单日累计上限', daily_operator:'单操作人单日上限' };
+/* 本期限额一律全局生效，不按打款方式区分（2026-09-02 用户定） */
+const LIMITS = [
+  { id:'L1', type:'single',         amount:20000.00,  status:'on',  operator:'Li Na',    updatedAt:'2026-08-20 10:12' },
+  { id:'L2', type:'daily_total',    amount:200000.00, status:'on',  operator:'Li Na',    updatedAt:'2026-08-20 10:14' },
+  { id:'L3', type:'daily_operator', amount:80000.00,  status:'on',  operator:'Li Na',    updatedAt:'2026-08-20 10:15' },
+  { id:'L4', type:'single',         amount:50000.00,  status:'off', operator:'Zhang Wei', updatedAt:'2026-08-25 16:40' },
+];
+function LimitConfigPage({ onEdit }) {
+  const { message } = AntApp.useApp();
+  const [toggleRow, setToggleRow] = useState(null);
+  const columns = [
+    { title:'限额类型', dataIndex:'type', width:200, render:v => LIMIT_TYPE[v] },
+    { title:'限额金额', dataIndex:'amount', width:160, align:'right', render:v => money(v) },
+    { title:'状态', dataIndex:'status', width:100, render:v =>
+      <StatusTag variant={v === 'on' ? 'on' : 'off'}>{v === 'on' ? '启用' : '停用'}</StatusTag> },
+    { title:'最后修改人', dataIndex:'operator', width:110 },
+    { title:'最后修改时间', dataIndex:'updatedAt', width:150 },
+    { title:'操作', key:'op', width:150, render:(_, r) => <Space size={6}>
+      <Button size="small" onClick={() => onEdit(r)}>编辑</Button>
+      <Button size="small" danger={r.status === 'on'}
+        onClick={() => setToggleRow(r)}>{r.status === 'on' ? '停用' : '启用'}</Button>
+    </Space> },
+  ];
+  return <><ListPage title="限额配置"
+    desc="打款单提交时逐条校验所有启用中的限额规则，任一不通过即拦截"
+    headActions={<Button type="primary" icon={<PlusOutlined />} onClick={() => onEdit(null)}>新建限额规则</Button>}
+    filters={<>
+      <Select placeholder="限额类型" allowClear style={{ width:180 }}
+        options={Object.keys(LIMIT_TYPE).map(k => ({ value:k, label:LIMIT_TYPE[k] }))} />
+      <Select placeholder="状态" allowClear style={{ width:130 }}
+        options={[{ value:'on', label:'启用' }, { value:'off', label:'停用' }]} />
+      <Button type="primary" icon={<SearchOutlined />} onClick={() => message.info('已按条件查询')}>查询</Button>
+      <Button icon={<ReloadOutlined />} onClick={() => message.info('筛选条件已重置')}>重置</Button>
+    </>}
+    columns={columns} data={LIMITS} entity="限额规则" go={() => {}} />
+    <LimitToggleModal key={'lt' + (toggleRow ? toggleRow.id : '')} open={!!toggleRow}
+      row={toggleRow} onClose={() => setToggleRow(null)} />
+  </>;
+}
+
+/* ============ 共享弹窗（列表页与详情页共用同一实现，A.19） ============ */
+function ResendModal({ open, onClose, row }) {
+  if (!row) return null;
+  const txns = TXN_MAP[row.no] || [];
+  const last = txns[txns.length - 1];
+  const fr = last && last.failureReason ? FAIL_REASON[last.failureReason] : null;
+  const insufficient = last && last.failureReason === 'insufficient_balance';
+  return <Modal title="重发打款" open={open} onCancel={onClose} closable={false} maskClosable={false}
+    centered={true} width={560} footer={[
+      <Button key="c" onClick={onClose}>取消</Button>,
+      <Button key="s" type="primary" danger onClick={onClose}>确认重发</Button>,
+    ]}>
+    <Alert type="warning" showIcon style={{ marginBottom:16 }}
+      message="重发即再次向摩根发起打款，到账后不可撤销" />
+    <DetailGrid labelWidth={MODAL_LABEL_W} rows={[
+      { rk:'no',  k:'打款单号',   v:<span className="lp-code">{row.no}</span> },
+      { rk:'pe',  k:'收款人',     v:row.payeeName },
+      { rk:'ma',  k:'收款账号',   v:<span className="lp-code">{row.masked}</span> },
+      { rk:'am',  k:'打款金额',   v:money(row.amount) },
+      { rk:'fr',  k:'上次失败原因', v:fr ? fr.label : '—' },
+    ]} />
+    {insufficient && <div className="lp-note-sm" style={{ marginBottom:12 }}>
+      当前资金池余额 {money(FUNDING_ACCOUNT.balance)}，本单金额 {money(row.amount)}
+    </div>}
+    <FormRow label="重发原因" required>
+      <Input.TextArea rows={2} placeholder="如：已线下补充资金 / 摩根侧故障已恢复" /></FormRow>
+  </Modal>;
+}
+function RepayeeModal({ open, onClose, row }) {
+  const [method, setMethod] = useState(row ? row.method : 'zelle');
+  if (!row) return null;
+  const isRtp = method === 'rtp';
+  const txns = TXN_MAP[row.no] || [];
+  const last = txns[txns.length - 1];
+  const fr = last && last.failureReason ? FAIL_REASON[last.failureReason] : null;
+  return <Modal title="更新收款信息" open={open} onCancel={onClose} closable={false} maskClosable={false}
+    centered={true} width={600} footer={[
+      <Button key="c" onClick={onClose}>取消</Button>,
+      <Button key="s" type="primary" onClick={onClose}>保存并重新发起</Button>,
+    ]}>
+    <DetailGrid labelWidth={MODAL_LABEL_W} rows={[
+      { rk:'no', k:'打款单号', v:<span className="lp-code">{row.no}</span> },
+      { rk:'pe', k:'收款人',   v:row.payeeName },
+      { rk:'am', k:'打款金额', v:money(row.amount) },
+      { rk:'fr', k:'失败原因', v:fr ? fr.label : '—' },
+    ]} />
+    <div style={{ borderTop:'1px solid #E5E7EB', margin:'4px 0 16px' }} />
+    <FormRow label="打款方式" required>
+      <Radio.Group value={method} onChange={e => setMethod(e.target.value)} optionType="button" buttonStyle="solid"
+        options={Object.keys(PAYOUT_METHOD).map(k => ({ value:k, label:PAYOUT_METHOD[k] }))} />
+    </FormRow>
+    {!isRtp && <FormRow label="收款别名" required helper="卖家在该渠道注册时使用的邮箱或手机号">
+      <Input placeholder="邮箱或手机号" /></FormRow>}
+    {isRtp && <>
+      <FormRow label="路由号" required helper="支票底部左起 9 位；注意区分 ACH 与电汇路由号">
+        <Input placeholder="9 位数字" maxLength={9} /></FormRow>
+      <FormRow label="开户行"><Input placeholder="按路由号自动带出" disabled /></FormRow>
+      <FormRow label="银行账号" required><Input placeholder="8 至 17 位数字" /></FormRow>
+    </>}
+  </Modal>;
+}
+function ViewPlainModal({ open, onClose, row }) {
+  if (!row) return null;
+  return <Modal title="查看收款明文" open={open} onCancel={onClose} closable={false} maskClosable={false}
+    centered={true} width={520} footer={[<Button key="c" onClick={onClose}>关闭</Button>]}>
+    <Alert type="warning" showIcon style={{ marginBottom:16 }} message="本次查看将记入资金操作日志" />
+    <DetailGrid labelWidth={MODAL_LABEL_W} rows={[
+      { rk:'pe', k:'收款人',   v:row.payeeName },
+      { rk:'mt', k:'打款方式', v:PAYOUT_METHOD[row.method] },
+      { rk:'pl', k:'收款账号', v:<span className="lp-code" style={{ fontSize:14 }}>
+          {row.method === 'rtp' ? '021000021 / 000123456789' : 'sarah.chen@gmail.com'}</span> },
+      row.bankName ? { rk:'bk', k:'开户行', v:row.bankName } : null,
+    ]} />
+  </Modal>;
+}
+/* ---- 导出弹窗（打款单列表与对账页共用，A.19） ---- */
+function ExportModal({ open, onClose, scene, total }) {
+  const { message } = AntApp.useApp();
+  return <Modal title={'导出' + scene} open={open} onCancel={onClose} closable={false}
+    maskClosable={false} centered={true} width={520} footer={[
+      <Button key="c" onClick={onClose}>取消</Button>,
+      <Button key="s" type="primary" onClick={() => { onClose(); message.success('导出任务已创建，完成后可在浏览器下载'); }}>导出</Button>,
+    ]}>
+    <FormRow label="导出范围" required>
+      <Radio.Group defaultValue="filtered" options={[
+        { value:'filtered', label:'当前筛选结果（' + total + ' 条）' },
+        { value:'all', label:'全部数据' }]} /></FormRow>
+    <FormRow label="时间范围"><DatePicker.RangePicker placeholder={['开始日期','结束日期']} style={{ width:280 }} /></FormRow>
+    <FormRow label="文件格式" required>
+      <Radio.Group defaultValue="xlsx" options={[{ value:'xlsx', label:'Excel (.xlsx)' }, { value:'csv', label:'CSV (.csv)' }]} /></FormRow>
+  </Modal>;
+}
+/* ---- 拉取摩根结算数据 ---- */
+function PullSettlementModal({ open, onClose }) {
+  const { message } = AntApp.useApp();
+  return <Modal title="拉取结算数据" open={open} onCancel={onClose} closable={false}
+    maskClosable={false} centered={true} width={520} footer={[
+      <Button key="c" onClick={onClose}>取消</Button>,
+      <Button key="s" type="primary" onClick={() => { onClose(); message.success('已发起拉取，匹配完成后刷新列表'); }}>开始拉取</Button>,
+    ]}>
+    <FormRow label="渠道"><Input value="J.P. Morgan Global Payments" disabled /></FormRow>
+    <FormRow label="结算日期" required helper="系统每日自动拉取前一日数据，此处用于补拉历史或重试失败">
+      <DatePicker.RangePicker placeholder={['开始日期','结束日期']} style={{ width:280 }} /></FormRow>
+  </Modal>;
+}
+/* ---- 告警通知配置 ---- */
+function AlertConfigModal({ open, onClose }) {
+  const { message } = AntApp.useApp();
+  return <Modal title="修改告警配置" open={open} onCancel={onClose} closable={false}
+    maskClosable={false} centered={true} width={560} footer={[
+      <Button key="c" onClick={onClose}>取消</Button>,
+      <Button key="t" onClick={() => message.success('测试消息已发送到飞书群')}>发送测试消息</Button>,
+      <Button key="s" type="primary" onClick={() => { onClose(); message.success('告警配置已保存'); }}>保存</Button>,
+    ]}>
+    <FormRow label="预警阈值" required helper="可用余额低于该值时触发告警">
+      <InputNumber prefix="$" min={0} precision={2} defaultValue={FUNDING_ACCOUNT.threshold} style={{ width:240 }} /></FormRow>
+    <FormRow label="通知渠道" required>
+      <Select defaultValue="feishu" style={{ width:240 }} options={[{ value:'feishu', label:'飞书群机器人' }]} /></FormRow>
+    <FormRow label="群 Webhook" required>
+      <Input defaultValue={ALERT_CONFIG.webhook} /></FormRow>
+    <FormRow label="告警频率" required helper="同一次余额不足在该周期内只推送一次，避免刷屏">
+      <Select defaultValue="30m" style={{ width:240 }} options={[
+        { value:'realtime', label:'每次触发都推送' }, { value:'30m', label:'每 30 分钟最多一次' },
+        { value:'2h', label:'每 2 小时最多一次' }]} /></FormRow>
+    <FormRow label="知会范围"><Input defaultValue={ALERT_CONFIG.receivers} placeholder="在飞书消息中 @ 的角色" /></FormRow>
+  </Modal>;
+}
+function LimitEditModal({ open, onClose, row }) {
+  return <Modal title={row ? '编辑限额规则' : '新建限额规则'} open={open} onCancel={onClose}
+    closable={false} maskClosable={false} centered={true} width={520} footer={[
+      <Button key="c" onClick={onClose}>取消</Button>,
+      <Button key="s" type="primary" onClick={onClose}>保存</Button>,
+    ]}>
+    <FormRow label="限额类型" required>
+      <Select defaultValue={row ? row.type : undefined} placeholder="请选择" style={{ width:260 }}
+        options={Object.keys(LIMIT_TYPE).map(k => ({ value:k, label:LIMIT_TYPE[k] }))} /></FormRow>
+    <FormRow label="限额金额" required>
+      <InputNumber prefix="$" min={0.01} precision={2} defaultValue={row ? row.amount : undefined}
+        placeholder="0.00" style={{ width:260 }} /></FormRow>
+    <FormRow label="状态" required>
+      <Select defaultValue={row ? row.status : 'on'} style={{ width:200 }}
+        options={[{ value:'on', label:'启用' }, { value:'off', label:'停用' }]} /></FormRow>
+  </Modal>;
+}
+
+/* ---- 提交前二次确认（决策：不设人工审核后的关键防线） ----
+   三条硬性：① 收款账号显示**完整明文**，脱敏了运营就没法核对
+             ② 金额大字号，防多打一位
+             ③ 必须勾选「我已核对」才能提交 */
+function PayoutConfirmModal({ open, onClose, onConfirm, data }) {
+  const [checked, setChecked] = useState(false);
+  if (!data) return null;
+  const line = { display:'flex', alignItems:'baseline', gap:12, padding:'10px 0',
+                 borderBottom:'1px solid #F3F4F6', fontSize:14 };
+  const lab = { width:96, textAlign:'right', color:'#6B7280', fontSize:13, flexShrink:0 };
+  return <Modal title="确认打款信息" open={open} onCancel={onClose} closable={false}
+    maskClosable={false} centered={true} width={560} footer={[
+      <Button key="c" onClick={onClose}>返回修改</Button>,
+      <Button key="s" type="primary" danger disabled={!checked}
+        onClick={onConfirm}>确认打款</Button>,
+    ]}>
+    <Alert type="error" showIcon style={{ marginBottom:18 }}
+      message="确认后立即向摩根发起，到账不可撤销" />
+    <div style={line}><span style={lab}>收款人</span>
+      <span style={{ fontSize:16, fontWeight:600 }}>{data.payeeName || '—'}</span></div>
+    <div style={line}><span style={lab}>打款方式</span><span>{PAYOUT_METHOD[data.method]}</span></div>
+    <div style={line}><span style={lab}>收款账号</span>
+      <span className="lp-code" style={{ fontSize:15, padding:'4px 10px' }}>{data.account || '—'}</span></div>
+    {data.bankName && <div style={line}><span style={lab}>开户行</span><span>{data.bankName}</span></div>}
+    <div style={{ ...line, borderBottom:'none', paddingTop:16 }}><span style={lab}>打款金额</span>
+      <span style={{ fontSize:28, fontWeight:700, color:'#7C3AED', lineHeight:1 }}>
+        {data.amount != null ? money(data.amount) : '—'}</span></div>
+    <div style={{ background:'#FAFAFA', border:'1px solid #E5E7EB', borderRadius:10,
+                  padding:'12px 14px', marginTop:8 }}>
+      <Checkbox checked={checked} onChange={e => setChecked(e.target.checked)}>
+        我已与卖家核对收款账号与金额</Checkbox>
+    </div>
+  </Modal>;
+}
+
+/* ---- 限额启用 / 停用确认 ---- */
+function LimitToggleModal({ open, onClose, row }) {
+  const { message } = AntApp.useApp();
+  if (!row) return null;
+  const off = row.status === 'on';
+  return <Modal title={off ? '停用限额规则' : '启用限额规则'} open={open} onCancel={onClose} closable={false}
+    maskClosable={false} centered={true} width={480} footer={[
+      <Button key="c" onClick={onClose}>取消</Button>,
+      <Button key="s" type="primary" danger={off}
+        onClick={() => { onClose(); message.success(off ? '规则已停用' : '规则已启用'); }}>{off ? '确认停用' : '确认启用'}</Button>,
+    ]}>
+    {off && <Alert type="warning" showIcon style={{ marginBottom:16 }}
+      message="停用后该限额不再参与打款单提交校验" />}
+    <DetailGrid labelWidth={MODAL_LABEL_W} rows={[
+      { rk:'t', k:'限额类型', v:LIMIT_TYPE[row.type] },
+      { rk:'a', k:'限额金额', v:money(row.amount) },
+    ]} />
+  </Modal>;
+}
+
+
+/* ============ 移动端 · 发起打款 ============
+   与 PC 共用同一套登录鉴权与权限点，仅按终端渲染不同页面（用户 2026-09-03 拍板）。
+   只承载「新建打款单 + 二次确认」这一条链路——列表、对账、限额在手机上没有使用场景。 */
+function PayoutMobilePage({ go }) {
+  const { message } = AntApp.useApp();
+  const [method, setMethod] = useState('zelle');
+  const [payeeName, setPayeeName] = useState('');
+  const [account, setAccount] = useState('');
+  const [routing, setRouting] = useState('');
+  const [amount, setAmount] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const isRtp = method === 'rtp';
+  const bal = FUNDING_ACCOUNT.balance;
+  const overBalance = amount != null && amount > bal;
+  const rtpChecked = isRtp && routing.length === 9;
+  const rtpOk = rtpChecked && routing.indexOf(RTP_UNREACHABLE_PREFIX) !== 0;
+  const blocked = overBalance || (isRtp && rtpChecked && !rtpOk);
+  return <div className="lp-mb">
+    <div className="lp-mb-hd">
+      <img src={LOGO_SRC} alt="Looply" style={{ height:22, display:'block' }} />
+      <span className="t">发起打款</span>
+    </div>
+    <div className="lp-mb-bd">
+      <Alert type="warning" showIcon style={{ marginBottom:16 }}
+        message="提交即向摩根发起，到账不可撤销" />
+      <div className="lp-mb-lab"><span className="req">*</span>收款人姓名</div>
+      <Input size="large" placeholder="与收款账户实名一致" value={payeeName}
+        onChange={e => setPayeeName(e.target.value)} />
+      <div className="lp-mb-lab"><span className="req">*</span>打款方式</div>
+      <Radio.Group value={method} onChange={e => setMethod(e.target.value)} size="large"
+        optionType="button" buttonStyle="solid" style={{ display:'grid',
+        gridTemplateColumns:'1fr 1fr', gap:8, width:'100%' }}
+        options={Object.keys(PAYOUT_METHOD).map(k => ({ value:k, label:PAYOUT_METHOD[k] }))} />
+      {!isRtp && <>
+        <div className="lp-mb-lab"><span className="req">*</span>收款别名</div>
+        <Input size="large" placeholder="邮箱或手机号" value={account}
+          onChange={e => setAccount(e.target.value)} />
+        <div className="lp-mb-help">卖家在 {PAYOUT_METHOD[method]} 注册时使用的邮箱或手机号</div>
+      </>}
+      {isRtp && <>
+        <div className="lp-mb-lab"><span className="req">*</span>路由号</div>
+        <Input size="large" placeholder="9 位数字" maxLength={9} inputMode="numeric" value={routing}
+          onChange={e => setRouting(e.target.value.replace(/[^0-9]/g, ''))} />
+        {rtpChecked && (rtpOk
+          ? <div className="lp-mb-help" style={{ color:'#16A34A' }}>JPMorgan Chase Bank, N.A. · 已接入 RTP</div>
+          : <div className="lp-mb-err">该开户行未接入 RTP，请让卖家改用 Zelle / PayPal / Venmo</div>)}
+        <div className="lp-mb-lab"><span className="req">*</span>银行账号</div>
+        <Input size="large" placeholder="8 至 17 位数字" inputMode="numeric" value={account}
+          onChange={e => setAccount(e.target.value)} />
+      </>}
+      <div className="lp-mb-lab"><span className="req">*</span>打款金额</div>
+      <InputNumber size="large" prefix="$" min={0.01} precision={2} placeholder="0.00" value={amount}
+        onChange={v => setAmount(v)} inputMode="decimal" style={{ width:'100%' }} />
+      {overBalance
+        ? <div className="lp-mb-err">超出可用余额，补充资金后再录入</div>
+        : <div className="lp-mb-bal">资金池可用余额 {money(bal)}</div>}
+      <div className="lp-mb-lab">业务备注</div>
+      <Input.TextArea rows={3} placeholder="回收物品、线下协议号等" />
+    </div>
+    <div className="lp-mb-ft">
+      <Button type="primary" size="large" block disabled={blocked}
+        onClick={() => setConfirmOpen(true)}>提交并发起打款</Button>
+    </div>
+    <PayoutMobileConfirm open={confirmOpen} onClose={() => setConfirmOpen(false)}
+      onConfirm={() => { setConfirmOpen(false); message.success('打款单已创建并向摩根发起'); }}
+      data={{ payeeName, method, amount,
+              account: isRtp ? (routing ? routing + ' / ' + account : account) : account,
+              bankName: isRtp && rtpOk ? 'JPMorgan Chase Bank, N.A.' : '' }} />
+  </div>;
+}
+/* 移动端二次确认：这一屏要直接转给卖家看，所以账号完整、金额特大 */
+function PayoutMobileConfirm({ open, onClose, onConfirm, data }) {
+  const [checked, setChecked] = useState(false);
+  if (!data) return null;
+  return <Modal title="请卖家核对收款信息" open={open} onCancel={onClose} closable={false}
+    maskClosable={false} centered={true} width={340} footer={[
+      <Button key="c" block size="large" onClick={onClose} style={{ marginBottom:8 }}>返回修改</Button>,
+      <Button key="s" block size="large" type="primary" danger disabled={!checked}
+        onClick={onConfirm} style={{ marginInlineStart:0 }}>确认打款</Button>,
+    ]}>
+    <Alert type="error" showIcon style={{ marginBottom:14 }} message="确认后立即发起，不可撤销" />
+    <div className="lp-mb-cf">
+      <div className="row"><span className="k">收款人</span>
+        <span className="v" style={{ fontWeight:600 }}>{data.payeeName || '—'}</span></div>
+      <div className="row"><span className="k">方式</span>
+        <span className="v">{PAYOUT_METHOD[data.method]}</span></div>
+      <div className="row"><span className="k">收款账号</span>
+        <span className="v lp-code" style={{ fontSize:14 }}>{data.account || '—'}</span></div>
+      {data.bankName && <div className="row"><span className="k">开户行</span>
+        <span className="v" style={{ fontSize:13 }}>{data.bankName}</span></div>}
+      <div className="row" style={{ borderBottom:'none', paddingTop:14 }}><span className="k">金额</span>
+        <span className="amt">{data.amount != null ? money(data.amount) : '—'}</span></div>
+    </div>
+    <div style={{ background:'#FAFAFA', border:'1px solid #E5E7EB', borderRadius:10, padding:'11px 12px' }}>
+      <Checkbox checked={checked} onChange={e => setChecked(e.target.checked)}>
+        卖家已确认账号与金额无误</Checkbox>
+    </div>
+  </Modal>;
+}
+
+/* ============ App ============ */
+const MENU_ITEMS = [
+  { key:'g1', icon:<TransactionOutlined />, label:'支付打款', children:[
+    { key:'payout-send', icon:<SendOutlined />,               label:'发起打款' },
+    { key:'payout-list', icon:<WalletOutlined />,             label:'打款单管理' },
+    { key:'funding',     icon:<BankOutlined />,                label:'资金账户与余额' },
+    { key:'recon',       icon:<AuditOutlined />,               label:'打款对账' },
+    { key:'limit',       icon:<SafetyCertificateOutlined />,   label:'限额配置' },
+  ]},
+];
+const CRUMB = {
+  'payout-send':   ['支付打款','发起打款'],
+  'payout-list':   ['支付打款','打款单管理'],
+  'payout-create': ['支付打款','打款单管理','新建打款单'],
+  'payout-detail': ['支付打款','打款单管理','打款单详情'],
+  'funding':       ['支付打款','资金账户与余额'],
+  'recon':         ['支付打款','打款对账'],
+  'limit':         ['支付打款','限额配置'],
+};
+function App() {
+  const [page, setPage] = useState('payout-list');
+  const [term, setTerm] = useState('mobile');   // 终端：真实环境按 UA/屏宽自动识别，原型提供切换以便评审
+  const [collapsed, setCollapsed] = useState(false);   // 小屏由 Sider 的 breakpoint 自动置 true
+  const isNarrow = typeof window !== 'undefined' && window.innerWidth < 768;
+  const [detailNo, setDetailNo] = useState('');
+  const [resendRow, setResendRow] = useState(null);
+  const [repayeeRow, setRepayeeRow] = useState(null);
+  const [plainRow, setPlainRow] = useState(null);
+  const [limitRow, setLimitRow] = useState(null);
+  const [limitOpen, setLimitOpen] = useState(false);
+  const go = (key, no) => { if (no) setDetailNo(no); setPage(key); };
+  const menuKey = page === 'payout-create' || page === 'payout-detail' ? 'payout-list' : page;
+  return <Layout style={{ height:'100vh' }}>
+    <Layout.Header style={{ display:'flex', alignItems:'center', borderBottom:'1px solid #E5E7EB', gap:16 }}>
+      <Button type="text" className="lp-burger" aria-label="展开收起菜单"
+        icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+        onClick={() => setCollapsed(!collapsed)} style={{ fontSize:16, marginInlineStart:-8 }} />
+      <img src={LOGO_SRC} alt="Looply" style={{ height:32, display:'block' }} />
+      <div className="lp-hd-pc" style={{ width:1, height:24, background:'#E5E7EB' }} />
+      <span className="lp-hd-pc" style={{ fontSize:15, fontWeight:600 }}>支付打款管理后台</span>
+      <div style={{ flex:1 }} />
+      <span className="lp-hd-pc"><Breadcrumb items={(CRUMB[page] || []).map(t => ({ title:t }))} /></span>
+    </Layout.Header>
+    <Layout>
+      <Layout.Sider width={220} style={SIDER_STYLE} trigger={null} collapsible
+        collapsed={collapsed} collapsedWidth={0} breakpoint="md"
+        onBreakpoint={broken => setCollapsed(broken)}>
+        <Menu mode="inline" items={MENU_ITEMS} defaultOpenKeys={['g1']} selectedKeys={[menuKey]}
+          onClick={e => { go(e.key); if (window.innerWidth < 768) setCollapsed(true); }}
+          style={{ borderInlineEnd:'none' }} />
+      </Layout.Sider>
+      <Layout.Content className="lp-content" style={{ overflowY:'auto' }}>
+        {page === 'payout-send' && <>
+          <Card className="lp-hd-pc" style={{ ...CARD_STYLE, marginBottom:16 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+                          gap:16, flexWrap:'wrap' }}>
+              <div><div style={{ fontSize:20, fontWeight:700, marginBottom:6 }}>发起打款</div>
+                <div style={{ color:'#6B7280', fontSize:13 }}>
+                  同一套登录与鉴权，按终端渲染不同页面。上门现场用手机，办公室用电脑。</div></div>
+              <Radio.Group value={term} onChange={e => setTerm(e.target.value)} optionType="button"
+                buttonStyle="solid" options={[
+                  { value:'mobile', label:<span><MobileOutlined /> 移动端</span> },
+                  { value:'pc', label:<span><DesktopOutlined /> 电脑端</span> }]} />
+            </div>
+          </Card>
+          {(term === 'mobile' || isNarrow) ? <PayoutMobilePage go={go} /> : <PayoutCreatePage go={go} />}
+        </>}
+        {page === 'payout-list' && <PayoutListPage go={go} onResend={setResendRow} onRepayee={setRepayeeRow} />}
+        {page === 'payout-create' && <PayoutCreatePage go={go} />}
+        {page === 'payout-detail' && <PayoutDetailPage go={go}
+          record={PAYOUTS.find(x => x.no === detailNo) || PAYOUTS[0]}
+          onResend={setResendRow} onRepayee={setRepayeeRow} onViewPlain={setPlainRow} />}
+        {page === 'funding' && <FundingAccountPage />}
+        {page === 'recon' && <ReconciliationPage go={go} />}
+        {page === 'limit' && <LimitConfigPage onEdit={r => { setLimitRow(r); setLimitOpen(true); }} />}
+      </Layout.Content>
+    </Layout>
+    <ResendModal  key={'rs' + (resendRow  ? resendRow.no  : '')} open={!!resendRow}  row={resendRow}  onClose={() => setResendRow(null)} />
+    <RepayeeModal key={'rp' + (repayeeRow ? repayeeRow.no : '')} open={!!repayeeRow} row={repayeeRow} onClose={() => setRepayeeRow(null)} />
+    <ViewPlainModal open={!!plainRow} row={plainRow} onClose={() => setPlainRow(null)} />
+    <LimitEditModal key={'le' + (limitRow ? limitRow.id : 'new')} open={limitOpen} row={limitRow}
+      onClose={() => { setLimitOpen(false); setLimitRow(null); }} />
+  </Layout>;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <ConfigProvider theme={looplyTheme} button={{ autoInsertSpace:false }}><AntApp><App /></AntApp></ConfigProvider>);
+</script>
+</body>
+</html>

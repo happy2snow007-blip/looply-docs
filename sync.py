@@ -695,6 +695,69 @@ MODULES = {
             },
         },
     },
+    'google_ads': {
+        'name': 'Google广告',
+        'default_source': '$HOME/Desktop/广告投放',
+        'target': 'docs-广告服务/Google广告',
+        'keywords': ['Google广告', '广告服务', 'google_ads'],
+        'config_key': None,
+        'sidebar_group': '广告服务',
+        'sync_prd_only': True,
+        'artifacts': {
+            'prd': {
+                'subdir': 'PRD',
+                'source_subdir': 'PRD',
+                'pattern': r'looply-Google广告投放系统-PRD-v(1\.5)\.md',
+            },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'Google广告-交付开发 V(.+?)\\.zip',
+            },
+        },
+        'static_docs': [
+            {
+                'source_subdir': '/Users/zz/Documents/Codex/2026-07-22/3-8-catalog-pending-outbox-worker',
+                'subdir': 'PRD',
+                'filename': 'looply-gmc-custom-label-rules-migration-v2.6.md',
+            },
+        ],
+    },
+    'payout': {
+        'name': '支付打款',
+        'default_source': '$HOME/Desktop/海外业务/支付打款',
+        'target': 'docs-支付打款',
+        # 关键词避开单独的「支付」——那是订单支付模块的关键词，会同时命中两个模块
+        'keywords': ['支付打款', '打款', 'payout'],
+        'config_key': 'payout',
+        'sidebar_group': '交易域',
+        'artifacts': {
+            'prototype': {
+                'subdir': '原型',
+                'pattern': r'looply-支付打款管理后台原型-v(.+?)-antd\.html',
+                'exclude': r'(backup|对比)',
+            },
+            'prd': {
+                'subdir': 'PRD',
+                'pattern': r'looply-支付打款-PRD-v(.+?)\.md',
+            },
+            'er': {
+                'subdir': '实体关系图',
+                'pattern': r'looply-支付打款实体关系图-v(.+?)\.svg',
+            },
+            'architecture': {
+                'subdir': '产品架构图',
+                'pattern': r'looply-支付打款产品架构图-v(.+?)\.svg',
+            },
+            'flowchart': {
+                'subdir': '系统流程图',
+                'pattern': r'looply-支付打款系统流程图-v(.+?)\.svg',
+            },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'支付打款-交付开发 V(.+?)\.zip',
+            },
+        },
+    },
     'aftersale': {
         'name': '售后',
         'default_source': '$HOME/Desktop/海外业务/售后',
