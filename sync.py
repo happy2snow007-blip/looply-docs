@@ -1014,6 +1014,11 @@ MODULES = {
             },
         ],
         'artifacts': {
+            'prototype': {
+                'subdir': '原型',
+                'source_subdir': 'prototypes/c1-sell/outputs',
+                'pattern': r'looply-C1-Sell-运营后台原型-v(.+?)\.html',
+            },
             'prd': {
                 'subdir': 'PRD',
                 'source_subdir': 'docs/product',
