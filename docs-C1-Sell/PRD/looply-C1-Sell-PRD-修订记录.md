@@ -52,6 +52,8 @@
 | v0.4 | 2026-09-03 | Codex | 处理 P1-10：个人信息页沿用 C2 `Terms of Service`；In-Home 与 Ship To Us 统一使用 `Seller Agreements`。 |
 | v0.4 | 2026-09-04 | Codex | 根据开发反馈最终确认：允许游客提交、联系授权必选、Service Area 从 Step 1 预填 ZIP / In-Home、支持 ZIP+4、成功页终态、草稿与照片生命周期。 |
 | v0.4 | 2026-09-04 | Codex | 统一 Step 2 必填 Toast；删除预约本期自动邮件承诺；补预约提交失败 Retry；品类改为读取后台 Active 配置；补 Seller FAQ 来源、Policies 入口和 Accepted Brands 状态；法律名称统一为 `Seller Agreement`。 |
+| v0.5 | 2026-09-04 | Codex | 处理第二轮开发反馈：In-Home 保持“提交即同意 Seller Agreement”设计并记录协议版本与时间；Category name 接入 `seller_category` 自动翻译资源；照片复用公共上传与安全校验；运营后台引用更新至 v0.9。 |
+| 运营后台 v0.9 | 2026-09-04 | Codex | 保留 Appointments Download 并记录下载账号、时间、筛选条件和记录数；预约邮件状态与重发移至后续；补 ZIP 数据来源、Category 大小写不敏感唯一、搜索字段范围和 Category 自动翻译规则。 |
 | v0.4 | 2026-09-03 | Codex | 收敛后台配置职责：主 PRD 仅保留前台数据依赖，ZIP、品类、品牌的后台字段与规则统一引用独立运营后台 PRD。 |
 | v0.4 | 2026-09-04 | Codex | 根据产品确认，将多语言资源字段与埋点事件字典列为后续规划，不纳入本期页面评审。 |
 | v0.4 | 2026-09-04 | Codex | 明确法律文件复用规则：Privacy Policy 与 Terms of Service 直接复用现有页面；Seller Agreement 英文 / 西语使用业务飞书文档对应文本，西语不自动翻译。 |
@@ -61,3 +63,7 @@
 | v0.4 | 2026-09-04 | Codex | 根据开发反馈确认：允许游客提交；联系授权必须勾选；Service Area 命中后从 Step 1 开始并预填 ZIP / 预选 In-Home；成功页设为终态，不允许返回已提交表单。 |
 | v0.4 | 2026-09-04 | Codex | 根据产品确认：接受 ZIP+4 并取前 5 位查询覆盖；普通草稿同浏览器保存 30 天，提交后清除；照片不跨次恢复，未提交临时照片 24 小时后清理。 |
 | v0.4 | 2026-09-04 | Codex | 明确埋点纳入本期范围，事件字典于下周专项讨论后补齐；同步明确 PC Hover、Mobile 独立 UI 及更新文档日期。 |
+| v0.7 | 2026-09-04 | 产品 | 按最新确认将预约确认邮件恢复为本期范围；用户端引用更新至运营后台 PRD v1.1，邮件状态与 Failed 人工重发由运营后台承载。 |
+| v0.8 | 2026-09-04 | 产品 | 时间字段按 `America/Los_Angeles` 存储并在传输时保留时区偏移；业务展示、Contact Us 提交时间及 Request ID 日期与 C2 一致按 `America/New_York` 计算；Preferred date 按日期值保存。 |
+| 运营后台 v1.2 | 2026-09-04 | 产品 | 新增 ZIP 默认 Active、状态在列表内直接切换；Download 排除图片、照片链接和 Attachment ID；后台时间展示及日期筛选统一按美东时区处理。 |
+| 运营后台 Demo v1.1 | 2026-09-04 | 产品 | Appointments CSV 删除 Photos 列及照片链接生成；预约详情继续支持登录后在线查看照片。 |
