@@ -999,6 +999,32 @@ MODULES = {
             },
         },
     },
+    'c1_sell': {
+        'name': 'C1 Sell',
+        'default_source': '/Users/zz/Documents/Looply',
+        'target': 'docs-C1-Sell',
+        'keywords': ['C1', 'C1 Sell', 'c1_sell', '回收'],
+        'config_key': None,
+        'sidebar_group': 'C1业务',
+        'static_docs': [
+            {
+                'source_subdir': 'docs/product',
+                'subdir': 'PRD',
+                'filename': 'looply-C1-Sell-PRD-修订记录.md',
+            },
+        ],
+        'artifacts': {
+            'prd': {
+                'subdir': 'PRD',
+                'source_subdir': 'docs/product',
+                'pattern': r'looply-C1-Sell-PRD-v(.+?)\.md',
+            },
+            'delivery': {
+                'subdir': '.',
+                'pattern': r'C1 Sell-交付开发 V(.+?)\.zip',
+            },
+        },
+    },
 }
 
 # ─── 自动发现新模块 ────────────────────────────────────────────────────────────────
