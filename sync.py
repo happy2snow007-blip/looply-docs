@@ -1012,6 +1012,16 @@ MODULES = {
                 'subdir': 'PRD',
                 'filename': 'looply-C1-Sell-PRD-修订记录.md',
             },
+            {
+                'source_subdir': 'docs/product',
+                'subdir': 'PRD',
+                'filename': 'looply-C1-Sell-运营后台-PRD-v1.3.md',
+            },
+            {
+                'source_subdir': 'docs/product',
+                'subdir': 'PRD',
+                'filename': 'looply-C1-Sell-运营后台-PRD-修订记录.md',
+            },
         ],
         'artifacts': {
             'prototype': {

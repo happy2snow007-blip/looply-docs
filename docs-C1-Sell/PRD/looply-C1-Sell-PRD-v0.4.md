@@ -58,7 +58,7 @@ Step 3 查询完成后展示 `In-Home Appointment`、`Ship To Us`、`Visit Loopl
 
 ## 四、配置与数据来源
 
-In-Home 支持 ZIP、可回收品类及品类对应品牌由运营后台维护，后台字段、层级、状态和生效规则详见[《C1 Sell 运营后台 PRD》](./looply-C1-Sell-运营后台-PRD-v0.1.md)。前台仅读取生效配置；ZIP 覆盖判断与品牌 / 品类可回收判断相互独立。首页 What We Buy 滚动品牌为固定内容，不读取后台。
+In-Home 支持 ZIP、可回收品类及品类对应品牌由运营后台维护，后台字段、层级、状态和生效规则详见[《C1 Sell 运营后台 PRD》](./looply-C1-Sell-运营后台-PRD-v0.8.md)。前台仅读取生效配置；ZIP 覆盖判断与品牌 / 品类可回收判断相互独立。首页 What We Buy 滚动品牌为固定内容，不读取后台。
 
 ## 五、Contact Us
 
@@ -66,7 +66,7 @@ In-Home 支持 ZIP、可回收品类及品类对应品牌由运营后台维护�
 
 ## 六、邮件、后台与法律文件
 
-预约记录及运营后台规则由[《C1 Sell 运营后台 PRD》](./looply-C1-Sell-运营后台-PRD-v0.1.md)独立定义。预约确认及后续指引邮件的发送、状态和人工重发功能后续补充，不纳入本次用户端开发范围。Contact Us 的 Sell / Buy 邮箱分流仍属于本期范围。
+预约记录及运营后台规则由[《C1 Sell 运营后台 PRD》](./looply-C1-Sell-运营后台-PRD-v0.8.md)独立定义。预约确认邮件、状态和人工重发由后台版本定义。Contact Us 的 Sell / Buy 邮箱分流仍属于本期范围。
 
 全站 `Terms of Service`、`Privacy Policy`、`Your Privacy Choices` 与 C2 共用，直接复用现有页面，不重新建设。Sell 使用 `Seller Agreement`；英文和西语版本均以[业务提供文档](https://zhuanspirit.feishu.cn/docx/X2vjdYalQopAskxavSTcB4pAnR2?from=from_copylink)中的对应文本为准，西语版本直接使用文档内容，不进行自动翻译。开发需按文档版本发布对应语言页面。
 

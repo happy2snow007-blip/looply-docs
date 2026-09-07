@@ -65,5 +65,6 @@
 | v0.4 | 2026-09-04 | Codex | 明确埋点纳入本期范围，事件字典于下周专项讨论后补齐；同步明确 PC Hover、Mobile 独立 UI 及更新文档日期。 |
 | v0.7 | 2026-09-04 | 产品 | 按最新确认将预约确认邮件恢复为本期范围；用户端引用更新至运营后台 PRD v1.1，邮件状态与 Failed 人工重发由运营后台承载。 |
 | v0.8 | 2026-09-04 | 产品 | 时间字段按 `America/Los_Angeles` 存储并在传输时保留时区偏移；业务展示、Contact Us 提交时间及 Request ID 日期与 C2 一致按 `America/New_York` 计算；Preferred date 按日期值保存。 |
+| v0.9 | 2026-09-07 | 产品 | 按业务提供内容补充 In-Home Appointment、Visit Looply 和 Ship To Us 三份确认邮件模板；明确选填字段为空时隐藏整行、Brands and details 合并字段、三种 Selling method 展示值、邮寄地址含义及西语模板来源。 |
 | 运营后台 v1.2 | 2026-09-04 | 产品 | 新增 ZIP 默认 Active、状态在列表内直接切换；Download 排除图片、照片链接和 Attachment ID；后台时间展示及日期筛选统一按美东时区处理。 |
 | 运营后台 Demo v1.1 | 2026-09-04 | 产品 | Appointments CSV 删除 Photos 列及照片链接生成；预约详情继续支持登录后在线查看照片。 |

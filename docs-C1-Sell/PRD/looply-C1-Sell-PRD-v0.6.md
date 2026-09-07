@@ -1,10 +1,10 @@
 # Looply C1 Sell PRD
 
-版本：v0.9  日期：2026-09-07  状态：开发评审候选版
+版本：v0.6  日期：2026-09-04  状态：开发评审候选版
 
 ## 一、产品范围
 
-C1 Sell 为用户提供三种出售方式：In-Home Appointment、Visit Looply、Ship To Us。本次用户端开发范围覆盖 PC / Mobile 入口、Sell 首页、Accepted Brands、Condition Guidelines、Service Area、预约提交和 Contact Us。运营后台由独立 PRD 定义；埋点后续补充。预约确认邮件属于本期范围。
+C1 Sell 为用户提供三种出售方式：In-Home Appointment、Visit Looply、Ship To Us。本次用户端开发范围覆盖 PC / Mobile 入口、Sell 首页、Accepted Brands、Condition Guidelines、Service Area、预约提交和 Contact Us。运营后台由独立 PRD 定义；埋点、预约确认及后续指引邮件后续补充，不作为本次用户端开发评审的阻塞项。
 
 PC 与 Mobile 均纳入本期。两端业务流程、字段、校验、状态和跳转结果一致；入口、布局及交互触发方式分别以 Figma 对应 PC / Mobile UI 为准，Mobile 不按 PC 页面缩放实现。
 
@@ -58,7 +58,7 @@ Step 3 查询完成后展示 `In-Home Appointment`、`Ship To Us`、`Visit Loopl
 
 ## 四、配置与数据来源
 
-In-Home 支持 ZIP、可回收品类及品类对应品牌由运营后台维护，后台字段、层级、状态和生效规则详见[《C1 Sell 运营后台 PRD》](./looply-C1-Sell-运营后台-PRD-v1.3.md)。前台仅读取生效配置；ZIP 覆盖判断与品牌 / 品类可回收判断相互独立。首页 What We Buy 滚动品牌为固定内容，不读取后台。
+In-Home 支持 ZIP、可回收品类及品类对应品牌由运营后台维护，后台字段、层级、状态和生效规则详见[《C1 Sell 运营后台 PRD》](./looply-C1-Sell-运营后台-PRD-v1.0.md)。前台仅读取生效配置；ZIP 覆盖判断与品牌 / 品类可回收判断相互独立。首页 What We Buy 滚动品牌为固定内容，不读取后台。
 
 ## 五、Contact Us
 
@@ -66,149 +66,7 @@ In-Home 支持 ZIP、可回收品类及品类对应品牌由运营后台维护�
 
 ## 六、邮件、后台与法律文件
 
-预约提交成功后，由 `sell@looply.com` 自动向用户发送与 Selling method 匹配的确认邮件。发送状态和失败后的人工重发由[《C1 Sell 运营后台 PRD》](./looply-C1-Sell-运营后台-PRD-v1.3.md)定义。其他预约后续指引邮件后续补充。Contact Us 的 Sell / Buy 邮箱分流仍属于本期范围。
-
-### 6.1 预约确认邮件
-
-邮件主题为 `We received your Looply sell request — {Request ID}`。邮件语言使用用户提交时的页面语言，西语模板由翻译系统提供。
-
-`Preferred date`、`Referral code`和 `Apartment / suite`等选填信息未填写时，邮件中隐藏对应整行。`Brands and details` 合并展示 Brands 和 Additional notes。三种方式的 `Selling method` 分别展示 `In-Home Appointment`、`Visit Looply`和 `Ship To Us`。`SHIPPING ADDRESS` 展示用户填写的地址。
-
-#### In-Home Appointment 确认邮件
-
-```text
-Hi {{first_name}},
-
-Thanks for choosing Looply.
-
-We’ve received your selling request, and a Looply team member will contact you by phone, text, or email within 24 hours to confirm the next steps.
-
-Here’s a summary of the information you submitted:
-
-YOUR REQUEST
-
-Request ID: {{request_id}}
-Selling method: {{selling_method}}
-Preferred date: {{preferred_date_or_not_provided}}
-Referral code: {{referral_code_or_not_provided}}
-
-YOUR PIECES
-
-Categories: {{categories}}
-Brands and details: {{brands_and_details}}
-Photos uploaded: {{photo_count_or_none}}
-
-YOUR CONTACT INFORMATION
-
-Name: {{full_name}}
-Phone: {{phone}}
-Email: {{email}}
-
-APPOINTMENT ADDRESS
-
-{{street_address}}
-{{apartment_suite_if_provided}}
-{{city}}, {{state}} {{zip_code}}
-
-Your preferred date is not yet confirmed. A Looply team member will contact you to confirm availability.
-
-At your appointment, we’ll evaluate your pieces, make an offer, and—if you accept—pay you on the spot.
-
-Need to make a change? Simply reply to this email and let us know.
-
-Warmly,
-
-The Looply Team
-```
-
-#### Visit Looply 确认邮件
-
-```text
-Hi {{first_name}},
-
-Thanks for choosing Looply.
-
-We’ve received your selling request, and a Looply team member will contact you by phone, text, or email within 24 hours to confirm the next steps.
-
-Here’s a summary of the information you submitted:
-
-YOUR REQUEST
-
-Request ID: {{request_id}}
-Selling method: {{selling_method}}
-Preferred date: {{preferred_date_or_not_provided}}
-Referral code: {{referral_code_or_not_provided}}
-
-YOUR PIECES
-
-Categories: {{categories}}
-Brands and details: {{brands_and_details}}
-Photos uploaded: {{photo_count_or_none}}
-
-YOUR CONTACT INFORMATION
-
-Name: {{full_name}}
-Phone: {{phone}}
-Email: {{email}}
-
-APPOINTMENT LOCATION
-
-Looply Suit 1720, 6300 Wilshire Blvd
-Los Angeles, CA 90048
-
-Your preferred date is not yet confirmed. Please wait for a Looply team member to confirm your appointment before visiting.
-
-Need to make a change? Simply reply to this email and let us know.
-
-Warmly,
-
-The Looply Team
-```
-
-#### Ship To Us 确认邮件
-
-```text
-Hi {{first_name}},
-
-Thanks for choosing Looply.
-
-We’ve received your selling request, and a Looply team member will contact you by phone, text, or email within 24 hours to confirm the next steps.
-
-Here’s a summary of the information you submitted:
-
-YOUR REQUEST
-
-Request ID: {{request_id}}
-Selling method: {{selling_method}}
-Preferred date: {{preferred_date_or_not_provided}}
-Referral code: {{referral_code_or_not_provided}}
-
-YOUR PIECES
-
-Categories: {{categories}}
-Brands and details: {{brands_and_details}}
-Photos uploaded: {{photo_count_or_none}}
-
-YOUR CONTACT INFORMATION
-
-Name: {{full_name}}
-Phone: {{phone}}
-Email: {{email}}
-
-SHIPPING ADDRESS
-
-{{street_address}}
-{{apartment_suite_if_provided}}
-{{city}}, {{state}} {{zip_code}}
-
-A Looply team member will review your request and send you the applicable complimentary shipping instructions.
-
-Need to make a change? Simply reply to this email and let us know.
-
-Warmly,
-
-The Looply Team
-```
+预约记录及运营后台规则由[《C1 Sell 运营后台 PRD》](./looply-C1-Sell-运营后台-PRD-v1.0.md)独立定义。预约确认及后续指引邮件的发送、状态和人工重发功能后续补充，不纳入本次用户端开发范围。Contact Us 的 Sell / Buy 邮箱分流仍属于本期范围。
 
 全站 `Terms of Service`、`Privacy Policy`、`Your Privacy Choices` 与 C2 共用，直接复用现有页面，不重新建设。Sell 使用 `Seller Agreement`；英文和西语版本均以[业务提供文档](https://zhuanspirit.feishu.cn/docx/X2vjdYalQopAskxavSTcB4pAnR2?from=from_copylink)中的对应文本为准，西语版本直接使用文档内容，不进行自动翻译。开发需按文档版本发布对应语言页面。
 
@@ -221,8 +79,6 @@ The Looply Team
 表单复用现有公共校验、错误提示和提交中防重复规则。未提交的普通表单字段在同一设备、同一浏览器保存 30 天，再次打开时自动恢复；主动关闭流程不清除草稿，提交成功后立即清除。不支持跨浏览器或跨设备恢复。
 
 照片不跨次恢复，用户再次打开表单时需要重新选择。已经临时上传但未提交的照片在 24 小时后自动清除。照片格式、单张大小、内容校验和安全扫描复用现有公共图片上传能力；C1 额外限制总数最多 10 张。
-
-所有时间字段按洛杉矶时区 `America/Los_Angeles` 存储，接口传输时保留明确的时区偏移，避免夏令时切换产生歧义。页面时间展示、Contact Us 提交时间以及 Request ID 中的 `YYMMDD` 与 C2 保持一致，统一按美东时区 `America/New_York` 计算并自动适配夏令时。Preferred date 按用户选择的日期值保存，不进行跨时区换日。
 
 ## 八、验收标准
 
@@ -550,7 +406,7 @@ Seller Agreement 的业务正文和条款口径以[业务提供的 Seller Agreem
 | State | `State *` | 是 | 从州下拉列表选择 |
 | ZIP code | `ZIP code *` | 是 | 沿用地址页 ZIP 校验 |
 | 协议勾选 | `By submitting this shipping request, I agree to the Looply Seller Agreement, confirm that my items ...` | 是 | 必须勾选；`Seller Agreement` 为可点击链接 |
-| 提交说明 | 提交后的联系说明按 UI 展示；成功页不展示确认邮件发送状态 | — | 信息展示 |
+| 提交说明 | 提交后的联系说明按 UI 展示；本期不承诺自动邮件结果 | — | 信息展示 |
 | 操作按钮 | `Back`、`Submit Request` | — | Back 返回第三步；Submit Request 校验并提交邮寄请求 |
 
 Street address、City、State、ZIP code 和协议勾选缺失时阻止提交并显示公共表单错误提示；提交成功后创建预约并进入 Request received 成功页。
