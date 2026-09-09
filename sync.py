@@ -1022,6 +1022,21 @@ MODULES = {
                 'subdir': 'PRD',
                 'filename': 'looply-C1-Sell-运营后台-PRD-修订记录.md',
             },
+            {
+                'source_subdir': 'docs/product',
+                'subdir': 'PRD',
+                'filename': 'looply-C1-Sell-数据采集与GA4需求-v0.5.md',
+            },
+            {
+                'source_subdir': 'docs/product',
+                'subdir': 'PRD',
+                'filename': 'looply-C1-Sell-变更日志.md',
+            },
+            {
+                'source_subdir': 'outputs/c1-sell-data-20260908',
+                'subdir': '评审记录',
+                'filename': 'looply-C1-Sell-埋点开发清单-v0.3.xlsx',
+            },
         ],
         'artifacts': {
             'prototype': {
