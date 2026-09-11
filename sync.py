@@ -1035,6 +1035,11 @@ MODULES = {
             {
                 'source_subdir': 'docs/product',
                 'subdir': 'PRD',
+                'filename': 'looply-C1-Sell-数据采集与GA4需求-v1.4.md',
+            },
+            {
+                'source_subdir': 'docs/product',
+                'subdir': 'PRD',
                 'filename': 'looply-C1-Sell-C2公共字段引用-v1.1.md',
             },
             {
@@ -1049,8 +1054,18 @@ MODULES = {
             },
             {
                 'source_subdir': 'docs/product',
+                'subdir': 'PRD',
+                'filename': 'looply-C1-Sell-埋点开发输入清单-20260911-v1.2.md',
+            },
+            {
+                'source_subdir': 'docs/product',
                 'subdir': '评审记录',
                 'filename': 'looply-C1-Sell-开发反馈回复-20260910-v1.0.md',
+            },
+            {
+                'source_subdir': 'docs/product',
+                'subdir': '评审记录',
+                'filename': 'looply-C1-Sell-开发反馈产品处理结论-20260911-v1.2.md',
             },
             {
                 'source_subdir': 'outputs/c1-sell-data-20260908',
@@ -1061,6 +1076,11 @@ MODULES = {
                 'source_subdir': 'outputs/c1-sell-data-20260910-v1.0',
                 'subdir': '开发清单',
                 'filename': 'looply-C1-Sell-埋点开发清单-v1.0.xlsx',
+            },
+            {
+                'source_subdir': 'outputs/c1-sell-data-20260911-v1.2',
+                'subdir': '开发清单',
+                'filename': 'looply-C1-Sell-埋点开发清单-v1.2.xlsx',
             },
         ],
         'artifacts': {
