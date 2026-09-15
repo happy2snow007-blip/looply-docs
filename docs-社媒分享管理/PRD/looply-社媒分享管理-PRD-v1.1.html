@@ -765,15 +765,69 @@
         1. 记录 share_clicks（visitor_id、user_id、clicked_at、ip、user_agent、referer）
         2. 写 Cookie `_looply_ref={short_code}`（30 天有效）
         3. click_count +1，按 visitor_id 去重更新 unique_visitor_count
-        4. 302 重定向到 long_url（带完整 UTM 参数，GA4 可识别）
+        4. 合并 query 参数：long_url 原有参数优先，请求 URL 参数只补充不覆盖
+           （规则见下方【参数合并规则】）
+        5. 302 重定向到合并后的最终 URL（带完整 UTM 参数，GA4 可识别）
 </code></pre>
 <p><strong>规则说明</strong>：
 - <strong>多次点击归因</strong>：Last Click 归因（以最后一次点击为准）。
 - <strong>Cookie</strong>：<code>_looply_ref</code>，30 天有效，供后续注册 / 下单时反查归因（归因转化为 TBD-3，本期仅写 Cookie 不打通转化）。
 - <strong>App 唤起</strong>：Universal Links (iOS) + App Links (Android)，部署 <code>/.well-known/apple-app-site-association</code> 与 <code>/.well-known/assetlinks.json</code> 声明 <code>/s/*</code> 与 <code>/product/*</code> 路径。App 内部据 long_url 路径决定跳转页面，无需额外 Deep Link ID 字段。</p>
+<p><strong>参数合并规则</strong>：</p>
+<p>用户从 Facebook / Instagram 等平台点击短链时，平台会自动在 URL 上追加参数（如 <code>utm_source=facebook</code>、<code>fbclid</code>）。跳转前必须把请求 URL 的 query 与 <code>long_url</code> 的 query 做合并，<strong>核心原则：<code>long_url</code> 原有参数优先，外部参数只补充、不覆盖</strong>。</p>
+<table>
+<thead>
+<tr><th>参数类型</th><th>参数</th><th>合并策略</th></tr>
+</thead>
+<tbody>
+<tr>
+<td>UTM 参数</td>
+<td><code>utm_source</code> / <code>utm_medium</code> / <code>utm_campaign</code> / <code>utm_content</code> / <code>utm_term</code></td>
+<td><strong>以 <code>long_url</code> 已设置的值为准</strong>，请求 URL 的同名参数直接丢弃</td>
+</tr>
+<tr>
+<td>Click ID</td>
+<td><code>fbclid</code> / <code>gclid</code> / <code>ttclid</code> / <code>msclkid</code> / <code>twclid</code> / <code>li_fat_id</code> 等</td>
+<td><code>long_url</code> 未设置则<strong>透传</strong>请求 URL 的值；已设置则保留 <code>long_url</code> 原值</td>
+</tr>
+<tr>
+<td>其他 query 参数</td>
+<td>任意</td>
+<td><code>long_url</code> 已有同名参数则<strong>保留原值</strong>；无同名参数则透传请求 URL 的值</td>
+</tr>
+</tbody>
+</table>
+<p><strong>实现细节</strong>：
+- 判定"已设置"以 <strong>key 是否存在</strong>为准，不看值是否为空——<code>long_url</code> 中 <code>utm_content=</code>（空值）也算已设置，不被外部覆盖。
+- 多值参数（同名 key 出现多次）：只要 key 已存在于 <code>long_url</code>，则整体保留其全部值，外部同名参数的所有值一并丢弃，不做逐值合并。
+- 参数顺序：<code>long_url</code> 原有参数在前，透传补充的外部参数追加在后，便于人工核对。
+- Fragment（<code>#</code> 后内容）：始终以 <code>long_url</code> 为准（浏览器不会把 fragment 发给服务端）。
+- <strong>不引入开关参数</strong>：Short.io 时期为阻止平台参数覆盖需额外加 <code>shortio_nomerge=1</code>，属其私有约定。自建短链默认即"目标 URL 优先"，短链对外形态保持纯路径 <code>looply.com/s/{short_code}</code>，不识别、不沿用该参数。</p>
+<p><strong>示例</strong>：</p>
+<pre><code>场景 1：Facebook 点击，平台追加 utm_source + fbclid
+  short_link : looply.com/s/sh_8f3k29
+  long_url   : looply.com/product/1001?utm_source=imessage&amp;utm_medium=social_share
+  请求 URL   : looply.com/s/sh_8f3k29?utm_source=facebook&amp;fbclid=IwAR0abc123
+  最终跳转   : looply.com/product/1001?utm_source=imessage&amp;utm_medium=social_share&amp;fbclid=IwAR0abc123
+  → utm_source 保持 imessage（未被 facebook 覆盖）；fbclid 透传补充
+
+场景 2：Instagram 点击，仅追加 click ID
+  long_url   : looply.com/product/1001?utm_source=instagram&amp;utm_medium=social_share&amp;utm_campaign=product_share
+  请求 URL   : looply.com/s/sh_8f3k29?igshid=MzRlODBiNWFlZA
+  最终跳转   : looply.com/product/1001?utm_source=instagram&amp;utm_medium=social_share&amp;utm_campaign=product_share&amp;igshid=MzRlODBiNWFlZA
+  → 无冲突，外部参数全部补充
+
+场景 3：普通业务参数冲突
+  long_url   : looply.com/product/1001?ref=share&amp;utm_source=whatsapp
+  请求 URL   : looply.com/s/sh_8f3k29?ref=ad&amp;color=black
+  最终跳转   : looply.com/product/1001?ref=share&amp;utm_source=whatsapp&amp;color=black
+  → ref 保留 long_url 的 share（丢弃外部 ad）；color 为新 key，透传补充
+</code></pre>
 <p><strong>异常处理</strong>：
 - short_code 不存在 → 302 到 Looply 首页（<code>looply.com</code>），不报 404。
-- 目标商品已下架 → 真人点击 302 到 Looply 首页（<code>looply.com</code>）；社媒爬虫返回通用品牌 OG 卡片（见 2.1.2）。（更丰富的"商品已下架"兜底页 / 推荐相似商品为 TBD-1）</p>
+- 目标商品已下架 → 真人点击 302 到 Looply 首页（<code>looply.com</code>）；社媒爬虫返回通用品牌 OG 卡片（见 2.1.2）。（更丰富的"商品已下架"兜底页 / 推荐相似商品为 TBD-1）
+- 外部参数异常（合并环节）→ 单个参数值超长（建议阈值 512 字符）或含控制字符 / 换行的，<strong>丢弃该参数</strong>，不影响其余参数与跳转；合并后 URL 总长超 2048 字符时，按"UTM → click ID → 其他参数"优先级从低到高裁掉外部补充参数，<code>long_url</code> 原有参数永不裁剪。
+- 外部参数不参与跳转地址决策 → 跳转目标只取自 <code>long_url</code>，请求 URL 的参数<strong>仅能补充 query，不能改写 host / path</strong>，避免 open redirect。</p>
 <p><strong>技术说明（已知限制）</strong>：
 - Instagram / TikTok 内置 WebView 中 Universal Links 不生效 → Phase 2 用中间页引导。
 - Safari 地址栏直接输入 URL 不触发唤起（符合预期）。
