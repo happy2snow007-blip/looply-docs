@@ -819,14 +819,14 @@ MODULES = {
         'sidebar_group': '数据与分析',
         'static_docs': [
             {
-                'source_subdir': 'outputs/01a01e36-08de-7e73-9b6f-7064185b6f07',
+                'source_subdir': 'outputs/one-party-tracking-20260916',
                 'subdir': '一方平台开发基线',
-                'filename': 'Looply-v1.4-详细埋点需求定稿-v1.2.xlsx',
+                'filename': 'Looply-v1.4-详细埋点需求定稿-v1.4.xlsx',
             },
             {
-                'source_subdir': 'outputs/019ff9ea-a682-70f2-b988-d69ce69930cd',
+                'source_subdir': 'outputs/one-party-tracking-20260916',
                 'subdir': '一方平台开发基线',
-                'filename': 'Looply-v1.4-公共基础字段需求定稿-v1.1.xlsx',
+                'filename': 'Looply-v1.4-公共基础字段需求定稿-v1.2.xlsx',
             },
             {
                 'source_subdir': 'docs/product',

@@ -1,5 +1,15 @@
 # Looply 一方埋点开发材料变更日志
 
+## 2026-09-16｜首页 Banner 多语言整图埋点调整
+
+- 新建《Looply-v1.4-详细埋点需求定稿-v1.4》和《Looply-v1.4-公共基础字段需求定稿-v1.2》，原 v1.3 与 v1.1 保留为历史版本。
+- 首页 Banner 的 `banner_dot`、`banner_swipe`、`banner_item` 新增 `position_id`，取值 `1–4`，按事件发生时当前展示位置上报。
+- `position_id` 仅表示 Banner 位置，不作为稳定素材ID；Banner 整图点击继续使用 `banner_item`，并保留 `target_id=目标page_id`。
+- 新增客户端公共字段 `locale_code`，由统一埋点 SDK 自动附加到全部客户端事件；取事件发生时当前实际生效的稳定 Locale Code。
+- `locale_code` 缺失时省略字段但事件继续发送；不从浏览器语言、IP或URL推断，不填默认值，不替代 `market`。
+- 新版 Banner 无独立按钮控件，`explore_button` 从 Active 点位移入停止项；因页面自然不会触发，无需开发额外停用或删除逻辑，历史定义和数据保留。
+- Active 点位由238调整为237，其中客户端 Active 点位由233调整为232；5个权威业务表事实不变。
+
 ## 2026-08-28｜v1.8 售后多商品与无生产入口点位收口
 
 - 开发实施基线更新为《Looply-v1.4-详细埋点需求定稿-v1.3》《Looply-v1.4-公共基础字段需求定稿-v1.1》和《Looply一方埋点公共实施规则v1.8》；公共字段表没有新增字段。
