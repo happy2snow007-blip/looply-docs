@@ -10,7 +10,7 @@ var PROTOTYPE_CONFIG = {
   'translation':    'docs-多语言管理/原型/looply-多语言管理后台原型-v13-antd.html',
   'exchange':       'docs-汇率管理/原型/looply-汇率管理后台原型-v8.3-antd.html',
   'user':           'docs-用户管理/原型/looply-用户管理后台原型-v2-antd.html',
-  'pdp':            'docs-商详/原型/looply-商详页CMS配置后台原型-v3-antd.html',
+  'pdp':            'docs-商详/原型/looply-商详页CMS配置后台原型-v5-market-online-antd.html',
   'Favourites':     'docs-Favourites/原型/looply-favorites-prototype-v9.html',
   'aftersale':      'docs-售后/原型/looply-售后管理后台原型-v16-antd.html',
   'collection':     'docs-Collection管理/原型/looply-类目管理-后台-v0.20-antd.html',
