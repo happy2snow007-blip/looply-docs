@@ -1611,13 +1611,18 @@ def sync_module_files(source_dir, target_dir, mod_key):
             for f in globmod.glob(os.path.join(src_prd, f'*{ext}')):
                 if os.path.isfile(f) and (not prd_config.get('source_subdir') or re.match(prd_config.get('pattern', r'.*'), os.path.basename(f))):
                     smart_cp(f, dst_prd)
-        # 用版本号（而非 mtime）选取最新 md 作为 latest.md
-        if prd_config.get('source_subdir'):
-            matched_md = [os.path.basename(f) for f in globmod.glob(os.path.join(src_prd, '*.md'))
-                          if re.match(prd_config.get('pattern', r'.*'), os.path.basename(f))]
-            latest_md = max(matched_md, key=lambda name: parse_version(re.match(prd_config['pattern'], name).group(1))) if matched_md else None
-        else:
-            latest_md = find_latest_prd_md(src_prd)
+        # latest.md 始终以模块注册的正式 PRD 命名规则为准，避免同目录的迭代 PRD
+        # 与正式 PRD 版本号相同时被误选为模块首页内容。
+        prd_pattern = re.compile(prd_config.get('pattern', r'.*'))
+        matched_md = [
+            os.path.basename(f)
+            for f in globmod.glob(os.path.join(src_prd, '*.md'))
+            if prd_pattern.fullmatch(os.path.basename(f))
+        ]
+        latest_md = max(
+            matched_md,
+            key=lambda name: parse_version(prd_pattern.fullmatch(name).group(1)),
+        ) if matched_md else find_latest_prd_md(src_prd)
         if latest_md:
             dst_latest = os.path.join(dst_prd, 'latest.md')
             src_latest = os.path.join(src_prd, latest_md)
