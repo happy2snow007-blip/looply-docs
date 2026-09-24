@@ -126,6 +126,13 @@ MODULES = {
                 'pattern': r'商品-交付开发 V(.+?)\.zip',
             },
         },
+        'static_docs': [
+            {
+                'source_subdir': '迭代需求',
+                'subdir': 'PRD',
+                'filename': 'looply-商品系统-渠道国家维度与上架Market展示-迭代PRD-V1.4-20260924.md',
+            },
+        ],
     },
     'pdp': {
         'name': '商详页',
