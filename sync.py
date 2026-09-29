@@ -1828,6 +1828,25 @@ var PROTOTYPE_CONFIG = {
         f.write(output)
 
 
+def update_prototype_config_cache_buster(version=None):
+    """让 HTML 与本次生成的 prototype-config.js 使用同一缓存版本。"""
+    version = version or datetime.now().strftime('%Y%m%d%H%M')
+    pattern = re.compile(
+        r'(<script\s+src=["\']prototype-config\.js)(?:\?v=[^"\']*)?(["\'])'
+    )
+    replacement = rf'\1?v={version}\2'
+    for filename in ('index.html', 'admin.html'):
+        path = os.path.join(REPO_DIR, filename)
+        if not os.path.isfile(path):
+            continue
+        with open(path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        updated, count = pattern.subn(replacement, content)
+        if count and updated != content:
+            with open(path, 'w', encoding='utf-8') as f:
+                f.write(updated)
+
+
 def build_delivery_desc(zip_path):
     """从交付包 zip 内容生成 doc-desc：清爽的「类型 版本」清单（覆盖全部文件），如
     'PRD v1.7 + CMS 后台原型 v3 + 差异汇总 + 图片资源 &middot; 日期'。"""
@@ -2431,6 +2450,7 @@ def main():
 
     if latest_prototypes:
         update_prototype_config(latest_prototypes)
+        update_prototype_config_cache_buster()
         print('  [更新] prototype-config.js')
 
     # 为本次同步且尚未展示的模块生成 index.html 区块
