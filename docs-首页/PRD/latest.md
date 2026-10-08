@@ -1,6 +1,6 @@
-# Looply · 首页 PRD v1.7
+# Looply · 首页 PRD v1.9
 
-> 版本：v1.7 | 更新日期：2026-08-11 | 端：Mobile Web + PC Web
+> 版本：v1.9 | 更新日期：2026-10-08 | 端：Mobile Web + PC Web
 > 状态：🔄 迭代中
 
 ## 1. 概述
@@ -80,12 +80,14 @@
 
 ### 3.2 PC Web
 
-- Header 展示 Logo、导航链接和右侧功能入口；结构与配置规则执行《导航栏配置 PRD v1.3》，元素、顺序和视觉以最新 UI 为准。
+- Header 展示 Logo、导航链接和右侧功能入口；结构与配置规则执行《导航栏配置 PRD v1.11》，元素、顺序和视觉以最新 UI 为准。
 - 搜索入口以搜索图标展示，入口交互见第 4 章。
 - Favorites 入口点击后进入 Favorites 页。
 - Account 入口点击后统一进入 Account Home，由 Account Home 根据登录状态展示登录或账户内容。
 - 语言入口展示当前语言，点击后切换 Web 支持的 locale。
 - 导航链接展示后台已生效内容，最多 8 个并按配置顺序排列；品类链接进入对应品类的 Collection 页。
+- 有下级内容的一级导航展开后，文字导航列与推荐位共同组成展开面板。推荐位数量由启用文字导航实际列数自动决定：0 列为 0 个、1 列为 3 个、2 列为 2 个、3–4 列为 1 个、5 列及以上为 0 个。
+- 推荐位展示共用图片及当前 locale 对应的标题、说明；标题和说明以英语源文案经多语言系统提供译文。整个推荐位均可点击，并进入其配置的 Collection 或自定义 URL。
 - Header 在小屏 PC 宽度下执行最新 UI 的响应式规则，所有核心入口保持可见和可操作。
 
 ## 4. 首页搜索入口
@@ -109,13 +111,15 @@
 ### 5.1 数据与展示
 
 - Banner 读取 CMS `home_banner` 资源位，按当前 Web 端和 locale 展示已生效内容，最多 4 条。
-- Mobile Web 与 PC Web 使用各自配置的图片、文案和落地目标。
+- Mobile Web 与 PC Web 使用各自配置的图片；每种语言分别保存标题、副标题、标题颜色、副标题颜色、按钮文案和图片 Alt。同一 Banner 的目标类型、目标配置、排序和上线状态跨语言共用。
 - 多条内容以轮播方式展示，分页指示器、切换控件、自动轮播和文本排版以最新 UI 为准。
 - Banner 图片在当前断点内完整适配容器并限制在页面宽度内；具体裁切比例和文本安全区执行最新 UI。
 
 ### 5.2 交互
 
-- Banner 整张图片区域均可点击，点击后进入 CMS 配置的目标页；CTA 与图片使用同一跳转目标。
+- 标题、副标题和按钮文案均为空时为纯图片模式，整张图片为一个点击区域，点击后进入 CMS 配置的目标页。
+- 任一标题、副标题或按钮文案有值时为图文模式：图片和独立按钮是两个点击区域，均使用该 Banner 的跳转目标；按钮点击不得继续触发图片点击。
+- 标题和副标题不产生独立点击事件。图片中制作的视觉按钮属于图片内容，不产生独立按钮事件。
 - 轮播切换控件使用最新 UI 规定的点击热区，用户无需精确点击图标笔画。
 
 ### 5.3 状态
@@ -175,9 +179,14 @@
 
 ### 8.2 商品卡与收藏
 
-- 商品卡展示主图、品牌、商品标题、当前销售价和收藏入口；字段、图片比例、网格列数和视觉样式以最新 UI 及全站商品卡规范为准。
+- 商品卡展示主图、品牌、商品标题、到手价和收藏入口；字段、图片比例、网格列数和视觉样式以最新 UI 及全站商品卡规范为准。
 - 商品主图读取 `listing.og_image_url`，缺失时读取 `product_image.main_image_url`；商品标题读取 `listing.listing_title`，缺失时读取 `product.title`。
-- 当前销售价读取 `listing.listing_price`。当有效 `standard_sku.market_price` 高于 `listing.listing_price` 时，同时展示划线参考价和 Save 差额，差额为两者之差；货币转换与格式化执行全站商品价格规则。
+- 商品卡主价格统一展示价格服务返回的 `final_price`（到手价），即当前用户、Market、Channel 和请求时点下，商品级可确定且用户已满足使用条件的优惠应用后的价格。计算基准为 `listing.listing_price`，`final_price = listing_price - eligible_discount_amount`，且不得小于 0。
+- 商品卡请求价格时必须携带 `user_id / anonymous_id`、`market_id`、`channel_id`、`listing_id`、当前货币和请求时间；游客仅应用游客当前可直接享受的优惠。
+- 到手价不包含运费、税费，以及尚未满足门槛的满减、未领取或未选择的优惠券、支付方式优惠和结算阶段才能确定的订单级优惠。上述优惠只能在满足条件并能确定分摊到当前商品时计入。
+- 当 `final_price < listing.listing_price` 时，以到手价作为高亮主价格，并按统一商品卡规范展示挂牌价及优惠信息；当两者相等时只展示到手价，不制造折扣状态。`standard_sku.market_price` 仅作为参考价，不参与到手价计算。
+- 价格换算、尾差和格式化在同一币种口径下完成；展示、价格排序、价格筛选和价格带划分使用同一请求返回的 `final_price`，不得分别按挂牌价计算。
+- 价格服务超时、失败或返回无效到手价时，商品卡降级展示 `listing.listing_price`，不展示优惠信息，并记录 `price_display_status = fallback_listing_price`；不得由前端自行推测或拼接优惠。
 - 商品图片始终限制在卡片和页面内容区域内；调整窗口宽度或切换端时重新排版并保留已返回商品。
 - 收藏按钮位于商品图片容器内，完整点击热区包含在商品卡内。
 - 点击收藏按钮执行全站 Wishlist 规则并即时更新状态，请求失败时恢复操作前状态；点击商品卡其他区域进入商品详情页。
@@ -241,8 +250,8 @@
 
 | 依赖 | 首页使用内容 |
 |---|---|
-| CMS 首页配置 v1.3 | Banner、Curated Collections 及 locale 文案 |
-| 导航栏配置 v1.3 | PC Header 导航结构、顺序和目标 |
+| CMS 首页配置 v1.5 | Banner、Curated Collections 及 locale 文案 |
+| 导航栏配置 v1.11 | PC Header 导航结构、顺序、目标及展开面板推荐位 |
 | Web 全局搜索 v0.3 | 首页搜索轮播词、入口提交和完整搜索能力 |
 | Feed / 推荐 v2.3 | 四个 Feed Tab 的商品列表与分页状态 |
 | 商品与 Wishlist | 商品卡数据、收藏状态和收藏操作 |
@@ -257,7 +266,10 @@
 |---|---|
 | 首页访问 | `market_id`, `locale`, `terminal` |
 | 首页搜索入口点击 | `terminal`, `entry_action`, `placeholder_type`, `query` |
-| Banner 曝光 / 点击 | `banner_id`, `position`, `target` |
+| Banner 切换 | `interaction_name=home_banner`, `action=change`, `element_id=banner_dot/banner_swipe`, `position_id=1–4`, `locale_code` |
+| Banner 图片点击 | `interaction_name=home_banner`, `action=select`, `element_id=banner_image`, `target_id`, `position_id=1–4`, `locale_code` |
+| Banner 独立按钮点击 | `interaction_name=home_banner`, `action=select`, `element_id=banner_cta`, `target_id`, `position_id=1–4`, `locale_code`；不得同时发送图片点击 |
+| PC 导航推荐位曝光 / 点击 | 一方平台使用 `ui_impression` / `ui_interaction`，GA4 使用 `view_promotion` / `select_promotion`；携带 `navigation_id`, `recommendation_id`, `position_id=1–3`，Collection 目标另带稳定 `target_id` |
 | Collection 点击 | `collection_id`, `position` |
 | Feed Tab 切换 | `from_tab_key`, `to_tab_key` |
 | View More / 触底加载 | `tab_key`, `page`, `result_count` |
@@ -269,7 +281,7 @@ Feed 和搜索事件分别以对应模块 PRD 为唯一事件规则来源。
 
 ## 15. 版本规划
 
-- v1.7 当前范围为本 PRD 已定义的 Mobile Web 与 PC Web 首页能力。
+- v1.9 当前范围为本 PRD 已定义的 Mobile Web 与 PC Web 首页能力。
 - 后续新增能力在明确版本范围后进入新版本 PRD，不在当前正文预留候选方案。
 
 ## 16. 设计与关联文档
@@ -285,4 +297,28 @@ Feed 和搜索事件分别以对应模块 PRD 为唯一事件规则来源。
 
 ---
 
-*文档维护：Looply 产品团队 | 首页 PRD v1.7 | 2026-08-11*
+## 17. 下个版本修改需求
+
+本节为基于 v1.7 的增量修改；本节未涉及的规则保持不变。
+
+### 17.1 Banner 多语言整图与可选叠加文案
+
+Banner 展示和点击规则已合并至第 5 章；后台字段、图片完整性校验和预览规则以《CMS 首页配置 PRD v1.5》为准。
+
+### 17.2 首页 Feed 恢复 Sale Tab
+
+1. 首页 Feed 展示 `For You`、`New Arrivals`、`Best Sellers`、`Sale` 四个 Tab。
+2. `Sale` 对应此前未在 1.1 实现的 `Deals` 能力，不新增第五个 Tab。
+3. 商品范围、状态和异常处理执行《Looply 首页 Explore Finds Feed PRD v2.4》§25.1。
+
+### 17.3 PC Web Header 常驻搜索框
+
+PC Web 首页使用全站 Header 常驻搜索框，入口、搜索发现层、Sug、提交及 Mobile Web 边界统一执行《Looply Web 全局搜索 PRD v0.4》§10.2。
+
+### 17.4 PC Web 账户菜单增加个人中心入口
+
+PC Web 首页账户菜单执行《Looply PC Web 账户菜单 PRD v0.1》：头像、姓名和邮箱组成的用户信息区整体可点击，点击进入 `Account Home`；菜单不新增独立的 `My Account` 项。
+
+---
+
+*文档维护：Looply 产品团队 | 首页 PRD v1.9 | 2026-10-08*
