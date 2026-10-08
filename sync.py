@@ -93,6 +93,18 @@ MODULES = {
             },
         },
     },
+    'marketing_topics': {
+        'name': '营销专题',
+        'default_source': '/Users/zz/Documents/Looply/deliveries/营销专题',
+        'target': 'docs-营销专题',
+        'keywords': ['营销专题', '色彩专题', 'marketing_topics'],
+        'config_key': None,
+        'sidebar_group': 'C端卖场',
+        'artifacts': {
+            'prd': {'subdir': 'PRD', 'pattern': r'looply-色彩专题-PRD-v(.+?)\.md'},
+            'delivery': {'subdir': '.', 'pattern': r'营销专题-交付开发 V(.+?)\.zip'},
+        },
+    },
     'product': {
         'name': '商品系统',
         'default_source': '$HOME/Desktop/海外业务/商品',
