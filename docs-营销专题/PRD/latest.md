@@ -36,6 +36,8 @@ PC 最多展示 8 件，移动端最多展示 6 件；不足上限时展示实�
 
 颜色选项按 UI 稿展示，包括 `All`、`Red`、`Brown`、`Blue`、`Green`、`Pink`、`Black`。
 
+移动端颜色栏单行横向滚动。可用颜色选项超出屏幕宽度时，用户可左滑查看更多颜色（包括后方的 `Pink`、`Black`），也可右滑返回前面的选项。PC 与移动端使用相同的颜色选项及下述有无商品判断规则；横向滑动仅改变颜色栏的可视范围，点击颜色后才执行筛选。
+
 颜色匹配及集合页筛选回显复用《Collection Landing PRD v1.6》§2.10.1、§4.5.5 的 Color Dictionary，以 `color_code` 识别颜色，展示名称与色值读取对应的 `display_name`、`color_hex`。首次进入默认选中 `All`，表示整个专题集合。
 
 点击颜色，在当前专题页内筛选商品区，上方图文内容保持不变。筛选后的商品保持集合中的相对顺序，并沿用本节的展示上限。
@@ -123,6 +125,13 @@ PC 最多展示 8 件，移动端最多展示 6 件；不足上限时展示实�
 
 专题页面展示不代表用户已经看到页面底部商品区。颜色切换、组件重绘及商品请求重试不新增页面访问记录。相同操作已有公共组件事件时补齐专题来源，不重复发送一条同义事件。
 
-专题稳定标识为 `the-color-archive`。两项点击的 `module_id`、`interaction_name`、`action`、`element_id`、`target_id` 统一按《Looply 数据采集与埋点产品需求 v1.9》§8.4“色彩专题”映射执行；颜色使用 2.2 的 `color_code`，`All` 使用 `all`，不使用翻译后的标签作为标识。
+专题稳定标识为 `the-color-archive`。本专题两项点击的唯一字段映射如下，事件均为 `ui_interaction`：
+
+| 操作 | `module_id` | `interaction_name` | `action` | `element_id` | `target_id` |
+|---|---|---|---|---|---|
+| 用户主动点击 All／颜色入口 | `journal_color_edit` | `journal_color_filter` | `select` | `color_option` | 点击颜色的 `color_code`；All 为 `all` |
+| Shop All 点击 | `journal_color_edit` | `journal_shop_all` | `select` | `shop_all_button` | 已配置的 The Color Archive 集合的实际 `collection_id` |
+
+两项点击均关联专题标识 `the-color-archive`；Shop All 另关联点击时已选颜色的 `color_code`／`all`，与跳转传递的条件一致。颜色标识取自 2.2 的 Color Dictionary，不使用翻译后的标签；集合标识读取已配置集合的实际 ID，不以集合名称或 URL 代替。
 
 验收时核对专题到达及两项点击的成立条件、稳定标识和关联信息；两端、两种语言使用相同业务标识，以终端和语言区分分析。
