@@ -148,7 +148,128 @@ Contact Us 页面保留普通购物咨询。当前国家 C1 生效时才展示 `
 - 主题为 `We received your Looply sell request — {Request ID}`。
 - 选填字段为空时隐藏对应整行；邮件分别展示请求、物品、联系方式和方式对应地址/地点。
 - Seller Agreement 按国家和法务语言读取法律文件当前版本，不使用自动翻译；提交时保存实际同意的版本。
-- 三种方式分别使用已确认的 In-Home Appointment、Visit Looply、Ship To Us 完整邮件模板；模板正文、字段顺序和固定指引以用户端 PRD v0.9 第 6.1 节为当前内容基线。模板变更需在本全量 PRD同步更新，不能只改代码或历史文档。
+- `Brands and details` 合并展示 Brands 和 Additional notes；`Photos uploaded` 展示照片数量或 none。
+
+**In-Home Appointment 模板**
+
+```text
+Hi {{first_name}},
+
+Thanks for choosing Looply.
+
+We’ve received your selling request, and a Looply team member will contact you by phone, text, or email within 24 hours to confirm the next steps.
+
+Here’s a summary of the information you submitted:
+
+YOUR REQUEST
+Request ID: {{request_id}}
+Selling method: {{selling_method}}
+Preferred date: {{preferred_date_or_not_provided}}
+Referral code: {{referral_code_or_not_provided}}
+
+YOUR PIECES
+Categories: {{categories}}
+Brands and details: {{brands_and_details}}
+Photos uploaded: {{photo_count_or_none}}
+
+YOUR CONTACT INFORMATION
+Name: {{full_name}}
+Phone: {{phone}}
+Email: {{email}}
+
+APPOINTMENT ADDRESS
+{{street_address}}
+{{apartment_suite_if_provided}}
+{{city}}, {{state}} {{zip_code}}
+
+Your preferred date is not yet confirmed. A Looply team member will contact you to confirm availability.
+
+At your appointment, we’ll evaluate your pieces, make an offer, and—if you accept—pay you on the spot.
+
+Need to make a change? Simply reply to this email and let us know.
+
+Warmly,
+The Looply Team
+```
+
+**Visit Looply 模板**
+
+```text
+Hi {{first_name}},
+
+Thanks for choosing Looply.
+
+We’ve received your selling request, and a Looply team member will contact you by phone, text, or email within 24 hours to confirm the next steps.
+
+Here’s a summary of the information you submitted:
+
+YOUR REQUEST
+Request ID: {{request_id}}
+Selling method: {{selling_method}}
+Preferred date: {{preferred_date_or_not_provided}}
+Referral code: {{referral_code_or_not_provided}}
+
+YOUR PIECES
+Categories: {{categories}}
+Brands and details: {{brands_and_details}}
+Photos uploaded: {{photo_count_or_none}}
+
+YOUR CONTACT INFORMATION
+Name: {{full_name}}
+Phone: {{phone}}
+Email: {{email}}
+
+APPOINTMENT LOCATION
+Looply Suit 1720, 6300 Wilshire Blvd
+Los Angeles, CA 90048
+
+Your preferred date is not yet confirmed. Please wait for a Looply team member to confirm your appointment before visiting.
+
+Need to make a change? Simply reply to this email and let us know.
+
+Warmly,
+The Looply Team
+```
+
+**Ship To Us 模板**
+
+```text
+Hi {{first_name}},
+
+Thanks for choosing Looply.
+
+We’ve received your selling request, and a Looply team member will contact you by phone, text, or email within 24 hours to confirm the next steps.
+
+Here’s a summary of the information you submitted:
+
+YOUR REQUEST
+Request ID: {{request_id}}
+Selling method: {{selling_method}}
+Preferred date: {{preferred_date_or_not_provided}}
+Referral code: {{referral_code_or_not_provided}}
+
+YOUR PIECES
+Categories: {{categories}}
+Brands and details: {{brands_and_details}}
+Photos uploaded: {{photo_count_or_none}}
+
+YOUR CONTACT INFORMATION
+Name: {{full_name}}
+Phone: {{phone}}
+Email: {{email}}
+
+SHIPPING ADDRESS
+{{street_address}}
+{{apartment_suite_if_provided}}
+{{city}}, {{state}} {{zip_code}}
+
+A Looply team member will review your request and send you the applicable complimentary shipping instructions.
+
+Need to make a change? Simply reply to this email and let us know.
+
+Warmly,
+The Looply Team
+```
 
 ## 五、C1 运营后台
 
