@@ -148,6 +148,9 @@ Contact Us 页面保留普通购物咨询。当前国家 C1 生效时才展示 `
 - 主题为 `We received your Looply sell request — {Request ID}`。
 - 选填字段为空时隐藏对应整行；邮件分别展示请求、物品、联系方式和方式对应地址/地点。
 - Seller Agreement 按国家和法务语言读取法律文件当前版本，不使用自动翻译；提交时保存实际同意的版本。
+- 确认邮件模板按 `country_code + selling_method + language` 三个维度匹配；`selling_method` 为 `In-Home Appointment`、`Visit Looply` 或 `Ship To Us`。邮件使用用户提交预约时的国家和页面语言，不使用发送时用户当前国家、IP、Cookie 或账号偏好重新计算。
+- 当前版本只提供美国的三种售卖方式模板；美国模板不作为其他国家的默认模板或兜底模板。新国家开放 Sell 前，必须由开发补齐该国家各售卖方式和支持语言的邮件模板，并完成地址、服务说明和法律文案确认；模板不完整时不得开放该国家 Sell。
+- 后台不新增邮件模板编辑入口，模板由开发维护。预约记录保存实际使用的国家、售卖方式、语言和模板版本；人工重发沿用首次发送的模板版本，不因模板后续更新改变历史邮件。
 - `Brands and details` 合并展示 Brands 和 Additional notes；`Photos uploaded` 展示照片数量或 none。
 
 **In-Home Appointment 模板**
