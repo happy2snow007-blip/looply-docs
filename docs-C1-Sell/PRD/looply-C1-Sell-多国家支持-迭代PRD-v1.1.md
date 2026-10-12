@@ -117,7 +117,7 @@ C1 使用全站当前实际生效的站点国家，不自行重新判断国家�
 - Contact Us 隐藏 `Selling to Looply` 和 Sell 联系邮箱，保留 Buy 或其他联系选项。
 
 当前国家满足 Sell 生效条件后，上述位置读取本模块当前国家的配置；入口展示本身不再单独配置启停。
-本条国家级 Sell 开关规则优先于 Footer PRD v0.5 中关于入口单独维护展示或排序的旧规则；本期 C1 入口不增加独立启停配置。
+本条国家级 Sell 开关规则优先于 Footer 历史 PRD 中关于入口单独维护展示或排序的旧规则；本期 C1 入口不增加独立启停配置。
 
 ### 3.4 ZIP Coverage
 
@@ -153,7 +153,7 @@ C1 使用全站当前实际生效的站点国家，不自行重新判断国家�
 
 ## 四、C1 运营后台多国家改造
 
-本章只定义运营后台增加国家维度后的变化。ZIP、Category、Brand 和 Appointment 未发生变化的字段、操作与异常规则分别沿用[运营后台 PRD v1.13 第三至六章](./looply-C1-Sell-运营后台-PRD-v1.13.md#三zip-coverage)；其中其他国家的 Postal Code、地址字段和校验示例不属于本期范围。
+本章只定义运营后台增加国家维度后的变化。ZIP、Category、Brand 和 Appointment 的完整当前规则统一查询[《C1 Sell 产品需求 PRD v1.1（全量版）》](./looply-C1-Sell-产品需求-PRD-v1.1-全量版.md)第五章；本迭代文档不重复维护未发生变化的旧逻辑。
 
 ### 4.1 服务国家
 
@@ -285,7 +285,7 @@ ZIP Coverage 和 Categories & Brands 页面顶部展示当前国家。切换国�
 
 ## 八、关联制品
 
-- 详细后台规则来源：[运营后台 PRD v1.13 第三至六章](./looply-C1-Sell-运营后台-PRD-v1.13.md#三zip-coverage)，仅继承通用规则与美国规则，不继承其他国家的具体地址及 Postal Code 规则
+- 全量当前规则：[C1 Sell 产品需求 PRD v1.1（全量版）](./looply-C1-Sell-产品需求-PRD-v1.1-全量版.md)
 - C1 用户端基线：[用户端 PRD v0.9](./looply-C1-Sell-PRD-v0.9.md)，多国家改造未明确变更的用户端规则继续沿用
 - 后台 Demo：`../原型/looply-C1-Sell-运营后台原型-v1.14.html`
-- Footer 配置：`../../docs-首页/PRD/looply-Footer-PRD-v0.5.md`
+- Footer 配置：`../../docs-首页/PRD/looply-Footer-PRD-v0.7.md`
