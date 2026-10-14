@@ -1,19 +1,19 @@
 # Looply C1 Sell 产品需求 PRD
 
-版本：v1.1（全量版）
-日期：2026-10-12
+版本：v1.2（全量版）
+日期：2026-10-14
 范围：C1 Sell 用户端、运营后台及相关跨模块联动
 
 ## 一、文档职责与基线
 
-本文件维护截至当前已确认的 C1 Sell 全量产品规则，是长期查询和后续迭代合并入口。开发实施本次多国家改造时，先阅读《C1 Sell 多国家支持迭代 PRD v1.1》识别增量，再使用本文件查询完整业务规则。
+本文件维护截至当前已确认的 C1 Sell 全量产品规则，是长期查询和后续迭代合并入口。开发实施本次多国家改造时，先阅读《C1 Sell 多国家支持迭代 PRD v1.2》识别增量，再使用本文件查询完整业务规则。
 
 当前交互基线：
 
 - C1 用户端展示与交互以当前最新 Figma《1.1-C1业务》为准；PRD补充数据来源、状态条件、异常和业务边界。
 - C1 运营后台展示与交互以 [运营后台 Demo v1.14](../原型/looply-C1-Sell-运营后台原型-v1.14.html) 为准。
-- 多国家增量来源：[多国家支持迭代 PRD v1.1](./looply-C1-Sell-多国家支持-迭代PRD-v1.1.md)。
-- 本文件已吸收用户端 PRD v0.9、运营后台 PRD v1.13、批量导入与删除 PRD v1.2 和多国家支持迭代 PRD v1.1 中仍然有效的规则；这些文件保留用于追溯。
+- 多国家增量来源：[多国家支持迭代 PRD v1.2](./looply-C1-Sell-多国家支持-迭代PRD-v1.2.md)。
+- 本文件已吸收用户端 PRD v0.9、运营后台 PRD v1.13、批量导入与删除 PRD v1.2 和多国家支持迭代 PRD v1.2 中仍然有效的规则；这些文件保留用于追溯。
 
 ## 二、产品范围与角色
 
@@ -72,7 +72,7 @@ C1 使用全站当前实际生效的站点国家，不自行重新判断。带�
 | PC Footer | 展示 `SELL` 栏及 C1 入口 | 隐藏整个 `SELL` 栏 |
 | Footer Support | 展示 `Seller FAQ` | 隐藏 `Seller FAQ` |
 | Footer Legal | 展示 `Seller Agreement` | 隐藏 `Seller Agreement` |
-| Contact Us | 展示 `Selling to Looply` 和 Sell 联系邮箱 | 隐藏 Sell 专属内容，保留普通购物咨询 |
+| Contact Us | 展示 `Selling Inquiries` 和 Sell 联系邮箱 | 隐藏出售咨询，保留购物与两类合作咨询 |
 | 个人中心 | 展示 `Seller Agreement` | 隐藏 `Seller Agreement` |
 
 用户直接访问 Sell URL 时仍校验当前国家。未生效时展示服务不可用状态和返回首页入口，不允许开始或提交预约；服务端必须再次校验。
@@ -139,7 +139,7 @@ C1 使用全站当前实际生效的站点国家，不自行重新判断。带�
 
 ### 4.6 Contact Us
 
-Contact Us 页面保留普通购物咨询。当前国家 C1 生效时才展示 `Selling to Looply` 和 Sell 邮箱；未生效时隐藏两者。Sell 咨询提交至 `sell@looply.com`，普通购物咨询提交至 `service@looply.com`。Contact Us 的完整页面、字段和异常规则由 Footer 与关联页面 PRD 定义。
+Contact Us 的分类、邮箱展示及邮件分发统一见[Contact Us PRD v0.3](../../docs-Contact-Us/PRD/looply-Contact-Us-PRD-v0.3.md)。Selling Inquiries 随当前国家 C1 生效状态联动，其他三类咨询不受 Sell 开关影响。
 
 ### 4.7 确认邮件与法律文件
 
@@ -355,7 +355,7 @@ The Looply Team
 ## 八、验收标准
 
 1. C2 未启用国家可以加入 C1 并提前配置，但不能开放 Sell。
-2. C1 未生效国家不展示任何 Sell 入口、Seller FAQ、Seller Agreement、Selling to Looply 或 Sell 邮箱，并拒绝新预约。
+2. C1 未生效国家不展示任何 Sell 入口、Seller FAQ、Seller Agreement、Selling Inquiries 或 Sell 邮箱，并拒绝新预约。
 3. C1 生效国家的 PC、Mobile、Footer、Contact Us 和个人中心入口状态一致。
 4. 用户端 ZIP+4 可输入，覆盖判断只使用前 5 位；后台美国 ZIP 只维护 5 位。
 5. 当前国家只读取本国 Active ZIP、Category 和 Brand，不回退其他国家。
@@ -369,9 +369,9 @@ The Looply Team
 
 ## 九、关联制品
 
-- 本次增量：[C1 Sell 多国家支持迭代 PRD v1.1](./looply-C1-Sell-多国家支持-迭代PRD-v1.1.md)
+- 本次增量：[C1 Sell 多国家支持迭代 PRD v1.2](./looply-C1-Sell-多国家支持-迭代PRD-v1.2.md)
 - 运营后台 Demo：[v1.14](../原型/looply-C1-Sell-运营后台原型-v1.14.html)
 - 用户端历史基线：C1 Sell 用户端 PRD v0.9
 - 运营后台历史基线：C1 Sell 运营后台 PRD v1.13
 - 批量规则历史基线：C1 Sell 运营后台批量导入与删除 PRD v1.2
-- Footer 与 Contact Us 完整页面规则：Looply Footer 与关联页面 PRD
+- Contact Us 完整页面规则：[Contact Us PRD v0.3](../../docs-Contact-Us/PRD/looply-Contact-Us-PRD-v0.3.md)
