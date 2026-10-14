@@ -1,4 +1,4 @@
-# Looply Contact Us PRD v0.3
+# Looply Contact Us PRD v0.4
 
 > 文档状态：产品已确认
 > 版本日期：2026-10-14
@@ -12,13 +12,13 @@ Contact Us 为游客和登录用户提供咨询表单与联系邮箱。PC 从 Fo
 
 ## 二、页面展示
 
-PC 保留当前左右结构：左侧地址与邮箱卡片，右侧联系表单。邮箱卡片标题为 `Email Us`，按第三章顺序纵向展示，每项标题一行、邮箱一行；点击邮箱调用对应 `mailto:`。Mobile 使用单列布局，分类顺序和业务规则与 PC 一致。
+PC 保留当前左右结构：左侧地址与邮箱卡片，右侧联系表单。邮箱卡片标题沿用现有 `Email`，按第三章顺序纵向展示，每项标题一行、邮箱一行；点击邮箱调用对应 `mailto:`。Mobile 使用单列布局，分类顺序和业务规则与 PC 一致。
 
 页面标题为 `Contact Us`。顶部说明保持现状：`If you need any help, please contact us below. We usually respond within 1–2 business days.` 地址、地图及其他公共页面内容沿用现有配置，本次不调整。
 
 ## 三、联系原因与收件邮箱
 
-下拉字段标签及占位文案均为 `What can we help you with?`。以下表格同时定义邮箱卡片标题、下拉选项顺序和收件邮箱，是完整分发规则的唯一位置。
+下拉字段标签及占位文案均为 `What can we help you with?`。以下表格定义邮箱标题下的分类顺序、下拉选项和收件邮箱，是完整分发规则的唯一位置。
 
 | 顺序 | 邮箱分类 / 下拉选项 | 收件邮箱 | 适用咨询 |
 |---|---|---|---|
@@ -77,7 +77,7 @@ PC 保留当前左右结构：左侧地址与邮箱卡片，右侧联系表单�
 
 ## 七、多语言与数据采集
 
-页面标题、标签、分类名称、占位、按钮和提示属于静态 UI 文案，进入 message package；邮箱地址及用户输入不翻译。新增静态文案标识：`contact.email_us`、`contact.topic.shopping`、`contact.topic.selling`、`contact.topic.social_collaborations`、`contact.topic.corporate_partnerships`、`contact.topic.required`，英文分别对应第二至四章文案。
+页面标题、标签、分类名称、占位、按钮和提示属于静态 UI 文案，进入 message package；邮箱地址及用户输入不翻译。新增静态文案标识：`contact.topic.shopping`、`contact.topic.selling`、`contact.topic.social_collaborations`、`contact.topic.corporate_partnerships`、`contact.topic.required`，英文分别对应第二至四章文案。
 
 数据采集沿用《数据采集与埋点产品需求》的 Contact Us 表单提交和邮箱点击规则，不新增另一套事件；分类扩展不改变成功、校验失败和提交失败的业务含义，不采集个人信息和留言原文。
 
