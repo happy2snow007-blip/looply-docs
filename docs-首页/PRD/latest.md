@@ -1,6 +1,6 @@
-# Looply · 首页 PRD v1.9
+# Looply · 首页 PRD v1.10
 
-> 版本：v1.9 | 更新日期：2026-10-08 | 端：Mobile Web + PC Web
+> 版本：v1.10 | 更新日期：2026-10-14 | 端：Mobile Web + PC Web
 > 状态：🔄 迭代中
 
 ## 1. 概述
@@ -110,7 +110,7 @@
 
 ### 5.1 数据与展示
 
-- Banner 读取 CMS `home_banner` 资源位，按当前 Web 端和 locale 展示已生效内容，最多 4 条。
+- Banner 读取 CMS `home_banner` 资源位，按当前 Web 端和 locale 展示已生效内容，最多 14 条。达到 14 条后，CMS 禁用新增入口；存量 Banner 仍可编辑、排序、暂停和删除。
 - Mobile Web 与 PC Web 使用各自配置的图片；每种语言分别保存标题、副标题、标题颜色、副标题颜色、按钮文案和图片 Alt。同一 Banner 的目标类型、目标配置、排序和上线状态跨语言共用。
 - 多条内容以轮播方式展示，分页指示器、切换控件、自动轮播和文本排版以最新 UI 为准。
 - Banner 图片在当前断点内完整适配容器并限制在页面宽度内；具体裁切比例和文本安全区执行最新 UI。
@@ -266,9 +266,9 @@
 |---|---|
 | 首页访问 | `market_id`, `locale`, `terminal` |
 | 首页搜索入口点击 | `terminal`, `entry_action`, `placeholder_type`, `query` |
-| Banner 切换 | `interaction_name=home_banner`, `action=change`, `element_id=banner_dot/banner_swipe`, `position_id=1–4`, `locale_code` |
-| Banner 图片点击 | `interaction_name=home_banner`, `action=select`, `element_id=banner_image`, `target_id`, `position_id=1–4`, `locale_code` |
-| Banner 独立按钮点击 | `interaction_name=home_banner`, `action=select`, `element_id=banner_cta`, `target_id`, `position_id=1–4`, `locale_code`；不得同时发送图片点击 |
+| Banner 切换 | `interaction_name=home_banner`, `action=change`, `element_id=banner_dot/banner_swipe`, `position_id=1–14`, `locale_code` |
+| Banner 图片点击 | `interaction_name=home_banner`, `action=select`, `element_id=banner_image`, `target_id`, `position_id=1–14`, `locale_code` |
+| Banner 独立按钮点击 | `interaction_name=home_banner`, `action=select`, `element_id=banner_cta`, `target_id`, `position_id=1–14`, `locale_code`；不得同时发送图片点击 |
 | PC 导航推荐位曝光 / 点击 | 一方平台使用 `ui_impression` / `ui_interaction`，GA4 使用 `view_promotion` / `select_promotion`；携带 `navigation_id`, `recommendation_id`, `position_id=1–3`，Collection 目标另带稳定 `target_id` |
 | Collection 点击 | `collection_id`, `position` |
 | Feed Tab 切换 | `from_tab_key`, `to_tab_key` |
