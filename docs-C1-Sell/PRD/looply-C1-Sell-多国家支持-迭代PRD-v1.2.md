@@ -96,7 +96,7 @@ C1 使用全站当前实际生效的站点国家，不自行重新判断国家�
 |---|---|---|
 | PC Header | 当前国家 C2 已启用且 Sell 已开放 | 隐藏 Sell |
 | Mobile 底部导航 | 当前国家 C2 已启用且 Sell 已开放 | 隐藏 Sell |
-| PC Footer | 当前国家 C2 已启用且 Sell 已开放 | 隐藏 C1 内容 |
+| PC Footer | 当前国家 C2 已启用且 Sell 已开放 | 隐藏整个 `SELL` 栏（`Sell with Looply`、`Accepted Brands`、`Condition Guidelines`、`In-Home Service Area`）、`SUPPORT` 栏中的 `Seller FAQ`，以及底部法律链接中的 `Seller Agreement`；保留其他非 C1 内容 |
 | Contact Us | 当前国家 C2 已启用且 Sell 已开放 | 隐藏 Sell 联系选项 |
 | 个人中心 | 当前国家 C2 已启用且 Sell 已开放 | 隐藏 Seller Agreement |
 
