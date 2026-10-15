@@ -518,6 +518,20 @@ MODULES = {
             },
         },
     },
+    'landing': {
+        'name': 'Landing 页配置',
+        'default_source': '$HOME/Documents/Looply/outputs/marketing-landing/document-center',
+        'target': 'docs-Landing页配置',
+        'keywords': ['landing', 'Landing', 'Landing 页配置', '营销承接页'],
+        'config_key': None,
+        'sidebar_group': 'C端卖场',
+        'artifacts': {
+            'prototype': {'subdir': '原型', 'pattern': r'looply-社媒分享-Landing页配置-antd-原型-v(\d+)-standalone\.html'},
+            'prd': {'subdir': 'PRD', 'pattern': r'looply-marketing-landing-PRD-v(.+?)\.md'},
+            'delivery': {'subdir': '.', 'pattern': r'Landing页配置-交付开发 V(.+?)\.zip'},
+        },
+        'static_docs': [{'subdir': 'PRD', 'source_subdir': 'PRD', 'filename': 'index.html'}],
+    },
     'social_share': {
         'name': '社媒分享管理',
         'default_source': '$HOME/Desktop/社媒分享',
