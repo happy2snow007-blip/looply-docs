@@ -82,8 +82,8 @@ Slogan 跳转文案和链接均可配置，文案最多 60 字符。编辑时填
 | 保障 | 固定说明 | 支持跳转时的目标 |
 |---|---|---|
 | Authenticity | 3× Money-Back Guarantee | 网站现有鉴定详情页 |
-| Shipping | Free shipping within the contiguous U.S. | 网站现有配送政策详情页 |
-| Returns | Hassle-free returns within 15 days. | 网站现有退货政策详情页 |
+| Shipping | Ships to U.S. & Canada | 网站现有配送政策详情页 |
+| Returns | Easy 15-day returns | 网站现有退货政策详情页 |
 
 PC 横排三项，展示图标、标题和说明；H5 三列展示标题及完整说明。开启跳转时标题后展示箭头，每个保障块为独立点击区，目标由系统维护，PC/H5 共用该选择，点击在新标签页打开。保障展示状态独立于 Slogan、图片。
 
@@ -183,7 +183,7 @@ UI 关联：后台 V6 Demo 的编辑页、列表和生效历史页；后台为 P
 
 - Collection 内容、商品及交互能力完整复用，范围见第 2.3a、2.4 节；对应端能力的接入与联调由开发核对。
 - 依赖短链管理支持创建时带入页面地址、保存 Landing 页关联并查询关联短链；前台需支持按稳定页面标识读取生效配置及缓存更新，并保证配置保存、生效切换与历史记录同时成功。
-- Free Shipping、Easy Returns、3× Money-Back Guarantee 的正式文案、适用范围与条款需在发布前确认。
+- 三个保障的适用范围与条款需在发布前核对；固定展示文案见第 2.3 节。
 - 公共品牌区使用的 Slogan 当前按用户指定文案记录；正式品牌口径需与品牌负责人确认。
 - 网站语言状态、翻译及译文缺失处理复用第 1.5 节规则。
 

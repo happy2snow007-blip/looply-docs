@@ -104,3 +104,8 @@
 - 明确支持动态WebP，上传／存储／分发及预览、历史保持动画，沿用3 MiB限制及整图跳转。
 - 增补主图＋保障、无Slogan组合与验收；现有四模块即可配置，不新增模板字段。
 - 记录用户PC定稿截图；移动端及精确尺寸按源UI稿核对。
+
+### 2026-10-20 · 保障副标题文案
+- Shipping：`Free shipping within the contiguous U.S.` → `Ships to U.S. & Canada`。
+- Returns：`Hassle-free returns within 15 days.` → `Easy 15-day returns`。
+- Authenticity副标题及三个保障的跳转目标不变；调整仅为Landing展示文案，不扩展配送系统能力。
