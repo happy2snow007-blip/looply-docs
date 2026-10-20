@@ -51,7 +51,7 @@ C2 国家状态 = 已启用
 - 新增服务国家默认保存为未开放；C2 未启用时开放操作置灰。
 - C2 启用国家后 Sell 不自动开放，由运营手动开放。
 - 第一版不执行自动业务适配检查；产品、开发和运营在开放前人工确认地址、表单、法律文件及前后台能力已具备。
-- 停用 Sell 需要二次确认。停用后立即隐藏入口并拒绝新预约，配置和历史预约保留。
+- 停用 Sell 需要二次确认。停用成功后服务端立即拒绝新预约，配置和历史预约保留；前台入口在用户刷新页面、重新进入页面或切换国家时按最新状态隐藏。
 - C2 停用或删除已开放 Sell 的国家时，Sell 同步改为未开放；删除或不再提供后停止新的配置写入和预约，已有配置与历史 Appointment 仍可按原国家查询。重新启用后仍需运营再次开放。
 - 对已经打开页面或预约流程的用户不强制关闭页面，但继续下一步和提交时必须重新校验状态。
 
@@ -139,18 +139,17 @@ C1 使用全站当前实际生效的站点国家，不自行重新判断。带�
 
 ### 4.6 Contact Us
 
-Contact Us 的分类、邮箱展示及邮件分发统一见[Contact Us PRD v0.3](../../docs-Contact-Us/PRD/looply-Contact-Us-PRD-v0.3.md)。Selling Inquiries 随当前国家 C1 生效状态联动，其他三类咨询不受 Sell 开关影响。
+Contact Us 的分类、邮箱展示及邮件分发统一见[Contact Us PRD v0.4](../../docs-Contact-Us/PRD/looply-Contact-Us-PRD-v0.4.md)。Selling Inquiries 随当前国家 C1 生效状态联动，其他三类咨询不受 Sell 开关影响。
 
 ### 4.7 确认邮件与法律文件
 
 - 预约记录创建成功后由 `sell@looply.com` 自动发送与 Selling method 匹配的确认邮件；邮件失败不回滚预约。
-- 邮件语言使用提交时页面语言；人工重发沿用首次发送的主题、正文模板、语言和收件邮箱。
 - 主题为 `We received your Looply sell request — {Request ID}`。
 - 选填字段为空时隐藏对应整行；邮件分别展示请求、物品、联系方式和方式对应地址/地点。
 - Seller Agreement 按国家和法务语言读取法律文件当前版本，不使用自动翻译；提交时保存实际同意的版本。
 - 确认邮件模板按 `country_code + selling_method + language` 三个维度匹配；`selling_method` 为 `In-Home Appointment`、`Visit Looply` 或 `Ship To Us`。邮件使用用户提交预约时的国家和页面语言，不使用发送时用户当前国家、IP、Cookie 或账号偏好重新计算。
 - 当前版本只提供美国的三种售卖方式模板；美国模板不作为其他国家的默认模板或兜底模板。新国家开放 Sell 前，必须由开发补齐该国家各售卖方式和支持语言的邮件模板，并完成地址、服务说明和法律文案确认；模板不完整时不得开放该国家 Sell。
-- 后台不新增邮件模板编辑入口，模板由开发维护。预约记录保存实际使用的国家、售卖方式、语言和模板版本；人工重发沿用首次发送的模板版本，不因模板后续更新改变历史邮件。
+- 模板由开发维护。预约记录保存实际使用的国家、售卖方式、语言和模板版本；人工重发沿用首次发送的主题、正文模板及其版本、语言和收件邮箱，不因模板后续更新改变历史邮件。
 - `Brands and details` 合并展示 Brands 和 Additional notes；`Photos uploaded` 展示照片数量或 none。
 
 **In-Home Appointment 模板**
@@ -282,15 +281,16 @@ The Looply Team
 
 ### 5.2 服务国家
 
-列表展示 Country、Country code、C2 country status、Sell status 和操作。新增国家只能从 C2 全部有效且尚未加入 C1 的国家中选择，支持保存为未开放。开放与停用遵循第三章状态规则。
+列表展示 Country、Country code、C2 country status 和 Sell status 四列，通过 Sell status 列内开关调整状态。新增国家只能从 C2 全部有效且尚未加入 C1 的国家中选择，支持保存为未开放。开放与停用遵循第三章状态规则。
 
 ### 5.3 ZIP Coverage
 
-- 列表按当前国家展示 ZIP code、Region、Status、Created at、Updated at 和操作，支持关键词与状态筛选。
+- 列表按当前国家展示 State、City、ZIP code、Status、Updated at 和 Operation，支持关键词搜索。
 - 美国 ZIP 固定为 5 位数字；同一国家内标准化后唯一，不允许重复新增或导入。
 - 支持单条新增、编辑、启停、导出、CSV 导入和批量删除。
+- 新增时填写 ZIP code，City 和 State 由地址查询回填且只读，Status 默认 `Active`；保存前校验当前国家内唯一性，重复 ZIP 阻止保存。
+- 编辑时 ZIP code、City 和 State 只读，仅允许修改 `Active` / `Inactive`；保存成功后更新 `Updated at`。
 - 停用保留记录并立即不参与覆盖判断；编辑或启用时重新校验唯一性。
-- Add ZIP code 成功后新记录插入列表顶部。
 
 ### 5.4 Categories & Brands
 
@@ -299,11 +299,11 @@ The Looply Team
 - 同一国家同一层级内 Category name 唯一；同一国家同一 Category 下 Brand name 唯一，比较时忽略首尾空格和大小写。
 - Category 或 Brand 停用后不出现在用户端选择器和联想结果中；存量 Appointment 保留提交时快照。
 - 删除 Category 时连同当前国家下关联 Brand 一并删除，必须展示影响数量并二次确认。
-- 新增 Category 或 Brand 成功后插入对应列表顶部。
 
 ### 5.5 批量导入、导出和删除
 
 - ZIP 和 Brand 提供 CSV 模板下载与导入；Category 不提供批量导入和批量删除。
+- 尚未定义邮编字段及校验规则的国家，ZIP / Postal Code 导入入口展示规则待配置提示，不执行导入。
 - 导入文件固定为 UTF-8 CSV，首行为表头，单个文件最大 10 MB、5,000 行；空行忽略。文件格式、编码或文件级超限时阻止解析，字段错误只使对应行失败。
 - 导入先完成字段、格式、国家归属、重复和冲突校验，再展示总行数、可导入行数、失败行数及逐行原因。文件内重复记录保留首次出现行，其余失败；已存在配置失败且不覆盖。
 - 确认后只写入校验通过的行，允许部分成功；完成后展示成功数、失败数并提供包含原始行号、关键字段和失败原因的明细下载。
@@ -322,7 +322,7 @@ The Looply Team
 ### 5.6 Appointments
 
 - 默认展示全部国家，可切换单一国家；支持 Request ID、Full name、Email 关键词和 Submitted at 日期筛选。日期默认最近 7 天并包含起止日，按 `America/New_York` 自然日边界计算并适配夏令时；起始日期晚于结束日期时阻止查询。
-- 列表展示 Request ID、Country、Submitted at、Selling method、Name、Email、Phone、Categories、Brands、Total pieces、Confirmation email status 和操作。
+- 列表展示 Request ID、Country、Full name、Email、Selling method、Categories、Brands、Total pieces、ZIP / State、Preferred date、Submitted at、Confirmation email status 和 View；ZIP / State 展示最终履约地址，Visit Looply 固定为 `90048 / CA`，未填写 Preferred date 时展示 `—`。Phone 在只读详情和导出中展示。
 - Download 导出当前国家、关键词和日期共同命中的全部记录，每行一条预约；无匹配时置灰。
 - CSV 包含 Request、Personal information、Item information、ZIP recommendation、Method information、Confirmation email 和 Internal note 字段，不包含照片文件、照片链接或 Attachment ID。
 - CSV 字段顺序固定：Request 为 Request ID、Country、Submitted at、Selling method；Personal information 为 First name、Last name、Phone、Email、Contact authorization result、Contact authorization accepted at；Item information 为 Categories、Brands、Total pieces、Additional notes；ZIP recommendation 为 Step 3 submitted ZIP、In-Home coverage result；Method information 为 Street address、Apartment、City、State、ZIP code、Looply address、Preferred date、Referral code、Seller Agreement acceptance result、Seller Agreement version、Seller Agreement accepted at；Confirmation email 为 status、Last attempted at、Failure reason；Internal note 为正文、created at、updated at、operator。不适用字段留空。
@@ -338,7 +338,7 @@ The Looply Team
 - Appointment 保存提交时国家以及 Category、Brand、ZIP、Seller Agreement 版本与同意结果的快照；后续改名、停用或删除配置不改写历史预约。
 - 国家之间不回退 ZIP、Category、Brand、预约或入口配置。
 - Category name 属于动态业务内容，使用 `seller_category` 翻译资源，`fieldName=name`，覆盖 Accepted Brands 与预约 Step 2；译文缺失时回退英语。Brand name 属于专有名称，不翻译；普通 UI 文案使用统一 message package。
-- Seller Agreement 使用法务提供的对应语言正文，不进入自动翻译。
+- Seller Agreement 的语言及版本规则见 §4.7。
 - 后台当前使用同一 C1 运营角色；无编辑权限时只读，隐藏或禁用保存、导入、删除、启停和邮件重发操作。
 - Appointments 中的姓名、电话、邮箱、地址和照片仅向已登录且有权限的运营人员提供；照片只在详情受控访问，不进入 CSV。
 - 上线前缺少 `country_code` 的 ZIP、Category、Brand 和 Appointment 统一归属美国；美国 Sell 初始状态为开放，并保留存量配置的启停、排序和历史 Appointment。
@@ -347,6 +347,9 @@ The Looply Team
 ## 七、异常与一致性
 
 - 网络或保存失败时保留用户输入，不将失败操作显示为成功。
+- 国家切换请求失败时保留原国家和原数据，不展示目标国家的部分结果。
+- C2 国家状态或当前国家配置读取失败时展示加载失败和 Retry，并禁止提交新预约；不展示其他国家数据作为回退。
+- 状态保存、排序、导入或删除失败时保留当前输入或恢复原状态，并提供 Retry；已提交任务的重试归属及防重复规则见 §5.5。
 - 同一记录被他人修改或删除时，阻止旧数据覆盖，提示刷新后重试。
 - 当前国家失效时终止新的配置写入和预约创建，历史数据仍可按权限查询。
 - 前台入口状态、直接访问校验和预约提交接口必须消费同一 Sell 生效结果。
@@ -360,7 +363,7 @@ The Looply Team
 4. 用户端 ZIP+4 可输入，覆盖判断只使用前 5 位；后台美国 ZIP 只维护 5 位。
 5. 当前国家只读取本国 Active ZIP、Category 和 Brand，不回退其他国家。
 6. 预约保存提交国家；切换国家后草稿、配置、列表、详情和导出均正确隔离。
-7. 同一国家重复 ZIP、Category 或 Brand 无法保存；批量导入能够报告重复和失败行。
+7. 同一国家内重复 ZIP 或 Category 无法保存；Brand 在同一国家、同一 Category 内不可重复，不同 Category 可使用同名 Brand。批量导入能够报告重复和失败行。
 8. 启用项停用后立即不参与前台读取，历史预约仍展示提交时快照。
 9. 批量删除只影响明确选中项，超过 500 条时阻止全选；确认、结果和操作日志可核对。
 10. Appointments 能按全部国家或单一国家查询和下载，Country 与完整既有 CSV 字段均正确。
@@ -374,4 +377,4 @@ The Looply Team
 - 用户端历史基线：C1 Sell 用户端 PRD v0.9
 - 运营后台历史基线：C1 Sell 运营后台 PRD v1.13
 - 批量规则历史基线：C1 Sell 运营后台批量导入与删除 PRD v1.2
-- Contact Us 完整页面规则：[Contact Us PRD v0.3](../../docs-Contact-Us/PRD/looply-Contact-Us-PRD-v0.3.md)
+- Contact Us 完整页面规则：[Contact Us PRD v0.4](../../docs-Contact-Us/PRD/looply-Contact-Us-PRD-v0.4.md)

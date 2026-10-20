@@ -25,7 +25,7 @@ function updateSellCountrySelection(){let country=marketCountries.find(c=>c.code
 function openSellCountry(){let available=marketCountries.filter(c=>!sellCountries.some(s=>s.code===c.code));if(!available.length){alert('C2 业务国家管理中没有可新增的有效国家。');return}openD(`<h2>新增 Sell 服务国家</h2><div class=notice>国家取自 C2 业务国家管理中的全部有效国家。未启用国家可提前配置，但暂不能开放 Sell 业务。</div><div class=field><label><span class=required>*</span> 国家</label><select id=sellCountry onchange="updateSellCountrySelection()"><option value="">请选择国家</option>${available.map(c=>`<option value="${c.code}">${c.name}${c.enabled?'':'（C2 未启用）'}</option>`).join('')}</select></div><div class=field><label>国家代码</label><input id=sellCountryCode class=readonly readonly placeholder="选择国家后自动带出"></div><div class=field><label>C2 国家状态</label><div id=c2CountryStatus class=inline-status>—</div></div><div class=field><label>Sell 业务状态</label><div class=switch-wrap><label class=switch><input id=sellActive type=checkbox disabled onchange="updateSellBusinessStatus()"><span class=slider></span></label><span id=sellActiveLabel class=switch-label>不开放</span></div><div id=sellStatusHelp class=inline-status>请先选择国家。</div></div><div class=service-note><b id=sellImpactTitle>不开放时的影响</b><span id=sellImpactText>可继续配置 ZIP Code、Categories & Brands；前台不展示 Sell 入口，也不接收新预约。</span></div><div class=drawer-actions><button class=small onclick=closeD()>取消</button><button class=primary onclick=saveSellCountry()>保存</button></div>`)}
 function saveSellCountry(){let code=byId('sellCountry').value;if(!code){alert('请选择国家。');return}let country=marketCountries.find(c=>c.code===code);if(!country||sellCountries.some(c=>c.code===code)){alert('该国家不可新增或已经加入 Sell 服务国家。');return}sellCountries.unshift({name:country.name,code:country.code,c2Enabled:country.enabled,active:country.enabled&&byId('sellActive').checked});closeD();render();alert('Sell 服务国家已保存。')}
 function toggleSellCountry(code,active){let country=sellCountries.find(c=>c.code===code);if(!country)return;if(active&&!country.c2Enabled){alert('该国家尚未在 C2 业务国家管理中启用，暂不能开放 Sell 业务。');render();return}if(!active&&!confirm('停用后，该国家将隐藏 Sell 入口并停止接收新预约。已有配置和历史预约继续保留。是否继续？')){render();return}country.active=active;render()}
-const renderV16Base=render;render=function(){renderV16Base();if(page!=='service')return;let rows=sellCountries.map(c=>[c.name,c.code,c.c2Enabled?'<span class="tag green">已启用</span>':'<span class="tag gray">未启用</span>',`<span class=switch-wrap><label class=switch><input type=checkbox ${c.active?'checked':''} ${c.c2Enabled?'':'disabled'} onchange="toggleSellCountry('${c.code}',this.checked)"><span class=slider></span></label><span class=switch-label>${c.active?'已开放':'未开放'}</span></span>`,c.c2Enabled?(c.active?`<button class="small danger" onclick="toggleSellCountry('${c.code}',false)">停用</button>`:`<button class=small onclick="toggleSellCountry('${c.code}',true)">开放</button>`):'<span class=gray>待 C2 启用</span>']);main.innerHTML=`<div class=page-head><div><h1>Sell 服务国家</h1><div class=page-sub>国家来源于 C2 业务国家管理。全部有效国家均可提前配置，只有 C2 已启用国家可以开放 Sell。</div></div><button class=primary onclick=openSellCountry()>＋ 新增国家</button></div><div class=card>${tbl(['国家','国家代码','C2 国家状态','Sell 业务状态','操作'],rows)}<div class=service-note><b>生效规则</b>C2 未启用国家可提前维护 ZIP Code、Categories & Brands，但不能开放 Sell；C2 启用后，仍需运营手动开放 Sell，前台才展示入口并接收新预约。</div></div>`};render();
+const renderV16Base=render;render=function(){renderV16Base();if(page!=='service')return;let rows=sellCountries.map(c=>[c.name,c.code,c.c2Enabled?'<span class="tag green">已启用</span>':'<span class="tag gray">未启用</span>',`<span class=switch-wrap><label class=switch><input type=checkbox ${c.active?'checked':''} ${c.c2Enabled?'':'disabled'} onchange="toggleSellCountry('${c.code}',this.checked)"><span class=slider></span></label><span class=switch-label>${c.active?'已开放':'未开放'}</span></span>`]);main.innerHTML=`<div class=page-head><div><h1>Sell 服务国家</h1><div class=page-sub>国家来源于 C2 业务国家管理。全部有效国家均可提前配置，只有 C2 已启用国家可以开放 Sell。</div></div><button class=primary onclick=openSellCountry()>＋ 新增国家</button></div><div class=card>${tbl(['国家','国家代码','C2 国家状态','Sell 业务状态'],rows)}<div class=service-note><b>生效规则</b>C2 未启用国家可提前维护 ZIP Code、Categories & Brands，但不能开放 Sell；C2 启用后，仍需运营手动开放 Sell，前台才展示入口并接收新预约。</div></div>`};render();
 </script>
 <style>
 .country-context{display:flex;align-items:center;gap:12px;margin:0 0 18px;padding:14px 16px;background:#fff;border:1px solid #e5e7eb;border-radius:8px}.country-context label{font-size:13px;font-weight:600;color:#374151}.country-context select{min-width:220px}.country-context .context-note{font-size:12px;color:#64748b}.country-badge{display:inline-block;padding:3px 8px;border-radius:999px;font-size:12px;background:#f3f4f6;color:#4b5563}.country-badge.on{background:#dcfce7;color:#166534}
@@ -122,7 +122,7 @@ function switchConfigCountryV114(code){
   cats=countryStores[code].cats;
   zipQuery='';catQuery='';brandQuery='';
   selectedZipCodes.clear();
-  selectedBrandIndexes.clear();
+  selectedBrandRecords.clear();
   detail=-1;expandedApp=-1;
   closeD();render();
 }
@@ -153,37 +153,60 @@ confirmDeleteZips=function(){
   selectedZipCodes.clear();closeD();render();alert(`${count} ZIP codes deleted from ${countryName(targetCountry)}.`);
 };
 
-let selectedBrandIndexes=new Set(),selectedBrandContext='';
-function toggleBrandSelection(index,checked){checked?selectedBrandIndexes.add(index):selectedBrandIndexes.delete(index);render()}
+let selectedBrandRecords=new Set(),selectedBrandContext='';
+function toggleBrandSelection(index,checked){
+  let record=cats[detail].b[index];if(!record)return;
+  if(checked&&!selectedBrandRecords.has(record)&&selectedBrandRecords.size>=500){alert('最多选择 500 条，请缩小筛选范围后重试。');render();return}
+  checked?selectedBrandRecords.add(record):selectedBrandRecords.delete(record);render();
+}
+function toggleVisibleBrandsV114(checked){
+  let rows=cats[detail].b.filter(x=>x[0].toLowerCase().includes(brandQuery.toLowerCase()));
+  if(checked&&rows.length>500){alert('最多选择 500 条，请缩小筛选范围后重试。');render();return}
+  selectedBrandRecords.clear();
+  if(checked)rows.forEach(row=>selectedBrandRecords.add(row));
+  render();
+}
 function enhanceBrandSelectionV114(){
   if(page!=='cat'||detail<0)return;
   let context=`${currentConfigCountry}:${detail}:${brandQuery}`;
-  if(context!==selectedBrandContext){selectedBrandIndexes.clear();selectedBrandContext=context}
+  if(context!==selectedBrandContext){selectedBrandRecords.clear();selectedBrandContext=context}
+  for(let record of selectedBrandRecords)if(!cats[detail].b.includes(record))selectedBrandRecords.delete(record);
   let table=main.querySelector('table'),toolbar=main.querySelector('.toolbar');if(!table||!toolbar)return;
-  let head=table.querySelector('thead tr'),th=document.createElement('th');th.textContent='Select';head.insertBefore(th,head.firstChild);
+  let head=table.querySelector('thead tr'),th=document.createElement('th');head.insertBefore(th,head.firstChild);
   let visibleBrands=cats[detail].b.filter(x=>x[0].toLowerCase().includes(brandQuery.toLowerCase()));
-  table.querySelectorAll('tbody tr').forEach((tr,index)=>{if(index>=visibleBrands.length)return;let originalIndex=cats[detail].b.indexOf(visibleBrands[index]),td=document.createElement('td'),cb=document.createElement('input');cb.type='checkbox';cb.checked=selectedBrandIndexes.has(originalIndex);cb.onchange=()=>toggleBrandSelection(originalIndex,cb.checked);td.appendChild(cb);tr.insertBefore(td,tr.firstChild)});
+  let all=document.createElement('input');all.type='checkbox';all.setAttribute('aria-label','Select all matching brands');
+  let selectedVisible=visibleBrands.filter(row=>selectedBrandRecords.has(row)).length;
+  all.checked=visibleBrands.length>0&&selectedVisible===visibleBrands.length;
+  all.indeterminate=selectedVisible>0&&selectedVisible<visibleBrands.length;all.disabled=!visibleBrands.length;
+  all.onchange=()=>toggleVisibleBrandsV114(all.checked);th.appendChild(all);
+  table.querySelectorAll('tbody tr').forEach((tr,index)=>{if(index>=visibleBrands.length)return;let originalIndex=cats[detail].b.indexOf(visibleBrands[index]),td=document.createElement('td'),cb=document.createElement('input');cb.type='checkbox';cb.checked=selectedBrandRecords.has(visibleBrands[index]);cb.onchange=()=>toggleBrandSelection(originalIndex,cb.checked);td.appendChild(cb);tr.insertBefore(td,tr.firstChild)});
   let button=[...toolbar.querySelectorAll('button')].find(b=>b.textContent.trim()==='Delete selected');
-  if(button){button.textContent=selectedBrandIndexes.size?`Delete (${selectedBrandIndexes.size})`:'Delete';button.disabled=!selectedBrandIndexes.size;button.onclick=openDeleteBrandsV114}
+  if(button){button.textContent=selectedBrandRecords.size?`Delete (${selectedBrandRecords.size})`:'Delete';button.disabled=!selectedBrandRecords.size;button.onclick=openDeleteBrandsV114}
 }
 function openDeleteBrandsV114(){
-  let count=selectedBrandIndexes.size;if(!count)return;
+  let count=selectedBrandRecords.size;if(!count)return;
+  if(count>500){alert('最多选择 500 条，请缩小筛选范围后重试。');return}
   let targetCountry=currentConfigCountry,targetCategory=detail;
-  openD(`<h2>Delete selected brands</h2><div class=notice>Target: <b>${countryName(targetCountry)} · ${cats[targetCategory].n}</b><br>Selected records: <b>${count}</b></div><div class=field><label>Type <b>DELETE</b> to confirm</label><input id=deleteConfirm placeholder=DELETE></div><button class="primary danger" onclick="confirmDeleteBrandsV114('${targetCountry}',${targetCategory})">Confirm delete</button>`);
+  let active=[...selectedBrandRecords].filter(record=>record[1]==='Active').length;
+  openD(`<h2>Delete selected brands</h2><div class=notice>Target: <b>${countryName(targetCountry)} · ${cats[targetCategory].n}</b><br>Selected records: <b>${count}</b> · ${active} Active · ${count-active} Inactive<br>Only selected brands in this country and category will be deleted. Historical appointments remain unchanged.</div><div class=field><label>Type <b>DELETE</b> to confirm</label><input id=deleteConfirm placeholder=DELETE></div><button class=small onclick=closeD()>Cancel</button><button class="primary danger" onclick="confirmDeleteBrandsV114('${targetCountry}',${targetCategory})">Confirm delete</button>`);
 }
 function confirmDeleteBrandsV114(targetCountry,targetCategory){
   if(byId('deleteConfirm').value!=='DELETE'){alert('Type DELETE to confirm.');return}
-  let indexes=[...selectedBrandIndexes],count=indexes.length;
-  countryStores[targetCountry].cats[targetCategory].b=countryStores[targetCountry].cats[targetCategory].b.filter((_,i)=>!selectedBrandIndexes.has(i));
+  if(currentConfigCountry!==targetCountry||detail!==targetCategory){alert('Selection context changed. Please select the brands again.');return}
+  if(!selectedBrandRecords.size||selectedBrandRecords.size>500){alert('Select between 1 and 500 brands.');return}
+  let count=selectedBrandRecords.size;
+  countryStores[targetCountry].cats[targetCategory].b=countryStores[targetCountry].cats[targetCategory].b.filter(record=>!selectedBrandRecords.has(record));
   if(currentConfigCountry===targetCountry)cats=countryStores[targetCountry].cats;
-  selectedBrandIndexes.clear();closeD();render();alert(`${count} brands deleted from ${countryName(targetCountry)}.`);
+  selectedBrandRecords.clear();closeD();render();alert(`${count} brands deleted from ${countryName(targetCountry)}.`);
 }
 
 downloadApps=function(){
   let rows=filteredApps();if(!rows.length)return;
-  let csv=['Request ID,Country,Submitted at,First name,Last name,Email,Phone,Contact authorization,Contact authorization accepted at,Selling method,Categories,Brands,Total pieces,Additional notes,Step 3 ZIP,In-Home coverage,Street address,Apartment,City,State,ZIP,Looply address,Preferred date,Referral code,Seller Agreement acceptance,Seller Agreement version,Seller Agreement accepted at,Confirmation email status,Last attempted at,Failure reason,Internal note,Internal note created at,Internal note updated at,Internal note operator'];
-  rows.forEach(x=>csv.push([x.id,countryName(x.countryCode),x.submitted,x.name.split(' ')[0],x.name.split(' ').slice(1).join(' '),x.email,x.phone,'Accepted',x.submitted,x.method,x.cat,x.brand,x.pieces,x.notes||'',x.stepZip,x.coverage,x.method==='Visit Looply'?'':x.street,x.method==='Visit Looply'?'':x.apartment,x.method==='Visit Looply'?'':x.city,x.state,x.zip,x.method==='Visit Looply'?'6300 Wilshire Blvd, Los Angeles, CA 90048':'',x.date,x.ref,x.agreementResult,x.agreementVersion,x.agreementAt,x.mail,x.mailAttempt,x.mail==='Failed'?x.mailError:'',x.internal,x.noteCreated,x.noteUpdated,x.noteOperator].map(v=>'"'+String(v||'').replaceAll('"','""')+'"').join(',')));
+  let csv=['Request ID,Country,Submitted at,Selling method,First name,Last name,Phone,Email,Contact authorization result,Contact authorization accepted at,Categories,Brands,Total pieces,Additional notes,Step 3 submitted ZIP,In-Home coverage result,Street address,Apartment,City,State,ZIP code,Looply address,Preferred date,Referral code,Seller Agreement acceptance result,Seller Agreement version,Seller Agreement accepted at,Confirmation email status,Last attempted at,Failure reason,Internal note,Internal note created at,Internal note updated at,Internal note operator'];
+  rows.forEach(x=>csv.push([x.id,countryName(x.countryCode),x.submitted,x.method,x.name.split(' ')[0],x.name.split(' ').slice(1).join(' '),x.phone,x.email,'Accepted',x.submitted,x.cat,x.brand,x.pieces,x.notes||'',x.stepZip,x.coverage,x.method==='Visit Looply'?'':x.street,x.method==='Visit Looply'?'':x.apartment,x.method==='Visit Looply'?'':x.city,x.state,x.zip,x.method==='Visit Looply'?'6300 Wilshire Blvd, Los Angeles, CA 90048':'',x.date,x.ref,x.agreementResult,x.agreementVersion,x.agreementAt,x.mail,x.mailAttempt,x.mail==='Failed'?x.mailError:'',x.internal,x.noteCreated,x.noteUpdated,x.noteOperator].map(v=>'"'+String(v||'').replaceAll('"','""')+'"').join(',')));
+  let auditEntry={operator:'current.operator@looply.com',country:appointmentCountry,keyword:appQuery,dateFrom,dateTo,count:rows.length};
   let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv.join('\n')],{type:'text/csv;charset=utf-8'}));a.download='appointments.csv';a.click();
+  downloadAudit.push({...auditEntry,downloadedAt:new Date().toISOString()});
 };
 
 const openImportV114=openImport;
@@ -197,21 +220,7 @@ openImport=function(kind){
   let notice=db.querySelector('.notice');if(notice)notice.innerHTML=`Target country: <b>${countryName(targetCountry)}</b><br><a href="#" onclick="alert('Template downloaded for ${countryName(targetCountry)}.');return false">Download current-country template</a> · UTF-8 CSV · maximum 5,000 rows / 10 MB.`;
 };
 
-function viewCountryConfigV114(code){
-  if(!countryStores[code])countryStores[code]={zips:[],cats:[]};
-  currentConfigCountry=code;zips=countryStores[code].zips;cats=countryStores[code].cats;
-  zipQuery='';catQuery='';brandQuery='';selectedZipCodes.clear();selectedBrandIndexes.clear();
-  page='zip';detail=-1;render();
-}
-function enhanceServiceActionsV114(){
-  if(page!=='service')return;
-  main.querySelectorAll('tbody tr').forEach((tr,index)=>{
-    let country=sellCountries[index],cell=tr.lastElementChild;if(!country||!cell)return;
-    let button=document.createElement('button');button.className='small';button.textContent='查看配置';button.style.marginLeft='8px';button.onclick=()=>viewCountryConfigV114(country.code);cell.appendChild(button);
-  });
-}
-
 const renderV114Base=render;
-render=function(){renderV114Base();enhanceBrandSelectionV114();enhanceServiceActionsV114()};
+render=function(){renderV114Base();enhanceBrandSelectionV114()};
 render();
 </script></body></html>

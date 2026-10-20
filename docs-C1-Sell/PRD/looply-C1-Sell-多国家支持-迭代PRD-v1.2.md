@@ -96,9 +96,7 @@ C1 使用全站当前实际生效的站点国家，不自行重新判断国家�
 |---|---|---|
 | PC Header | 当前国家 C2 已启用且 Sell 已开放 | 隐藏 Sell |
 | Mobile 底部导航 | 当前国家 C2 已启用且 Sell 已开放 | 隐藏 Sell |
-| PC Footer | 当前国家 C2 已启用且 Sell 已开放 | 隐藏整个 `SELL` 栏（`Sell with Looply`、`Accepted Brands`、`Condition Guidelines`、`In-Home Service Area`）、`SUPPORT` 栏中的 `Seller FAQ`，以及底部法律链接中的 `Seller Agreement`；保留其他非 C1 内容 |
-| Contact Us | 当前国家 C2 已启用且 Sell 已开放 | 隐藏 Sell 联系选项 |
-| 个人中心 | 当前国家 C2 已启用且 Sell 已开放 | 隐藏 Seller Agreement |
+| PC Footer、Contact Us、个人中心 | 当前国家 C2 已启用且 Sell 已开放 | 具体隐藏范围见 §3.3 |
 
 所有 C1 相关入口和内容统一跟随当前国家的 Sell 业务开关，不再额外设置入口级或内容级 Active 展示条件。Sell 已开放时，各模块读取当前国家的对应配置；Sell 未开放时，隐藏对应 C1 入口和内容。
 
@@ -117,7 +115,6 @@ C1 使用全站当前实际生效的站点国家，不自行重新判断国家�
 - Contact Us 的出售咨询入口随 C1 状态隐藏，其他咨询入口保留；分类名称、邮箱及提交规则统一见[Contact Us PRD v0.4](../../docs-Contact-Us/PRD/looply-Contact-Us-PRD-v0.4.md)第三至五章。
 
 当前国家满足 Sell 生效条件后，上述位置读取本模块当前国家的配置；入口展示本身不再单独配置启停。
-本条国家级 Sell 开关规则优先于 Footer 历史 PRD 中关于入口单独维护展示或排序的旧规则；本期 C1 入口不增加独立启停配置。
 
 ### 3.4 ZIP Coverage
 
@@ -153,7 +150,7 @@ C1 使用全站当前实际生效的站点国家，不自行重新判断国家�
 
 ## 四、C1 运营后台多国家改造
 
-本章只定义运营后台增加国家维度后的变化。ZIP、Category、Brand 和 Appointment 的完整当前规则统一查询[《C1 Sell 产品需求 PRD v1.1（全量版）》](./looply-C1-Sell-产品需求-PRD-v1.1-全量版.md)第五章；本迭代文档不重复维护未发生变化的旧逻辑。
+本章只定义运营后台增加国家维度后的变化。ZIP、Category、Brand 和 Appointment 的完整当前规则统一查询[《C1 Sell 产品需求 PRD v1.2（全量版）》](./looply-C1-Sell-产品需求-PRD-v1.2-全量版.md)第五章；本迭代文档不重复维护未发生变化的旧逻辑。
 
 ### 4.1 服务国家
 
@@ -165,9 +162,8 @@ C1 使用全站当前实际生效的站点国家，不自行重新判断国家�
 | 国家代码 | C2 回填，只读 |
 | C2 国家状态 | 已启用 / 未启用，只读 |
 | Sell 业务状态 | 开放 / 未开放 |
-| 操作 | 开放、停用或查看配置 |
 
-列表中的状态与开放、停用规则以第二章为唯一口径。新增国家默认不开放；C2 已启用后允许运营开放 Sell，后台不额外检查该国家的 C1 业务适配状态，运营须在开放前完成人工上线确认。
+新增国家默认不开放。Sell 业务状态通过列表内开关调整；开放、停用及上线前人工确认规则统一见第二章。
 
 ### 4.2 国家配置上下文
 
@@ -293,7 +289,7 @@ ZIP Coverage 和 Categories & Brands 页面顶部展示当前国家。切换国�
 
 ## 八、关联制品
 
-- 全量当前规则：[C1 Sell 产品需求 PRD v1.1（全量版）](./looply-C1-Sell-产品需求-PRD-v1.1-全量版.md)
-- C1 用户端基线：[用户端 PRD v0.9](./looply-C1-Sell-PRD-v0.9.md)，多国家改造未明确变更的用户端规则继续沿用
+- 全量当前规则：[C1 Sell 产品需求 PRD v1.2（全量版）](./looply-C1-Sell-产品需求-PRD-v1.2-全量版.md)，用户端与后台完整规则分别见第四、第五章
+- 用户端历史来源：[用户端 PRD v0.9](./looply-C1-Sell-PRD-v0.9.md)，仅供追溯
 - 后台 Demo：`../原型/looply-C1-Sell-运营后台原型-v1.14.html`
-- Footer 配置：`../../docs-首页/PRD/looply-Footer-PRD-v0.7.md`
+- Footer 及关联模块：[Footer PRD v0.8](../../docs-首页/PRD/looply-Footer-PRD-v0.8.md)，内容配置由该稿引用《文件配置 PRD v1.0》
