@@ -114,7 +114,7 @@ C1 使用全站当前实际生效的站点国家，不自行重新判断国家�
 - Footer 的 `SUPPORT` 栏隐藏 `Seller FAQ`，保留 `My Account`、`Shipping`、`Returns & Refunds`、`Contact Us` 等非 C1 内容。
 - Footer 底部隐藏 `Seller Agreement`，保留通用法律链接。
 - 个人中心隐藏 `Seller Agreement`。
-- Contact Us 的出售咨询入口随 C1 状态隐藏，其他咨询入口保留；分类名称、邮箱及提交规则统一见[Contact Us PRD v0.3](../../docs-Contact-Us/PRD/looply-Contact-Us-PRD-v0.3.md)第三至五章。
+- Contact Us 的出售咨询入口随 C1 状态隐藏，其他咨询入口保留；分类名称、邮箱及提交规则统一见[Contact Us PRD v0.4](../../docs-Contact-Us/PRD/looply-Contact-Us-PRD-v0.4.md)第三至五章。
 
 当前国家满足 Sell 生效条件后，上述位置读取本模块当前国家的配置；入口展示本身不再单独配置启停。
 本条国家级 Sell 开关规则优先于 Footer 历史 PRD 中关于入口单独维护展示或排序的旧规则；本期 C1 入口不增加独立启停配置。

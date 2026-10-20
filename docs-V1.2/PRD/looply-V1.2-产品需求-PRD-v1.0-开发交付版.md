@@ -6,7 +6,7 @@
 
 ## 1. 交付基线
 
-本文件是 C2 V1.2 的单一开发入口。展示和交互以 [C2 统一 CMS Demo v80](../../../outputs/looply-CMS统一配置入口-antd-原型-v80.html) 为准；业务规则补充引用：首页配置 PRD v1.4、Shop/PC 导航 PRD v1.7、Collection PRD v1.6、Footer PRD v0.7。历史版本仅用于追溯，不作为实现依据。
+本文件是 C2 V1.2 的开发入口。展示和交互以 [C2 统一 CMS Demo v80](../原型/looply-CMS统一配置入口-antd-原型-v80.html) 为准；文件配置改动执行第 4.5 节关联的当前 PRD 与 Demo。业务规则补充引用：首页配置 PRD v1.4、Shop/PC 导航 PRD v1.7、Collection PRD v1.6、[Footer PRD v0.8](../../docs-首页/PRD/looply-Footer-PRD-v0.8.md)。历史版本仅用于追溯，不作为实现依据。
 
 ## 2. 国家与语言上下文
 
@@ -35,7 +35,7 @@
 
 - Footer Shop、Sell、Support 按国家读取，入口名称由翻译系统提供，站内 URL 自动补齐国家和语言路径。
 - Sell 入口、Seller FAQ、Seller Agreement 受国家 Sell 状态控制。
-- Contact Us 页面本身保留；Sell 开放国家展示 `Selling to Looply` 和 Sell 咨询邮箱，未开放国家隐藏两者，只保留普通购物咨询和 `service@looply.com`。服务端必须再次校验 Sell 状态。
+- Contact Us 的四类联系原因、邮箱和提交规则统一执行[Contact Us PRD v0.4](../../docs-Contact-Us/PRD/looply-Contact-Us-PRD-v0.4.md)，国家信息增量执行 Footer v0.8 第五章。
 - 法律文件按国家和法务语言维护，不走自动翻译；FAQ 按国家维护英语原文，进入翻译系统。
 
 ## 4. C2 CMS 页面与交互
@@ -56,9 +56,11 @@
 
 按国家管理 Collection 基础信息、商品池、筛选模块、排序和状态；上线时执行标题、商品池、筛选数量和默认排序校验。前台按当前国家读取，商品卡点击进入商详页。
 
-### 4.5 Footer 管理
+### 4.5 文件配置
 
-Footer 后台包含法律文件、FAQ 和社媒账号三个页签。法律文件类型由开发预置，线上数据库中的当前版本是唯一事实来源。运营可下载当前版本，并通过上传法务确认的 `.docx`、`.html` 或 `.rtf` 富文本发布新版本；系统自动生成版本号，新版本发布后直接成为当前版本，原版本进入历史记录。发布时校验文件来源版本，来源落后则阻止覆盖。法律文件按当前国家和法务语言读取，缺少匹配语言时仅回退当前国家英语版本，不跨国家回退。后台不提供在线修改正文，并保留版本号、发布时间和操作人等审计信息；支持 HTTPS、站内相对路径和同页锚点。FAQ 上传英语富文本后解析为问题列表，覆盖导入按稳定标识保留既有启停、首页精选和排序，追加导入拒绝重复标识；新条目默认启用且不设首页精选。FAQ 的排序、启停、删除和首页精选由页面顶部统一保存；启用项需先停用再确认删除。无启用 FAQ 时独立页显示空状态，无启用且首页精选 FAQ 时隐藏首页模块。社媒账号的平台名称和图标由开发预置，运营按国家配置 Facebook、TikTok、Instagram、YouTube 的账号 URL；URL 有效时前台展示，URL 为空时隐藏，不跨国家回退。
+后台菜单为「文件配置」，按国家维护法律文件、FAQ 和社媒账号。当前完整规则及验收统一引用[文件配置 PRD v1.0](../../docs-首页/PRD/looply-文件配置-PRD-v1.0.md)，交互引用其关联 Demo。
+
+本次文件配置交付止于后台生效内容输出；前端消费与接入证据边界见[技术依赖 Checklist](../../docs-首页/PRD/looply-文件配置-技术依赖Checklist.md)。其他模块的通用启停、删除规则不适用于文件配置中已取消启停的 FAQ。
 
 ## 5. 通用异常与验收
 
@@ -69,8 +71,8 @@ Footer 后台包含法律文件、FAQ 和社媒账号三个页签。法律文件
 
 ## 6. 关联制品
 
-- Demo：[looply-CMS统一配置入口-antd-原型-v80.html](../../../outputs/looply-CMS统一配置入口-antd-原型-v80.html)
+- Demo：[looply-CMS统一配置入口-antd-原型-v80.html](../原型/looply-CMS统一配置入口-antd-原型-v80.html)
 - 首页配置 PRD v1.4
 - Shop/PC 导航 PRD v1.7
 - Collection PRD v1.6
-- Footer PRD v0.7
+- [Footer PRD v0.8](../../docs-首页/PRD/looply-Footer-PRD-v0.8.md)；[文件配置 PRD v1.0](../../docs-首页/PRD/looply-文件配置-PRD-v1.0.md)
