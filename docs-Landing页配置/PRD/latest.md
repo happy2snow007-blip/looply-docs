@@ -18,6 +18,7 @@ Looply 需要为 Google、Meta、TikTok 等广告提供可复用的营销承接�
 - 三个保障支持整体展示及跳转开关。
 - 商品配置继续关联生效 Collection，完整复用标题、副标题、Banner、图文筛、筛选、排序和商品池。
 - 稳定页面地址、投放短链、生效历史、商品详情及购物流程保持原逻辑。
+- 补齐 Landing 页面采集上下文，记录模块实际展示、入口可点击状态及入口点击，复用商品和公共采集链路。
 
 ### 1.3 当前版本不包含
 
@@ -93,7 +94,7 @@ PC 横排三项，展示图标、标题和说明；H5 三列展示标题及完�
 
 前台商品内容区完整读取所选 Collection 当前生效配置。图文筛读取模块开关、图片／文字样式、筛选项、图片、筛选条件及顺序。启用且有可展示项时按配置顺序展示，再次点击当前品牌恢复全部商品；关闭或为空时收起整行。保持已确认的 Landing 布局：无 All 入口，PC 一排最多前 8 项、不换行、无左右箭头；H5 首屏约 4.5 项，可横向滑动，和下方筛选栏紧凑衔接。
 
-其余展示、空态、筛选和商品结果规则复用 [Collection PRD v1.6 §2.5、§4.4](https://happy2snow007-blip.github.io/looply-docs/docs-Collection%E7%AE%A1%E7%90%86/PRD/looply-collection-landing-PRD-v1.6.md)，关联更新与异常见第 2.4 节。
+其余展示、空态、筛选和商品结果规则复用 [Collection PRD v1.6 §2.5、§4.4](https://happy2snow007-blip.github.io/looply-docs/docs-%E9%A6%96%E9%A1%B5/PRD/looply-collection-landing-PRD-v1.6.md)，关联更新与异常见第 2.4 节。
 
 ### 2.4 商品区
 
@@ -101,7 +102,7 @@ PC 横排三项，展示图标、标题和说明；H5 三列展示标题及完�
 
 关联字段下方展示中文操作提示：“可直接关联已有的生效 Collection。如需新建广告专用合集，请先前往 Collection 模块配置，建议名称以 market 开头。”选择器支持按名称搜索，仅展示与 Landing 所属市场一致且状态为「生效」的 Collection。关联后展示 Collection 名称、状态、商品数量和最近更新时间；当前版本只允许关联同市场且生效的 Collection。切换所属市场后，原关联不属于新市场或已非生效状态时清空关联，要求重新选择；原关联仍符合条件时保留。保存时再次校验市场一致性及生效状态，不符合时阻止保存并提示重新选择，保留其他已填写内容。
 
-Landing 后台商品配置仅提供 Collection 关联及只读摘要，不展示商品管理列表或重复配置 Collection 展示内容的表单。商品内容区标题、副标题统一读取关联 Collection 当前生效配置及对应语言内容；市场运营在 Collection 中维护文案，更新后影响所有引用该 Collection 的页面。不同活动需要独立文案时，分别关联活动专用 Collection。商品模块其余内容按第 2.3a 节读取当前生效配置；Collection 更新后，所有关联 Landing 页读取最新配置和商品结果，无需重新保存 Landing。已关联 Collection 后续进入草稿、停用或失效状态时，编辑页回显实际状态并阻止保存；访客端失效、空商品池、筛选无结果及网络异常，复用 [Collection PRD v1.6 §3.4](https://happy2snow007-blip.github.io/looply-docs/docs-Collection%E7%AE%A1%E7%90%86/PRD/looply-collection-landing-PRD-v1.6.md) 的对应页面状态。
+Landing 后台商品配置仅提供 Collection 关联及只读摘要，不展示商品管理列表或重复配置 Collection 展示内容的表单。商品内容区标题、副标题统一读取关联 Collection 当前生效配置及对应语言内容；市场运营在 Collection 中维护文案，更新后影响所有引用该 Collection 的页面。不同活动需要独立文案时，分别关联活动专用 Collection。商品模块其余内容按第 2.3a 节读取当前生效配置；Collection 更新后，所有关联 Landing 页读取最新配置和商品结果，无需重新保存 Landing。已关联 Collection 后续进入草稿、停用或失效状态时，编辑页回显实际状态并阻止保存；访客端失效、空商品池、筛选无结果及网络异常，复用 [Collection PRD v1.6 §3.4](https://happy2snow007-blip.github.io/looply-docs/docs-%E9%A6%96%E9%A1%B5/PRD/looply-collection-landing-PRD-v1.6.md) 的对应页面状态。
 
 商品点击进入现有商品详情页，结算继续使用现有流程。页面返回后保留活动页的浏览入口。
 
@@ -167,6 +168,108 @@ Landing 页列表按「所属市场、页面名称、页面地址、关联 Colle
 
 UI 关联：后台 V6 Demo 的编辑页、列表和生效历史页；后台为 PC 操作，移动端消费生效内容。
 
+### 2.9 页面采集与入口点击
+
+适用范围：PC Web、H5、游客及登录态、所属市场支持的语言。公共采集沿用一方公共实施规则 v1.10、[公共基础字段 v1.2](https://happy2snow007-blip.github.io/looply-docs/docs-%E6%95%B0%E6%8D%AE%E9%87%87%E9%9B%86%E4%B8%8E%E5%9F%8B%E7%82%B9/%E4%B8%80%E6%96%B9%E5%B9%B3%E5%8F%B0%E5%BC%80%E5%8F%91%E5%9F%BA%E7%BA%BF/Looply-v1.4-%E5%85%AC%E5%85%B1%E5%9F%BA%E7%A1%80%E5%AD%97%E6%AE%B5%E9%9C%80%E6%B1%82%E5%AE%9A%E7%A8%BF-v1.2.xlsx)、详细点位 v1.5、GA4 PRD v1.12及国家上下文增量 v0.1。以下只定义Landing增量。
+
+**2.9.1 事件与上报去向**
+
+| 事件 | 触发条件 | 一方 | GA4 | 本次处理 |
+|---|---|---|---|---|
+| 页面浏览 | 实际进入Landing | `page_view` | 现有自动 `page_view` | 一方识别Landing；沿用公共页面采集，图片加载不再补发PV |
+| 页面展示信息 | 生效配置取得、页面内容首次渲染 | 新增 `landing_render_state` | 不发送 | 同一页面实例一次，记录三个模块和五个入口的展示／可点击状态 |
+| 入口点击 | 激活有效主图链接、Slogan入口或保障入口 | 现有 `ui_interaction` | 本期不新增映射 | 五个点位见2.9.3 |
+| 商品曝光 | 沿Collection现有有效曝光条件 | 现有 `item_impression` | 不由一方可视曝光Hook发送 | 增加Landing关联，保留50%可视持续1秒等现行规则 |
+| 商品列表展示 | 沿Collection新列表结果首次展示条件 | 不新增同义事件 | 现有 `view_item_list` | 增加Landing关联 |
+| 商品点击 | 真实点击商品卡 | 现有 `item_click` | 现有 `select_item` | 增加Landing关联，保留现有商品与曝光关联 |
+
+筛选、排序和后续商详／交易行为复用已有事件及前序链。后台配置、实时预览不纳入正式访客采集；GA4沿现行地区门控。
+
+**2.9.2 页面与商品关联字段**
+
+**页面标识增量**
+
+公共字段及采集规则统一沿用本节所引全站契约，本节不重复定义。本期仅为现有 `entities.page.page_id` 增加取值 `landing`，归属既有 `page_type=content`；它标识页面类型，具体Landing由下文的 `landing_id` 区分。
+
+**Landing业务字段**
+
+新增一方实体 `entities.landing_context`，用于展示信息、入口点击、商品曝光及点击；页面浏览能取得时也附加，不能为等配置延迟或重发PV。
+
+| 完整路径 | 类型／取值 | 来源 |
+|---|---|---|
+| `entities.landing_context.landing_id` | string，如 `gucci-picks` | 当前Landing已保存的固定页面地址后缀 |
+| `entities.landing_context.landing_version` | integer ≥1，如 `5` | 本次实际展示的配置版本，不能取后台后来保存的新版本 |
+| `entities.landing_context.collection_id` | string | 当前关联Collection的稳定记录ID，不能用名称代替 |
+| `entities.landing_context.device_type` | `pc / h5` | 当前实际展示组件分支 |
+
+真实访问／点击事件缺字段时保留事实，缺值省略并作为关联缺口验收，不伪造ID或0版本。
+
+GA4现有 `looply_ga4_view_item_list` 和 `looply_ga4_select_item` 增加顶层 `landing_id / landing_version / collection_id` 三个事件参数，值与一方一致。沿用 `page_instance_id / list_instance_id / placement_id`；`items[].item_id`取商品public_code，`items[].item_list_id/item_list_name/index`保持原映射。自动PV早于配置时不要求补版本；页面版本分析以一方为主。
+
+**本次访问来源**
+
+UTM与渠道click ID沿用公共到达触点采集，通过当前 `page_instance_id` 关联该访问的商品和入口事件。不同标签页各自关联来源；不能只靠slug或同Session最后一次渠道区分。GA4沿用其会话来源口径，不额外复制原始click ID到自定义参数。
+
+现有参数透传、实际采集、跨事件关联和两路收数均在提测后核验，当前不视为已接通。
+
+**2.9.3 展示信息与五类入口点击**
+
+**一次展示信息**
+
+事件名 `landing_render_state`，每个 `page_instance_id` 在实际配置内容首次渲染后记录一次。模块“展示”指页面渲染了对应模块，**不要求进入可视区，也不等待图片下载／解码完成**；不使用它评价图片加载成功率。只有配置请求失败、尚未形成页面内容时，不产生展示信息。
+
+| 字段 | 类型及含义 |
+|---|---|
+| `data.modules.hero` | boolean；当前端／语言有图片且图片模块已渲染 |
+| `data.modules.slogan` | boolean；非空Slogan已渲染 |
+| `data.modules.benefits` | boolean；保障模块已渲染 |
+| `data.entries[]` | 恰好五项，每项为下表的 `element_id`、boolean `displayed`、boolean `clickable` |
+
+| element_id | displayed=true条件 | clickable=true条件 |
+|---|---|---|
+| `landing_hero_link` | 主图模块展示 | 主图展示且配置有效跳转链接 |
+| `landing_slogan_link` | Slogan展示且跳转文案、有效链接齐全，入口已渲染 | 同displayed |
+| `landing_authenticity_link` | 保障模块展示 | 保障模块选择支持跳转 |
+| `landing_shipping_link` | 保障模块展示 | 保障模块选择支持跳转 |
+| `landing_returns_link` | 保障模块展示 | 保障模块选择支持跳转 |
+
+五项按表中顺序发送，隐藏项也记录false；clickable为true时displayed必须为true。普通重渲染、滚动、动画帧、图片load/error不再产生展示信息。刷新或重新进入沿公共规则生成新页面实例；筛选／排序不增加展示信息。事件技术重试沿公共去重规则，不能形成第二次展示事实。
+
+**点击**
+
+复用 `event_type=ui_interaction`，新增 `data.interaction_name=landing_navigation`，`data.action=select`；`data.element_id`取上表五个值，复用 `module_id=content_navigation`，并附2.9.2当前源页面上下文。
+
+`data.target_id`：主图／Slogan取当前实际配置目标，站内只取pathname，站外取origin+pathname，去掉query和hash；三个保障依次固定为 `authentication / shipping / returns`。
+
+一次鼠标／触屏／键盘激活只发一次，不因事件冒泡重复；无有效入口不发点击。点击发生即记录，不等目标页加载，不阻塞正常跳转；保留商品既有source_event_id语义。
+
+**2.9.4 点击率**
+
+按Landing、实际配置版本、市场、语言、PC/H5及入口分别统计：
+
+- 分母：展示信息中该入口 `displayed=true && clickable=true` 的去重页面实例数。
+- 分子：这些页面实例中发生该入口点击的去重页面实例数。
+- 同页重复点击保留原始事件，但分子只计一次；分母为0时点击率为空。
+
+点击与展示信息按 `page_instance_id` 及上述维度匹配。关联缺失单列为采集缺口，不补造分母。首期统计的是到访入口点击率，不是可视区有效曝光点击率；图片加载失败等情况不单独修正分母。
+
+**2.9.5 验收清单及样例**
+
+[上报样例](附件/landing-tracking-v0.1-examples.json)给出一方SDK业务载荷片段与GA4 dataLayer示例。`expected_common_fields`是测试中对既有SDK注入值的断言，`example_id`是样例编号，两者均不上报。新增实体／事件及GA4参数需要同步登记到现有接收与映射契约。
+
+| 用例 | 预期结果 |
+|---|---|
+| T01 正常访问 | 公共页面浏览正常；一方page_id=landing；首次内容渲染后展示信息一次；图片load/error、滚动、重渲染不追加；GA不补发手动PV |
+| T02 模块组合 | 覆盖主图＋保障无Slogan、全部隐藏、Slogan无跳转、保障仅展示内容；modules/entries与实际配置及渲染一致 |
+| T03 五入口 | 各激活一次分别得到五种element_id；无效／隐藏入口无点击；键盘、触屏及冒泡不重复；目标不含query/hash |
+| T04 点击率 | 同一可点击入口同页点两次，分母1、分子1；仅展示内容不入分母；未关联展示信息的点击单列缺口 |
+| T05 商品关联 | 一方商品曝光／点击、GA列表展示／点击，Landing、版本、Collection、商品及页面实例均能对应；商品曝光与前序链保持原规则 |
+| T06 来源关联（提测核实） | 同slug投Google与Meta、同Session多标签页，一方商品与点击关联各自访问来源；UTM/click ID采集及透传真实可查，GA按其来源口径验收 |
+| T07 版本和缺参 | 旧页仍报实际展示旧版本，新页报新版本；缺参不伪造，不判关联验收通过；配置失败无默认展示信息 |
+| T08 平台到达（提测验收） | 一方能查询新增实体／展示信息／点击；GA商品事件三个参数真实到达；后台预览排除、地区门控正常 |
+
+PC/H5、支持语言、游客／登录态覆盖上述用例。保留请求及两平台可查询的收数证据；仅样例脚本通过或请求返回2xx不等于实际收数验收通过。
+
 ## 三、页面流转
 
 后台：编辑 Landing 页 → 保存（立即生效）→ Landing 页列表 → 投放链接列表 → 生成投放链接 → 短链管理创建页（带入并锁定页面地址、带入页面关联与备注）→ 创建成功 → 返回关联列表。
@@ -209,6 +312,8 @@ UI 关联：后台 V6 Demo 的编辑页、列表和生效历史页；后台为 P
 | 导航及联系 | 商品、Logo、购物袋及联系入口进入对应现有流程，端内行为沿用现有组件 | 2.4–2.6 |
 | 页面地址 | 名称生成只读后缀，格式及唯一性校验；首次保存后改名、改内容和 Collection 均保持地址 | 2.7 |
 | 投放短链 | 提供复制链接、编辑、删除、查看效果；编辑／查看效果跳转及返回、列表内删除确认及刷新按第 2.7 节验收，覆盖编辑／删除能力不可用、操作成功、取消与失败 | 2.7 |
+| 页面采集补齐 | 页面类型、Landing业务标识、实际配置版本、页面实例及商品关联按2.9记录；不重复建设Collection事件 | 2.9 |
+| 模块状态与点击 | 展示／可点击状态及五类入口点击按同一页面、版本关联；无入口不计点击率分母，不采集可视区有效曝光 | 2.9 |
 | 保存与历史 | 保存立即生效、版本递增、历史只读；四模块及各语言图片、跳转链接可查；失败不改变原配置，重复和冲突按保存规则处理 | 2.8 |
 
 联调验证短链管理现有的 UTM 与重定向参数透传规则在 Landing 目标地址上保持一致，并覆盖普通浏览器、社媒内置浏览器、已安装 App 和社媒爬虫访问。正式服务与异常处理的验收须在真实系统中执行。
@@ -221,6 +326,6 @@ UI 关联：后台 V6 Demo 的编辑页、列表和生效历史页；后台为 P
 | [后台配置及生效历史 Demo V6](https://happy2snow007-blip.github.io/looply-docs/docs-Landing%E9%A1%B5%E9%85%8D%E7%BD%AE/%E5%8E%9F%E5%9E%8B/looply-%E7%A4%BE%E5%AA%92%E5%88%86%E4%BA%AB-Landing%E9%A1%B5%E9%85%8D%E7%BD%AE-antd-%E5%8E%9F%E5%9E%8B-v6-standalone.html) | 当前后台配置、实时预览、保存和历史结构 |
 | [可独立打开的 Demo V6](https://happy2snow007-blip.github.io/looply-docs/docs-Landing%E9%A1%B5%E9%85%8D%E7%BD%AE/%E5%8E%9F%E5%9E%8B/looply-%E7%A4%BE%E5%AA%92%E5%88%86%E4%BA%AB-Landing%E9%A1%B5%E9%85%8D%E7%BD%AE-antd-%E5%8E%9F%E5%9E%8B-v6-standalone.html) | 当前单文件演示版 |
 | [旧版四端 UI 总览](https://happy2snow007-blip.github.io/looply-docs/docs-Landing%E9%A1%B5%E9%85%8D%E7%BD%AE/UI/looply-landing-latest-ui-4up.png) | V5 历史参考，不覆盖当前四模块及整图跳转方案；当前确认依据为 2026-10-16 用户确认的四模块规则和 V6 Demo |
-| [Collection PRD v1.6](https://happy2snow007-blip.github.io/looply-docs/docs-Collection%E7%AE%A1%E7%90%86/PRD/looply-collection-landing-PRD-v1.6.md) | Collection 数据、筛选与商品能力依赖 |
+| [Collection PRD v1.6](https://happy2snow007-blip.github.io/looply-docs/docs-%E9%A6%96%E9%A1%B5/PRD/looply-collection-landing-PRD-v1.6.md) | Collection 数据、筛选与商品能力依赖 |
 
 Demo 为本地演示，Collection 内容、商品和短链采用演示数据；Demo 的编辑流程仅为交互示意，删除在当前列表确认后仅更新本地演示记录，不代表已具备线上删除能力。生产接口及异常验收不由演示数据证明。2026-10-19 用户提供的 PC 定稿截图作为「主图＋保障、无 Slogan」组合参考；精确尺寸按源 UI 标注，Demo 尚未完成定稿视觉验收，移动端定稿未在本次截图中覆盖。实际覆盖范围和未闭合差异统一记录在独立 Review 报告。
