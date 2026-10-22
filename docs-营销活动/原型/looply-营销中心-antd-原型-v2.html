@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Looply 营销中心后台原型 v2</title>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/dayjs@1.11.21/dayjs.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/antd@6.4.3/dist/antd.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/@ant-design/icons@6.2.1/dist/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.28.4/babel.min.js"></script>
+<style>
+html,body,#root{height:100%;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#1F2937}
+#root::before{content:'正在加载 antd 原型……';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#9CA3AF;font-size:14px}
+#root:not(:empty)::before{display:none}
+.lp-kpi{background:linear-gradient(180deg,#FEFCFF 0%,#FCEEEF 100%);border:1px solid #F3C7CF;border-radius:14px;padding:14px 16px}
+.lp-kpi .num{font-size:24px;font-weight:700;color:#A4002A;line-height:1;margin-bottom:6px;font-variant-numeric:tabular-nums}
+.lp-kpi .label{font-size:12px;color:#6B7280}
+.lp-pagination{display:flex;align-items:center;justify-content:center;gap:24px;padding:12px 16px;font-size:13px;color:#6B7280}
+.lp-pagination .divider{width:1px;height:20px;background:#E5E7EB}
+.lp-tip-trigger{cursor:help;border-bottom:1px dashed #9CA3AF;padding-bottom:1px}
+.lp-note{padding:14px;border-radius:10px;background:#FCEEEF;border:1px solid #F3C7CF;color:#A4002A;font-size:12px;line-height:1.8}
+.lp-note-sm{padding:10px 14px;background:#FCEEEF;border:1px solid #F3C7CF;border-radius:8px;font-size:12px;color:#A4002A}
+.lp-section{font-size:15px;font-weight:600;color:#1F2937;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #E5E7EB}
+.lp-oplog-title{font-size:14px;font-weight:700;color:#A4002A;margin:24px 0 12px}
+.lp-empty{display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center}
+.lp-empty .icon{font-size:48px;margin-bottom:16px;color:#9CA3AF}
+.lp-empty .icon.err{color:#DC2626}
+.lp-empty .title{font-size:16px;font-weight:600;color:#1F2937;margin-bottom:8px}
+.lp-empty .desc{font-size:13px;color:#6B7280;margin-bottom:24px;max-width:360px}
+.lp-form-row{display:flex;gap:16px;margin-bottom:12px;align-items:center}
+.lp-form-row:first-of-type{margin-top:8px}
+.lp-form-row .lp-form-label{width:96px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0}
+.lp-form-row .lp-form-label .req{color:#DC2626;margin-right:4px}
+.lp-form-row .lp-form-control{flex:1}
+.lp-helper{font-size:12px;color:#9CA3AF;margin:-4px 0 12px 112px}
+.lp-module{margin-bottom:24px}
+.lp-module:last-child{margin-bottom:0}
+.lp-detail{display:grid;grid-template-columns:120px 1fr;gap:10px 16px;font-size:13px;margin-bottom:20px;align-content:start}
+.lp-detail .dl{color:#6B7280;text-align:right}
+.lp-detail .dv{color:#1F2937}
+.lp-offer-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin:12px 0 22px}
+.lp-offer-detail-head h2{font-size:20px;line-height:28px;margin:0 0 5px;font-weight:600}
+@media(max-width:800px){.lp-offer-detail-head{display:block}.lp-offer-detail-actions{margin-top:16px}}
+.lp-code{font-family:Menlo,Monaco,Consolas,monospace;font-size:12px;color:#374151;background:#F3F4F6;padding:1px 6px;border-radius:4px}
+/* v23:指定买家邮箱清单。数量多时内部滚动,避免撑爆详情页;每行一个便于逐个核对 */
+.lp-maillist{margin-top:6px;max-height:150px;overflow-y:auto;display:flex;flex-direction:column;
+gap:4px;align-items:flex-start}
+.lp-maillist .lp-code{word-break:break-all}
+/* 只读链接展示块:刻意不用 Input,避免运营以为可以手改(链接由落地页自动生成) */
+.lp-linkbox{flex:1;min-width:0;font-family:Menlo,Monaco,Consolas,monospace;font-size:12px;color:#374151;
+background:#F3F4F6;border:1px solid #E5E7EB;border-radius:6px;padding:5px 10px;line-height:20px;
+word-break:break-all;user-select:all}
+.lp-display-workspace{display:block}
+.lp-display-editor{min-width:0}
+.lp-display-editor .lp-display-period{border:1px solid #E5E7EB;border-radius:8px;padding:18px;margin:12px 0 16px 112px;min-width:0}
+.lp-display-editor .lp-display-period .lp-form-control{min-width:0}
+.lp-display-preview-panel{border:1px solid #E5E7EB;border-radius:10px;padding:18px;background:#fff;min-width:0;margin:24px 0 0 112px}
+.lp-display-preview-panel .lp-preview-controls{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:14px 0 16px}
+.lp-preview-scenes{display:grid;grid-template-columns:minmax(230px,310px) minmax(350px,1fr);gap:18px;align-items:start}
+.lp-preview-scene{min-width:0;border:1px solid #E5E7EB;border-radius:8px;padding:14px;background:#FAFAFA}
+.lp-preview-scene-title{font-size:13px;font-weight:600;color:#1F2937;margin-bottom:12px}
+.lp-preview-product-card{background:#fff;border:1px solid #E5E7EB;max-width:270px}
+.lp-preview-product-media{height:245px;position:relative;background:#F7F7F7;overflow:hidden}
+.lp-preview-product-media img{width:100%;height:100%;object-fit:contain}
+.lp-preview-card-badge{position:absolute;right:9px;top:9px;max-width:130px;min-height:24px;background:#A4002A;color:#fff;font-size:9px;font-weight:700;letter-spacing:.05em;padding:6px 8px;text-align:center}
+.lp-preview-card-badge img{max-width:120px;max-height:28px;display:block;object-fit:contain}
+.lp-preview-product-copy{padding:11px;font-size:11px;line-height:1.45}
+.lp-preview-pdp{background:#fff;border:1px solid #E5E7EB;padding:14px;min-height:250px}
+.lp-preview-pdp-heading{font-size:13px;font-weight:600;line-height:1.4;margin:5px 0 12px}
+.lp-preview-campaign-belt{display:flex;align-items:stretch;justify-content:space-between;gap:16px;min-height:94px;padding:14px;background:linear-gradient(105deg,#A4002A,#C0002F 62%,#8D0023);color:#fff;background-size:cover;background-position:center}
+.lp-preview-belt-price{font-size:11px;line-height:1.5;align-self:center;max-width:48%}
+.lp-preview-belt-entry{border:0;border-left:1px solid rgba(255,255,255,.4);background:transparent;color:#fff;padding:0 0 0 14px;text-align:right;min-width:125px;max-width:48%;font-size:12px;font-weight:700;overflow-wrap:anywhere}
+.lp-preview-belt-entry small{display:block;font-size:10px;font-weight:500;margin-top:7px;line-height:1.35}
+@media(max-width:980px){.lp-preview-scenes{grid-template-columns:1fr}.lp-preview-product-card{max-width:310px}}
+@media(max-width:700px){.lp-display-editor .lp-display-period,.lp-display-preview-panel{margin-left:0}.lp-display-editor .lp-form-row{align-items:flex-start}.lp-display-editor .lp-form-row .lp-form-label{width:72px}.lp-display-editor .lp-form-row .lp-form-control{min-width:0}.lp-display-editor .lp-helper{margin-left:88px}}
+:focus-visible{outline:none;box-shadow:inset 0 0 0 2px rgba(164,0,42,.4)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo } = React;
+const {
+  ConfigProvider, Layout, Menu, Card, Table, Button, Input, InputNumber, Select, Radio,
+  Checkbox, DatePicker, Tag, Tooltip, Modal, Alert, Space, Breadcrumb, Tabs, Divider, Drawer, Badge, Upload
+} = antd;
+const {
+  AppstoreOutlined, GiftOutlined, TagsOutlined, UnorderedListOutlined, ShoppingOutlined,
+  PlusOutlined, SearchOutlined, ReloadOutlined, EllipsisOutlined, InboxOutlined,
+  ExclamationCircleOutlined, ClockCircleOutlined, DollarOutlined, GlobalOutlined,
+  PercentageOutlined, DownloadOutlined, AlertOutlined, SettingOutlined, UploadOutlined, CopyOutlined
+} = icons;
+const { Dropdown, message } = antd;
+
+const noop = () => {};
+const LOGO_SRC = "data:image/png;base64,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";
+
+/* ===== 主题 ===== */
+const looplyTheme = {
+  token: {
+    colorPrimary: '#A4002A', colorInfo: '#A4002A', colorBgLayout: '#F9FAFB',
+    colorBgContainer: '#FFFFFF', colorText: '#1F2937', colorTextSecondary: '#374151',
+    colorTextTertiary: '#4B5563', colorTextDescription: '#6B7280', colorTextPlaceholder: '#9CA3AF',
+    colorBorder: '#E5E7EB', colorBorderSecondary: '#F3F4F6', colorSuccess: '#16A34A',
+    colorWarning: '#D97706', colorError: '#DC2626', borderRadius: 8, borderRadiusLG: 14,
+    borderRadiusSM: 6, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: 14, controlHeight: 34, controlHeightSM: 28,
+  },
+  components: {
+    Layout: { headerBg: '#FFFFFF', headerHeight: 60, headerPadding: '0 24px', siderBg: '#FFFFFF', bodyBg: '#F9FAFB' },
+    Menu: { itemBg: 'transparent', subMenuItemBg: 'transparent', itemHoverBg: 'rgba(0,0,0,.03)',
+      itemSelectedBg: '#FCEEEF', itemSelectedColor: '#A4002A', itemBorderRadius: 0, itemMarginInline: 0,
+      itemMarginBlock: 0, itemHeight: 40, subMenuItemBorderRadius: 0 },
+    Card: { borderRadiusLG: 16, paddingLG: 28 },
+    Table: { headerBg: '#FFFFFF', headerColor: '#6B7280', rowHoverBg: '#FFF5F5', borderColor: '#E5E7EB',
+      headerSplitColor: 'transparent', cellFontSize: 13, cellFontSizeMD: 13, cellFontSizeSM: 13,
+      cellPaddingBlock: 11, cellPaddingInline: 12, cellPaddingBlockSM: 9, cellPaddingInlineSM: 12,
+      headerBorderRadius: 0 },
+    Tag: { defaultBg: '#F3F4F6', defaultColor: '#6B7280' },
+    Tabs: { itemSelectedColor: '#A4002A', itemHoverColor: '#374151', inkBarColor: '#A4002A' },
+    Steps: { colorPrimary: '#A4002A' },
+    Button: { controlHeight: 34, paddingInline: 14, fontSize: 13 },
+    Input: { controlHeight: 34, paddingInline: 12 }, Select: { controlHeight: 34 },
+    DatePicker: { controlHeight: 34 }, Modal: { borderRadiusLG: 16, paddingContentHorizontalLG: 28 },
+  },
+};
+const CARD_STYLE = { boxShadow: '0 10px 24px rgba(16,24,40,.06)', marginBottom: 20 };
+const TABLE_STYLES = { root: { borderRadius: 14, border: '1px solid #E5E7EB', overflow: 'hidden' } };
+const SIDER_STYLE = { boxShadow: '3px 0 12px rgba(0,0,0,0.06)', padding: '8px 0', overflowY: 'auto', height: '100%' };
+
+/* ===== 业务组件 ===== */
+const TAG_COLORS = {
+  on: { bg: '#F0FDF4', color: '#16A34A' }, sale: { bg: '#EFF6FF', color: '#2563EB' },
+  pending: { bg: '#FFFBEB', color: '#D97706' }, off: { bg: '#F3F4F6', color: '#6B7280' },
+  req: { bg: '#FEF2F2', color: '#DC2626' }, warn: { bg: '#FFF1F2', color: '#E11D48' },
+};
+function StatusTag({ variant, children }) {
+  const c = TAG_COLORS[variant] || TAG_COLORS.off;
+  return <Tag bordered={false} style={{ background: c.bg, color: c.color, borderRadius: 999,
+    padding: '2px 8px', fontSize: 12, lineHeight: '18px', marginInlineEnd: 4 }}>{children}</Tag>;
+}
+function Kpi({ num, label }) {
+  return <div className="lp-kpi"><div className="label" style={{ marginBottom: 6 }}>{label}</div>
+    <div className="num">{num}</div></div>;
+}
+function TipText({ label, tip }) {
+  return <Tooltip title={<div style={{ whiteSpace: 'pre-line', lineHeight: 1.6 }}>{tip}</div>}
+    color="#fff" styles={{ body: { color: '#374151', fontSize: 12, padding: '10px 14px' } }}>
+    <span className="lp-tip-trigger">{label}</span></Tooltip>;
+}
+function CompactPagination({ total, current = 1, pageSize = 10, onChange, onPageSizeChange }) {
+  const tp = Math.ceil(total / pageSize) || 1;
+  const pages = [];
+  pages.push({ k: 'prev', label: '<', arrow: true, disabled: current === 1 });
+  for (let i = 1; i <= tp; i++) pages.push({ k: i, label: i });
+  pages.push({ k: 'next', label: '>', arrow: true, disabled: current === tp });
+  return <div className="lp-pagination">
+    <span>共 {total.toLocaleString()} 条,每页{' '}
+      <Select size="small" value={pageSize} onChange={onPageSizeChange} style={{ width: 72, marginInline: 4 }}
+        options={[{ value: 10, label: 10 }, { value: 20, label: 20 }, { value: 50, label: 50 }]} />{' '}条</span>
+    <div className="divider" />
+    <Space size={2}>{pages.map(p => <span key={p.k} onClick={() => !p.disabled && onChange?.(p.k === 'prev' ? current - 1 : p.k === 'next' ? current + 1 : p.k)} style={{ minWidth: 32, height: 32, display: 'inline-flex',
+      alignItems: 'center', justifyContent: 'center', borderRadius: 8, fontSize: 13,
+      cursor: p.disabled ? 'default' : 'pointer', background: p.k === current ? '#A4002A' : (p.arrow ? '#fff' : 'transparent'),
+      color: p.k === current ? '#fff' : '#374151', border: p.arrow ? '1px solid #E5E7EB' : 'none',
+      fontWeight: p.k === current ? 600 : 400, opacity: p.disabled ? 0.35 : 1 }}>{p.label}</span>)}</Space>
+    <div className="divider" /><span>第 {current}/{tp} 页</span></div>;
+}
+function EmptyZero({ onCta }) {
+  return <div className="lp-empty"><InboxOutlined className="icon" />
+    <div className="title">暂无促销活动</div>
+    <div className="desc">点击下方按钮创建第一个 Amount off products 折扣</div>
+    <Button type="primary" onClick={onCta}>新建折扣</Button></div>;
+}
+function EmptyNoMatch({ onClear }) {
+  return <div className="lp-empty"><SearchOutlined className="icon" />
+    <div className="title">未找到匹配结果</div>
+    <div className="desc">请尝试调整搜索关键词或筛选条件</div>
+    <Button onClick={onClear}>清除筛选条件</Button></div>;
+}
+function EmptyError({ onRetry }) {
+  return <div className="lp-empty"><ExclamationCircleOutlined className="icon err" />
+    <div className="title">加载失败</div>
+    <div className="desc">网络异常,请检查网络连接后重试</div>
+    <Button type="primary" onClick={onRetry}>重试</Button></div>;
+}
+function EmptyStateSwitcher({ mode, setMode }) {
+  return <div style={{ marginTop: 12, display: 'flex', gap: 8, justifyContent: 'center' }}>
+    {[['data', '正常数据'], ['zero', '零数据态'], ['no-match', '无匹配态'], ['error', '异常态']].map(([k, label]) =>
+      <Button key={k} type={mode === k ? 'primary' : 'default'} onClick={() => setMode(k)}>{label}</Button>)}</div>;
+}
+function FormRow({ label, required, children, helper }) {
+  return <><div className="lp-form-row">
+    <div className="lp-form-label">{required && <span className="req">*</span>}{label}</div>
+    <div className="lp-form-control">{children}</div></div>
+    {helper && <div className="lp-helper">{helper}</div>}</>;
+}
+/* 通用列表页：统一活动列表与后续聚合列表的导航、空态和分页行为。 */
+function ListPage({ title, desc, headActions, kpis, filters, columns, data, total,
+                    entity, createKey, go, scrollX, pagination }) {
+  const [mode, setMode] = useState('data');
+  return <Card style={CARD_STYLE}>
+    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:16, marginBottom:18 }}>
+      <div><div style={{ fontSize:20, fontWeight:700, marginBottom:6 }}>{title}</div>
+        {desc && <div style={{ color:'#6B7280', fontSize:13 }}>{desc}</div>}</div>
+      <div>{headActions}</div></div>
+    {kpis && <div style={{ display:'grid', gridTemplateColumns:'repeat(' + kpis.length + ',1fr)', gap:12, marginBottom:18 }}>
+      {kpis.map(k => <Kpi key={k.label} num={k.num} label={k.label} />)}</div>}
+    {filters && <Space size={12} wrap style={{ marginBottom:16 }}>{filters}</Space>}
+    {mode === 'data' && <><Table rowKey={r => r.id || r.code || r.key} columns={columns} dataSource={data}
+      pagination={false} styles={TABLE_STYLES} scroll={scrollX ? { x:scrollX } : undefined} />
+      <CompactPagination total={total ?? data.length} current={pagination?.current || 1}
+        pageSize={pagination?.pageSize || 10} onChange={pagination?.onChange}
+        onPageSizeChange={pagination?.onPageSizeChange} /></>}
+    {mode === 'zero' && <div className="lp-empty"><InboxOutlined className="icon" />
+      <div className="title">暂无{entity}</div><div className="desc">点击下方按钮创建第一个{entity}</div>
+      {createKey && <Button type="primary" onClick={() => go(createKey)}>新增{entity}</Button>}</div>}
+    {mode === 'no-match' && <EmptyNoMatch onClear={() => setMode('data')} />}
+    {mode === 'error' && <EmptyError onRetry={() => setMode('data')} />}
+    <EmptyStateSwitcher mode={mode} setMode={setMode} />
+  </Card>;
+}
+const DEFAULT_OPLOG = [
+  { i: 1, at: '2026-07-08 15:20', who: 'Lily', type: '编辑', detail: '修改活动名称' },
+  { i: 2, at: '2026-07-02 11:03', who: 'Lucy', type: '发布', detail: '状态:草稿 → 进行中' },
+  { i: 3, at: '2026-06-28 10:12', who: 'Lily', type: '创建', detail: '创建营销活动' },
+];
+function OpLog({ data }) {
+  const list = data || DEFAULT_OPLOG;
+  return <><div className="lp-oplog-title">操作记录</div>
+    <Space size={8} wrap style={{ marginBottom: 12 }}>
+      <Select size="small" defaultValue="" style={{ width: 140 }} options={[
+        { value: '', label: '全部操作类型' }, { value: '创建', label: '创建' }, { value: '编辑', label: '编辑' },
+        { value: '发布', label: '发布' }, { value: '暂停', label: '暂停' }, { value: '结束', label: '结束' }]} />
+      <Select size="small" defaultValue="" style={{ width: 130 }} options={[
+        { value: '', label: '全部操作人' }, { value: 'a', label: 'Lily' }, { value: 'b', label: 'Lucy' }]} />
+      <DatePicker.RangePicker size="small" placeholder={['开始日期', '结束日期']} />
+      <Button size="small" icon={<SearchOutlined />}>查询</Button></Space>
+    <Table size="small" rowKey="i" pagination={false} styles={TABLE_STYLES} columns={[
+      { title: '操作时间', dataIndex: 'at', width: 160 },
+      { title: '操作人', dataIndex: 'who', width: 110 },
+      { title: '操作类型', dataIndex: 'type', width: 100,
+        render: v => <StatusTag variant={v === '创建' ? 'on' : (v === '结束' ? 'off' : 'pending')}>{v}</StatusTag> },
+      { title: '操作详情', dataIndex: 'detail' }]} dataSource={list} />
+    <CompactPagination total={list.length} pageSize={10} /></>;
+}
+
+/* ===== 合并原型：共用市场与范围数据 ===== */
+const PRODUCT_TAGS = [
+  { value: 'TAG10021', label: '夏季新品(TAG10021)' }, { value: 'TAG10034', label: '特价清仓(TAG10034)' },
+  { value: 'TAG10056', label: '热卖单品(TAG10056)' }, { value: 'TAG10078', label: '复古典藏(TAG10078)' },
+];
+const COLLECTIONS = [
+  { value: 'C10001', label: 'Summer Essentials(C10001)', market: '美国' },
+  { value: 'C10002', label: 'Luxury Handbags(C10002)', market: '美国' },
+  { value: 'C10003', label: 'Under $500(C10003)', market: '美国' },
+  { value: 'C10004', label: 'Black Friday 2026(C10004)', market: '美国' },
+  { value: 'C10005', label: 'Creator Picks(C10005)', market: '美国' },
+  { value: 'C20001', label: 'HK New Arrivals(C20001)', market: '香港' },
+];
+const USER_TAGS = [
+  { value: 'UT2002', label: 'VIP 会员(UT2002)' },
+  { value: 'UT2003', label: '高价值用户(UT2003)' }, { value: 'UT2004', label: '沉睡召回用户(UT2004)' },
+  { value: 'UT2005', label: 'APP 活跃用户(UT2005)' },
+];
+/* 优惠继承活动市场：所有可选商品与用户标签均按市场取数，金额使用市场币种。 */
+const BENEFIT_MARKET_OPTIONS = {
+  '美国': {
+    categories:[{value:'bag',label:'箱包'},{value:'shoe',label:'鞋履'}],
+    brands:[{value:'gucci',label:'Gucci'},{value:'prada',label:'Prada'}],
+    tags:PRODUCT_TAGS,
+    listings:[{value:'C10027',label:'C10027 · Gucci 手袋'},{value:'C10012',label:'C10012 · Prada 鞋履'}],
+    userTags:USER_TAGS,
+  },
+  '香港': {
+    categories:[{value:'hk-bag',label:'箱包（香港）'},{value:'hk-watch',label:'腕表（香港）'}],
+    brands:[{value:'chanel',label:'Chanel'},{value:'rolex',label:'Rolex'}],
+    tags:[{value:'TAG-HK-NEW',label:'香港新品(TAG-HK-NEW)'},{value:'TAG-HK-VIP',label:'香港精选(TAG-HK-VIP)'}],
+    listings:[{value:'HK20018',label:'HK20018 · Chanel 手袋'},{value:'HK20031',label:'HK20031 · Rolex 腕表'}],
+    userTags:[{value:'UT-HK-VIP',label:'香港 VIP(UT-HK-VIP)'},{value:'UT-HK-NEW',label:'香港新客(UT-HK-NEW)'}],
+  },
+};
+const STATUS_MAP = {
+  draft: { variant: 'off', label: '草稿' }, scheduled: { variant: 'sale', label: '未开始' },
+  active: { variant: 'on', label: '进行中' },
+  paused: { variant: 'pending', label: '已暂停' }, ended: { variant: 'off', label: '已结束' },
+};
+
+/* ===== 优惠活动 ===== */
+const OFFER_LEVELS = {product:'商品优惠',order:'订单优惠'};
+const OFFER_RULES = [
+  {id:'OFR-BF-30',name:'黑五品类满 $300 减 $30',level:'product',market:'美国',currency:'USD',start:'2026-11-20 00:00',end:'2026-12-01 23:59',channel:'public',trigger:'auto',discountType:'fixed',discountValue:30,scope:'指定品类',scopeType:'category',scopeValues:['bag'],threshold:'满 $300',audience:'全部用户',stackPolicy:'cross',status:'scheduled'},
+  {id:'OFR-BF-60',name:'黑五品类满 $600 减 $60',level:'product',market:'美国',currency:'USD',start:'2026-11-20 00:00',end:'2026-12-01 23:59',channel:'public',trigger:'auto',discountType:'fixed',discountValue:60,scope:'指定品类',scopeType:'category',scopeValues:['bag'],threshold:'满 $600',audience:'全部用户',stackPolicy:'cross',status:'scheduled'},
+  {id:'OFR-BF-120',name:'黑五品类满 $1,000 减 $120',level:'product',market:'美国',currency:'USD',start:'2026-11-20 00:00',end:'2026-12-01 23:59',channel:'public',trigger:'auto',discountType:'fixed',discountValue:120,scope:'指定品类',scopeType:'category',scopeValues:['bag'],threshold:'满 $1,000',audience:'全部用户',stackPolicy:'cross',status:'scheduled'},
+  {id:'OFR-BUNDLE-20',name:'平台合包补贴满 2 件减 $20',level:'order',market:'美国',currency:'USD',start:'2026-11-20 00:00',end:'2026-12-01 23:59',channel:'public',trigger:'auto',discountType:'fixed',discountValue:20,scope:'指定可合包商品',scopeType:'listing',scopeValues:['C10027','C10012'],threshold:'满 2 件',qualifyingScope:'eligible_items',allocationScope:'eligible_items',audience:'全部用户',stackPolicy:'order_exclusive',status:'scheduled'},
+  {id:'OFR-ALICE-30',name:'社媒渠道常规优惠',level:'order',market:'美国',currency:'USD',start:'2026-01-01 00:00',end:'2026-11-19 23:59',channel:'targeted',trigger:'code',codes:['ALICE','MAYA'],discountType:'fixed',discountValue:30,scope:'指定 Collection',scopeType:'collection',scopeValues:['C10005'],threshold:'满 $300',qualifyingScope:'eligible_items',allocationScope:'eligible_items',audience:'全部用户',stackPolicy:'order_exclusive',status:'active'},
+  {id:'OFR-ALICE-40',name:'社媒达人黑五优惠',level:'order',market:'美国',currency:'USD',start:'2026-11-20 00:00',end:'2026-12-01 23:59',channel:'targeted',trigger:'code',codes:['ALICE','MAYA'],discountType:'fixed',discountValue:40,scope:'指定 Collection',scopeType:'collection',scopeValues:['C10005'],threshold:'满 $300',qualifyingScope:'eligible_items',allocationScope:'eligible_items',audience:'全部用户',stackPolicy:'order_exclusive',status:'scheduled'},
+  {id:'OFR-HK-NEW',name:'香港新人首单福利',level:'order',market:'香港',currency:'HKD',start:'2026-11-01 00:00',end:'2027-01-31 23:59',channel:'targeted',trigger:'code',codes:['WELCOMEHK'],discountType:'fixed',discountValue:78,scope:'全部商品',scopeType:'all',scopeValues:[],threshold:'满 HK$500',qualifyingScope:'eligible_items',allocationScope:'eligible_items',audience:'新人',stackPolicy:'order_exclusive',status:'scheduled'},
+];
+/* 新建/详情沿用线上运营字段；核销记录与操作记录为可交互的原型样例数据。 */
+const OFFER_REDEMPTIONS = [
+  {id:'RDM-1001',offerId:'OFR-ALICE-30',at:'2026-10-18 14:23',buyer:'a***@gmail.com',order:'LO-20261018-001',discount:30,status:'effective',code:'ALICE'},
+  {id:'RDM-1002',offerId:'OFR-ALICE-30',at:'2026-10-16 11:05',buyer:'m***@outlook.com',order:'LO-20261016-019',discount:30,status:'effective',code:'MAYA'},
+  {id:'RDM-1003',offerId:'OFR-ALICE-30',at:'2026-10-12 19:48',buyer:'c***@gmail.com',order:'LO-20261012-007',discount:30,status:'reverted',code:'ALICE'},
+];
+const OFFER_OPLOGS = {
+  'OFR-ALICE-30':[
+    {i:'ALICE-2',at:'2026-10-01 09:20',who:'Lily',type:'编辑',detail:'调整优惠码与适用范围'},
+    {i:'ALICE-1',at:'2025-12-20 16:10',who:'Lucy',type:'发布',detail:'发布社媒渠道常规优惠'},
+  ],
+};
+function offerTimezone(market){return market==='香港'?'Asia/Hong_Kong':'America/New_York';}
+function offerRedemptionRows(rule){return OFFER_REDEMPTIONS.filter(row=>row.offerId===rule.id);}
+function offerRedemptionTotal(rule){return offerRedemptionRows(rule).filter(row=>row.status==='effective').length;}
+function offerLog(rule,type,detail){
+  const at=dayjs().format('YYYY-MM-DD HH:mm');
+  OFFER_OPLOGS[rule.id]=[{i:rule.id+'-'+Date.now(),at,who:'当前运营',type,detail},...(OFFER_OPLOGS[rule.id]||[])];
+}
+/* Code 是结算时输入的优惠码，直接随优惠配置；不预设独立码库，也不在此录入达人归因。 */
+function normalizeOfferCodes(rule, values) {
+  if(rule.trigger!=='code') return [];
+  if(!values?.length) throw new Error('请至少填写一个优惠码');
+  const normalized=values.map(value=>String(value||'').trim().toUpperCase());
+  const seen=new Set();
+  normalized.forEach(code=>{
+    if(!code) throw new Error('请填写优惠码');
+    if(seen.has(code)) throw new Error('优惠码重复');
+    seen.add(code);
+  });
+  return normalized;
+}
+/* 订单优惠配对是无方向关系。每次保存同时更新双方；同一订单应用 3 条以上时，任意两条都必须有配对。 */
+function getEligibleOrderPartners(rule, rules=OFFER_RULES) {
+  return rules.filter(other=>other.id!==rule.id&&other.level==='order'&&other.market===rule.market
+    &&other.currency===rule.currency&&other.status!=='ended'
+    &&(!rule.start||!rule.end||(!other.start||!other.end||(rule.start<=other.end&&other.start<=rule.end))));
+}
+function setOrderStackPartners(ruleId, partnerIds, rules=OFFER_RULES) {
+  const rule=rules.find(item=>item.id===ruleId);
+  if(!rule) throw new Error('优惠不存在');
+  const selected=[...new Set(partnerIds||[])];
+  const eligible=new Set(getEligibleOrderPartners(rule,rules).map(item=>item.id));
+  if((rule.level!=='order'&&selected.length)||selected.some(id=>!eligible.has(id))) throw new Error('存在不可叠加的订单优惠');
+  rules.forEach(other=>{
+    if(other.id===ruleId||other.level!=='order') return;
+    const links=new Set(other.stackPartnerIds||[]);
+    links.delete(ruleId);
+    if(selected.includes(other.id)) links.add(ruleId);
+    other.stackPartnerIds=[...links];
+    other.stackPolicy=links.size?'order_stackable':'order_exclusive';
+  });
+  rule.stackPartnerIds=rule.level==='order'?selected:[];
+  if(rule.level==='order') rule.stackPolicy=selected.length?'order_stackable':'order_exclusive';
+  return rule;
+}
+
+/* ===== 营销氛围 ===== */
+/* 营销氛围只控制展示。图片不承载价格或 Save 金额；优惠信息由优惠活动实时判断。 */
+const DISPLAY_ASSET_SLOTS = [
+  {key:'cardPc',label:'商品卡 · PC',ratio:'横向窄条 / 角标'},
+  {key:'cardH5',label:'商品卡 · 移动端',ratio:'窄条 / 角标'},
+  {key:'pdpPc',label:'商详 · PC',ratio:'横向 Banner'},
+  {key:'pdpH5',label:'商详 · 移动端',ratio:'横向 Banner'},
+];
+function demoDisplayArt(label,wide=false) {
+  const w=wide?960:420,h=wide?180:100;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs><linearGradient id="g"><stop stop-color="#45000f"/><stop offset="1" stop-color="#a4002a"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#g)"/><circle cx="${w-70}" cy="${h/2}" r="${h*.75}" fill="none" stroke="#d8aa72" stroke-opacity=".35" stroke-width="2"/><path d="M0 ${h-18} Q ${w/2} ${h-80} ${w} ${h-10}" fill="none" stroke="#d8aa72" stroke-opacity=".55" stroke-width="2"/><text x="28" y="${h/2+9}" fill="white" font-family="Arial,sans-serif" font-size="${wide?34:24}" font-weight="700" letter-spacing="2">${label}</text></svg>`;
+  return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+}
+function displayPeriod(start,end,phase='formal',text,cta,landing='/collections/C10004') {
+  const label=phase==='preheat'?'BLACK FRIDAY PREVIEW':'BLACK FRIDAY';
+  return {start,end,phase,text:text||label,cta:cta||(phase==='preheat'?'探索预热':'探索黑五'),landingType:'collection',landing,assets:{
+    cardPc:demoDisplayArt(label),cardH5:demoDisplayArt(label),
+    pdpPc:demoDisplayArt(label,true),pdpH5:demoDisplayArt(label,true),
+  }};
+}
+const FRONT_DISPLAYS = [
+  {id:'DSP-BF-US',name:'Black Friday 2026 · 前台氛围',market:'美国',status:'scheduled',publishedAt:'2026-10-20 10:00',priority:20,placements:['card','pdp'],text:'BLACK FRIDAY',scope:'引用 3 个商品优惠 + 1 个补充商品',scopeSource:'offer',linkedOfferIds:['OFR-BF-30','OFR-BF-60','OFR-BF-120'],scopeType:'collection',scopeValues:['C10004'],extraListings:['C10012'],excludeListings:[],claimConfirmed:true,periods:[
+    {...displayPeriod('2026-11-06 00:00','2026-11-12 23:59','preheat',undefined,undefined,'/collections/C10002'),countdownEnabled:true,countdownStart:'2026-11-11 00:00',countdownTargetType:'periodEnd'},
+    {...displayPeriod('2026-11-20 00:00','2026-11-29 23:59','formal'),countdownEnabled:true,countdownStart:'2026-11-27 00:00',countdownTargetType:'periodEnd'}]},
+  {id:'DSP-DESIGNER-US',name:'Designer Edit · 主题氛围',market:'美国',status:'scheduled',publishedAt:'2026-10-21 09:00',priority:50,placements:['card','pdp'],text:'DESIGNER EDIT',scope:'指定品牌 · Gucci',scopeSource:'manual',linkedOfferIds:[],scopeType:'brand',scopeValues:['gucci'],extraListings:[],excludeListings:[],claimConfirmed:true,periods:[
+    {...displayPeriod('2026-11-20 00:00','2026-11-29 23:59','formal','DESIGNER EDIT','探索精选','/collections/C10002'),assets:{}}
+  ]},
+];
+/* COUNTDOWN_RULES_START */
+function displayCountdownTarget(period,periods) {
+  if(period.countdownTargetType==='periodEnd') return period.end||null;
+  if(period.countdownTargetType==='custom') return period.countdownCustomTarget||null;
+  if(period.countdownTargetType==='nextStart') return (periods||[]).filter(p=>p!==period&&p.start&&period.start&&p.start>period.start).sort((a,b)=>a.start.localeCompare(b.start))[0]?.start||null;
+  return null;
+}
+function validateDisplayCountdown(period,periods) {
+  if(!period.countdownEnabled) return '';
+  if(!period.start||!period.end||!dayjs(period.start).isValid()||!dayjs(period.end).isValid()) return '请先填写本段起止时间';
+  if(!period.countdownStart||!dayjs(period.countdownStart).isValid()) return '请填写倒计时开始展示时间';
+  const start=dayjs(period.countdownStart),periodStart=dayjs(period.start),periodEnd=dayjs(period.end);
+  if(start.isBefore(periodStart)||!start.isBefore(periodEnd)) return '倒计时开始展示时间须在本段内';
+  const target=displayCountdownTarget(period,periods);
+  if(!target) return period.countdownTargetType==='nextStart'?'没有下一展示时段，不能倒数到下一段开始':'请填写倒计时目标时间';
+  if(!dayjs(target).isValid()||!dayjs(target).isAfter(start)) return '倒计时目标时间须晚于开始展示时间';
+  return '';
+}
+function resolveDisplayCountdown(period,periods,at) {
+  const target=displayCountdownTarget(period,periods);
+  const inactive={visible:false,target,secondsLeft:0};
+  if(validateDisplayCountdown(period,periods)||!at||!dayjs(at).isValid()) return inactive;
+  const now=dayjs(at);
+  if(now.isBefore(dayjs(period.start))||!now.isBefore(dayjs(period.end))||now.isBefore(dayjs(period.countdownStart))||!now.isBefore(dayjs(target))) return inactive;
+  return {visible:true,target,secondsLeft:Math.max(0,dayjs(target).diff(now,'second'))};
+}
+/* COUNTDOWN_RULES_END */
+/* 发布检查由完整商品索引返回；原型不以样例商品推算影响数量。 */
+const DISPLAY_CHECK_POLICY={dimensions:['productId','time','placement'],priority:'asc',tieBreak:'publishedAtAsc'};
+const DISPLAY_OPLOGS={};
+function displayLog(id,type,detail) {
+  if(!DISPLAY_OPLOGS[id]) DISPLAY_OPLOGS[id]=[];
+  DISPLAY_OPLOGS[id].unshift({i:Date.now()+Math.random(),at:dayjs().format('YYYY-MM-DD HH:mm'),who:'当前运营',type,detail});
+}
+
+
+
+function OfferDetailPanel({rule,go}) {
+  const copyCode=code=>{
+    if(!navigator.clipboard?.writeText){message.warning('当前环境不支持自动复制');return;}
+    navigator.clipboard.writeText(code).then(()=>message.success('优惠码已复制')).catch(()=>message.warning('复制失败'));
+  };
+  const section=(title,rows)=><div className="lp-module" key={title}>
+    <h4 className="lp-section">{title}</h4>
+    <div className="lp-detail" style={{gridTemplateColumns:'116px 1fr'}}>
+      {rows.map(([label,value])=><React.Fragment key={label}><div className="dl">{label}</div><div className="dv">{value===undefined||value===null||value===''?'—':value}</div></React.Fragment>)}
+    </div>
+  </div>;
+  const codeDisplay=rule.codes?.length?<Space size={6} wrap>{rule.codes.map(code=><Button key={code} size="small" icon={<CopyOutlined/>} onClick={()=>copyCode(code)}>{code}</Button>)}</Space>:'—';
+  const limit=value=>Number(value)>0?Number(value).toLocaleString():'不限制';
+  const scopeLabels={all:'全部商品',category:'指定品类',brand:'指定品牌',tag:'指定标签',collection:'指定 Collection',listing:'指定商品'};
+  const scopeOptions=rule.scopeType==='collection'?COLLECTIONS.filter(item=>item.market===rule.market):
+    BENEFIT_MARKET_OPTIONS[rule.market]?.[({category:'categories',brand:'brands',tag:'tags',listing:'listings'})[rule.scopeType]]||[];
+  const selectedScope=(rule.scopeValues||[]).map(id=>scopeOptions.find(item=>item.value===id)?.label||id).join('、')||'—';
+  const basic=<>
+    {section('基本信息',[
+      ['优惠 ID',<span className="lp-code">{rule.id}</span>],['优惠名称',rule.name],
+      ['状态',<StatusTag variant={STATUS_MAP[rule.status]?.variant||'off'}>{STATUS_MAP[rule.status]?.label||rule.status}</StatusTag>],
+      ['所属市场',rule.market+' / '+rule.currency],
+      ['优惠层级',OFFER_LEVELS[rule.level]],
+      ['生效时间',rule.start&&rule.end?rule.start+' 至 '+rule.end:'未设置'],['市场时区',rule.timezone||offerTimezone(rule.market)],
+      ['投放渠道',rule.channel==='targeted'?'定向渠道':'平台公开渠道'],
+      ['触发方式',rule.trigger==='code'?'优惠码触发':'自动触发'],
+      ...(rule.trigger==='code'?[['优惠码',codeDisplay]]:[])
+    ])}
+    {section('适用范围',[
+      ['适用商品',scopeLabels[rule.scopeType]||rule.scope||'全部商品'],
+      ...(rule.scopeType&&rule.scopeType!=='all'?[['选择范围',selectedScope]]:[]),
+      ['适用用户',rule.audience],
+      ...(rule.audience==='指定用户标签'?[['用户标签',rule.userTags?.join('、')||'—']]:[]),
+      ...(rule.audience==='指定邮箱'?[['买家邮箱',rule.buyerEmails?.join('、')||'—']]:[])
+    ])}
+    {section('优惠内容',[
+      ['使用门槛',rule.threshold||'无门槛'],
+      ['优惠方式',rule.discountType==='percent'?'按百分比':'固定金额'],
+      [rule.discountType==='percent'?'折扣百分比':'减免金额',rule.discountValue===undefined||rule.discountValue===null?'—':rule.discountType==='percent'?rule.discountValue+'%':rule.currency+' -'+Number(rule.discountValue).toFixed(2)],
+      ...(rule.discountType==='percent'?[['最大优惠封顶',rule.maxDiscount?rule.currency+' '+Number(rule.maxDiscount).toFixed(2):'不封顶']]:[])
+    ])}
+    {section('使用限制',[
+      ['总使用上限',limit(rule.totalUsageLimit)],['每人使用上限',limit(rule.perBuyerUsageLimit)]
+    ])}
+    {section('优惠叠加',[
+      ...(rule.level==='order'?[['与商品优惠',rule.stackWithProduct===false?'不叠加':'可叠加']]:[]),
+      ['与订单优惠',rule.stackPolicy==='order_stackable'?'指定订单优惠叠加':({cross:'可叠加',standalone:'不叠加',order_exclusive:'互斥'})[rule.stackPolicy]||'—'],
+      ...(rule.level==='order'&&rule.stackPolicy==='order_stackable'?[['可叠加订单优惠',rule.stackPartnerIds?.map(id=>OFFER_RULES.find(item=>item.id===id)?.name||id).join('、')||'—']]:[])
+    ])}
+    {section('创建信息',[
+      ['创建人',rule.createdBy||'—'],['创建时间',rule.createdAt||'—']
+    ])}
+    <OpLog data={OFFER_OPLOGS[rule.id]||[]}/>
+  </>;
+  return <Card style={{borderRadius:16}} styles={{body:{padding:28}}}>
+    <Breadcrumb items={[{title:<a onClick={()=>go('offer-list')}>优惠活动</a>},{title:'活动详情'}]}/>
+    <div className="lp-offer-detail-head">
+      <div><h2>{rule.name}</h2></div>
+      <Space wrap className="lp-offer-detail-actions">
+        <Button onClick={()=>go('offer-edit',rule)}>编辑优惠</Button>
+        <Button onClick={()=>go('offer-list')}>返回列表</Button>
+      </Space>
+    </div>
+    <Tabs defaultActiveKey="detail" items={[
+      {key:'detail',label:'优惠详情',children:basic},
+      {key:'redemptions',label:'核销记录',children:<OfferRedemptionPanel rule={rule}/>}
+    ]}/>
+  </Card>;
+}
+
+function OfferRedemptionPanel({rule}) {
+  const [status,setStatus]=useState('');
+  const [range,setRange]=useState(null);
+  const all=offerRedemptionRows(rule);
+  const filtered=all.filter(row=>(!status||row.status===status)&&(!range||(
+    row.at>=range[0].startOf('day').format('YYYY-MM-DD HH:mm')&&row.at<=range[1].endOf('day').format('YYYY-MM-DD HH:mm'))));
+  const effective=all.filter(row=>row.status==='effective');
+  const exportRows=()=>{
+    const header=['核销时间','用户','订单号','优惠码','优惠金额','状态'];
+    const values=filtered.map(row=>[row.at,row.buyer,row.order,row.code||'',row.discount,row.status==='effective'?'有效':'已撤回']);
+    const csv='\uFEFF'+[header,...values].map(cells=>cells.map(value=>'"'+String(value??'').replaceAll('"','""')+'"').join(',')).join('\r\n');
+    const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+    const link=document.createElement('a');link.href=url;link.download=rule.id+'-核销记录.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  };
+  return <>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:20}}>
+      <Kpi num={effective.length} label="有效核销"/><Kpi num={all.length-effective.length} label="已撤回"/>
+      <Kpi num={(rule.currency==='HKD'?'HK$':'$')+effective.reduce((sum,row)=>sum+row.discount,0).toFixed(2)} label="累计优惠金额"/>
+    </div>
+    <Space size={8} wrap style={{marginBottom:12}}>
+      <Select value={status} onChange={setStatus} style={{width:140}} options={[{value:'',label:'全部状态'},{value:'effective',label:'有效'},{value:'reverted',label:'已撤回'}]}/>
+      <DatePicker.RangePicker value={range} onChange={setRange} style={{width:250}} placeholder={['开始日期','结束日期']}/>
+      <Button icon={<ReloadOutlined/>} onClick={()=>{setStatus('');setRange(null);}}>重置</Button>
+      <Button icon={<DownloadOutlined/>} onClick={exportRows}>导出</Button>
+    </Space>
+    <Table rowKey="id" size="small" pagination={{pageSize:10}} dataSource={filtered} styles={TABLE_STYLES}
+      columns={[{title:'核销时间',dataIndex:'at',width:150},{title:'用户',dataIndex:'buyer',width:150},
+        {title:'订单号',dataIndex:'order',width:165},{title:'优惠码',dataIndex:'code',width:105,render:v=>v||'—'},
+        {title:'优惠金额',dataIndex:'discount',width:100,render:v=>(rule.currency==='HKD'?'HK$':'$')+Number(v).toFixed(2)},
+        {title:'状态',dataIndex:'status',width:90,render:v=><StatusTag variant={v==='effective'?'on':'off'}>{v==='effective'?'有效':'已撤回'}</StatusTag>}]} scroll={{x:'max-content'}}/>
+  </>;
+}
+
+function OfferRuleListPage({go}) {
+  const initialFilters={keyword:'',status:'',trigger:'',level:'',audience:'',range:null};
+  const [draft,setDraft]=useState(initialFilters);
+  const [applied,setApplied]=useState(initialFilters);
+  const [page,setPage]=useState(1);
+  const [pageSize,setPageSize]=useState(10);
+  const [revision,setRevision]=useState(0);
+  const [pendingChange,setPendingChange]=useState(null);
+  const updateDraft=(key,value)=>setDraft(prev=>({...prev,[key]:value}));
+  const rows=OFFER_RULES.filter(x=>{
+    const keyword=applied.keyword.trim().toLowerCase();
+    return (!keyword||[x.name,x.id,...(x.codes||[])].some(v=>String(v||'').toLowerCase().includes(keyword)))
+      &&(!applied.status||x.status===applied.status)
+      &&(!applied.trigger||x.trigger===applied.trigger)
+      &&(!applied.level||x.level===applied.level)
+      &&(!applied.audience||x.audience===applied.audience)
+      &&(!applied.range||(x.start<=applied.range[1].endOf('day').format('YYYY-MM-DD HH:mm')
+        &&x.end>=applied.range[0].startOf('day').format('YYYY-MM-DD HH:mm')));
+  });
+  const applyFilters=()=>{setApplied({...draft});setPage(1);};
+  const resetFilters=()=>{setDraft(initialFilters);setApplied(initialFilters);setPage(1);};
+  const setStatus=(rule,status)=>setPendingChange({rule,status});
+  const confirmStatus=()=>{
+    if(!pendingChange)return;
+    pendingChange.rule.status=pendingChange.status;
+    offerLog(pendingChange.rule,pendingChange.status==='paused'?'暂停':pendingChange.status==='ended'?'结束':'恢复','状态变更为'+STATUS_MAP[pendingChange.status].label);
+    setRevision(v=>v+1);setPendingChange(null);message.success('状态已更新');
+  };
+  const exportRows=()=>{
+    const fields=['优惠名称','优惠ID','优惠层级','触发方式','优惠码','优惠内容','适用商品','适用用户','叠加方式','市场','状态','已核销','开始时间','结束时间','时区','创建人','创建时间'];
+    const values=rows.map(r=>[r.name,r.id,OFFER_LEVELS[r.level],r.trigger==='code'?'优惠码':'自动触发',(r.codes||[]).join('、'),
+      r.discountType==='percent'?r.discountValue+'%':r.currency+' -'+r.discountValue,r.scope,r.audience,
+      r.level==='order'?(r.stackWithProduct===false?'商品互斥':'商品可叠加')+'；'+(r.stackPartnerIds?.length?'指定订单叠加':'订单互斥'):(r.stackPolicy==='standalone'?'不与订单优惠叠加':'可与订单优惠叠加'),r.market,
+      STATUS_MAP[r.status]?.label||r.status,offerRedemptionTotal(r),r.start,r.end,r.timezone||offerTimezone(r.market),r.createdBy||'',r.createdAt||'']);
+    const csv='\uFEFF'+[fields,...values].map(row=>row.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\r\n');
+    const link=document.createElement('a');link.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+    link.download='优惠活动列表.csv';link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);
+  };
+  const copyCodes=rule=>{
+    if(!rule.codes?.length)return;
+    if(!navigator.clipboard?.writeText){message.warning('当前环境不支持复制，请在详情中查看优惠码');return;}
+    navigator.clipboard.writeText(rule.codes.join('、')).then(()=>message.success('优惠码已复制')).catch(()=>message.warning('复制失败，请在详情中查看优惠码'));
+  };
+  const today=dayjs();
+  const endingSoon=OFFER_RULES.filter(x=>x.status==='active'&&dayjs(x.end).isAfter(today)&&dayjs(x.end).isBefore(today.add(7,'day'))).length;
+  const monthlyRedemptions=OFFER_REDEMPTIONS.filter(row=>row.status==='effective'&&dayjs(row.at).isSame(today,'month')).length;
+  const columns=[
+    {title:'活动名称 / ID',dataIndex:'name',width:250,render:(v,r)=><div>{v}<div className="lp-code">{r.id}</div></div>},
+    {title:'优惠层级',dataIndex:'level',width:105,render:v=><StatusTag variant={v==='product'?'sale':'warn'}>{OFFER_LEVELS[v]}</StatusTag>},
+    {title:'触发方式 / Code',dataIndex:'trigger',width:190,render:(v,r)=>v==='code'?<div>优惠码<div className="lp-code">{(r.codes||[]).length>1?`${r.codes.length} 个 · ${r.codes[0]} 等`:r.codes?.[0]||'—'}</div></div>:'自动触发'},
+    {title:'优惠内容',dataIndex:'discountValue',width:115,render:(v,r)=>r.discountType==='percent'?v+'%':r.currency+' -'+Number(v).toFixed(2)},
+    {title:'适用商品 / 用户',dataIndex:'scope',width:190,render:(v,r)=><div>{v}<div className="lp-code">{r.audience}</div></div>},
+    {title:'叠加',dataIndex:'stackPolicy',width:165,render:(v,r)=>r.level==='order'
+      ? <span>{r.stackWithProduct===false?'商品互斥':'商品可叠加'}<br/>{r.stackPartnerIds?.length?`指定订单叠加（${r.stackPartnerIds.length}）`:'订单互斥'}</span>
+      : v==='standalone'?'不与订单优惠叠加':'可与订单优惠叠加'},
+    {title:'市场',dataIndex:'market',width:90},
+    {title:'状态',dataIndex:'status',width:90,render:v=><StatusTag variant={STATUS_MAP[v].variant}>{STATUS_MAP[v].label}</StatusTag>},
+    {title:'已核销',dataIndex:'redemptions',width:80,render:(_,r)=>offerRedemptionTotal(r)},
+    {title:'生效时间',dataIndex:'start',width:190,render:(v,r)=><span style={{fontSize:12}}>{v}<br/>至 {r.end}<br/>{r.timezone||(r.market==='香港'?'Asia/Hong_Kong':'America/New_York')}</span>},
+    {title:'创建信息',dataIndex:'createdBy',width:135,render:(v,r)=><span>{v||'—'}<br/>{r.createdAt||'—'}</span>},
+    {title:'操作',key:'op',width:295,fixed:'right',render:(_,r)=>{
+      const ops=[{key:'detail',label:'详情',onClick:()=>go('offer-detail',r)},
+        {key:'edit',label:'编辑',onClick:()=>go('offer-edit',r)}];
+      if(r.status==='active')ops.push({key:'pause',label:'暂停',onClick:()=>setStatus(r,'paused')});
+      if(r.status==='paused')ops.push({key:'resume',label:'恢复',onClick:()=>setStatus(r,'active')});
+      if(!['ended','draft'].includes(r.status))ops.push({key:'end',label:'结束活动',danger:true,onClick:()=>setStatus(r,'ended')});
+      if(r.codes?.length)ops.push({key:'copy',label:'复制优惠码',onClick:()=>copyCodes(r)});
+      const flat=ops.length<=4?ops:ops.slice(0,3);
+      const more=ops.length<=4?[]:ops.slice(3);
+      return <Space size={4}>{flat.map(op=><Button key={op.key} size="small" danger={op.danger} onClick={op.onClick}>{op.label}</Button>)}
+        {more.length>0&&<Dropdown trigger={['click']} menu={{items:more.map(op=>({key:op.key,label:op.label,danger:op.danger,onClick:op.onClick}))}}>
+          <Button size="small" icon={<EllipsisOutlined/>} aria-label={'更多操作：'+r.name}/></Dropdown>}</Space>;
+    }}
+  ];
+  return <><ListPage title="优惠活动"
+    headActions={<Space><Button icon={<DownloadOutlined/>} onClick={exportRows}>导出</Button><Button type="primary" icon={<PlusOutlined/>} onClick={()=>go('offer-create')}>新建优惠</Button></Space>}
+    kpis={[{num:String(OFFER_RULES.filter(x=>x.status==='active').length),label:'进行中活动'},
+      {num:String(OFFER_RULES.filter(x=>x.status==='draft').length),label:'草稿'},
+      {num:String(monthlyRedemptions),label:'本月累计核销次数'},
+      {num:String(endingSoon),label:'7 天内即将结束'}]}
+    filters={<><Input value={draft.keyword} onChange={e=>updateDraft('keyword',e.target.value)} onPressEnter={applyFilters} placeholder="搜索活动名称 / ID / 优惠码" prefix={<SearchOutlined/>} style={{width:250}}/>
+      <Select value={draft.status} onChange={v=>updateDraft('status',v)} style={{width:125}} options={[{value:'',label:'全部状态'},...Object.entries(STATUS_MAP).map(([value,info])=>({value,label:info.label}))]}/>
+      <Select value={draft.trigger} onChange={v=>updateDraft('trigger',v)} style={{width:135}} options={[{value:'',label:'全部触发方式'},{value:'auto',label:'自动触发'},{value:'code',label:'优惠码触发'}]}/>
+      <Select value={draft.level} onChange={v=>updateDraft('level',v)} style={{width:125}} options={[{value:'',label:'全部优惠层级'},{value:'product',label:'商品优惠'},{value:'order',label:'订单优惠'}]}/>
+      <Select value={draft.audience} onChange={v=>updateDraft('audience',v)} style={{width:130}} options={[{value:'',label:'全部适用用户'},{value:'全部用户',label:'全部用户'},{value:'新人',label:'新人'},{value:'老用户',label:'老用户'}]}/>
+      <DatePicker.RangePicker value={draft.range} onChange={v=>updateDraft('range',v)} placeholder={['起始日','结束日']} style={{width:240}}/>
+      <Button type="primary" icon={<SearchOutlined/>} onClick={applyFilters}>查询</Button>
+      <Button icon={<ReloadOutlined/>} onClick={resetFilters}>重置</Button></>}
+    columns={columns} data={rows.slice((page-1)*pageSize,page*pageSize)} total={rows.length}
+    pagination={{current:page,pageSize,onChange:setPage,onPageSizeChange:v=>{setPageSize(v);setPage(1);}}}
+    entity="优惠活动" createKey="offer-create" go={go} scrollX="max-content"/>
+    <Modal title={pendingChange?.status==='ended'?'结束这条优惠活动？':pendingChange?.status==='paused'?'暂停这条优惠活动？':'恢复这条优惠活动？'}
+      open={!!pendingChange} onCancel={()=>setPendingChange(null)} closable={false} maskClosable={false} centered={true}
+      footer={[<Button key="cancel" onClick={()=>setPendingChange(null)}>取消</Button>,
+        <Button key="confirm" type="primary" danger={pendingChange?.status==='ended'} onClick={confirmStatus}>
+          {pendingChange?.status==='ended'?'确认结束':pendingChange?.status==='paused'?'确认暂停':'确认恢复'}</Button>]}>
+      {pendingChange?.status==='ended'?'结束后不能恢复。':'状态变更后将影响该优惠的可用性。'}
+    </Modal></>;
+}
+
+function OfferRuleFormPage({go,record}) {
+  const r=record||{}; const isEdit=!!record;
+  const [name,setName]=useState(r.name||'');
+  const [market,setMarket]=useState(r.market==='香港'?'HK':'US');
+  const [level,setLevel]=useState(r.level||'product');
+  const [stackPolicy,setStackPolicy]=useState(r.stackPolicy||(r.level==='order'?'order_exclusive':'cross'));
+  const [stackWithProduct,setStackWithProduct]=useState(r.stackWithProduct!==false);
+  const [stackPartnerIds,setStackPartnerIds]=useState(r.stackPartnerIds||[]);
+  const [channel,setChannel]=useState(r.channel||'public');
+  const [trigger,setTrigger]=useState(r.trigger||'auto');
+  const [codes,setCodes]=useState(r.codes||(isEdit?[]:['alice','lili']));
+  const [range,setRange]=useState(r.start&&r.end?[dayjs(r.start),dayjs(r.end)]:null);
+  const [discountType,setDiscountType]=useState(r.discountType||'fixed');
+  const [discountValue,setDiscountValue]=useState(r.discountValue);
+  const [maxDiscount,setMaxDiscount]=useState(r.maxDiscount);
+  const [totalUsageLimit,setTotalUsageLimit]=useState(r.totalUsageLimit);
+  const [perBuyerUsageLimit,setPerBuyerUsageLimit]=useState(r.perBuyerUsageLimit);
+  const [scope,setScope]=useState(r.scopeType||'all');
+  const [scopeValues,setScopeValues]=useState(r.scopeValues||[]);
+  const [thresholdType,setThresholdType]=useState(r.threshold?.includes('件')?'quantity':r.threshold?.startsWith('满')?'amount':'none');
+  const [thresholdValue,setThresholdValue]=useState(Number(String(r.threshold||'').replace(/[^0-9.]/g,''))||undefined);
+  const [audience,setAudience]=useState(r.audience==='新人'?'new':r.audience==='老用户'?'old':r.audience==='指定用户标签'?'tag':r.audience==='指定邮箱'?'email':'all');
+  const [userTags,setUserTags]=useState(r.userTags||[]);
+  const [buyerEmails,setBuyerEmails]=useState((r.buyerEmails||[]).join('\n'));
+  const marketName=market==='HK'?'香港':'美国';
+  const currency=market==='HK'?'HKD':'USD';
+  const options=BENEFIT_MARKET_OPTIONS[marketName];
+  const partnerOptions=level==='order'?getEligibleOrderPartners({id:r.id,level,market:marketName,currency,
+    start:range?.[0]?.format('YYYY-MM-DD HH:mm'),end:range?.[1]?.format('YYYY-MM-DD HH:mm')}).map(x=>({value:x.id,label:x.name+'（'+x.id+'）'})):[];
+  const save=(action)=>{
+    const publish=action==='publish';
+    const requireComplete=publish||(isEdit&&r.status!=='draft');
+    if(!name.trim()){message.warning('请填写优惠名称');return;}
+    if(requireComplete&&(!range?.[0]||!range?.[1]||discountValue===undefined||discountValue===null)){message.warning('请填写生效时间和优惠金额');return;}
+    if(range?.[0]&&range?.[1]&&!range[1].isAfter(range[0])){message.warning('结束时间必须晚于开始时间');return;}
+    if(publish&&range[1].isBefore(dayjs())){message.warning('生效时间已结束，不能发布');return;}
+    if(discountValue!==undefined&&discountValue!==null&&(Number(discountValue)<=0||(discountType==='percent'&&Number(discountValue)>100))){message.warning('请填写有效的优惠金额或百分比');return;}
+    if(maxDiscount!==undefined&&maxDiscount!==null&&Number(maxDiscount)<=0){message.warning('最大优惠封顶须大于 0');return;}
+    if([totalUsageLimit,perBuyerUsageLimit].some(value=>value!==undefined&&value!==null&&(!Number.isInteger(Number(value))||Number(value)<=0))){message.warning('使用上限须为正整数');return;}
+    if(totalUsageLimit&&perBuyerUsageLimit&&Number(perBuyerUsageLimit)>Number(totalUsageLimit)){message.warning('每人使用上限不能超过总使用上限');return;}
+    if(totalUsageLimit&&Number(totalUsageLimit)<offerRedemptionTotal(r)){message.warning('总使用上限不能低于已有有效核销次数');return;}
+    if(requireComplete&&scope!=='all'&&!scopeValues.length){message.warning('请选择适用商品范围');return;}
+    if(requireComplete&&audience==='tag'&&!userTags.length){message.warning('请选择用户标签');return;}
+    if(requireComplete&&audience==='email'&&!buyerEmails.trim()){message.warning('请填写买家邮箱');return;}
+    if(audience==='email'&&buyerEmails.trim()&&buyerEmails.split(/[\n,，]+/).map(x=>x.trim()).filter(Boolean).some(email=>!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))){message.warning('买家邮箱格式不正确');return;}
+    if(requireComplete&&thresholdType!=='none'&&(!Number.isFinite(Number(thresholdValue))||Number(thresholdValue)<=0)){message.warning('请填写使用门槛');return;}
+    if(requireComplete&&level==='order'&&stackPolicy==='order_stackable'&&!stackPartnerIds.length){message.warning('请选择可叠加的订单优惠');return;}
+    const now=dayjs();
+    const nextStatus=publish?(range[0].isAfter(now)?'scheduled':'active'):(r.status&&r.status!=='draft'?r.status:'draft');
+    const next={...r,id:r.id||'OFR-DEMO-'+Date.now(),name:name.trim(),level,market:marketName,currency,
+      start:range?.[0]?.format('YYYY-MM-DD HH:mm')||'',end:range?.[1]?.format('YYYY-MM-DD HH:mm')||'',channel,trigger,
+      discountType,discountValue,maxDiscount:discountType==='percent'?maxDiscount:undefined,
+      totalUsageLimit,perBuyerUsageLimit,timezone:offerTimezone(marketName),
+      scope:scope==='all'?'全部商品':scopeValues.length+' 个'+({category:'品类',brand:'品牌',tag:'商品标签',collection:'Collection',listing:'商品'}[scope]),
+      scopeType:scope,scopeValues:[...scopeValues],qualifyingScope:level==='order'?'eligible_items':undefined,
+      allocationScope:level==='order'?'eligible_items':undefined,thresholdType,thresholdValue:thresholdType==='none'?undefined:thresholdValue,
+      threshold:thresholdType==='none'?'无门槛':thresholdType==='quantity'?'满 '+thresholdValue+' 件':'满 '+(market==='HK'?'HK$':'$')+thresholdValue,
+      audience:({all:'全部用户',new:'新人',old:'老用户',tag:'指定用户标签',email:'指定邮箱'})[audience],
+      userTags:audience==='tag'?[...userTags]:[],buyerEmails:audience==='email'?buyerEmails.split(/[\n,，]+/).map(x=>x.trim()).filter(Boolean):[],stackPolicy,
+      stackWithProduct:level==='order'?stackWithProduct:undefined,
+      status:nextStatus,
+      createdBy:r.createdBy||'当前运营',createdAt:r.createdAt||now.format('YYYY-MM-DD HH:mm')};
+    try {next.codes=trigger==='code'&&(!requireComplete&&!codes.length)?[]:normalizeOfferCodes(next,codes);} catch(error) {message.warning(error.message);return;}
+    const partners=level==='order'&&stackPolicy==='order_stackable'?stackPartnerIds:[];
+    if(requireComplete&&partners.some(id=>!getEligibleOrderPartners(next).some(x=>x.id===id))){message.warning('所选订单优惠不在同一市场或时间不重叠');return;}
+    const i=OFFER_RULES.findIndex(x=>x.id===next.id);if(i>=0)OFFER_RULES[i]=next;else OFFER_RULES.unshift(next);
+    if(publish||r.status==='active'||r.status==='scheduled')setOrderStackPartners(next.id,partners);
+    offerLog(next,isEdit?'编辑':publish?'发布':'创建',isEdit?'更新优惠配置':publish?'保存并发布优惠':'保存优惠草稿');
+    message.success(publish?'优惠活动已发布':'优惠活动已保存');go('offer-list');
+  };
+  return <Card style={CARD_STYLE}>
+    <Breadcrumb items={[{title:<a onClick={()=>go('offer-list')}>优惠活动</a>},{title:isEdit?'编辑优惠':'新建优惠'}]} style={{marginBottom:8}}/>
+    <div style={{fontSize:20,fontWeight:700,marginBottom:20}}>{isEdit?'编辑优惠':'新建优惠'}</div>
+    <h4 className="lp-section">基本信息</h4>
+    {isEdit&&<FormRow label="优惠 ID"><Input disabled value={r.id} style={{width:280}}/></FormRow>}
+    <FormRow label="优惠名称" required><Input value={name} onChange={e=>setName(e.target.value)} placeholder="如：黑五品类满减" style={{width:'100%',maxWidth:560}}/></FormRow>
+    <FormRow label="所属市场" required helper={'创建后不可修改；所选市场决定货币与时区（'+offerTimezone(marketName)+'）'}><Select value={market} onChange={setMarket} disabled={isEdit} style={{width:280}} options={[{value:'US',label:'美国 / USD'},{value:'HK',label:'香港 / HKD'}]}/></FormRow>
+    <FormRow label="优惠层级" required><Radio.Group value={level} onChange={e=>{const v=e.target.value;setLevel(v);setStackPolicy(v==='product'?'cross':'order_exclusive');setStackWithProduct(true);setStackPartnerIds([]);}} options={[{value:'product',label:'商品优惠'},{value:'order',label:'订单优惠'}]}/></FormRow>
+    <FormRow label="生效时间" required helper={'按 '+offerTimezone(marketName)+' 当地时间填写；后端发布与结算需换算 UTC'}><DatePicker.RangePicker showTime value={range} onChange={setRange} style={{width:380}}/></FormRow>
+    <FormRow label="投放渠道" required><Radio.Group value={channel} onChange={e=>setChannel(e.target.value)} options={[{value:'public',label:'平台公开渠道'},{value:'targeted',label:'定向渠道'}]}/></FormRow>
+    <FormRow label="触发方式" required><Radio.Group value={trigger} onChange={e=>setTrigger(e.target.value)} options={[{value:'auto',label:'自动触发'},{value:'code',label:'优惠码触发'}]}/></FormRow>
+    {trigger==='code'&&<FormRow label="优惠码" required helper="输入后按回车添加，可填写多个">
+      <Space align="start" wrap><Select mode="tags" value={codes} onChange={setCodes} tokenSeparators={[',','，']}
+        placeholder="输入优惠码，如 ALICE" style={{width:440}}/>
+        <Button onClick={()=>{const code='LOOPLY'+Math.random().toString(36).slice(2,8).toUpperCase();setCodes(prev=>[...prev,code]);}}>随机生成</Button></Space>
+    </FormRow>}
+    <h4 className="lp-section" style={{marginTop:24}}>适用范围</h4>
+    <FormRow label="适用商品" required helper={level==='order'?'仅适用商品计入门槛并分摊优惠':undefined}><Radio.Group value={scope} onChange={e=>{setScope(e.target.value);setScopeValues([]);}} options={[{value:'all',label:'全部商品'},{value:'category',label:'指定品类'},{value:'brand',label:'指定品牌'},{value:'tag',label:'指定标签'},{value:'collection',label:'指定 Collection'},{value:'listing',label:'指定商品'}]}/></FormRow>
+    {scope!=='all'&&<FormRow label="选择范围" required><Select mode="multiple" value={scopeValues} onChange={setScopeValues} style={{width:'100%',maxWidth:560}} options={scope==='brand'?options.brands:scope==='tag'?options.tags:scope==='collection'?COLLECTIONS.filter(x=>x.market===marketName).map(x=>({value:x.value,label:x.label})):scope==='category'?options.categories:options.listings}/></FormRow>}
+    <FormRow label="适用用户" required><Radio.Group value={audience} onChange={e=>setAudience(e.target.value)} options={[{value:'all',label:'全部用户'},{value:'new',label:'新人'},{value:'old',label:'老用户'},{value:'tag',label:'指定用户标签'},{value:'email',label:'指定邮箱'}]}/></FormRow>
+    {audience==='new'&&<div className="lp-helper">新人：下单时没有历史支付成功订单。</div>}
+    {audience==='old'&&<div className="lp-helper">老用户：下单前至少有一笔支付成功订单。</div>}
+    {audience==='tag'&&<FormRow label="用户标签" required><Select mode="multiple" value={userTags} onChange={setUserTags} options={options.userTags} style={{width:'100%',maxWidth:560}}/></FormRow>}
+    {audience==='email'&&<FormRow label="买家邮箱" required><Input.TextArea rows={4} value={buyerEmails} onChange={e=>setBuyerEmails(e.target.value)} placeholder="vip@example.com" style={{width:'100%',maxWidth:560}}/></FormRow>}
+    <h4 className="lp-section" style={{marginTop:24}}>优惠内容</h4>
+    <FormRow label="使用门槛" required><Radio.Group value={thresholdType} onChange={e=>setThresholdType(e.target.value)} options={[{value:'none',label:'无门槛'},{value:'amount',label:'满额可用'},{value:'quantity',label:'满件可用'}]}/></FormRow>
+    {thresholdType!=='none'&&<FormRow label={thresholdType==='amount'?'满额门槛':'满件数量'} required><InputNumber value={thresholdValue} onChange={setThresholdValue} min={thresholdType==='quantity'?2:0} prefix={thresholdType==='amount'?(market==='HK'?'HK$':'$'):undefined} addonAfter={thresholdType==='quantity'?'件':undefined} style={{width:220}}/></FormRow>}
+    <FormRow label="优惠方式" required><Radio.Group value={discountType} onChange={e=>setDiscountType(e.target.value)} options={[{value:'fixed',label:'固定金额'},{value:'percent',label:'按百分比'}]}/></FormRow>
+    <FormRow label={discountType==='fixed'?'减免金额':'折扣百分比'} required><InputNumber value={discountValue} onChange={setDiscountValue} min={0} max={discountType==='percent'?100:undefined} prefix={discountType==='fixed'?(market==='HK'?'HK$':'$'):undefined} addonAfter={discountType==='percent'?'%':undefined} style={{width:220}}/></FormRow>
+    {discountType==='percent'&&<FormRow label="最大优惠封顶" helper="不填表示不封顶"><InputNumber value={maxDiscount} onChange={setMaxDiscount} min={0.01} prefix={market==='HK'?'HK$':'$'} style={{width:220}}/></FormRow>}
+    <h4 className="lp-section" style={{marginTop:24}}>使用限制</h4>
+    <FormRow label="总使用上限" helper="留空表示不限制；按成功核销次数计算"><InputNumber value={totalUsageLimit} onChange={setTotalUsageLimit} min={1} precision={0} style={{width:220}}/></FormRow>
+    <FormRow label="每人使用上限" helper="留空表示不限制；同一买家跨 Code 合并计数"><InputNumber value={perBuyerUsageLimit} onChange={setPerBuyerUsageLimit} min={1} precision={0} style={{width:220}}/></FormRow>
+    <h4 className="lp-section" style={{marginTop:24}}>优惠叠加</h4>
+    {level==='order'&&<FormRow label="与商品优惠" required helper="仅约束当前订单优惠适用的商品"><Radio.Group value={stackWithProduct} onChange={e=>setStackWithProduct(e.target.value)} options={[{value:true,label:'可叠加（默认）'},{value:false,label:'不叠加'}]}/></FormRow>}
+    <FormRow label="与订单优惠" required><Radio.Group value={stackPolicy} onChange={e=>{setStackPolicy(e.target.value);if(e.target.value==='order_exclusive')setStackPartnerIds([]);}} options={level==='product'?[{value:'cross',label:'可叠加'},{value:'standalone',label:'不叠加'}]:[{value:'order_exclusive',label:'互斥（默认）'},{value:'order_stackable',label:'指定订单优惠可叠加'}]}/></FormRow>
+    {level==='order'&&stackPolicy==='order_stackable'&&<FormRow label="可叠加订单优惠" required helper="仅可选择同市场、生效时间重叠的订单优惠"><Select mode="multiple" showSearch optionFilterProp="label" value={stackPartnerIds} onChange={setStackPartnerIds} placeholder="选择优惠名称或 ID" options={partnerOptions} style={{width:'100%',maxWidth:560}}/></FormRow>}
+    <div style={{display:'flex',justifyContent:'flex-end',gap:12,padding:'16px 0',borderTop:'1px solid #E5E7EB'}}>
+      <Button onClick={()=>go('offer-list')}>取消</Button>
+      {(!isEdit||r.status==='draft')&&<Button onClick={()=>save('draft')}>保存草稿</Button>}
+      <Button type="primary" onClick={()=>save(isEdit&&r.status!=='draft'?'edit':'publish')}>{isEdit&&r.status!=='draft'?'保存修改':'保存并发布'}</Button>
+    </div>
+    {isEdit&&<OpLog data={OFFER_OPLOGS[r.id]||[]}/>}
+  </Card>;
+}
+
+
+function FrontDisplayListPage({go}) {
+  const columns=[
+    {title:'氛围方案 / ID',dataIndex:'name',width:260,render:(v,r)=><div>{v}<div className="lp-code">{r.id}</div></div>},
+    {title:'市场',dataIndex:'market',width:100},
+    {title:'优先级',dataIndex:'priority',width:90,render:v=>v??50},
+    {title:'商品来源',dataIndex:'scopeSource',width:150,render:(v,r)=>v==='offer'?<span>引用 {r.linkedOfferIds?.length||0} 个商品优惠</span>:'自行配置范围'},
+    {title:'展示内容',dataIndex:'periods',width:190,render:v=>!v?.[0]?.start?<span style={{color:'#9CA3AF'}}>未设置</span>:<Space size={4} wrap>{v.length===1?<StatusTag variant="sale">单时段</StatusTag>:[...new Set(v.map(p=>p.phase))].map(x=><StatusTag key={x} variant={x==='preheat'?'pending':'sale'}>{x==='preheat'?'预热期':'正式期'}</StatusTag>)}</Space>},
+    {title:'素材配置',dataIndex:'periods',width:140,render:v=><span>{(v||[]).reduce((n,p)=>n+Object.values(p.assets||{}).filter(Boolean).length,0)} 张图片</span>},
+    {title:'展示商品范围',dataIndex:'scope',width:260},
+    {title:'展示时间',dataIndex:'periods',width:190,render:v=>v?.[0]?.start?<span>{v[0].start}<br/>至 {v[v.length-1]?.end}{v.length>1&&<div style={{color:'#A4002A'}}>{v.length} 个展示时段</div>}</span>:<span style={{color:'#9CA3AF'}}>未设置</span>},
+    {title:'状态',dataIndex:'status',width:90,render:v=><StatusTag variant={STATUS_MAP[v].variant}>{STATUS_MAP[v].label}</StatusTag>},
+    {title:'操作',key:'op',width:90,render:(_,r)=><Button size="small" onClick={()=>go('display-edit',r)}>编辑</Button>}
+  ];
+  return <ListPage title="营销氛围" desc="独立配置展示时段、商品范围、PC/移动端素材和跳转；商品价格仍由优惠活动计算"
+    headActions={<Button type="primary" icon={<PlusOutlined/>} onClick={()=>go('display-create')}>新建氛围方案</Button>}
+    kpis={[{num:String(FRONT_DISPLAYS.length),label:'氛围方案'},{num:String(FRONT_DISPLAYS.filter(x=>x.periods?.length>1).length),label:'分段展示'}]}
+    filters={null} columns={columns} data={FRONT_DISPLAYS} total={FRONT_DISPLAYS.length} entity="营销氛围" createKey="display-create" go={go} scrollX="max-content"/>;
+}
+
+function DisplayAssetUpload({value,onChange,label}) {
+  const beforeUpload=file=>{
+    if(!['image/png','image/jpeg','image/webp'].includes(file.type)){message.error('仅支持 PNG、JPG、WebP 图片');return Upload.LIST_IGNORE;}
+    if(file.size>5*1024*1024){message.error('图片不能超过 5 MB');return Upload.LIST_IGNORE;}
+    const reader=new FileReader();reader.onload=()=>onChange(reader.result);reader.onerror=()=>message.error('图片读取失败');reader.readAsDataURL(file);
+    return false;
+  };
+  return <div style={{width:220}}>
+    <div style={{fontSize:12,color:'#6B7280',marginBottom:6}}>{label}</div>
+    <Upload accept="image/png,image/jpeg,image/webp" showUploadList={false} beforeUpload={beforeUpload}>
+      <Button size="small" icon={<UploadOutlined/>}>{value?'替换图片':'上传图片'}</Button>
+    </Upload>
+    {value&&<Button size="small" type="text" danger onClick={()=>onChange('')}>移除</Button>}
+    {value&&<img src={value} alt={label+'素材预览'} style={{display:'block',width:200,height:70,objectFit:'contain',marginTop:6,border:'1px solid #E5E7EB',borderRadius:6}}/>}
+  </div>;
+}
+function DisplayPreview({period,device,countdown}) {
+  const mobile=device==='h5',cardImage=period?.assets?.[mobile?'cardH5':'cardPc'],pdpImage=period?.assets?.[mobile?'pdpH5':'pdpPc'];
+  const n=Math.max(0,countdown?.secondsLeft||0),days=Math.floor(n/86400),hours=String(Math.floor(n%86400/3600)).padStart(2,'0'),minutes=String(Math.floor(n%3600/60)).padStart(2,'0'),seconds=String(n%60).padStart(2,'0');
+  const countdownLabel=(days?days+'天 ':'')+hours+':'+minutes+':'+seconds;
+  return <div className="lp-preview-scenes">
+    <div className="lp-preview-scene">
+      <div className="lp-preview-scene-title">商品卡 · {mobile?'移动端':'PC'}</div>
+      <div className="lp-preview-product-card">
+        <div className="lp-preview-product-media">
+          <img src="../UI/assets/black-friday-v3/louis-vuitton-accessoires.webp" alt="商品卡示意商品"/>
+          <div className="lp-preview-card-badge">{cardImage?<img src={cardImage} alt={period?.text||'氛围角标'}/>:period?.text||'活动角标'}</div>
+        </div>
+        <div className="lp-preview-product-copy"><strong>LOUIS VUITTON</strong><div>ACCESSOIRES GM Monogram Coated Canvas Brown</div><div style={{color:'#6B7280',marginTop:8}}>价格由商品与优惠活动计算</div></div>
+      </div>
+      <div style={{fontSize:12,color:'#6B7280',marginTop:10}}>参考 v26：氛围角标叠在商品主图右上角；点击商品主体进入商详。</div>
+    </div>
+    <div className="lp-preview-scene">
+      <div className="lp-preview-scene-title">商详 · {mobile?'移动端':'PC'}</div>
+      <div className="lp-preview-pdp">
+        <div style={{fontSize:10,fontWeight:700,letterSpacing:'.08em'}}>LOUIS VUITTON</div>
+        <div className="lp-preview-pdp-heading">ACCESSOIRES GM Monogram Coated Canvas Brown</div>
+        <div className="lp-preview-campaign-belt" style={pdpImage?{backgroundImage:'linear-gradient(90deg,rgba(164,0,42,.94),rgba(141,0,35,.72)),url("'+pdpImage+'")'}:undefined}>
+          <div className="lp-preview-belt-price">商品售价及优惠金额由实时优惠规则计算</div>
+          <button type="button" className="lp-preview-belt-entry" onClick={()=>message.info('本时段入口跳转：'+(period?.landing||'尚未配置'))}>
+            <strong>{period?.text||'活动主题'} →</strong>
+            <small>{period?.cta||'探索活动'}</small>
+            {countdown?.visible&&<small>ENDS IN {countdownLabel}</small>}
+          </button>
+        </div>
+        <div style={{fontSize:12,color:'#6B7280',marginTop:12}}>倒计时{countdown?.visible?'展示中':'当前预览时间不展示'}；到达目标时间或离开本展示时段后隐藏。</div>
+      </div>
+      <div style={{fontSize:12,color:'#6B7280',marginTop:10,wordBreak:'break-all'}}>本时段入口跳转：{period?.landing||'尚未配置'}</div>
+    </div>
+  </div>;
+}
+function FrontDisplayFormPage({go,record}) {
+  const d=record||{},isEdit=!!record;
+  const initPeriod=(p,i)=>({key:i+1,range:p.start?[dayjs(p.start),dayjs(p.end)]:null,phase:d.periods?.length>1?(p.phase||'formal'):'single',text:p.text||d.text||'BLACK FRIDAY',cta:p.cta||'探索活动',landingType:p.landingType||d.landingType||(!p.landing&&!d.landing||((p.landing||d.landing).startsWith('/collections/'))?'collection':'url'),landing:p.landing??d.landing??'',discountBadge:p.discountBadge||'',countdownEnabled:!!p.countdownEnabled,countdownStart:p.countdownStart?dayjs(p.countdownStart):null,countdownTargetType:p.countdownTargetType||'periodEnd',countdownCustomTarget:p.countdownCustomTarget?dayjs(p.countdownCustomTarget):null,assets:p.assets||{}});
+  const [name,setName]=useState(d.name||'');
+  const [market,setMarket]=useState(d.market==='香港'?'HK':'US');
+  const [priority,setPriority]=useState(d.priority??50);
+  const [periods,setPeriods]=useState((d.periods||[{start:null,end:null,phase:'single',text:'BLACK FRIDAY'}]).map(initPeriod));
+  const [periodMode,setPeriodMode]=useState(d.periods?.length>1?'split':'single');
+  const [scopeSource,setScopeSource]=useState(d.scopeSource||'manual');
+  const [linkedOfferIds,setLinkedOfferIds]=useState(d.linkedOfferIds||[]);
+  const [scope,setScope]=useState(d.scopeType||'collection');
+  const [scopeValues,setScopeValues]=useState(d.scopeValues||[]);
+  const [extraListings,setExtraListings]=useState(d.extraListings||[]);
+  const [excludeListings,setExcludeListings]=useState(d.excludeListings||[]);
+  const [claimConfirmed,setClaimConfirmed]=useState(!!d.claimConfirmed);
+  const [previewKey,setPreviewKey]=useState(1);
+  const [previewDevice,setPreviewDevice]=useState('h5');
+  const [previewAt,setPreviewAt]=useState(null);
+  const [checkOpen,setCheckOpen]=useState(false);
+  const [checkState,setCheckState]=useState('idle');
+  const [checkReport,setCheckReport]=useState(null);
+  const [checkError,setCheckError]=useState('');
+  const [pendingPlan,setPendingPlan]=useState(null);
+  const marketName=market==='HK'?'香港':'美国',options=BENEFIT_MARKET_OPTIONS[marketName];
+  const offerOptions=OFFER_RULES.filter(x=>x.level==='product'&&x.market===marketName&&['scheduled','active'].includes(x.status)).map(x=>({value:x.id,label:x.name+'（'+x.id+'）'}));
+  const updatePeriod=(key,patch)=>{if(key!==previewKey)setPreviewAt(null);setPreviewKey(key);if(patch.assets)setClaimConfirmed(false);setPeriods(items=>items.map(p=>p.key===key?{...p,...patch}:p));};
+  const selectedPreview=periods.find(p=>p.key===previewKey)||periods[0];
+  const hasImages=periods.some(p=>Object.values(p.assets||{}).some(Boolean));
+  const serializePeriods=()=>{
+    const sorted=periods.map(p=>({start:p.range?.[0]?.format('YYYY-MM-DD HH:mm')||null,end:p.range?.[1]?.format('YYYY-MM-DD HH:mm')||null,phase:periodMode==='single'?'single':p.phase,text:(p.text||'').trim(),cta:(p.cta||'').trim(),landingType:p.landingType,landing:(p.landing||'').trim(),discountBadge:(p.discountBadge||'').trim(),countdownEnabled:!!p.countdownEnabled,countdownStart:p.countdownStart?.format('YYYY-MM-DD HH:mm')||null,countdownTargetType:p.countdownTargetType||'periodEnd',countdownCustomTarget:p.countdownCustomTarget?.format('YYYY-MM-DD HH:mm')||null,assets:{...p.assets}})).sort((a,b)=>(a.start||'').localeCompare(b.start||''));
+    return sorted.map(p=>({...p,countdownTargetAt:p.countdownEnabled?displayCountdownTarget(p,sorted):null}));
+  };
+  const previewPeriods=periods.map(p=>({key:p.key,start:p.range?.[0]?.format('YYYY-MM-DD HH:mm')||null,end:p.range?.[1]?.format('YYYY-MM-DD HH:mm')||null,countdownEnabled:!!p.countdownEnabled,countdownStart:p.countdownStart?.format('YYYY-MM-DD HH:mm')||null,countdownTargetType:p.countdownTargetType||'periodEnd',countdownCustomTarget:p.countdownCustomTarget?.format('YYYY-MM-DD HH:mm')||null}));
+  const previewPeriod=previewPeriods.find(p=>p.key===selectedPreview?.key);
+  const previewTime=previewAt||selectedPreview?.countdownStart||selectedPreview?.range?.[0]||null;
+  const previewCountdown=previewPeriod?resolveDisplayCountdown(previewPeriod,previewPeriods,previewTime?.format('YYYY-MM-DD HH:mm')):{visible:false,target:null,secondsLeft:0};
+  const buildPlan=(status,valid)=>({
+    ...d,id:d.id||'DSP-DEMO-'+Date.now(),name:name.trim(),market:marketName,status,
+    publishedAt:status==='draft'?(d.publishedAt||''):(d.publishedAt||dayjs().format('YYYY-MM-DD HH:mm:ss')),
+    priority,placements:['card','pdp'],text:valid[0]?.text||'',
+    scope:scopeSource==='offer'?'引用 '+linkedOfferIds.length+' 个商品优惠'+(extraListings.length?' + '+extraListings.length+' 个补充商品':''):scope==='all'?'全部商品':scopeValues.length+' 个'+({category:'品类',brand:'品牌',tag:'商品标签',collection:'Collection',listing:'商品'}[scope])+(extraListings.length?' + '+extraListings.length+' 个补充商品':''),
+    scopeSource,linkedOfferIds,scopeType:scope,scopeValues,extraListings,excludeListings,claimConfirmed,periods:valid
+  });
+  const persistPlan=(next,type)=>{
+    delete next.atmosphere;
+    delete next.landingType;
+    delete next.landing;
+    const i=FRONT_DISPLAYS.findIndex(x=>x.id===next.id);if(i>=0)FRONT_DISPLAYS[i]=next;else FRONT_DISPLAYS.unshift(next);
+    displayLog(next.id,type,d.id&&d.priority!==priority?'优先级 '+(d.priority??50)+' → '+priority:type==='发布'?'完成冲突检查并发布':'保存氛围方案');
+    message.success(type==='发布'?'营销氛围已发布':'草稿已保存');go('display-list');
+  };
+  const saveDraft=()=>{
+    if(!name.trim()){message.warning('请填写方案名称后保存草稿');return;}
+    persistPlan(buildPlan('draft',serializePeriods()),'草稿');setCheckOpen(false);
+  };
+  const preparePublish=()=>{
+    if(!name.trim()||periods.some(p=>!p.range?.[0]||!p.range?.[1]||!p.text.trim()||!p.cta.trim())){message.warning('请补全方案名称、每段时间、主题文案及入口文案');return;}
+    if(!Number.isInteger(priority)||priority<1||priority>100){message.warning('优先级请填写 1–100 的整数');return;}
+    if(scopeSource==='offer'&&!linkedOfferIds.length){message.warning('请选择至少一个商品优惠活动');return;}
+    if(scopeSource==='manual'&&scope!=='all'&&!scopeValues.length){message.warning('请选择展示商品范围');return;}
+    if(periods.some(p=>!p.landing||p.landingType==='collection'&&!/^\/collections\/[A-Za-z0-9-]+$/.test(p.landing)||p.landingType==='url'&&!(/^(\/[^/]|https:\/\/)/.test(p.landing)))){message.warning('请为每个展示时段配置有效的 Collection 或 HTTPS / 站内落地页');return;}
+    if(hasImages&&!claimConfirmed){message.warning('请确认图片不包含价格、划线价或 Save 金额');return;}
+    if(periods.some(p=>/[\$¥￥]\s*\d|\bSave\s*\d|省\s*\d/i.test(p.text+' '+p.discountBadge))){message.warning('文案不能写入固定价格或节省金额');return;}
+    const valid=serializePeriods();
+    if(valid.some((p,i)=>p.start>=p.end||i>0&&p.start<=valid[i-1].end)){message.warning('展示时段不可倒置或重叠');return;}
+    const invalidCountdown=valid.map((p,i)=>({i,error:validateDisplayCountdown(p,valid)})).find(x=>x.error);
+    if(invalidCountdown){message.warning('第 '+(invalidCountdown.i+1)+' 段：'+invalidCountdown.error);return;}
+    const next=buildPlan(d.status==='active'?'active':'scheduled',valid);
+    setPendingPlan(next);setCheckReport(null);setCheckError('');setCheckState('checking');setCheckOpen(true);
+    Promise.resolve().then(()=>{
+      if(typeof window.looplyCheckDisplayConflicts!=='function') throw new Error('尚未接入完整商品索引，无法完成发布检查');
+      return window.looplyCheckDisplayConflicts(next,DISPLAY_CHECK_POLICY);
+    }).then(result=>{
+      const fields=['totalSlots','effectiveSlots','overriddenSlots','suppressedSlots','partialSlots'];
+      if(result?.source!=='full-product-index'||!fields.every(k=>Number.isInteger(result[k])&&result[k]>=0)||!Array.isArray(result.conflicts)) throw new Error('冲突检查结果不完整，无法发布');
+      setCheckReport(result);setCheckState(result.effectiveSlots===0?'blocked':'ready');
+    }).catch(error=>{setCheckError(error.message||'冲突检查失败，请稍后重试');setCheckState('error');});
+  };
+  const confirmPublish=()=>{if(checkState!=='ready'||!pendingPlan)return;persistPlan(pendingPlan,'发布');setCheckOpen(false);};
+  return <Card style={CARD_STYLE}>
+    <Breadcrumb items={[{title:<a onClick={()=>go('display-list')}>营销氛围</a>},{title:isEdit?'编辑氛围方案':'新建氛围方案'}]} style={{marginBottom:8}}/>
+    <div style={{fontSize:20,fontWeight:700,marginBottom:20}}>{isEdit?'编辑氛围方案':'新建氛围方案'}</div>
+    <h4 className="lp-section">基本信息</h4>
+    {isEdit&&<FormRow label="展示 ID"><Input value={d.id} disabled style={{width:280}}/></FormRow>}
+    <FormRow label="方案名称" required><Input value={name} onChange={e=>setName(e.target.value)} placeholder="如：Black Friday 2026" style={{width:'100%',maxWidth:560}}/></FormRow>
+    <FormRow label="所属市场" required><Select value={market} onChange={v=>{setMarket(v);setScopeValues([]);setLinkedOfferIds([]);setExtraListings([]);setExcludeListings([]);setPeriods(items=>items.map(p=>({...p,landing:''})));}} disabled={isEdit} style={{width:280}} options={[{value:'US',label:'美国 / USD'},{value:'HK',label:'香港 / HKD'}]}/></FormRow>
+    <FormRow label="优先级" required helper="数值越小越优先；同级保留先发布方案"><InputNumber value={priority} onChange={setPriority} min={1} max={100} precision={0} style={{width:180}}/></FormRow>
+    <h4 className="lp-section" style={{marginTop:24}}>适用商品</h4>
+    <FormRow label="商品来源" required><Radio.Group value={scopeSource} onChange={e=>{setScopeSource(e.target.value);setExtraListings([]);}} options={[{value:'offer',label:'引用商品优惠'},{value:'manual',label:'自行配置范围'}]}/></FormRow>
+    {scopeSource==='offer'&&<FormRow label="选择优惠" required helper="取所选商品优惠的适用商品并集；不引用订单优惠"><Select mode="multiple" value={linkedOfferIds} onChange={setLinkedOfferIds} showSearch optionFilterProp="label" placeholder="选择同市场、已发布的商品优惠" style={{width:'100%',maxWidth:560}} options={offerOptions}/></FormRow>}
+    {scopeSource==='manual'&&<FormRow label="基础范围" required><Radio.Group value={scope} onChange={e=>{const nextScope=e.target.value;setScope(nextScope);setScopeValues([]);if(nextScope==='all'||nextScope==='listing')setExtraListings([]);}} options={[{value:'all',label:'全部商品'},{value:'category',label:'指定品类'},{value:'brand',label:'指定品牌'},{value:'tag',label:'指定标签'},{value:'collection',label:'指定 Collection'},{value:'listing',label:'指定商品'}]}/></FormRow>}
+    {scopeSource==='manual'&&scope!=='all'&&<FormRow label="选择范围" required><Select mode="multiple" value={scopeValues} onChange={setScopeValues} style={{width:'100%',maxWidth:560}} options={scope==='brand'?options.brands:scope==='tag'?options.tags:scope==='collection'?COLLECTIONS.filter(x=>x.market===marketName).map(x=>({value:x.value,label:x.label})):scope==='category'?options.categories:options.listings}/></FormRow>}
+    {(scopeSource==='offer'||scope!=='all'&&scope!=='listing')&&<FormRow label="补充商品" helper="在基础范围外补充单品，也可纳入未参加优惠的商品"><Select mode="multiple" value={extraListings} onChange={setExtraListings} style={{width:'100%',maxWidth:560}} options={options.listings}/></FormRow>}
+    <FormRow label="排除商品" helper="最终商品范围＝基础范围或引用优惠的商品＋补充商品－排除商品"><Select mode="multiple" value={excludeListings} onChange={setExcludeListings} style={{width:'100%',maxWidth:560}} options={options.listings}/></FormRow>
+    <h4 className="lp-section" style={{marginTop:24}}>展示时段与内容</h4>
+    <FormRow label="时间设置" required><Radio.Group value={periodMode} onChange={e=>{const v=e.target.value;setPeriodMode(v);if(v==='single'){setPeriods([{...periods[0],phase:'single'}]);setPreviewKey(periods[0].key);setPreviewAt(null);}else if(periods.length===1)setPeriods([{...periods[0],phase:'preheat'},{key:Date.now(),range:null,phase:'formal',text:'BLACK FRIDAY',cta:'探索活动',landingType:periods[0].landingType,landing:periods[0].landing,discountBadge:'',countdownEnabled:false,countdownStart:null,countdownTargetType:'periodEnd',countdownCustomTarget:null,assets:{}}]);}} options={[{value:'single',label:'单时段'},{value:'split',label:'分段设置'}]}/></FormRow>
+    <div className="lp-display-workspace">
+    <div className="lp-display-editor">
+    {periods.map((p,i)=><div key={p.key} className="lp-display-period">
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}><strong>{periodMode==='single'?'展示内容':`第 ${i+1} 段 · ${p.phase==='preheat'?'预热期':'正式期'}`}</strong>{periodMode==='split'&&<Button size="small" disabled={periods.length<=2} onClick={()=>setPeriods(periods.filter(x=>x.key!==p.key))}>删除时段</Button>}</div>
+      <FormRow label="起止时间" required><DatePicker.RangePicker showTime value={p.range} onChange={range=>updatePeriod(p.key,{range})} style={{width:'100%',maxWidth:380}}/></FormRow>
+      {periodMode==='split'&&<FormRow label="阶段" required><Radio.Group value={p.phase} onChange={e=>updatePeriod(p.key,{phase:e.target.value})} options={[{value:'preheat',label:'预热期'},{value:'formal',label:'正式期'}]}/></FormRow>}
+      <FormRow label="主题文案" required><Input value={p.text} onChange={e=>updatePeriod(p.key,{text:e.target.value})} maxLength={40} showCount style={{width:'100%',maxWidth:500}} placeholder="如：BLACK FRIDAY"/></FormRow>
+      <FormRow label="入口文案" required><Input value={p.cta} onChange={e=>updatePeriod(p.key,{cta:e.target.value})} maxLength={20} style={{width:'100%',maxWidth:280}}/></FormRow>
+      <FormRow label="入口跳转类型" required><Radio.Group value={p.landingType} onChange={e=>updatePeriod(p.key,{landingType:e.target.value,landing:''})} options={[{value:'collection',label:'选择 Collection'},{value:'url',label:'手动填写 URL'}]}/></FormRow>
+      {p.landingType==='collection'?<FormRow label="入口跳转目标" required helper="商品卡主体进入商详；本时段的氛围入口跳转至此目标"><Select value={p.landing?.split('/').pop()||undefined} onChange={v=>updatePeriod(p.key,{landing:'/collections/'+v})} style={{width:400}} options={COLLECTIONS.filter(x=>x.market===marketName)}/></FormRow>:<FormRow label="入口跳转目标" required helper="商品卡主体进入商详；本时段的氛围入口跳转至此目标"><Input value={p.landing} onChange={e=>updatePeriod(p.key,{landing:e.target.value})} style={{width:'100%',maxWidth:560}} placeholder="/campaign/black-friday 或 https://..."/></FormRow>}
+      <FormRow label="倒计时展示" helper="按时段独立控制；关闭时不展示倒计时"><Radio.Group value={p.countdownEnabled?'on':'off'} onChange={e=>updatePeriod(p.key,{countdownEnabled:e.target.value==='on'})} options={[{value:'off',label:'关闭'},{value:'on',label:'开启'}]}/></FormRow>
+      {p.countdownEnabled&&<>
+        <FormRow label="开始展示时间" required helper="须在本展示时段内；到达后才向用户显示倒计时"><DatePicker showTime value={p.countdownStart} onChange={v=>updatePeriod(p.key,{countdownStart:v})} style={{width:250}}/></FormRow>
+        <FormRow label="倒计时目标" required><Radio.Group value={p.countdownTargetType} onChange={e=>updatePeriod(p.key,{countdownTargetType:e.target.value})} options={[{value:'periodEnd',label:'本时段结束'},{value:'nextStart',label:'下一时段开始'},{value:'custom',label:'指定时间'}]}/></FormRow>
+        {p.countdownTargetType==='custom'&&<FormRow label="指定目标时间" required helper="可晚于本时段结束；离开本时段后倒计时仍会隐藏"><DatePicker showTime value={p.countdownCustomTarget} onChange={v=>updatePeriod(p.key,{countdownCustomTarget:v})} style={{width:250}}/></FormRow>}
+      </>}
+      {(periodMode==='single'||p.phase==='formal')&&<FormRow label="优惠提示" helper="仅在用户及商品满足优惠活动规则时展示；不得填写固定价格或 Save 金额"><Input value={p.discountBadge} onChange={e=>updatePeriod(p.key,{discountBadge:e.target.value})} maxLength={30} style={{width:'100%',maxWidth:360}} placeholder="如：BLACK FRIDAY PRICE"/></FormRow>}
+      <FormRow label="图片素材" helper="支持 PNG/JPG/WebP，单张 ≤5 MB；未上传时回退为文字样式。图片不要包含具体优惠金额。"><div style={{display:'flex',gap:14,flexWrap:'wrap',maxWidth:720}}>{DISPLAY_ASSET_SLOTS.map(slot=><DisplayAssetUpload key={slot.key} label={slot.label+'（'+slot.ratio+'）'} value={p.assets?.[slot.key]} onChange={src=>updatePeriod(p.key,{assets:{...p.assets,[slot.key]:src}})}/>)}</div></FormRow>
+    </div>)}
+    {periodMode==='split'&&<Button type="dashed" icon={<PlusOutlined/>} style={{marginLeft:112}} onClick={()=>setPeriods([...periods,{key:Date.now(),range:null,phase:'formal',text:'BLACK FRIDAY',cta:'探索活动',landingType:'collection',landing:'',discountBadge:'',countdownEnabled:false,countdownStart:null,countdownTargetType:'periodEnd',countdownCustomTarget:null,assets:{}}])}>新增展示时段</Button>}
+    </div>
+    <aside className="lp-display-preview-panel" aria-label="前台效果预览">
+      <div style={{fontSize:15,fontWeight:600}}>前台效果预览{periodMode==='split'&&<span style={{fontSize:12,fontWeight:400,color:'#6B7280',marginLeft:8}}>第 {periods.findIndex(p=>p.key===selectedPreview?.key)+1} 段</span>}</div>
+      <div className="lp-preview-controls">
+        {periodMode==='split'&&<Select aria-label="预览时段" value={selectedPreview?.key} onChange={v=>{setPreviewKey(v);setPreviewAt(null);}} style={{width:160}} options={periods.map((p,i)=>({value:p.key,label:'第 '+(i+1)+' 段'}))}/>}
+        <Radio.Group aria-label="预览设备" value={previewDevice} onChange={e=>setPreviewDevice(e.target.value)} options={[{value:'pc',label:'PC'},{value:'h5',label:'移动端'}]}/>
+        <span style={{fontSize:12,color:'#6B7280'}}>预览时间</span><DatePicker aria-label="预览时间" showTime value={previewTime} onChange={setPreviewAt} style={{width:250}}/>
+      </div>
+      <div style={{fontSize:12,color:'#6B7280',marginBottom:14}}>默认以本段倒计时开始时间预览；可修改时间查看出现前后状态。</div>
+      <DisplayPreview period={selectedPreview} device={previewDevice} countdown={previewCountdown}/>
+    </aside>
+    </div>
+    {hasImages&&<FormRow label="素材声明" required><Checkbox checked={claimConfirmed} onChange={e=>setClaimConfirmed(e.target.checked)}>图片不包含固定售价、划线价或 Save 金额</Checkbox></FormRow>}
+    <div style={{display:'flex',justifyContent:'flex-end',gap:12,padding:'16px 0',borderTop:'1px solid #E5E7EB'}}><Button onClick={()=>go('display-list')}>取消</Button>{(!isEdit||d.status==='draft')&&<Button onClick={saveDraft}>保存草稿</Button>}<Button type="primary" onClick={preparePublish}>{isEdit&&d.status!=='draft'?'检查并重新发布':'检查并发布'}</Button></div>
+    {isEdit&&<OpLog data={DISPLAY_OPLOGS[d.id]||[]}/>}
+    <Modal open={checkOpen} title="发布前冲突检查" closable={false} maskClosable={false} centered={true} width={760}
+      footer={<><Button onClick={()=>setCheckOpen(false)}>返回修改</Button>{(!isEdit||d.status==='draft')&&<Button onClick={saveDraft}>保存草稿</Button>}<Button type="primary" disabled={checkState!=='ready'} onClick={confirmPublish}>确认发布</Button></>}>
+      {checkState==='checking'&&<Alert type="info" showIcon message="正在按完整商品索引检查冲突…"/>}
+      {checkState==='error'&&<><Alert type="error" showIcon message={checkError} description="检查未完成，不能发布；请重试或保存草稿。" style={{marginBottom:16}}/><Space size={8} wrap><StatusTag variant="off">范围内 —</StatusTag><StatusTag variant="off">本方案生效 —</StatusTag><StatusTag variant="off">覆盖旧方案 —</StatusTag><StatusTag variant="off">被其他方案压制 —</StatusTag></Space></>}
+      {checkReport&&<>
+        {checkState==='blocked'&&<Alert type="error" showIcon message="当前方案没有展示机会" description="请调整优先级、展示时段或商品范围后重新检查；可以先保存草稿。" style={{marginBottom:16}}/>}
+        {checkState==='ready'&&checkReport.conflicts.length===0&&<Alert type="success" showIcon message="未发现冲突，可以发布" style={{marginBottom:16}}/>}
+        {checkState==='ready'&&checkReport.conflicts.length>0&&<Alert type="warning" showIcon message="存在重叠氛围，请确认下方展示结果" style={{marginBottom:16}}/>}
+        <Space size={8} wrap style={{marginBottom:16}}><StatusTag variant="sale">范围内 {checkReport.totalSlots} 个展示位</StatusTag><StatusTag variant="on">本方案生效 {checkReport.effectiveSlots} 个</StatusTag><StatusTag variant="warn">覆盖旧方案 {checkReport.overriddenSlots} 个</StatusTag><StatusTag variant="pending">被其他方案压制 {checkReport.suppressedSlots} 个</StatusTag><StatusTag variant="pending">部分时段生效 {checkReport.partialSlots} 个</StatusTag></Space>
+        {checkReport.conflicts.length>0&&<Table size="small" rowKey={(r,i)=>r.key||r.productId+'-'+r.placement+'-'+i} dataSource={checkReport.conflicts} styles={TABLE_STYLES} pagination={{pageSize:5}} columns={[{title:'商品',dataIndex:'productName'},{title:'位置',dataIndex:'placement',width:85,render:v=>v==='card'?'商品卡':v==='pdp'?'商详':v},{title:'重叠时段',dataIndex:'period',width:165},{title:'重叠方案',dataIndex:'rivalName'},{title:'生效方案',dataIndex:'winnerName'}]}/>}
+      </>}
+    </Modal>
+  </Card>;
+}
+
+
+
+
+function App() {
+  const requestedPage=new URLSearchParams(location.search).get('page');
+  const offerPages=['offer-list','offer-create','offer-edit','offer-detail'];
+  const displayPages=['display-list','display-create','display-edit'];
+  const allowedPages=[...offerPages,...displayPages];
+  const [currentPage, setCurrentPage] = useState(['offer-list','offer-create','display-list','display-create'].includes(requestedPage)?requestedPage:'offer-list');
+  const [record, setRecord] = useState(null);
+  const go = (key, rec) => {
+    if (!allowedPages.includes(key)) return;
+    if (rec !== undefined) setRecord(rec);
+    else if (key === 'offer-create' || key === 'offer-list' || key === 'display-create' || key === 'display-list') setRecord(null);
+    setCurrentPage(key);
+    window.scrollTo(0, 0);
+  };
+  const activeKey = currentPage.startsWith('display-') ? 'display' : 'promo';
+  const subLabel = (text, key) => <span style={{ fontWeight: activeKey === key ? 600 : 400 }}>{text}</span>;
+  const menuItems = [
+    { key: 'marketing', icon: <GiftOutlined />, label: '营销中心',
+      children: [
+        { key: 'promo', icon: <TagsOutlined />, label: subLabel('优惠活动', 'promo') },
+        { key: 'display', icon: <GiftOutlined />, label: subLabel('营销氛围', 'display') },
+      ] },
+  ];
+  const crumbMap = {
+    'offer-list': '优惠活动', 'offer-create': '优惠活动 / 新建优惠', 'offer-edit': '优惠活动 / 编辑优惠', 'offer-detail': '优惠活动 / 活动详情',
+    'display-list': '营销氛围', 'display-create': '营销氛围 / 新建氛围方案', 'display-edit': '营销氛围 / 编辑氛围方案',
+  };
+  return <ConfigProvider theme={looplyTheme}>
+    <Layout style={{ height: '100vh' }}>
+      <Layout.Header style={{ borderBottom: '1px solid #E5E7EB', display: 'flex', alignItems: 'center' }}>
+        <img src={LOGO_SRC} alt="Looply" style={{ width: 118, height: 'auto', display: 'block' }} />
+        <div style={{ width: 1, height: 20, background: '#E5E7EB', margin: '0 16px' }} />
+        <span style={{ fontSize: 14, fontWeight: 500, color: '#6B7280' }}>营销管理后台</span>
+        <span style={{ marginLeft: 'auto', color: '#9CA3AF', fontSize: 13 }}>{crumbMap[currentPage]}</span>
+      </Layout.Header>
+      <Layout>
+        <Layout.Sider width={220} theme="light" style={SIDER_STYLE}>
+          <Menu mode="inline" items={menuItems} selectedKeys={[activeKey]} defaultOpenKeys={['marketing']}
+            style={{ borderInlineEnd: 'none' }}
+            onClick={({key}) => {
+              if (key === 'promo') go('offer-list');
+              if (key === 'display') go('display-list');
+            }} /></Layout.Sider>
+        <Layout.Content style={{ padding: 28, overflow: 'auto' }}>
+          {currentPage === 'offer-list' && <OfferRuleListPage go={go} />}
+          {currentPage === 'offer-create' && <OfferRuleFormPage go={go} />}
+          {currentPage === 'offer-edit' && <OfferRuleFormPage go={go} record={record} />}
+          {currentPage === 'offer-detail' && <OfferDetailPanel rule={record||OFFER_RULES[0]} go={go} />}
+          {currentPage === 'display-list' && <FrontDisplayListPage go={go} />}
+          {currentPage === 'display-create' && <FrontDisplayFormPage go={go} />}
+          {currentPage === 'display-edit' && <FrontDisplayFormPage go={go} record={record} />}
+        </Layout.Content>
+      </Layout>
+    </Layout>
+  </ConfigProvider>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
