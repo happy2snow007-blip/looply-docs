@@ -711,7 +711,7 @@ MODULES = {
         'artifacts': {
             'prototype': {
                 'subdir': '原型',
-                'pattern': r'looply-营销活动-antd-原型-v(.+?)\.html',
+                'pattern': r'looply-营销中心-antd-原型-v(.+?)\.html',
                 'exclude': r'(backup|对比)',
             },
             'prd': {
