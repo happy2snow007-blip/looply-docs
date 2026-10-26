@@ -124,6 +124,22 @@
     font-weight: 600;
     border-left-color: #6366f1;
   }
+  .sidebar-subgroup-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sidebar-subgroup-title::after {
+    content: '';
+    width: 0; height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid #999;
+    transition: transform 0.2s;
+  }
+  .sidebar-subgroup.collapsed .sidebar-subgroup-title::after { transform: rotate(-90deg); }
+  .sidebar-subgroup.collapsed .sidebar-subgroup-items { display: none; }
+  .sidebar-subgroup-items .sidebar-item { padding-left: 42px; }
   .page-body {
     display: flex;
     min-height: calc(100vh - 100px);
@@ -5510,7 +5526,7 @@ if(hasValidAuth()){
 (function() {
   var GROUPS = [
     { name: '用户域', modules: ['登录注册', '用户管理', '个人中心', '用户订阅管理'] },
-    { name: 'C端卖场', modules: ['首页', 'Footer', '营销专题', '搜索', '图搜', 'shop页', 'Collection管理', 'Favourites', '收藏与浏览历史', '商详页', '社媒分享管理', '隐私与法律', 'Contact Us', 'About Looply', 'SEO优化', 'Landing 页配置'] },
+    { name: 'C端卖场', modules: ['首页', 'Footer', '营销专题', '搜索', 'shop页', 'Collection管理', 'Favourites', '收藏与浏览历史', '商详页', '社媒分享管理', '隐私与法律', 'Contact Us', 'About Looply', 'SEO优化', 'Landing 页配置'] },
     { name: '交易域', modules: ['购物车', '营销活动', '订单支付', '红布林订单对接', '订单列表/详情', '售后', '售后列表详情', '支付打款'] },
     { name: '基础服务域', modules: ['商品系统', '红布林商品对接', 'Market', '多语言管理', '汇率管理', '库存管理', '物流管理', '地址库管理', '订单列表详情'] },
     { name: '数据与分析', modules: ['数据采集与埋点', '数据分析报表'] },
@@ -5532,7 +5548,7 @@ if(hasValidAuth()){
   var firstItem = null;
 
   GROUPS.forEach(function(group) {
-    var hasContent = group.modules.some(function(m) { return moduleMap[m]; });
+    var hasContent = group.modules.some(function(m) { return moduleMap[m] || (m === '搜索' && moduleMap['图搜']); });
     if (!hasContent) return;
 
     var groupEl = document.createElement('div');
@@ -5549,7 +5565,7 @@ if(hasValidAuth()){
     var itemsEl = document.createElement('div');
     itemsEl.className = 'sidebar-group-items';
 
-    group.modules.forEach(function(modName) {
+    function addModuleItem(modName, parent) {
       if (!moduleMap[modName]) return;
       var item = document.createElement('div');
       item.className = 'sidebar-item';
@@ -5560,8 +5576,28 @@ if(hasValidAuth()){
         sections.forEach(function(s) { s.classList.remove('active'); });
         moduleMap[modName].classList.add('active');
       };
-      itemsEl.appendChild(item);
+      parent.appendChild(item);
       if (!firstItem) firstItem = item;
+    }
+
+    group.modules.forEach(function(modName) {
+      if (modName === '搜索' && (moduleMap['搜索'] || moduleMap['图搜'])) {
+        var searchGroup = document.createElement('div');
+        searchGroup.className = 'sidebar-subgroup';
+        var searchTitle = document.createElement('div');
+        searchTitle.className = 'sidebar-item sidebar-subgroup-title';
+        searchTitle.textContent = '搜索';
+        searchTitle.onclick = function() { searchGroup.classList.toggle('collapsed'); };
+        searchGroup.appendChild(searchTitle);
+        var searchItems = document.createElement('div');
+        searchItems.className = 'sidebar-subgroup-items';
+        addModuleItem('搜索', searchItems);
+        addModuleItem('图搜', searchItems);
+        searchGroup.appendChild(searchItems);
+        itemsEl.appendChild(searchGroup);
+        return;
+      }
+      addModuleItem(modName, itemsEl);
     });
 
     groupEl.appendChild(itemsEl);
