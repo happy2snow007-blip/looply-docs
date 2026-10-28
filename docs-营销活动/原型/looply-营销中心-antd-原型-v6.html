@@ -459,10 +459,10 @@ function displayPeriod(start,end,text='BLACK FRIDAY',landing='/collections/C1000
   return {start,end,landingType:'collection',landing,assets:{cardPc:demoDisplayArt(text,'card'),cardH5:demoDisplayArt(text,'card'),pdpLabelPc:demoDisplayArt(text,'pdp'),pdpLabelH5:demoDisplayArt(text,'pdp'),priceDetailsPc:demoPriceDetailsArt(),priceDetailsH5:demoPriceDetailsArt()}};
 }
 const FRONT_DISPLAYS = [
-  {id:'DSP-BF-US',name:'Black Friday 2026 · 前台氛围',market:'美国',status:'scheduled',publishedAt:'2026-10-20 10:00',priority:20,placements:['card','pdp'],scope:'引用 3 个商品优惠 + 自选 1 个 Collection',scopeSources:['offer','manual'],linkedOfferIds:['OFR-BF-30','OFR-BF-60','OFR-BF-120'],scopeType:'collection',scopeValues:['C10004'],claimConfirmed:true,periods:[
+  {id:'DSP-BF-US',name:'Black Friday 2026 · 前台氛围',market:'美国',status:'scheduled',publishedAt:'2026-10-20 10:00',priority:20,placements:['card','pdp'],scope:'引用 3 个商品优惠 + 自选 1 个 Collection',scopeSources:['offer','manual'],linkedOfferIds:['OFR-BF-30','OFR-BF-60','OFR-BF-120'],scopeType:'collection',scopeValues:['C10004'],periods:[
     {...displayPeriod('2026-11-06 00:00','2026-11-12 23:59','BLACK FRIDAY PREVIEW','/collections/C10002'),countdownEnabled:true,countdownStart:'2026-11-11 00:00'},
     {...displayPeriod('2026-11-20 00:00','2026-11-29 23:59'),countdownEnabled:true,countdownStart:'2026-11-27 00:00'}]},
-  {id:'DSP-DESIGNER-US',name:'Designer Edit · 主题氛围',market:'美国',status:'scheduled',publishedAt:'2026-10-21 09:00',priority:50,placements:['card','pdp'],scope:'指定品牌 · Gucci',scopeSource:'manual',linkedOfferIds:[],scopeType:'brand',scopeValues:['gucci'],claimConfirmed:true,periods:[
+  {id:'DSP-DESIGNER-US',name:'Designer Edit · 主题氛围',market:'美国',status:'scheduled',publishedAt:'2026-10-21 09:00',priority:50,placements:['card','pdp'],scope:'指定品牌 · Gucci',scopeSource:'manual',linkedOfferIds:[],scopeType:'brand',scopeValues:['gucci'],periods:[
     displayPeriod('2026-11-20 00:00','2026-11-29 23:59','DESIGNER EDIT','/collections/C10002')
   ]},
 ];
@@ -954,7 +954,6 @@ function FrontDisplayFormPage({go,record}) {
   const [linkedOfferIds,setLinkedOfferIds]=useState(d.linkedOfferIds||[]);
   const [scope,setScope]=useState(d.scopeType&&d.scopeType!=='all'?d.scopeType:'collection');
   const [scopeValues,setScopeValues]=useState(d.scopeType==='all'?[]:(d.scopeValues||[]));
-  const [claimConfirmed,setClaimConfirmed]=useState(!!d.claimConfirmed);
   const [previewKey,setPreviewKey]=useState(1);
   const [previewDevice,setPreviewDevice]=useState('h5');
   const [previewAt,setPreviewAt]=useState(null);
@@ -966,9 +965,8 @@ function FrontDisplayFormPage({go,record}) {
   const marketName=market==='HK'?'香港':'美国',options=BENEFIT_MARKET_OPTIONS[marketName];
   const offerOptions=OFFER_RULES.filter(x=>x.level==='product'&&x.market===marketName&&['scheduled','active'].includes(x.status)).map(x=>({value:x.id,label:x.name+'（'+x.id+'）'}));
   const selectPreviewPeriod=(key)=>{if(key!==previewKey){setPreviewKey(key);setPreviewAt(null);}};
-  const updatePeriod=(key,patch)=>{selectPreviewPeriod(key);if(patch.assets)setClaimConfirmed(false);setPeriods(items=>items.map(p=>p.key===key?{...p,...patch}:p));};
+  const updatePeriod=(key,patch)=>{selectPreviewPeriod(key);setPeriods(items=>items.map(p=>p.key===key?{...p,...patch}:p));};
   const selectedPreview=periods.find(p=>p.key===previewKey)||periods[0];
-  const hasImages=periods.some(p=>Object.values(p.assets||{}).some(Boolean));
   const serializePeriods=()=>{
     const sorted=periods.map(p=>({start:p.range?.[0]?.format('YYYY-MM-DD HH:mm')||null,end:p.range?.[1]?.format('YYYY-MM-DD HH:mm')||null,landingType:p.landingType,landing:(p.landing||'').trim(),countdownEnabled:!!p.countdownEnabled,countdownStart:p.countdownStart?.format('YYYY-MM-DD HH:mm')||null,assets:{...p.assets}})).sort((a,b)=>(a.start||'').localeCompare(b.start||''));
     return sorted.map(p=>({...p,countdownTargetAt:p.countdownEnabled?displayCountdownTarget(p,sorted):null}));
@@ -984,7 +982,7 @@ function FrontDisplayFormPage({go,record}) {
     publishedAt:status==='draft'?(d.publishedAt||''):(d.publishedAt||dayjs().format('YYYY-MM-DD HH:mm:ss')),
     priority,placements:['card','pdp'],
     scope:displayScopeSummary({scopeSources,linkedOfferIds,scopeType:scope,scopeValues}),
-    ...serializeDisplayScopeSelection({scopeSources,linkedOfferIds,scopeType:scope,scopeValues}),claimConfirmed,periods:valid
+    ...serializeDisplayScopeSelection({scopeSources,linkedOfferIds,scopeType:scope,scopeValues}),periods:valid
   };};
   const persistPlan=(next,type)=>{
     delete next.atmosphere;
@@ -1006,7 +1004,6 @@ function FrontDisplayFormPage({go,record}) {
     const scopeError=validateDisplayScopeSelection({scopeSources,linkedOfferIds,scopeType:scope,scopeValues});
     if(scopeError){message.warning(scopeError);return;}
     if(periods.some(displayLandingInvalid)){message.warning('已填写的跳转目标须为有效 Collection 或站内／HTTPS 链接');return;}
-    if(hasImages&&!claimConfirmed){message.warning('请确认图片不包含固定售价、划线价、Save 或 Code 金额');return;}
     const valid=serializePeriods();
     if(valid.some((p,i)=>p.start>=p.end||i>0&&p.start<=valid[i-1].end)){message.warning('展示时段不可倒置或重叠');return;}
     const invalidCountdown=valid.map((p,i)=>({i,error:validateDisplayCountdown(p,valid)})).find(x=>x.error);
@@ -1074,7 +1071,6 @@ function FrontDisplayFormPage({go,record}) {
       <DisplayPreview period={selectedPreview} device={previewDevice} countdown={previewCountdown}/>
     </aside>
     </div>
-    {hasImages&&<FormRow label="素材声明" required><Checkbox checked={claimConfirmed} onChange={e=>setClaimConfirmed(e.target.checked)}>确认图片不包含固定售价、划线价、Save 或 Code 金额</Checkbox></FormRow>}
     <div style={{display:'flex',justifyContent:'flex-end',gap:12,padding:'16px 0',borderTop:'1px solid #E5E7EB'}}><Button onClick={()=>go('display-list')}>取消</Button>{(!isEdit||d.status==='draft')&&<Button onClick={saveDraft}>保存草稿</Button>}<Button type="primary" onClick={preparePublish}>{isEdit&&d.status!=='draft'?'检查并重新发布':'检查并发布'}</Button></div>
     {isEdit&&<OpLog data={DISPLAY_OPLOGS[d.id]||[]}/>}
     <Modal open={checkOpen} title="发布前冲突检查" closable={false} maskClosable={false} centered={true} width={760}
