@@ -2,6 +2,7 @@
 
 版本：v1.2（全量版）
 日期：2026-10-14
+更新日期：2026-10-28
 范围：C1 Sell 用户端、运营后台及相关跨模块联动
 
 ## 一、文档职责与基线
@@ -113,7 +114,7 @@ C1 使用全站当前实际生效的站点国家，不自行重新判断。带�
 - Category 读取当前国家全部 Active 配置，至少选择一项，可多选。
 - Brand 至少填写一项，可多选；选择 Category 后按其 Active Brand 联想，未配置品牌允许手动输入。
 - Total pieces 必填，选项为 `1–2`、`3–5`、`6–9`、`10+`。
-- Additional notes 选填，最多 300 字符；Photos 选填，最多 10 张。
+- Additional notes 选填，最多 300 字符；Photos 选填，最多 20 张。
 
 **Step 3 ZIP 与出售方式**
 
@@ -327,7 +328,7 @@ The Looply Team
 - CSV 包含 Request、Personal information、Item information、ZIP recommendation、Method information、Confirmation email 和 Internal note 字段，不包含照片文件、照片链接或 Attachment ID。
 - CSV 字段顺序固定：Request 为 Request ID、Country、Submitted at、Selling method；Personal information 为 First name、Last name、Phone、Email、Contact authorization result、Contact authorization accepted at；Item information 为 Categories、Brands、Total pieces、Additional notes；ZIP recommendation 为 Step 3 submitted ZIP、In-Home coverage result；Method information 为 Street address、Apartment、City、State、ZIP code、Looply address、Preferred date、Referral code、Seller Agreement acceptance result、Seller Agreement version、Seller Agreement accepted at；Confirmation email 为 status、Last attempted at、Failure reason；Internal note 为正文、created at、updated at、operator。不适用字段留空。
 - 每次成功触发 Download 后记录操作账号、下载时间、关键词、国家筛选、日期范围和导出数量；生成失败时不记录成功下载。
-- 点击 View 在当前行下方展开只读详情；照片最多 10 张，无值显示 `—`。
+- 点击 View 在当前行下方展开只读详情；照片最多 20 张，无值显示 `—`。
 - 用户提交业务字段只读，运营仅可编辑 Internal note，并可对 Failed 邮件执行 `Resend email`。
 - Confirmation email 状态为 Pending、Sent、Failed。重发开始后进入 Pending，成功变为 Sent，失败回到 Failed 并更新原因和 Last attempted at。
 - 内部备注记录 Created at、Updated at 和最近操作人；保存失败时保留编辑内容。

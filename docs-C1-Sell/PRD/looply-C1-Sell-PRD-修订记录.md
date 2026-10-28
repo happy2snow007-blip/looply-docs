@@ -73,3 +73,4 @@
 | v0.9 | 2026-09-07 | 产品 | 按业务提供内容补充 In-Home Appointment、Visit Looply 和 Ship To Us 三份确认邮件模板；明确选填字段为空时隐藏整行、Brands and details 合并字段、三种 Selling method 展示值、邮寄地址含义及西语模板来源。 |
 | 运营后台 v1.2 | 2026-09-04 | 产品 | 新增 ZIP 默认 Active、状态在列表内直接切换；Download 排除图片、照片链接和 Attachment ID；后台时间展示及日期筛选统一按美东时区处理。 |
 | 运营后台 Demo v1.1 | 2026-09-04 | 产品 | Appointments CSV 删除 Photos 列及照片链接生成；预约详情继续支持登录后在线查看照片。 |
+| 全量版 v1.2 工作稿 | 2026-10-28 | Codex | 按用户确认，将 §4.4 Step 2 照片上传上限由 10 张改为 20 张，§5.6 Appointments 详情照片展示上限同步为 20 张。 |
