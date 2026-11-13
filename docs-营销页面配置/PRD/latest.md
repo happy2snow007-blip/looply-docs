@@ -1,4 +1,4 @@
-# Looply 营销页面配置与图文专题模板 PRD v0.1
+# Looply 营销页面配置与图文专题模板 PRD v0.2
 
 ## 一、范围与页面结构
 
@@ -34,7 +34,7 @@ Landing 模板沿用已有 Landing 配置规则；本文第三至六章定义图
 | 页面名称（英文） | 必填，最多 100 个字符；用于后台识别专题，并自动生成地址后缀 |
 | 页面地址 | 域名后固定为 `/features/{专题标识}`，不含语言和国家；只读，提供复制图标 |
 
-新建时随英文名称生成并展示地址后缀预览。名称转小写，连续非英文字母、非数字字符转为一个连字符，并去除首尾连字符。首次保存成功后固定专题标识及地址；此后修改名称或国家不改变地址。
+新建时随英文名称生成并展示地址后缀预览。名称转小写，连续非英文字母、非数字字符转为一个连字符，并去除首尾连字符。首次保存成功后固定专题标识及地址；此后修改名称或国家不改变地址。已有投放短链的专题禁止修改所属国家，前端提示原因、服务端保存时再次校验；无投放短链时可修改国家，并按 §3.4 重新校验 Collection。
 
 空名称、不能生成有效后缀或地址与已有专题重复时，提示原因并阻止保存。路径不包含国家，因此地址在专题之间保持唯一。
 
@@ -42,7 +42,9 @@ Landing 模板沿用已有 Landing 配置规则；本文第三至六章定义图
 
 ### 2.3 投放链接与生效历史
 
-两类模板沿用[《营销承接页 PRD v0.3》](../looply-marketing-landing-PRD-v0.3.md) §2.7–2.8 的同一套后续页面、记录和交互。统一入口继续读取原 Landing 已有短链和历史记录；图文专题按同一数据结构新增记录，不另建数据源。
+Landing 与图文专题短链均只关联一个营销页面；同时提交两类页面关联时拒绝。创建、查看和修改均校验操作者当前国家与页面所属国家一致。关联页面、国家、基础目标和已创建短码固定；编辑仅允许修改备注与 UTM。服务端按已关联页面生成目标，不接受通用编辑入口改写目标或关联。历史 Landing 短链继续保留原关联、短码和访问地址。
+
+两类模板沿用[《营销承接页 PRD v0.3》](../../docs-Landing页配置/PRD/looply-marketing-landing-PRD-v0.3.md) §2.7–2.8 的同一套后续页面、记录和交互。统一入口继续读取原 Landing 已有短链和历史记录；图文专题按同一数据结构新增记录，不另建数据源。
 
 | 入口 | 页面与交互 |
 |---|---|
@@ -52,6 +54,10 @@ Landing 模板沿用已有 Landing 配置规则；本文第三至六章定义图
 ## 三、配置与展示
 
 ### 3.1 共用规则
+
+每组包含稳定 UUID。服务端校验 ID 必填、UUID 格式和同一终端内唯一，错误时返回终端、组位置和原因并保留表单。编辑与配置顺序变化保留 ID；新增或复制内容生成新 ID。复制仅指数据复制规则，不新增运营复制按钮。
+
+服务端返回组 ID 和配置顺序；前端完成图文与商品可用性判断后，按最终可见组顺序统一生成连续编号、PC 左右交替和章节导航。商品加载失败、为空或恢复后重新计算；锚点始终使用组 ID。
 
 新建时默认展示顶部 Banner、引导文案、一组图文商品、底部引导的配置区域。章节导航由图文模块自动生成。
 
@@ -91,6 +97,8 @@ Banner 和底部按钮链接均去除首尾空格，仅支持 `http://`、`https
 | 副标题 | 标题下方的短说明 |
 | 正文 | 主题说明 |
 | 关联 Collection | 选填；选择已有 Collection，作为商品来源和标题的跳转目标 |
+
+未填写 Collection（缺省、null 或空字符串）统一为未关联，仅对已填写值校验正整数 ID、同一国家及已生效状态；非法关联阻止本次保存并提示对应终端与组。不能直接复用要求 Collection 必填的 Landing 校验。只有图文、刚新增空组、PC／H5 内容均为空都允许保存，基本信息仍须有效。
 
 Collection 下拉仅返回页面所属国家下已生效的 Collection。修改所属国家时，系统重新校验 PC、H5 各组的关联值，并清空不属于新国家或已失效的 Collection；Collection 为选填项，清空后可按纯图文模块继续保存，也可重新选择。Collection 后续商品、价格、库存或顺序变化时，访客新访问或刷新后读取最新数据，无需重新保存专题。
 
@@ -162,7 +170,7 @@ Icon 建议使用透明背景图片。
 
 保存失败时提示原因、保留编辑内容供重试，线上继续使用上一次成功保存的配置。基本信息与地址校验见 2.2，模块选填规则见 3.1，底部按钮成对校验见 3.6。
 
-保存沿用[《营销承接页 PRD v0.3》](../looply-marketing-landing-PRD-v0.3.md) §2.8：配置与生效历史作为一次提交共同成功；失败或重试不新增重复版本；检测到其他人已保存新版本时阻止覆盖并提示刷新；无权限或记录不存在时阻止提交。单个图文商品模块的数据加载失败仅降级该模块，其他已成功模块继续展示；该模块按公共列表重试机制重新请求，恢复成功后原位展示。
+保存沿用[《营销承接页 PRD v0.3》](../../docs-Landing页配置/PRD/looply-marketing-landing-PRD-v0.3.md) §2.8：配置与生效历史作为一次提交共同成功；失败或重试不新增重复版本；检测到其他人已保存新版本时阻止覆盖并提示刷新；无权限或记录不存在时阻止提交。单个图文商品模块的数据加载失败仅降级该模块，其他已成功模块继续展示；该模块按公共列表重试机制重新请求，恢复成功后原位展示。
 
 点击顶部「返回列表」或底部「取消」时，无未保存修改则返回列表；存在未保存修改则提示离开将丢失修改，可选择继续编辑或离开。
 
@@ -199,7 +207,7 @@ Icon 建议使用透明背景图片。
 | 国家配置 | 所属国家可选项及专题市场上下文 |
 | 专题配置 | 页面基本信息、双端模块内容、关联关系、Banner 语言图片 |
 | Collection | 可选择的已有集合、商品范围与顺序、集合实际数量与跳转目标 |
-| 商品域／公共商品卡 | 商品展示字段、价格、库存与售罄状态、收藏及商品跳转；收藏点击复用[《Looply 首页 PRD v1.10》](../../../looply-docs/docs-首页/PRD/looply-首页-PRD-v1.10.md) §8.2 的公共商品卡行为并阻止冒泡到商详 |
+| 商品域／公共商品卡 | 商品展示字段、价格、库存与售罄状态、收藏及商品跳转；收藏点击复用[《Looply 首页 PRD v1.10》](../../docs-首页/PRD/looply-首页-PRD-v1.10.md) §8.2 的公共商品卡行为并阻止冒泡到商详 |
 | 多语言管理 | 专题动态文案的译文与语言上下文 |
 | 网站公共组件 | Header、Footer 及公共页面行为 |
 
@@ -211,9 +219,9 @@ PC／H5 正式专题页覆盖游客和登录用户。后台配置、实时预览
 
 事件携带专题稳定标识、终端、市场／国家、页面语言，以及公共身份、Session、页面实例上下文。模块行为增加稳定模块标识和实际展示位置；图文商品行为增加 Collection；商品行为增加商品标识和组内位置。标题与译文不能代替稳定标识，同一 Collection 或商品出现在不同模块时可区分来源。
 
-身份、Session、页面实例和公共字段沿用[《Looply 一方埋点公共实施规则 v1.10》](../../../looply-docs/docs-数据采集与埋点/一方平台开发基线/looply-一方埋点公共实施规则-v1.10.md) §3.1／§4／§5，动作与枚举沿用其 §3.4／§5.3；GA4 商品列表与点击沿用[《Looply GA4 数据分析 PRD v1.12》](../../../looply-docs/docs-数据采集与埋点/GA4开发基线/looply-GA4数据分析-PRD-v1.12.md) §3.5.2 及当前生产代码中的 `looply_ga4_view_item_list → view_item_list`、`looply_ga4_select_item → select_item` 映射；广告列表沿用 `looply_ads_view_item_list`。开发联调以本 PRD 评审基线对应的代码版本为准，并在提测记录中写明 commit。本章定义专题新增参数和触发条件，不把一方 `item_impression` 与 GA4 `view_item_list` 视为改名前后关系。
+身份、Session、页面实例和公共字段沿用[《Looply 一方埋点公共实施规则 v1.8》](../../docs-数据采集与埋点/一方平台开发基线/looply-一方埋点公共实施规则-v1.8.md) §3.1／§4／§5，动作与枚举沿用其 §3.4／§5.3；GA4 商品列表与点击沿用[《Looply GA4 数据分析 PRD v1.10》](../../docs-数据采集与埋点/GA4开发基线/looply-GA4数据分析-PRD-v1.10.md) §3.3／§3.5.2 及当前生产代码中的 `looply_ga4_view_item_list → view_item_list`、`looply_ga4_select_item → select_item` 映射；广告列表沿用 `looply_ads_view_item_list`。开发联调以本 PRD 评审基线对应的代码版本为准，并在提测记录中写明 commit。本章定义专题新增参数和触发条件，不把一方 `item_impression` 与 GA4 `view_item_list` 视为改名前后关系。
 
-公共页面字段固定为 `page_type=content`、`page_id=featured_page`；模块字段使用 `module_id=featured_page_content` 或 `featured_product_list`，商品列表使用 `placement_id=featured_products`。稳定 `topic_id`、`group_id` 和终端作为专题业务上下文补充，不拼入公共枚举值。`ui_interaction` 固定 `interaction_name=featured_navigation`、`action=select`，`element_id` 取 `banner`、`chapter_nav`、`group_title`、`view_all`、`footer_cta`；目标专题、图文组、Collection 或链接写入 `target_id`。`featured_page`、两个 `module_id`、`featured_products`、`featured_navigation` 及五个 `element_id` 均为本期增量注册项。
+公共页面字段固定为 `page_type=content`、`page_id=featured_page`；模块字段使用 `module_id=featured_page_content` 或 `featured_product_list`，商品列表使用 `placement_id=featured_products`。稳定 `topic_id`、`group_id` 和终端作为专题业务上下文补充，不拼入公共枚举值。`ui_interaction` 固定 `interaction_name=featured_navigation`、`action=select`，`element_id` 取 `banner`、`chapter_nav`、`group_title`、`view_all`、`footer_cta`；`target_id` 按 §6.3 的点击元素映射记录。`featured_page`、两个 `module_id`、`featured_products`、`featured_navigation` 及五个 `element_id` 均为本期增量注册项。
 
 ### 6.2 触发矩阵
 
@@ -232,6 +240,16 @@ PC／H5 正式专题页覆盖游客和登录用户。后台配置、实时预览
 
 ### 6.3 验收重点
 
+页面上下文与组级上下文分离，组上下文以专题 ID＋终端＋稳定组 ID 标识；列表实例、曝光去重、前序曝光关联及点击归因均包含该标识。同商品或同 Collection 出现在不同组分别记录，终端变化独立建立列表实例。相同组重复渲染不重置曝光去重；返回该页面时按公共页面实例规则处理。埋点契约、SDK、一方、GA4 与广告来源链路的组上下文传递均属于本期改造与联调范围。
+
+| 点击元素 | target_id |
+|---|---|
+| 章节导航 | 目标组 UUID |
+| 图文标题、View All | Collection ID |
+| Banner、底部按钮 | 解析为完整地址并去掉查询参数与 fragment 的目标链接；实际跳转保留原链接 |
+
+验收覆盖：纯图文与双端空内容保存；Collection 非法、跨国家或未生效拒绝；第一组仅关联空／失败 Collection 时后续组从 01 开始并使用第一组布局，恢复后重算；同商品与同 Collection 跨组和跨端独立归因；短链双关联、跨国家创建／查看、改目标均拒绝且历史 Landing 可继续使用；组 UUID 缺失、非法或同端重复均拒绝，编辑保持 ID、新增生成新 ID。
+
 验证双端和两种登录状态下来源关联一致；章节定位不新增访问；不可点击内容不产生跳转事件；横向滚动曝光去重；同商品跨模块可区分展示位；跳转失败保留真实点击；后台预览及示意不污染正式数据。
 
 ## 七、UI 与 Demo 索引
@@ -240,6 +258,6 @@ PC／H5 正式专题页覆盖游客和登录用户。后台配置、实时预览
 |---|---|
 | PC 专题 | [Figma · Gifts That Feel Like Them · PC](https://www.figma.com/design/sAOLkw0gIl1bwQRYCDqKuW/Looply-1.1?node-id=8863-11725) |
 | H5 专题 | [Figma · Gifts That Feel Like Them · H5](https://www.figma.com/design/sAOLkw0gIl1bwQRYCDqKuW/Looply-1.1?node-id=8863-11548) |
-| 后台列表与配置交互 | [本轮本地 Demo](../../../outputs/营销专题页配置/demo-v1/index.html)；公开链接待同步文档中心后生成 |
+| 后台列表与配置交互 | [Demo v2](../原型/looply-营销页面配置-Demo-v2.html) |
 
 PC／H5 UI 于 2026-11-13 重新读取，并由产品确认仍为当前最新稿。后台字段与操作按本文定义；C 端视觉使用对应 UI。

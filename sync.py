@@ -121,6 +121,8 @@ MODULES = {
         'static_docs': [
             {'subdir': 'PRD', 'source_subdir': 'PRD', 'filename': 'index.html'},
             {'subdir': '评审记录', 'source_subdir': '评审记录', 'filename': 'PRD开发交付复核-20261113.md'},
+            {'subdir': '评审记录', 'source_subdir': '评审记录', 'filename': 'PRD-v0.2-预评审-20261113.md'},
+            {'subdir': '原型', 'source_subdir': '原型', 'filename': 'landing-template.html'},
             {'subdir': 'PRD', 'source_subdir': 'PRD', 'filename': 'looply-营销专题页配置-修订记录.md'},
         ],
     },
