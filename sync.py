@@ -105,6 +105,25 @@ MODULES = {
             'delivery': {'subdir': '.', 'pattern': r'营销专题-交付开发 V(.+?)\.zip'},
         },
     },
+    'featured_pages': {
+        'name': '营销页面配置',
+        'default_source': '/Users/zz/Documents/Looply/outputs/营销专题页配置/document-center',
+        'target': 'docs-营销页面配置',
+        'keywords': ['营销页面配置', '图文专题', 'featured_pages'],
+        'config_key': None,
+        'sidebar_group': 'C端卖场',
+        'sidebar_parent': '营销专题',
+        'artifacts': {
+            'prototype': {'subdir': '原型', 'pattern': r'looply-营销页面配置-Demo-v(.+?)\.html'},
+            'prd': {'subdir': 'PRD', 'pattern': r'looply-营销专题页配置-PRD-v(.+?)\.md'},
+            'delivery': {'subdir': '.', 'pattern': r'营销页面配置-交付开发 V(.+?)\.zip'},
+        },
+        'static_docs': [
+            {'subdir': 'PRD', 'source_subdir': 'PRD', 'filename': 'index.html'},
+            {'subdir': '评审记录', 'source_subdir': '评审记录', 'filename': 'PRD开发交付复核-20261113.md'},
+            {'subdir': 'PRD', 'source_subdir': 'PRD', 'filename': 'looply-营销专题页配置-修订记录.md'},
+        ],
+    },
     'product': {
         'name': '商品系统',
         'default_source': '$HOME/Desktop/海外业务/商品',
