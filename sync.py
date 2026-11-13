@@ -525,6 +525,7 @@ MODULES = {
         'keywords': ['landing', 'Landing', 'Landing 页配置', '营销承接页'],
         'config_key': None,
         'sidebar_group': 'C端卖场',
+        'sidebar_parent': '营销专题',
         'artifacts': {
             'prototype': {'subdir': '原型', 'pattern': r'looply-社媒分享-Landing页配置-antd-原型-v(\d+)-standalone\.html'},
             'prd': {'subdir': 'PRD', 'pattern': r'looply-marketing-landing-PRD-v(.+?)\.md'},
@@ -1390,9 +1391,11 @@ def ensure_index_sections(new_modules_arts):
         # 侧边导航 GROUPS 是写死的 JS 数组，区块插了但导航没加 = 页面上点不到。
         for name in inserted:
             groups_match = re.search(r'var GROUPS = \[(.*?)\];', content, re.DOTALL)
+            mod_config = next((cfg for cfg in MODULES.values() if cfg['name'] == name), {})
+            if mod_config.get('sidebar_parent'):
+                continue
             if groups_match and re.search(rf"['\"]{re.escape(name)}['\"]", groups_match.group(1)):
                 continue
-            mod_config = next((cfg for cfg in MODULES.values() if cfg['name'] == name), {})
             sidebar_group = mod_config.get('sidebar_group', '基础服务域')
             # 追加到该分组**末尾**：新模块自然落在分组底部，不打乱既有模块的排列顺序。
             # （早期为插到开头，导致每加一个新模块就把整组顺序推乱一次。）
