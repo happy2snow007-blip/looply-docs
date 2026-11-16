@@ -221,7 +221,23 @@ PC／H5 正式专题页覆盖游客和登录用户。后台配置、实时预览
 
 身份、Session、页面实例和公共字段沿用[《Looply 一方埋点公共实施规则 v1.8》](../../docs-数据采集与埋点/一方平台开发基线/looply-一方埋点公共实施规则-v1.8.md) §3.1／§4／§5，动作与枚举沿用其 §3.4／§5.3；GA4 商品列表与点击沿用[《Looply GA4 数据分析 PRD v1.10》](../../docs-数据采集与埋点/GA4开发基线/looply-GA4数据分析-PRD-v1.10.md) §3.3／§3.5.2 及当前生产代码中的 `looply_ga4_view_item_list → view_item_list`、`looply_ga4_select_item → select_item` 映射；广告列表沿用 `looply_ads_view_item_list`。开发联调以本 PRD 评审基线对应的代码版本为准，并在提测记录中写明 commit。本章定义专题新增参数和触发条件，不把一方 `item_impression` 与 GA4 `view_item_list` 视为改名前后关系。
 
-公共页面字段固定为 `page_type=content`、`page_id=featured_page`；模块字段使用 `module_id=featured_page_content` 或 `featured_product_list`，商品列表使用 `placement_id=featured_products`。稳定 `topic_id`、`group_id` 和终端作为专题业务上下文补充，不拼入公共枚举值。`ui_interaction` 固定 `interaction_name=featured_navigation`、`action=select`，`element_id` 取 `banner`、`chapter_nav`、`group_title`、`view_all`、`footer_cta`；`target_id` 按 §6.3 的点击元素映射记录。`featured_page`、两个 `module_id`、`featured_products`、`featured_navigation` 及五个 `element_id` 均为本期增量注册项。
+沿用现有事件、SDK、上报链路和 GA4，在现有埋点契约中新增专题页上下文类型。公共字段及枚举保持原有含义，专题与组标识使用专用业务字段，不拼入 `content_id`，不按每个专题或组新增公共枚举。字段路径及上下文类型名称由技术方案映射到现有契约。
+
+| 上下文 | 必须表达的信息 | 适用事件 |
+|---|---|---|
+| 页面级 | 稳定专题 ID、实际展示的配置版本、终端 PC／H5；国家和语言复用公共字段 | 专题页产生的全部事件 |
+| 组级 | 稳定组 ID、实际展示位置；已关联时携带 Collection ID | 章节导航、图文标题、View All、组内商品列表、商品曝光和点击 |
+
+页面访问、顶部 Banner、底部按钮不携带组 ID。各组事件携带独立的来源快照，后注册或更新的组不能覆盖其他组。列表实例、曝光去重与点击归因在现有规则基础上增加专题 ID、终端和组 ID；同商品或同 Collection 在不同组分别统计，同一组重复渲染仍按公共规则去重。
+
+| 点击元素 | target_id |
+|---|---|
+| 章节导航 | 被定位的稳定组 ID |
+| 图文标题、View All | 关联 Collection ID |
+| Banner、底部按钮 | 目标链接去除查询参数和 fragment 后的地址；站内路径按当前站点补全域名 |
+| 商品卡 | 商品 ID，沿用现有商品点击契约 |
+
+本期包含埋点契约、SDK、一方上报、GA4 映射及广告来源链路对专题上下文的必要适配和联调。各平台按自身契约映射来源字段，广告目录使用的商品标识保持不变。商品点击的专题、组和终端来源须沿现有加购、订单归因链路传递，归因优先级和窗口沿用公共规则；不使用页面上最后注册的组替代真实点击来源。
 
 ### 6.2 触发矩阵
 
@@ -240,17 +256,19 @@ PC／H5 正式专题页覆盖游客和登录用户。后台配置、实时预览
 
 ### 6.3 验收重点
 
-页面上下文与组级上下文分离，组上下文以专题 ID＋终端＋稳定组 ID 标识；列表实例、曝光去重、前序曝光关联及点击归因均包含该标识。同商品或同 Collection 出现在不同组分别记录，终端变化独立建立列表实例。相同组重复渲染不重置曝光去重；返回该页面时按公共页面实例规则处理。埋点契约、SDK、一方、GA4 与广告来源链路的组上下文传递均属于本期改造与联调范围。
-
-| 点击元素 | target_id |
+| 验收场景 | 预期 |
 |---|---|
-| 章节导航 | 目标组 UUID |
-| 图文标题、View All | Collection ID |
-| Banner、底部按钮 | 解析为完整地址并去掉查询参数与 fragment 的目标链接；实际跳转保留原链接 |
+| 同商品、同 Collection 出现在两个组 | 两组分别形成列表实例与有效曝光；点击归属实际来源组，后注册组不覆盖前组 |
+| 同组重复渲染、横向滚动 | 按公共规则去重，不因重复渲染重复上报 |
+| PC／H5 切换或分别访问 | 终端字段正确，列表实例、去重与来源关联不串端；真实曝光才计数 |
+| 页面访问、Banner、底部按钮 | 携带页面上下文，组 ID 为空 |
+| 章节导航、标题、View All | 目标分别为组 ID、Collection ID、Collection ID；章节定位不新增页面访问 |
+| 从组内商品点击后加购和购买 | 沿公共归因规则保留实际专题、组、终端及前序点击关联 |
+| 空数据、请求失败、不可点击内容 | 不产生相应曝光或跳转点击；目标页失败不撤销真实点击 |
+| 游客、登录用户与各平台联调 | 公共身份规则保持一致，一方／GA4／广告映射可核对，商品目录标识不变 |
+| 后台预览、示意效果及其他页面回归 | 预览不产生正式数据；首页、Landing、Collection 原有字段含义和行为保持一致 |
 
-验收覆盖：纯图文与双端空内容保存；Collection 非法、跨国家或未生效拒绝；第一组仅关联空／失败 Collection 时后续组从 01 开始并使用第一组布局，恢复后重算；同商品与同 Collection 跨组和跨端独立归因；短链双关联、跨国家创建／查看、改目标均拒绝且历史 Landing 可继续使用；组 UUID 缺失、非法或同端重复均拒绝，编辑保持 ID、新增生成新 ID。
-
-验证双端和两种登录状态下来源关联一致；章节定位不新增访问；不可点击内容不产生跳转事件；横向滚动曝光去重；同商品跨模块可区分展示位；跳转失败保留真实点击；后台预览及示意不污染正式数据。
+验收同时覆盖：纯图文与双端空内容保存；Collection 非法、跨国家或未生效拒绝；空 Collection 组隐藏及恢复后的连续编号和布局重算；短链双关联、跨国家创建／查看、改目标拒绝及历史 Landing 兼容；组 UUID 缺失、非法、同端重复拒绝，编辑保留 ID、新增生成新 ID。
 
 ## 七、UI 与 Demo 索引
 
@@ -258,6 +276,6 @@ PC／H5 正式专题页覆盖游客和登录用户。后台配置、实时预览
 |---|---|
 | PC 专题 | [Figma · Gifts That Feel Like Them · PC](https://www.figma.com/design/sAOLkw0gIl1bwQRYCDqKuW/Looply-1.1?node-id=8863-11725) |
 | H5 专题 | [Figma · Gifts That Feel Like Them · H5](https://www.figma.com/design/sAOLkw0gIl1bwQRYCDqKuW/Looply-1.1?node-id=8863-11548) |
-| 后台列表与配置交互 | [Demo v2](../原型/looply-营销页面配置-Demo-v2.html) |
+| 后台列表与配置交互 | [本轮本地 Demo](../../../outputs/营销专题页配置/demo-v2/index.html)；公开链接待同步文档中心后生成 |
 
 PC／H5 UI 于 2026-11-13 重新读取，并由产品确认仍为当前最新稿。后台字段与操作按本文定义；C 端视觉使用对应 UI。
