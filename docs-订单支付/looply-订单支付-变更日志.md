@@ -1,5 +1,88 @@
 # looply 订单支付模块变更日志
 
+## Afterpay／Affirm 迭代 PRD V1.5（产品决策审核定稿 · 2026-10-28）
+
+**需求来源**：产品决策审核清单 D1–D10 已逐项通过；D3 要求按照生产 Airwallex 账户实际开通的 Afterpay 计划组合确定金额展示范围。
+
+**本次变更**：
+
+- 新建 `PRD/looply-订单支付-Afterpay与Affirm新增支付方式-迭代PRD-V1.5-20261028.md`，保留 V1.4 历史版本。
+- Afterpay 仅开通 Pay in 4 时，基础展示金额范围为 1–2,000 USD；同时开通 Pay in 4 与 Monthly Installments 时为 1–4,000 USD。
+- Afterpay 计划组合未确认、配置缺失或与生产账户不一致时，Looply 隐藏该方式、阻断提交并产生配置异常告警。
+- Affirm 金额范围保持 35–30,000 USD；金额满足仅代表具备基础展示资格，最终计划与用户资格仍由渠道决定。
+- 补齐 Checkout 与待付款订单详情的预筛规则、计划组合变更规则、外部依赖、风险和边界验收用例。
+
+**影响范围**：PRD V1.4 → V1.5、PRD 修订记录；Figma Section `7447:46168`、支付方式顺序、列表文案、订单状态、系统流程图和数据模型均无变化。
+
+**成熟度**：✅ 稳定，可进入开发评审。上线启用仍以前置联调与生产能力确认完成为条件。
+
+**开发基线**：飞书 PRD V1.5 `https://zhuanspirit.feishu.cn/docx/FnTsd1aHVoRC6vx1rOEcoLAfnUc`；定稿设计 Figma Section `7447:46168`。V1.4 及更早版本仅作历史留档。
+
+## Afterpay／Affirm 迭代 PRD V1.3（对齐线上支付顺序 · 2026-10-28）
+
+**需求来源**：核实线上支付方式现有顺序为 `Payment Card → PayPal → Klarna → Apple Pay`。
+
+**产品决策**：
+
+- 本期不调换 Klarna 和 Apple Pay，保留线上存量相对顺序。
+- 原因：当前顺序不构成明确的体验错误；在没有 Looply 设备覆盖率、方式选择率和支付成功率证据前，不将“新增 Afterpay／Affirm”扩大为存量排序改版。
+- Afterpay 和 Affirm 作为本期新方式追加在 Apple Pay 之后。
+- 最终顺序：`Payment Card → PayPal → Klarna → Apple Pay → Afterpay → Affirm`。
+- Apple Pay 不可用、Afterpay／Affirm 不满足资格时隐藏；剩余方式保持相对顺序。
+
+**其他规则**：V1.2 已确认的 Looply 列表层／Airwallex 选中后组件层边界、文案、金额、状态、退款和对账规则不变。
+
+**开发基线**：飞书 PRD V1.3 `https://zhuanspirit.feishu.cn/docx/L30QdbFHtoHAVlxVxIIciDNvnef`，交互原型 `UI/looply-afterpay-affirm-interactive-prototype-v3.html`；V1.2 仅作历史留档。
+
+## Afterpay／Affirm 迭代 PRD V1.2（代码核实后责任边界修正 · 2026-10-28）
+
+**需求来源**：代码核实确认，现有 Klarna 行的品牌图标和右侧 `Pay later` 是 Looply 自行渲染；用户点击 Klarna 后展示的支付内容才由 Airwallex 返回。
+
+**本次修正**：
+
+- 保留 V1.1 历史文件，新建 PRD V1.2 和交互原型 v2。
+- Looply 负责支付方式列表层：品牌名称、品牌图标、右侧短文案、固定顺序、资格显隐和多语言。
+- Airwallex 负责选中后组件层：支付表单、跳转提示、组件内校验、错误提示和对应本地化。
+- Klarna 右侧保留 `Pay later`，Afterpay 使用 `Pay in 4`，Affirm 使用 `Monthly payments`；三者都是 Looply 列表文案，不使用 `Pay over time`。
+- 金额门槛、支付顺序、支付状态、30 分钟／72 小时处理、退款与争议规则无变化。
+
+**开发基线**：飞书 V1.2 定稿 `https://zhuanspirit.feishu.cn/docx/CpAXdceopoErWtxFMqPcB9OznMc`，交互原型 `UI/looply-afterpay-affirm-interactive-prototype-v2.html`；V1.1 仅作历史留档。
+
+## Afterpay／Affirm 迭代 PRD V1.1（已定稿可开发 · 2026-10-28）
+
+**需求来源**：确认 Looply Checkout 使用 Airwallex Drop-in Element，需要明确支付组件与文案的控制边界。
+
+**本次产出与变更**：
+
+- 新建 `PRD/looply-订单支付-Afterpay与Affirm新增支付方式-迭代PRD-V1.1-20261028.md`，保留 V1.0 定稿作为历史版本。
+- 明确 Checkout 和待付款订单详情均复用 Airwallex Drop-in Element；支付方式名称、Logo、右侧方式说明、跳转提示、卡表单、组件内错误提示和本地化输出由 Airwallex 组件维护。
+- 原型保留当前 Drop-in 观察到的 `Pay later`、`Pay in 4`、`Monthly payments` 和原始跳转句式作为视觉快照，不替换为 `Pay over time`，不在 Looply 语言包中重复维护。
+- Looply 仍负责方式开放范围、金额门槛、固定顺序、页面外层布局、支付结果状态及非组件区域文案。
+- 上线前新增 Drop-in 验收：两种方式可见性、方式顺序、英文输出及语言切换必须在生产账户能力下核验。
+- 金额边界、选中项失效、确认中防重复付款、成功／失败／取消及 PC／Mobile 订单详情已完成自动化与视觉终检。
+
+**影响范围**：PRD V1.1、Checkout 原型解释口径和开发联调验收；订单状态、金额规则、支付流程及系统流程图 V3.1 无变化。
+
+**开发基线**：飞书定稿文档 `https://zhuanspirit.feishu.cn/docx/Q9ktdZvFBoFtlxxeEzqcY99Anyd`；交互原型 `UI/looply-afterpay-affirm-interactive-prototype-v1.html`。
+
+## Afterpay／Affirm 迭代 PRD V1.0（产品与原型已确认 · 2026-10-28）
+
+**需求来源**：美国站通过 Airwallex 新增 Afterpay、Affirm，扩展一次性订单支付方式。
+
+**本次产出与变更**：
+
+- 完成 `PRD/looply-订单支付-Afterpay与Affirm新增支付方式-迭代PRD-V1.0-20261026.md` 定稿，当前待开发评审。
+- 首期仅美国站、US、USD；本期不依赖多 Market 路由，未来路由上线后再迁移为按站点配置。
+- 支付方式固定顺序为 Payment Card、PayPal、Apple Pay、Klarna、Afterpay、Affirm；Apple Pay 按终端能力隐藏，Afterpay／Affirm 按金额门槛隐藏，剩余方式不重排。
+- Afterpay 金额范围为 1–4,000 USD；Affirm 为 35–30,000 USD；展示和提交前均校验。
+- 复用现有 Airwallex 回调、主动查单、30 分钟关单前复查、5 分钟超时扫描和 72 小时处理中兜底，不修改订单支付系统流程图 V3.1。
+- 原型 `UI/looply-afterpay-affirm-interactive-prototype-v1.html` 已确认；订单详情 Figma Section `6660:22668`、PC `6687:31637`、Mobile `6660:23386` 已核对。
+- 支付确认中隐藏支付入口防止重复付款；失败／取消恢复方式；成功展示实际付款方式。
+
+**未改动**：订单状态枚举、拆单与库存主流程、订单支付系统流程图 V3.1、多 Market 路由能力。
+
+**待办**：完成开发评审；上线前确认生产账户开通、自动扣款配置、真实收款／查单／全额退款／部分退款／对账、争议事件订阅、官方品牌素材与运营负责人。
+
 ## V1.6（已交付 · 2026-09-29）
 
 **需求来源**：上海集货仓在发货前发现商品实物与展示差异，客服与买家线下确认后，需要支持部分退款并继续发货。

@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Looply — Afterpay & Affirm interactive prototype</title>
+  <style>
+    :root {
+      --ink: #191826;
+      --muted: #6e6a7d;
+      --soft: #f5f3fa;
+      --line: #e4e0eb;
+      --panel: #fffefd;
+      --purple: #6432fc;
+      --purple-dark: #4f23d8;
+      --purple-soft: #f2edff;
+      --green: #147d55;
+      --green-soft: #eaf8f1;
+      --amber: #9b5b05;
+      --amber-soft: #fff6df;
+      --red: #b42334;
+      --red-soft: #fff0f2;
+      --shadow: 0 24px 70px rgba(42, 31, 73, .12);
+      --radius: 18px;
+      font-family: "DM Sans", "Avenir Next", Avenir, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: #eeebf2;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: #eeebf2; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible { outline: 3px solid rgba(100,50,252,.25); outline-offset: 2px; }
+
+    .prototype-bar {
+      position: sticky; top: 0; z-index: 50;
+      display: grid; grid-template-columns: minmax(220px,1fr) auto auto auto;
+      align-items: center; gap: 14px; padding: 12px 18px;
+      color: #f8f6ff; background: #201a2e; border-bottom: 1px solid #3d354e;
+      box-shadow: 0 8px 30px rgba(17, 12, 28, .2);
+    }
+    .prototype-title { min-width: 0; }
+    .prototype-title strong { display: block; font-size: 13px; letter-spacing: .02em; }
+    .prototype-title span { display: block; margin-top: 2px; color: #aaa1bd; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tool-group { display: flex; align-items: center; gap: 5px; padding: 4px; background: #30283f; border: 1px solid #463c59; border-radius: 12px; }
+    .tool-label { margin: 0 5px; color: #aaa1bd; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+    .tool-btn { min-height: 32px; padding: 7px 11px; border: 0; border-radius: 8px; color: #cfc8de; background: transparent; font-size: 12px; font-weight: 700; }
+    .tool-btn:hover { color: #fff; background: #403650; }
+    .tool-btn.active { color: #fff; background: var(--purple); }
+    .tool-btn:disabled { cursor: not-allowed; color: #6f667e; background: transparent; }
+    .tool-amount { width: 98px; height: 32px; padding: 0 9px; border: 1px solid #534865; border-radius: 8px; color: #fff; background: #241e31; }
+    .tool-amount:disabled { cursor: not-allowed; color: #7f758e; background: #2b2437; }
+    .scenario-select { height: 32px; padding: 0 30px 0 10px; border: 1px solid #534865; border-radius: 8px; color: #fff; background: #241e31; }
+
+    .stage { min-height: calc(100vh - 65px); padding: 32px; display: flex; justify-content: center; align-items: flex-start; }
+    .device { width: min(100%, 1440px); min-height: 820px; overflow: hidden; background: #faf9fc; box-shadow: var(--shadow); transition: width .25s ease, border-radius .25s ease; }
+    .device.mobile { width: 390px; min-height: 844px; border: 10px solid #191622; border-radius: 34px; box-shadow: 0 32px 90px rgba(26, 18, 47, .25); }
+    .device.mobile .store-app { min-height: 824px; }
+    .store-app { min-height: 820px; background: #f8f7fa; }
+
+    .store-header { height: 68px; padding: 0 clamp(20px, 5vw, 76px); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); background: var(--panel); }
+    .brand { font-size: 25px; font-weight: 850; letter-spacing: -.05em; }
+    .brand-dot { color: var(--purple); }
+    .secure { display: flex; gap: 7px; align-items: center; color: var(--muted); font-size: 12px; font-weight: 700; }
+    .lock { width: 21px; height: 21px; display: grid; place-items: center; color: var(--green); background: var(--green-soft); border-radius: 50%; }
+
+    .checkout { max-width: 1280px; margin: 0 auto; padding: 34px clamp(20px, 5vw, 76px) 80px; display: grid; grid-template-columns: minmax(0, 1fr) 390px; gap: 44px; }
+    .eyebrow { margin-bottom: 8px; color: var(--purple); font-size: 11px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(28px, 3vw, 39px); line-height: 1.12; letter-spacing: -.04em; }
+    .lead { margin: 10px 0 26px; color: var(--muted); font-size: 14px; }
+    .section { padding: 26px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+    .section + .section { margin-top: 18px; }
+    .section-head { margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .section-title { display: flex; gap: 10px; align-items: center; font-size: 16px; font-weight: 850; }
+    .step { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: var(--purple); font-size: 12px; }
+    .edit { color: var(--purple); font-size: 12px; font-weight: 800; }
+    .address { padding: 15px 16px; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; border-radius: 12px; background: var(--soft); }
+    .address strong { display: block; margin-bottom: 3px; font-size: 13px; }
+    .address span { color: var(--muted); font-size: 12px; line-height: 1.55; }
+
+    .notice { margin-bottom: 13px; padding: 11px 13px; display: flex; gap: 9px; align-items: flex-start; border-radius: 10px; font-size: 12px; line-height: 1.45; }
+    .notice.info { color: #4d367e; background: var(--purple-soft); }
+    .notice.error { color: var(--red); background: var(--red-soft); }
+    .notice.success { color: var(--green); background: var(--green-soft); }
+    .notice-dot { width: 18px; height: 18px; flex: 0 0 auto; display: grid; place-items: center; border: 1px solid currentColor; border-radius: 50%; font-size: 10px; font-weight: 900; }
+
+    .pay-list { display: grid; gap: 9px; }
+    .pay-row { width: 100%; min-height: 58px; padding: 12px 14px; display: grid; grid-template-columns: 20px 56px minmax(0,1fr) auto; align-items: center; gap: 12px; text-align: left; border: 1.5px solid var(--line); border-radius: 12px; background: #fff; transition: border-color .15s, background .15s, transform .15s; }
+    .pay-row:hover { border-color: #bcb5c8; transform: translateY(-1px); }
+    .pay-row.selected { border-color: var(--purple); background: #fbf9ff; box-shadow: inset 0 0 0 1px var(--purple); }
+    .radio { width: 19px; height: 19px; display: grid; place-items: center; border: 2px solid #c6c0ce; border-radius: 50%; }
+    .selected .radio { border-color: var(--purple); }
+    .selected .radio::after { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--purple); }
+    .pay-mark { width: 56px; height: 28px; display: grid; place-items: center; overflow: hidden; border-radius: 6px; font-size: 10px; font-weight: 900; letter-spacing: -.02em; }
+    .mark-card { color: #fff; background: #263a87; letter-spacing: .05em; }
+    .mark-paypal { color: #fff; background: #063b82; }
+    .mark-klarna { color: #16121a; background: #ffb3c7; }
+    .mark-afterpay { color: #111; background: #b2fce4; font-size: 9px; }
+    .mark-affirm { color: #fff; background: #4a54f1; font-size: 14px; font-weight: 750; }
+    .pay-name { display: block; font-size: 13px; font-weight: 850; }
+    .pay-meta { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; }
+    .pay-tag { padding: 4px 8px; color: #554f61; background: var(--soft); border-radius: 99px; font-size: 10px; font-weight: 800; white-space: nowrap; }
+    .redirect-copy { margin: -1px 0 3px; padding: 12px 14px 12px 102px; color: var(--muted); background: #f8f7fa; border: 1px solid var(--line); border-top: 0; border-radius: 0 0 12px 12px; font-size: 12px; line-height: 1.45; }
+    .redirect-copy strong { color: var(--ink); }
+
+    /* Checkout production payment component — aligned to the supplied live-page reference */
+    .checkout-payment-online.section {
+      padding: 30px 30px 32px;
+      border: 0;
+      border-radius: 2px;
+      color: #111;
+      background: #fff;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .checkout-payment-online .section-head { margin-bottom: 8px; }
+    .checkout-payment-online .section-title { gap: 0; font-size: 16px; font-weight: 700; }
+    .checkout-payment-online .pay-list { display: block; }
+    .checkout-payment-online .pay-method { width: 100%; }
+    .checkout-payment-online .pay-row {
+      min-height: 64px;
+      padding: 0;
+      grid-template-columns: 22px minmax(0,1fr) auto;
+      gap: 10px;
+      border: 0;
+      border-radius: 0;
+      color: #111;
+      background: #fff;
+      box-shadow: none;
+    }
+    .checkout-payment-online .pay-row:hover { border-color: transparent; background: #fff; transform: none; }
+    .checkout-payment-online .pay-row.selected { border-color: transparent; background: #fff; box-shadow: none; }
+    .checkout-payment-online .radio { width: 20px; height: 20px; border: 1px solid #d0d0d0; }
+    .checkout-payment-online .selected .radio { border-color: #111; }
+    .checkout-payment-online .selected .radio::after { width: 14px; height: 14px; background: #050505; }
+    .checkout-method-identity { min-width: 0; display: flex; align-items: center; }
+    .checkout-method-logo { color: #111; font-size: 16px; font-weight: 800; line-height: 1; }
+    .checkout-method-logo.paypal { color: #0875cb; font-style: italic; font-weight: 800; letter-spacing: -.04em; }
+    .checkout-method-logo.klarna { font-weight: 800; letter-spacing: -.04em; }
+    .checkout-method-logo.afterpay { font-weight: 850; letter-spacing: -.045em; }
+    .checkout-method-logo.affirm { font-size: 17px; font-weight: 750; letter-spacing: -.06em; }
+    .checkout-method-logo.applepay { font-size: 18px; letter-spacing: -.04em; }
+    .checkout-method-right { padding-left: 24px; color: #111; font-size: 16px; white-space: nowrap; }
+    .checkout-card-logos { display: flex; align-items: center; gap: 4px; }
+    .checkout-card-logo {
+      width: 34px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border: 1px solid #ececec;
+      color: #174b9a;
+      background: #fff;
+      font-size: 7px;
+      font-weight: 900;
+      line-height: 1;
+    }
+    .checkout-card-logo.visa { font-size: 9px; font-style: italic; }
+    .checkout-card-logo.mc { position: relative; color: transparent; }
+    .checkout-card-logo.mc::before, .checkout-card-logo.mc::after { content: ""; width: 11px; height: 11px; position: absolute; top: 6px; border-radius: 50%; }
+    .checkout-card-logo.mc::before { left: 8px; background: #ec1c24; }
+    .checkout-card-logo.mc::after { right: 8px; background: #f6a800; opacity: .9; }
+    .checkout-card-logo.amex { color: #fff; background: #2877bc; font-size: 6px; }
+    .checkout-card-logo.union { color: #fff; background: #2770a9; font-size: 5px; }
+    .checkout-card-logo.maestro { color: #fff; background: #2680be; font-size: 5px; }
+    .checkout-card-logo.jcb { color: #fff; background: #19934c; font-size: 7px; }
+    .checkout-card-logo.discover { color: #4d4d4d; font-size: 5px; }
+    .checkout-card-logo.diners { color: #2879a6; font-size: 5px; }
+    .checkout-payment-online .redirect-copy {
+      min-height: 54px;
+      margin: 0;
+      padding: 0 18px;
+      display: grid;
+      place-items: center;
+      border: 0;
+      border-radius: 3px;
+      color: #929292;
+      background: #f8f8f8;
+      font-size: 14px;
+      line-height: 1.4;
+      text-align: center;
+    }
+    .checkout-payment-online .redirect-copy strong { color: inherit; font-weight: inherit; }
+
+    .summary { position: sticky; top: 100px; }
+    .summary-card { padding: 26px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+    .summary-title { margin-bottom: 19px; font-size: 16px; font-weight: 850; }
+    .product { padding-bottom: 18px; display: grid; grid-template-columns: 64px minmax(0,1fr) auto; gap: 12px; border-bottom: 1px solid var(--line); }
+    .product-image { width: 64px; height: 64px; position: relative; overflow: hidden; border-radius: 10px; background: linear-gradient(135deg,#cbc4b8,#f0ede8); }
+    .product-image::before { content: ""; width: 35px; height: 50px; position: absolute; left: 15px; top: 9px; background: #e8e1d6; border-radius: 7px 7px 13px 13px; box-shadow: inset 0 -12px 0 #d2c8b9; }
+    .product-name { font-size: 12px; font-weight: 800; line-height: 1.4; }
+    .product-cond { margin-top: 5px; color: var(--muted); font-size: 10px; }
+    .price { font-size: 12px; font-weight: 850; }
+    .totals { padding: 17px 0; display: grid; gap: 10px; border-bottom: 1px solid var(--line); }
+    .total-row { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
+    .total-row strong { color: var(--ink); font-weight: 800; }
+    .grand-total { padding: 18px 0 4px; display: flex; align-items: flex-end; justify-content: space-between; }
+    .grand-total span { font-size: 14px; font-weight: 850; }
+    .grand-total strong { font-size: 26px; letter-spacing: -.04em; }
+    .grand-total small { margin-right: 5px; color: var(--muted); font-size: 10px; }
+    .pay-button { width: 100%; min-height: 50px; margin-top: 18px; border: 0; border-radius: 12px; color: #fff; background: var(--purple); font-weight: 850; box-shadow: 0 10px 22px rgba(100,50,252,.22); transition: background .15s, transform .15s; }
+    .pay-button:hover { background: var(--purple-dark); transform: translateY(-1px); }
+    .pay-button:disabled { cursor: not-allowed; color: #918b9d; background: #e5e1e9; box-shadow: none; transform: none; }
+    .microcopy { margin: 11px 4px 0; display: flex; justify-content: center; gap: 6px; color: var(--muted); font-size: 10px; }
+
+    .order-page { max-width: 1040px; margin: 0 auto; padding: 38px clamp(20px, 5vw, 76px) 84px; }
+    .order-top { margin-bottom: 22px; display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; }
+    .order-id { color: var(--muted); font-size: 12px; }
+    .status-card { padding: 28px; display: grid; grid-template-columns: 56px minmax(0,1fr) auto; gap: 17px; align-items: center; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+    .status-icon { width: 56px; height: 56px; display: grid; place-items: center; border-radius: 50%; font-size: 22px; font-weight: 900; }
+    .status-icon.placed { color: var(--amber); background: var(--amber-soft); }
+    .status-icon.confirming { color: var(--purple); background: var(--purple-soft); animation: pulse 1.7s ease-in-out infinite; }
+    .status-icon.paid { color: var(--green); background: var(--green-soft); }
+    @keyframes pulse { 50% { transform: scale(.92); opacity: .72; } }
+    .status-copy h2 { margin: 0 0 6px; font-size: 22px; letter-spacing: -.025em; }
+    .status-copy p { max-width: 600px; margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .countdown { padding: 9px 12px; color: var(--amber); background: var(--amber-soft); border-radius: 10px; font-size: 12px; font-weight: 850; white-space: nowrap; }
+    .detail-grid { margin-top: 18px; display: grid; grid-template-columns: minmax(0,1.2fr) minmax(280px,.8fr); gap: 18px; }
+    .detail-card { padding: 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+    .detail-card h3 { margin: 0 0 17px; font-size: 15px; }
+    .payment-fact { padding: 14px 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-top: 1px solid var(--line); }
+    .payment-fact:first-of-type { border-top: 0; padding-top: 0; }
+    .fact-label { color: var(--muted); font-size: 11px; }
+    .fact-value { margin-top: 3px; font-size: 13px; font-weight: 850; }
+    .text-button { padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: #fff; font-size: 11px; font-weight: 850; }
+    .text-button:hover { border-color: #aaa2b8; }
+    .order-payment { margin-top: 18px; }
+    .order-payment .section { padding: 22px; }
+    .paid-receipt { padding: 14px 16px; display: flex; align-items: center; gap: 12px; border-radius: 12px; background: var(--green-soft); }
+    .paid-receipt p { margin: 0; color: #286c51; font-size: 12px; }
+
+    .eligibility-panel { margin-top: 16px; padding: 14px 16px; border: 1px dashed #c9c1d6; border-radius: 12px; background: rgba(255,255,255,.65); }
+    .eligibility-panel strong { display: block; margin-bottom: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+    .eligibility-panel p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .eligibility-panel code { color: var(--purple-dark); font-weight: 800; }
+
+    .mobile .store-header { height: 58px; padding: 0 18px; }
+    .mobile .brand { font-size: 21px; }
+    .mobile .secure span:last-child { display: none; }
+    .mobile .checkout { display: block; padding: 22px 16px 122px; }
+    .mobile .checkout h1 { font-size: 27px; }
+    .mobile .lead { margin-bottom: 20px; }
+    .mobile .section { padding: 18px; border-radius: 15px; }
+    .mobile .summary { position: static; }
+    .mobile .summary-card { margin-top: 16px; padding: 18px; }
+    .mobile .summary-title, .mobile .product, .mobile .totals, .mobile .grand-total { display: none; }
+    .mobile .summary-card { border: 0; padding: 0; background: transparent; }
+    .mobile .pay-button-wrap { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 10; padding: 12px 14px 14px; border-top: 1px solid var(--line); background: rgba(255,254,253,.96); backdrop-filter: blur(10px); }
+    .mobile .pay-button { margin-top: 0; }
+    .mobile .pay-row { grid-template-columns: 19px 50px minmax(0,1fr); gap: 10px; }
+    .mobile .pay-tag { grid-column: 3; justify-self: start; margin-top: -7px; }
+    .mobile .redirect-copy { padding-left: 14px; }
+    .mobile .checkout-payment-online.section { padding: 22px 20px 24px; }
+    .mobile .checkout-payment-online .pay-row { min-height: 58px; grid-template-columns: 20px minmax(0,1fr) auto; }
+    .mobile .checkout-payment-online .checkout-method-right { padding-left: 10px; font-size: 13px; }
+    .mobile .checkout-payment-online .checkout-card-logos { gap: 2px; }
+    .mobile .checkout-payment-online .checkout-card-logo { width: 27px; height: 20px; }
+    .mobile .checkout-payment-online .redirect-copy { min-height: 50px; padding: 10px 12px; font-size: 12px; }
+    .mobile .order-page { padding: 24px 16px 90px; }
+    .mobile .order-top { display: block; }
+    .mobile .order-id { margin-top: 7px; }
+    .mobile .status-card { grid-template-columns: 44px 1fr; padding: 20px; align-items: start; }
+    .mobile .status-icon { width: 44px; height: 44px; font-size: 18px; }
+    .mobile .countdown { grid-column: 1 / -1; justify-self: stretch; text-align: center; }
+    .mobile .detail-grid { grid-template-columns: 1fr; }
+    .mobile .detail-card { padding: 19px; }
+    .mobile .status-copy h2 { font-size: 19px; }
+    .mobile .eligibility-panel { display: none; }
+
+    /* Figma 6660:22668 — order detail / change payment method */
+    .order-commerce-header { background: #fff; border-bottom: 1px solid #efefef; }
+    .order-header-main { height: 64px; padding: 0 clamp(32px,7vw,112px); display: flex; align-items: center; gap: 24px; }
+    .order-wordmark { color: #090909; font-size: 25px; font-weight: 900; letter-spacing: -.055em; }
+    .order-vertical { color: #a8a8a8; font-size: 12px; white-space: nowrap; }
+    .order-search { margin-left: auto; width: min(280px,24vw); padding: 9px 12px; display: flex; justify-content: space-between; color: #aaa; border-bottom: 1px solid #ddd; font-size: 11px; }
+    .order-actions { display: flex; align-items: center; gap: 13px; color: #181818; font-size: 11px; }
+    .sell-button { padding: 10px 32px; border: 0; color: #fff; background: #d9a571; font-size: 11px; font-weight: 800; }
+    .order-nav { height: 42px; padding: 0 clamp(32px,7vw,112px); display: flex; align-items: center; gap: 34px; color: #111; font-size: 11px; }
+    .order-surface { min-height: 980px; padding: 58px clamp(28px,7vw,112px) 76px; background: #f9f9f9; }
+    .order-payment-layout { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: minmax(0,1.55fr) minmax(300px,.75fr); align-items: start; gap: 48px; }
+    .payment-panel, .review-panel { background: #fff; }
+    .payment-panel { min-height: 660px; padding: 30px 34px 34px; }
+    .panel-heading { margin: 0 0 24px; font-size: 16px; font-weight: 850; }
+    .payment-sheet-head { display: flex; align-items: center; justify-content: space-between; }
+    .sheet-close { display: none; width: 32px; height: 32px; border: 0; color: #666; background: #fafafa; font-size: 20px; }
+    .figma-methods { border-top: 1px solid #eee; }
+    .figma-method { border-bottom: 1px solid #eee; }
+    .figma-method-row { width: 100%; min-height: 60px; padding: 0; display: grid; grid-template-columns: 24px 1fr auto; align-items: center; gap: 12px; border: 0; color: #111; background: #fff; text-align: left; }
+    .figma-method-row .radio { width: 17px; height: 17px; border-color: #aaa; }
+    .figma-method-row.selected .radio { border-color: #111; }
+    .figma-method-row.selected .radio::after { width: 9px; height: 9px; background: #111; }
+    .method-identity { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .method-logo { min-width: 52px; color: #111; font-size: 14px; font-weight: 900; letter-spacing: -.04em; }
+    .method-logo.cards { display: flex; gap: 4px; min-width: 166px; }
+    .card-chip { padding: 3px 5px; border: 1px solid #ddd; border-radius: 2px; color: #1f4a91; background: #fff; font-size: 8px; font-weight: 900; }
+    .method-right { color: #222; font-size: 11px; white-space: nowrap; }
+    .order-card-form { margin: 0 0 4px 36px; padding: 4px 0 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .order-field { width: 100%; height: 42px; padding: 0 12px; border: 1px solid #e6e6e6; color: #333; background: #fff; font-size: 11px; }
+    .order-field.wide { grid-column: 1 / -1; }
+    .bnpl-inline-copy { margin: -2px 0 13px 36px; color: #777; font-size: 11px; line-height: 1.45; }
+    .address-toggle { margin: 21px 0 22px; display: flex; align-items: center; gap: 10px; color: #222; font-size: 11px; cursor: pointer; }
+    .address-toggle input { width: 18px; height: 18px; accent-color: #111; }
+    .billing-title { margin: 0 0 14px; font-size: 13px; font-weight: 850; }
+    .billing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .billing-grid .wide { grid-column: 1 / -1; }
+    .billing-grid .city-row { grid-column: 1 / -1; display: grid; grid-template-columns: 1.1fr .9fr .8fr; gap: 10px; }
+    .figma-pay-button { width: 100%; height: 48px; margin-top: 26px; border: 0; border-radius: 2px; color: #fff; background: #050505; font-size: 12px; font-weight: 750; }
+    .figma-pay-button:disabled { color: #999; background: #ddd; }
+    .terms-copy { margin: 12px 0 0; color: #929292; font-size: 9px; text-align: center; line-height: 1.5; }
+    .terms-copy a { color: #515151; text-decoration: underline; }
+    .review-panel { padding: 30px 28px; }
+    .review-title { margin-bottom: 24px; font-size: 14px; font-weight: 850; }
+    .review-item { padding: 0 0 17px; display: grid; grid-template-columns: 62px minmax(0,1fr) auto; gap: 11px; }
+    .review-thumb { width: 62px; height: 72px; position: relative; overflow: hidden; background: #f2f0ec; }
+    .review-thumb.bag::after { content: ""; position: absolute; inset: 20px 12px 8px; background: #58473f; border-radius: 2px; }
+    .review-thumb.necklace::after { content: "◯"; position: absolute; inset: 13px; color: #b8b2a7; font-size: 30px; text-align: center; }
+    .review-brand { font-size: 8px; font-weight: 850; text-transform: uppercase; }
+    .review-name { margin-top: 3px; color: #555; font-size: 9px; line-height: 1.35; }
+    .review-condition { margin-top: 6px; color: #888; font-size: 8px; }
+    .review-price { font-size: 10px; font-weight: 850; }
+    .review-totals { margin-top: 2px; padding-top: 16px; border-top: 1px solid #ededed; display: grid; gap: 11px; }
+    .review-total-row { display: flex; justify-content: space-between; color: #555; font-size: 10px; }
+    .review-total-row.total { margin-top: 6px; padding-top: 16px; border-top: 1px solid #ededed; color: #111; font-size: 12px; font-weight: 850; }
+    .review-help { margin: 26px 0 0; color: #999; font-size: 9px; text-align: center; }
+    .review-help a { color: #555; text-decoration: underline; }
+    .order-status-panel { min-height: 540px; display: grid; place-items: center; text-align: center; }
+    .order-status-panel .status-icon { margin: 0 auto 18px; }
+    .order-status-panel h2 { margin: 0 0 10px; font-size: 24px; }
+    .order-status-panel p { max-width: 460px; margin: 0 auto; color: #777; font-size: 12px; line-height: 1.6; }
+    .order-status-panel .text-button { margin-top: 20px; }
+    .order-alert { margin-bottom: 18px; }
+    .mobile-order-underlay { display: none; }
+    .store-footer { padding: 46px clamp(32px,7vw,112px) 34px; color: #8f8f8f; background: #0b0b0b; }
+    .footer-grid { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(4,1fr) 1.7fr; gap: 34px; }
+    .footer-column strong { display: block; margin-bottom: 16px; color: #fff; font-size: 10px; }
+    .footer-column span { display: block; margin-top: 10px; font-size: 9px; }
+    .footer-email { margin-top: 14px; padding: 11px 13px; display: flex; justify-content: space-between; background: #181818; font-size: 9px; }
+    .footer-bottom { max-width: 1200px; margin: 38px auto 0; padding-top: 20px; display: flex; justify-content: space-between; border-top: 1px solid #1c1c1c; font-size: 8px; }
+
+    .mobile .order-commerce-header, .mobile .store-footer { display: none; }
+    .mobile .order-surface { position: relative; min-height: 824px; padding: 0; overflow: hidden; background: #fff; }
+    .mobile .mobile-order-underlay { height: 824px; padding: 26px 18px; display: block; color: #111; background: #fff; }
+    .mobile .mobile-order-top { display: flex; align-items: center; justify-content: space-between; font-size: 18px; font-weight: 800; }
+    .mobile .mobile-order-card { margin-top: 30px; height: 190px; border: 1px solid #eee; background: #fafafa; }
+    .mobile .order-payment-layout { position: absolute; inset: 0; display: block; background: rgba(0,0,0,.82); }
+    .mobile .review-panel { display: none; }
+    .mobile .payment-panel { position: absolute; left: 0; right: 0; bottom: 0; min-height: 0; height: 646px; padding: 20px 15px 74px; overflow-y: auto; border-radius: 16px 16px 0 0; }
+    .mobile .panel-heading { margin-bottom: 12px; font-size: 17px; }
+    .mobile .sheet-close { display: grid; place-items: center; }
+    .mobile .figma-method-row { min-height: 48px; }
+    .mobile .figma-methods { border-top: 0; }
+    .mobile .order-card-form { margin-left: 0; padding-bottom: 10px; gap: 8px; }
+    .mobile .order-field { height: 40px; }
+    .mobile .method-logo.cards { min-width: 130px; }
+    .mobile .bnpl-inline-copy { margin-left: 0; }
+    .mobile .address-toggle { margin: 14px 0 17px; }
+    .mobile .billing-grid { gap: 8px; }
+    .mobile .figma-pay-button { position: sticky; bottom: -62px; margin-top: 16px; box-shadow: 0 -14px 24px 18px #fff; }
+    .mobile .terms-copy { display: none; }
+    .mobile .order-status-panel { min-height: 500px; padding: 24px; background: #fff; }
+
+    .toast { position: fixed; left: 50%; bottom: 28px; z-index: 100; max-width: min(92vw, 520px); padding: 12px 16px; color: #fff; background: #211b2e; border-radius: 11px; box-shadow: 0 14px 40px rgba(20,13,31,.28); font-size: 12px; font-weight: 750; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (max-width: 1050px) {
+      .prototype-bar { grid-template-columns: 1fr auto; }
+      .prototype-title { grid-column: 1 / -1; }
+      .stage { padding: 20px; }
+      .checkout { grid-template-columns: 1fr 340px; gap: 24px; }
+    }
+    @media (max-width: 760px) {
+      .prototype-bar { position: relative; grid-template-columns: 1fr; gap: 8px; }
+      .tool-group { overflow-x: auto; }
+      .stage { padding: 14px 0 0; }
+      .device:not(.mobile) { width: 100%; }
+      .device:not(.mobile) .checkout { display: block; padding: 24px 18px 90px; }
+      .device:not(.mobile) .summary { position: static; margin-top: 18px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="prototype-bar" aria-label="Prototype controls">
+    <div class="prototype-title">
+      <strong>Afterpay + Affirm · Airwallex Drop-in prototype</strong>
+      <span>US · USD · Drop-in visual simulation · Component copy follows Airwallex · Flowchart V3.1 unchanged</span>
+    </div>
+    <div class="tool-group" aria-label="Viewport">
+      <span class="tool-label">View</span>
+      <button class="tool-btn active" data-viewport="desktop">PC</button>
+      <button class="tool-btn" data-viewport="mobile">Mobile</button>
+    </div>
+    <div class="tool-group" aria-label="Screen">
+      <span class="tool-label">Page</span>
+      <button class="tool-btn active" data-screen="checkout">Checkout</button>
+      <button class="tool-btn" data-screen="order">Order detail</button>
+    </div>
+    <div class="tool-group" aria-label="Scenario controls">
+      <span class="tool-label">USD</span>
+      <input class="tool-amount" id="amountInput" type="number" min="0" max="99999" step="0.01" value="129.50" aria-label="Order total in USD">
+      <select class="scenario-select" id="scenarioSelect" aria-label="Simulated provider result">
+        <option value="success">Result: success</option>
+        <option value="failure">Result: failed</option>
+        <option value="cancel">Result: canceled</option>
+        <option value="unknown">Result: unknown</option>
+        <option value="start_failure">Result: could not start</option>
+      </select>
+      <button class="tool-btn" id="resetDemoButton">Reset demo</button>
+    </div>
+  </header>
+
+  <main class="stage">
+    <div class="device" id="device">
+      <div class="store-app" id="app"></div>
+    </div>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+  /* TESTABLE_MODEL_START */
+  function normalizeAmount(amount) {
+    const value = Number(amount);
+    if (!Number.isFinite(value)) return 0;
+    return Math.round((value + Number.EPSILON) * 100) / 100;
+  }
+
+  function eligibleMethods(amount) {
+    const value = normalizeAmount(amount);
+    const methods = [];
+    if (Number.isFinite(value) && value >= 1 && value <= 4000) methods.push('afterpay');
+    if (Number.isFinite(value) && value >= 35 && value <= 30000) methods.push('affirm');
+    return methods;
+  }
+
+  function reconcileSelection(current, nextAmount) {
+    const normalizedAmount = normalizeAmount(nextAmount);
+    const available = eligibleMethods(normalizedAmount);
+    const isBnpl = current.selectedMethod === 'afterpay' || current.selectedMethod === 'affirm';
+    const selectionRemoved = isBnpl && !available.includes(current.selectedMethod);
+    return {
+      amount: normalizedAmount,
+      selectedMethod: selectionRemoved ? null : current.selectedMethod,
+      amountChangedNotice: selectionRemoved,
+    };
+  }
+
+  function canPay(current) {
+    if (current.status !== 'placed' || !current.selectedMethod) return false;
+    if (current.selectedMethod === 'afterpay' || current.selectedMethod === 'affirm') {
+      return eligibleMethods(current.amount).includes(current.selectedMethod);
+    }
+    return true;
+  }
+
+  function paymentView(current) {
+    if (current.status === 'confirming') return { showMethods: false, showPayButton: false, title: 'Payment confirming' };
+    if (current.status === 'paid') return { showMethods: false, showPayButton: false, title: 'Order confirmed' };
+    return { showMethods: true, showPayButton: true, title: 'Payment required' };
+  }
+
+  function canChangeAmount(current) {
+    return current.screen === 'checkout' && current.status === 'placed';
+  }
+
+  function screenTransition(current, screen) {
+    if (screen === 'checkout' && current.status !== 'placed') {
+      return { allowed: false, screen: current.screen || 'order', status: current.status, selectedMethod: current.selectedMethod, lastResult: current.lastResult };
+    }
+    return { allowed: true, screen, status: current.status, selectedMethod: current.selectedMethod, lastResult: current.lastResult };
+  }
+
+  if (typeof module !== 'undefined') module.exports = { eligibleMethods, reconcileSelection, canPay, paymentView, screenTransition, normalizeAmount, canChangeAmount };
+  /* TESTABLE_MODEL_END */
+
+  const methodCatalog = [
+    { id: 'card', name: 'Credit / Debit Card', meta: 'Visa, Mastercard, Amex', tag: 'Card', mark: 'CARD', markClass: 'mark-card' },
+    { id: 'paypal', name: 'PayPal', meta: 'Pay securely with PayPal', tag: 'Redirect', mark: 'PayPal', markClass: 'mark-paypal' },
+    { id: 'applepay', name: 'Apple Pay', meta: 'Pay with Apple Pay', tag: 'Wallet', mark: 'Pay', markClass: 'mark-card' },
+    { id: 'klarna', name: 'Klarna', meta: 'Buy now, pay later', tag: 'Redirect', mark: 'Klarna.', markClass: 'mark-klarna' },
+    { id: 'afterpay', name: 'Afterpay', meta: 'Buy now, pay later', tag: 'Redirect', mark: 'Afterpay', markClass: 'mark-afterpay' },
+    { id: 'affirm', name: 'Affirm', meta: 'Buy now, pay later', tag: 'Redirect', mark: 'affirm', markClass: 'mark-affirm' },
+  ];
+
+  const state = {
+    viewport: 'desktop', screen: 'checkout', amount: 129.50, selectedMethod: 'klarna',
+    status: 'placed', scenario: 'success', processing: false, amountChangedNotice: false,
+    submitError: false, lastResult: null, paidMethod: null, shippingAsBilling: false,
+  };
+
+  const app = document.getElementById('app');
+  const device = document.getElementById('device');
+  const amountInput = document.getElementById('amountInput');
+  const scenarioSelect = document.getElementById('scenarioSelect');
+  const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
+  function visibleMethods() {
+    const bnpl = eligibleMethods(state.amount);
+    return methodCatalog.filter(method => !['afterpay','affirm'].includes(method.id) || bnpl.includes(method.id));
+  }
+
+  function setViewport(viewport) {
+    state.viewport = viewport;
+    document.querySelectorAll('[data-viewport]').forEach(btn => btn.classList.toggle('active', btn.dataset.viewport === viewport));
+    render();
+  }
+
+  function setScreen(screen) {
+    const next = screenTransition(state, screen);
+    if (!next.allowed) {
+      showToast('Reset the demo before starting a new checkout scenario.');
+      syncControls();
+      return;
+    }
+    state.screen = next.screen;
+    state.status = next.status;
+    state.selectedMethod = next.selectedMethod;
+    state.lastResult = next.lastResult;
+    state.submitError = false;
+    state.processing = false;
+    document.querySelectorAll('[data-screen]').forEach(btn => btn.classList.toggle('active', btn.dataset.screen === screen));
+    render();
+  }
+
+  function setAmount(value) {
+    if (!canChangeAmount(state)) {
+      amountInput.value = state.amount.toFixed(2);
+      showToast('The order amount is fixed after the payment attempt starts.');
+      return;
+    }
+    const next = Math.max(0, normalizeAmount(value));
+    if (next === state.amount) {
+      amountInput.value = state.amount.toFixed(2);
+      return;
+    }
+    const reconciled = reconcileSelection(state, next);
+    state.amount = reconciled.amount;
+    state.selectedMethod = reconciled.selectedMethod;
+    state.amountChangedNotice = reconciled.amountChangedNotice;
+    state.submitError = false;
+    amountInput.value = state.amount.toFixed(2);
+    if (state.amountChangedNotice) showToast('Your order total changed. Please choose another payment method.');
+    render();
+  }
+
+  function selectMethod(method) {
+    if (!visibleMethods().some(item => item.id === method) || state.status !== 'placed') return;
+    state.selectedMethod = method;
+    state.amountChangedNotice = false;
+    state.submitError = false;
+    render();
+  }
+
+  function methodName(id) {
+    return methodCatalog.find(method => method.id === id)?.name || '—';
+  }
+
+  function submitPayment() {
+    if (!canPay(state) || state.processing) return;
+    state.processing = true;
+    state.submitError = false;
+    render();
+    window.setTimeout(() => {
+      state.processing = false;
+      if (state.scenario === 'start_failure') {
+        state.status = 'placed'; state.lastResult = null; state.submitError = true; state.screen = 'checkout';
+      } else if (state.scenario === 'success') {
+        state.status = 'paid'; state.paidMethod = state.selectedMethod; state.lastResult = 'success'; state.screen = 'order';
+      } else if (state.scenario === 'unknown') {
+        state.status = 'confirming'; state.lastResult = 'unknown'; state.screen = 'order';
+      } else if (state.scenario === 'failure') {
+        state.status = 'placed'; state.lastResult = 'failure'; state.submitError = false; state.screen = 'order';
+      } else {
+        state.status = 'placed'; state.lastResult = 'cancel'; state.screen = 'order';
+      }
+      syncControls();
+      render();
+    }, 650);
+  }
+
+  function retryPayment() {
+    state.status = 'placed'; state.lastResult = null; state.submitError = false;
+    if (!state.selectedMethod || !visibleMethods().some(item => item.id === state.selectedMethod)) state.selectedMethod = visibleMethods()[0]?.id || null;
+    render();
+  }
+
+  function refreshPayment() {
+    showToast('Payment status checked. Airwallex still reports processing.');
+  }
+
+  function resetDemo() {
+    Object.assign(state, { screen: 'checkout', status: 'placed', selectedMethod: 'klarna', processing: false, amountChangedNotice: false, submitError: false, lastResult: null, paidMethod: null, shippingAsBilling: false });
+    syncControls(); render();
+  }
+
+  function toggleBilling(checked) {
+    state.shippingAsBilling = checked;
+    render();
+  }
+
+  function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message; toast.classList.add('show');
+    window.clearTimeout(showToast.timer);
+    showToast.timer = window.setTimeout(() => toast.classList.remove('show'), 2600);
+  }
+
+  function syncControls() {
+    document.querySelectorAll('[data-screen]').forEach(btn => btn.classList.toggle('active', btn.dataset.screen === state.screen));
+    const checkoutButton = document.querySelector('[data-screen="checkout"]');
+    checkoutButton.disabled = state.status !== 'placed';
+    checkoutButton.title = checkoutButton.disabled ? 'Reset the demo to start a new checkout scenario' : '';
+    amountInput.disabled = !canChangeAmount(state);
+  }
+
+  function storeHeader() {
+    return `<header class="store-header"><div class="brand">looply<span class="brand-dot">.</span></div><div class="secure"><span class="lock">✓</span><span>Secure checkout</span></div></header>`;
+  }
+
+  function orderCommerceHeader() {
+    return `<header class="order-commerce-header"><div class="order-header-main"><div class="order-wordmark">LOOPLY</div><div class="order-vertical">Vintage Jewelry</div><div class="order-search"><span>Search</span><span>⌕</span></div><div class="order-actions"><span>🇺🇸 EN⌄</span><span>♙</span><span>♡</span><span>▢</span></div><button class="sell-button">SELL</button></div><nav class="order-nav"><span>Hand Bags</span><span>Shoes</span><span>Jewelry</span><span>Watches</span><span>Accessories</span><span>Electronics</span><span>Brands</span></nav></header>`;
+  }
+
+  function storeFooter() {
+    return `<footer class="store-footer"><div class="footer-grid"><div class="footer-column"><strong>SHOP</strong><span>Handbags</span><span>Jewelry</span><span>Watches</span><span>Accessories</span><span>Brands</span></div><div class="footer-column"><strong>SELL</strong><span>Sell with Looply</span><span>Accepted Brands</span><span>Consign Guidelines</span><span>Business Service Area</span></div><div class="footer-column"><strong>SUPPORT</strong><span>My Account</span><span>Shipping</span><span>Returns</span><span>Seller FAQ</span><span>Contact Us</span></div><div class="footer-column"><strong>ABOUT</strong><span>About Looply</span><span>Authenticity</span></div><div class="footer-column"><strong>STAY IN THE LOOP</strong><span>Get notified of new arrivals and exclusive offers.</span><div class="footer-email"><span>Your email address</span><b>→</b></div><span>●　●　●　●</span></div></div><div class="footer-bottom"><span>Secure Payments　 VISA　MC　AMEX　PayPal　Klarna　Afterpay　Affirm</span><span>© 2026 Looply. All rights reserved.</span></div></footer>`;
+  }
+
+  function checkoutMethodLogo(method) {
+    if (method.id === 'card') return `<span class="checkout-card-logos" aria-label="Visa, Mastercard, American Express, UnionPay, Maestro, JCB, Discover and Diners Club"><b class="checkout-card-logo visa">VISA</b><b class="checkout-card-logo mc">MC</b><b class="checkout-card-logo amex">AMERICAN<br>EXPRESS</b><b class="checkout-card-logo union">UnionPay</b><b class="checkout-card-logo maestro">Maestro</b><b class="checkout-card-logo jcb">JCB</b><b class="checkout-card-logo discover">DISCOVER</b><b class="checkout-card-logo diners">Diners Club</b></span>`;
+    const logoClass = method.id === 'paypal' ? 'paypal' : method.id === 'applepay' ? 'applepay' : method.id;
+    const logoText = method.id === 'applepay' ? 'Pay' : method.mark;
+    return `<span class="checkout-method-logo ${logoClass}">${logoText}</span>`;
+  }
+
+  function paymentRows() {
+    // Visual snapshot of the current Airwallex Drop-in output. Production copy is not owned by Looply.
+    const dropInLabelSnapshot = { card: 'Payment Card', paypal: 'PayPal', applepay: 'Apple Pay', klarna: 'Pay later', afterpay: 'Pay in 4', affirm: 'Monthly payments' };
+    return `<div class="pay-list">${visibleMethods().map(method => {
+      const selected = method.id === state.selectedMethod;
+      const redirect = selected && ['paypal','klarna','afterpay','affirm'].includes(method.id);
+      const copy = method.id === 'afterpay'
+        ? `You'll be redirected to Afterpay to complete your purchase`
+        : method.id === 'affirm'
+          ? `You'll be redirected to Affirm to complete your purchase`
+          : method.id === 'klarna'
+            ? `You'll be redirected to Klarna to complete your purchase`
+            : `You'll be redirected to PayPal to complete your purchase`;
+      return `<div class="pay-method" data-method="${method.id}" data-component="airwallex-dropin" data-copy-owner="airwallex"><button class="pay-row ${selected ? 'selected' : ''}" onclick="selectMethod('${method.id}')" aria-pressed="${selected}">
+        <span class="radio"></span><span class="checkout-method-identity">${checkoutMethodLogo(method)}</span>
+        <span class="checkout-method-right">${dropInLabelSnapshot[method.id]}</span></button>${redirect ? `<div class="redirect-copy" data-copy-owner="airwallex">${copy}</div>` : ''}</div>`;
+    }).join('')}</div>`;
+  }
+
+  function paymentNotices() {
+    let html = '';
+    if (state.amountChangedNotice) html += `<div class="notice info"><span class="notice-dot">i</span><span>Your order total changed. Please choose another payment method.</span></div>`;
+    if (state.submitError) html += `<div class="notice error"><span class="notice-dot">!</span><span>We couldn’t start this payment. Please try again or choose another payment method.</span></div>`;
+    return html;
+  }
+
+  function summaryCard() {
+    const disabled = !canPay(state) || state.processing;
+    return `<aside class="summary"><div class="summary-card">
+      <div class="summary-title">Order summary</div>
+      <div class="product"><div class="product-image"></div><div><div class="product-name">Linen wrap midi dress</div><div class="product-cond">Very good · Size M</div></div><div class="price">${money.format(Math.max(0, state.amount - 8.5))}</div></div>
+      <div class="totals"><div class="total-row"><span>Shipping</span><strong>Free</strong></div><div class="total-row"><span>Estimated tax</span><strong>${money.format(Math.min(8.5, state.amount))}</strong></div></div>
+      <div class="grand-total"><span>Total</span><strong><small>USD</small>${money.format(state.amount).replace('$','')}</strong></div>
+      <div class="pay-button-wrap"><button class="pay-button" onclick="submitPayment()" ${disabled ? 'disabled' : ''}>${state.processing ? 'Processing…' : state.selectedMethod ? `Pay ${money.format(state.amount)}` : 'Choose a payment method'}</button><div class="microcopy">🔒 <span>Your payment information is encrypted</span></div></div>
+    </div>
+    <div class="eligibility-panel"><strong>Prototype availability</strong><p>At <code>${money.format(state.amount)}</code>: Afterpay is ${eligibleMethods(state.amount).includes('afterpay') ? 'visible' : 'hidden'}; Affirm is ${eligibleMethods(state.amount).includes('affirm') ? 'visible' : 'hidden'}. Amount-only display simulation. Final eligibility is decided by the payment provider.</p></div></aside>`;
+  }
+
+  function renderCheckout() {
+    return `${storeHeader()}<div class="checkout"><div>
+      <div class="eyebrow">Checkout</div><h1>Complete your order</h1><p class="lead">Review your details and choose how you’d like to pay.</p>
+      <section class="section"><div class="section-head"><div class="section-title"><span class="step">1</span>Shipping address</div><span class="edit">Change</span></div><div class="address"><div><strong>Jamie Miller</strong><span>118 Bedford Ave, Brooklyn, NY 11249<br>+1 917 555 0138</span></div><span>US</span></div></section>
+      <section class="section checkout-payment-online"><div class="section-head"><div class="section-title">Payment</div></div>${paymentNotices()}${paymentRows()}</section>
+    </div>${summaryCard()}</div>`;
+  }
+
+  function orderStatusContent() {
+    if (state.status === 'confirming') return { icon: '…', title: 'Payment confirming', text: `We’re confirming your payment with ${methodName(state.selectedMethod)}. Please don’t try to pay again. This page will update when the result is available.`, className: 'confirming' };
+    if (state.status === 'paid') return { icon: '✓', title: 'Order confirmed', text: 'Your payment was confirmed and your order is now being prepared.', className: 'paid' };
+    if (state.lastResult === 'failure') return { icon: '!', title: 'Payment required', text: 'Your payment wasn’t completed. Try again or choose another payment method.', className: 'placed' };
+    if (state.lastResult === 'cancel') return { icon: '↩', title: 'Payment required', text: 'Payment was canceled. You can try again before the payment window closes.', className: 'placed' };
+    return { icon: '⌛', title: 'Payment required', text: 'Complete payment before the reservation expires.', className: 'placed' };
+  }
+
+  function orderPaymentRows() {
+    // Visual snapshot of the same Airwallex Drop-in used at Checkout. Production copy follows the component.
+    const dropInLabelSnapshot = { card: 'Payment Card', paypal: 'PayPal', klarna: 'Pay later', applepay: 'Apple Pay', afterpay: 'Pay in 4', affirm: 'Monthly payments' };
+    const logo = method => {
+      if (method.id === 'card') return `<span class="method-logo cards"><b class="card-chip">VISA</b><b class="card-chip">MC</b><b class="card-chip">AMEX</b><b class="card-chip">+5</b></span>`;
+      if (method.id === 'applepay') return `<span class="method-logo">Pay</span>`;
+      return `<span class="method-logo">${method.mark}</span>`;
+    };
+    return `<div class="figma-methods">${visibleMethods().map(method => {
+      const selected = method.id === state.selectedMethod;
+      const isRedirect = ['paypal','klarna','applepay','afterpay','affirm'].includes(method.id);
+      const copy = `You'll be redirected to ${method.mark} to complete your purchase`;
+      return `<div class="figma-method" data-method="${method.id}" data-component="airwallex-dropin" data-copy-owner="airwallex"><button class="figma-method-row ${selected ? 'selected' : ''}" onclick="selectMethod('${method.id}')" aria-pressed="${selected}"><span class="radio"></span><span class="method-identity">${logo(method)}</span><span class="method-right">${dropInLabelSnapshot[method.id]}</span></button>${selected && method.id === 'card' ? `<div class="order-card-form" data-component="airwallex-dropin"><input class="order-field wide" placeholder="Card Number" aria-label="Card Number"><input class="order-field" placeholder="Expiration date (MM / YY)" aria-label="Expiration date"><input class="order-field" placeholder="Security code" aria-label="Security code"><input class="order-field wide" placeholder="Name on Card" aria-label="Name on Card"></div>` : ''}${selected && isRedirect ? `<div class="bnpl-inline-copy" data-copy-owner="airwallex">${copy}</div>` : ''}</div>`;
+    }).join('')}</div>`;
+  }
+
+  function billingForm() {
+    return `<div data-component="airwallex-dropin" data-copy-owner="airwallex"><label class="address-toggle"><input type="checkbox" ${state.shippingAsBilling ? 'checked' : ''} onchange="toggleBilling(this.checked)"><span>Use shipping address as billing address</span></label>${state.shippingAsBilling ? '' : `<h3 class="billing-title">Billing Address</h3><div class="billing-grid"><input class="order-field" placeholder="First Name" aria-label="First Name"><input class="order-field" placeholder="Last Name" aria-label="Last Name"><input class="order-field wide" placeholder="Address" aria-label="Address"><input class="order-field wide" placeholder="Apartment, suite, etc. optional" aria-label="Apartment, suite, etc. optional"><div class="city-row"><input class="order-field" placeholder="City" aria-label="City"><input class="order-field" placeholder="State" aria-label="State"><input class="order-field" placeholder="ZIP Code" aria-label="ZIP Code"></div><input class="order-field wide" placeholder="+1   Phone" aria-label="Phone"></div>`}</div>`;
+  }
+
+  function reviewItems() {
+    const subtotal = Math.max(0, state.amount - Math.min(104, state.amount * .08));
+    return `<aside class="review-panel"><div class="review-title">Review Items (2)</div><div class="review-item"><div class="review-thumb necklace"></div><div><div class="review-brand">LOUP VUITTON</div><div class="review-name">Silver Tone Monogram Necklace</div><div class="review-condition">Condition: Very Good</div></div><div class="review-price">${money.format(subtotal * .41)}</div></div><div class="review-item"><div class="review-thumb bag"></div><div><div class="review-brand">LOUP VUITTON</div><div class="review-name">Universal GM Damier Ebene Coated Canvas</div><div class="review-condition">Condition: Very Good</div></div><div class="review-price">${money.format(subtotal * .59)}</div></div><div class="review-totals"><div class="review-total-row"><span>Subtotal (2 items)</span><strong>${money.format(subtotal)}</strong></div><div class="review-total-row"><span>Shipping</span><strong>Free</strong></div><div class="review-total-row total"><span>Total</span><strong>${money.format(state.amount)}</strong></div></div><p class="review-help">If you have any questions, please <a href="#">contact us</a>.</p></aside>`;
+  }
+
+  function paymentPanel() {
+    if (state.status !== 'placed') {
+      const content = orderStatusContent();
+      return `<section class="payment-panel order-status-panel"><div><div class="status-icon ${content.className}">${content.icon}</div><h2>${content.title}</h2><p>${content.text}</p>${state.status === 'confirming' ? `<button class="text-button" onclick="refreshPayment()">Refresh status</button>` : `<div class="paid-receipt"><span class="notice-dot">✓</span><p>Paid with <strong>${methodName(state.paidMethod)}</strong>. Installment plan details remain with the payment provider.</p></div>`}</div></section>`;
+    }
+    const alert = state.lastResult === 'failure' ? `<div class="notice error order-alert"><span class="notice-dot">!</span><span>Your payment wasn’t completed. Try again or choose another payment method.</span></div>` : state.lastResult === 'cancel' ? `<div class="notice info order-alert"><span class="notice-dot">↩</span><span>Payment was canceled. You can choose another payment method.</span></div>` : '';
+    return `<section class="payment-panel mobile-payment-sheet"><div class="payment-sheet-head"><h2 class="panel-heading">Payment${state.viewport === 'mobile' ? ' Method' : ''}</h2><button class="sheet-close" aria-label="Close payment method">×</button></div>${alert}${paymentNotices()}${orderPaymentRows()}${billingForm()}<button class="figma-pay-button" onclick="submitPayment()" ${canPay(state) && !state.processing ? '' : 'disabled'}>${state.processing ? 'Processing…' : `Pay Now at ${money.format(state.amount)}`}</button><p class="terms-copy">By continuing, you agree to our <a href="#">Terms</a>, <a href="#">Privacy Policy</a>, <a href="#">Shipping and Refund Policy</a>.</p></section>`;
+  }
+
+  function renderOrder() {
+    return `${orderCommerceHeader()}<main class="order-surface"><div class="mobile-order-underlay"><div class="mobile-order-top"><span>‹</span><span>Order Details</span><span>♧</span></div><div class="mobile-order-card"></div></div><div class="order-payment-layout">${paymentPanel()}${reviewItems()}</div></main>${storeFooter()}`;
+  }
+
+  function render() {
+    device.classList.toggle('mobile', state.viewport === 'mobile');
+    app.innerHTML = state.screen === 'checkout' ? renderCheckout() : renderOrder();
+    syncControls();
+  }
+
+  document.querySelectorAll('[data-viewport]').forEach(btn => btn.addEventListener('click', () => setViewport(btn.dataset.viewport)));
+  document.querySelectorAll('[data-screen]').forEach(btn => btn.addEventListener('click', () => setScreen(btn.dataset.screen)));
+  amountInput.addEventListener('change', event => setAmount(event.target.value));
+  amountInput.addEventListener('keydown', event => { if (event.key === 'Enter') setAmount(event.target.value); });
+  scenarioSelect.addEventListener('change', event => { state.scenario = event.target.value; });
+  document.getElementById('resetDemoButton').addEventListener('click', resetDemo);
+  render();
+  </script>
+</body>
+</html>
