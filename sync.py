@@ -414,6 +414,12 @@ MODULES = {
                 'pattern': r'looply-订单管理后台原型-v(.+?)\.html',
                 'exclude': r'(backup|对比|report)',
             },
+            'prototype_checkout': {
+                'source_subdir': '原型/outputs',
+                'subdir': '原型/checkout配置',
+                'pattern': r'looply-checkout服务保障配置-antd-原型-v(.+?)\.html',
+                'exclude': r'(backup|对比|report)',
+            },
             'prd': {
                 'subdir': 'PRD',
                 'pattern': r'looply-订单支付-PRD-v(.+?)\.md',
@@ -431,6 +437,23 @@ MODULES = {
                 'pattern': r'订单支付-交付开发 V(.+?)\.zip',
             },
         },
+        'static_docs': [
+            {
+                'source_subdir': '原型/outputs',
+                'subdir': '原型/checkout配置',
+                'filename': 'looply-checkout服务保障配置-antd-原型-v1-report.md',
+            },
+            {
+                'source_subdir': '原型/outputs',
+                'subdir': '原型/checkout配置',
+                'filename': 'looply-checkout服务保障拖拽排序-验收.png',
+            },
+            {
+                'source_subdir': '原型/outputs',
+                'subdir': '原型/checkout配置',
+                'filename': 'looply-checkout服务保障图标上传-验收.png',
+            },
+        ],
     },
     'plm': {
         'name': '红布林商品对接',
