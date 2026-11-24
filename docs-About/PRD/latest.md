@@ -1,264 +1,175 @@
-# Looply About 页面 PRD v0.3
+# Looply 品牌介绍页 PRD v1.0
 
-> 模块：About Looply
->
-> 版本：v0.3
->
-> 日期：2026-08-17
->
-> 状态：基于最新 PC / Mobile UI 稿、2026-08-07 Authentication 参考截图及 2026-08-17 Who We Are UI 截图的当前工作稿
+> 覆盖页面：About Looply、Our Group、Sustainability  
+> 终端：PC Web、Mobile Web  
+> 日期：2026-11-24
 
-## 一、概述
+## 1. 范围与设计依据
 
-### 1.1 背景与目标
+三页分别承担品牌介绍、集团能力介绍、可持续发展介绍，并通过正文入口连接购物、卖货、鉴定与联系页面。游客与登录用户均可浏览。
 
-About 页面帮助用户在浏览商品前理解 Looply 的品牌定位、循环理念、平台体验标准及鉴定能力，并通过两个明确入口继续浏览：了解鉴定方式或进入首页 For You。
+本次交付三页内容区、页面间跳转、About 首图轮播、门店图库，以及 H5 Account Settings 的 About 入口与四项列表。卖货、预约、鉴定、联系和购物页面承接各自业务流程。
 
-当前版本面向游客与登录用户展示同一页面内容，不依赖登录态。
+**页面文案、数值、配图、图片顺序及视觉样式以用户维护的 Figma 为准，PRD 不另建文案副本。**本文补充静态设计稿未表达完整的交互与跳转规则。
 
-### 1.2 当前版本范围
-
-1. 提供 Web PC 与 Mobile About 页面。
-2. 展示品牌定位、Slogan、品牌故事、三项信念、五项平台体验与鉴定说明。
-3. 提供鉴定页和首页 For You 两个页面跳转入口。
-4. 复用全站 Header、Footer、语言选择、搜索、账户、收藏和购物袋公共组件。
-
-### 1.3 用户角色与核心场景
-
-| 用户角色 | 核心场景 | 页面结果 |
+| 页面 | PC 设计稿 | Mobile 设计稿 |
 |---|---|---|
-| 游客 | 通过 Footer 或外部落地页进入 About，判断平台是否可信 | 了解品牌与鉴定能力，进入 Authentication 或 Home For You |
-| 登录用户 | 购物前了解平台规则与品牌定位 | 阅读页面并继续浏览 For You |
+| About Looply | [PC About · 10889:2631](https://www.figma.com/design/sAOLkw0gIl1bwQRYCDqKuW/Looply-1.1?node-id=10889-2631) | [Mobile About · 10889:3845](https://www.figma.com/design/sAOLkw0gIl1bwQRYCDqKuW/Looply-1.1?node-id=10889-3845) |
+| Our Group | [PC Group · 10889:3080](https://www.figma.com/design/sAOLkw0gIl1bwQRYCDqKuW/Looply-1.1?node-id=10889-3080) | [Mobile Group · 10889:4013](https://www.figma.com/design/sAOLkw0gIl1bwQRYCDqKuW/Looply-1.1?node-id=10889-4013) |
+| Sustainability | [PC Sustainability · 10889:3475](https://www.figma.com/design/sAOLkw0gIl1bwQRYCDqKuW/Looply-1.1?node-id=10889-3475) | [Mobile Sustainability · 10889:4154](https://www.figma.com/design/sAOLkw0gIl1bwQRYCDqKuW/Looply-1.1?node-id=10889-4154) |
 
-### 1.4 全局页面流转
+设计基线：Looply 1.1「11.24-About Looply 全新改版」。H5 [Account Settings](https://www.figma.com/design/sAOLkw0gIl1bwQRYCDqKuW/Looply-1.1?node-id=10889-8262) 与 [About 列表页](https://www.figma.com/design/sAOLkw0gIl1bwQRYCDqKuW/Looply-1.1?node-id=10889-8476) 同属本次入口范围。
 
-`Home / Footer About Looply → About Looply → Authentication`
+## 2. 公共规则
 
-`Home / Footer About Looply → About Looply → Home / For You`
+### 2.1 页面入口与导航
 
-`Mobile 上一级页面 → About Looply → 返回上一级页面`
+- PC 公共 Footer 的 About 栏提供三页入口，接入规则见[Footer PRD v0.8](../../docs-首页/PRD/looply-Footer-PRD-v0.8.md)；页面正文入口按第 6 节跳转。
+- Mobile 首页推荐 Feed 内的 About 入口、个人中心 About Banner 均进入 About Looply；入口展示由各来源页面负责，点击采集见统一埋点需求 §8.7。
+- H5 个人中心 Account Settings 最后一项为 About，进入 §2.3 的 About 列表页。
+- PC 接入站点公共 Header、Footer。公共搜索、账户、收藏、购物袋、订阅及语言选择由公共组件负责。
+- Mobile 顶部展示返回按钮与当前页面名称。点击返回回到上一级页面；直接打开且无返回历史时进入首页，沿用原 About 返回规则。
+- 进入任一介绍页时展示该页内容。正文内站内链接在当前页面打开，目标页面负责其登录、资格判断和异常处理。
 
-当 Mobile 端不存在可返回的上一级页面时，返回按钮进入 Home / For You。
+### 2.2 内容与图片
 
-### 1.5 术语说明
+- 文案按 Figma 的模块、层级、强调样式和顺序展示；文本自然换行，不以截断正文维持固定卡片高度。
+- 同一模块在 PC 与 Mobile 使用对应端设计稿的排列和裁切；不能直接缩放整张 PC 页面作为手机页面。
+- 图片加载期间保留对应图片区域；加载失败时保留中性底色，文字、链接及其他已加载模块继续可用。刷新页面可重新加载，沿用原 About 图片降级规则。
+- 展示图片按内容图处理；可切换图片的操作仅定义在第 3.2、4.2 节。
 
-| 术语 | 含义 |
-|---|---|
-| For You | 首页中面向用户推荐商品的内容视图 |
-| Authentication 页面 | 独立展示鉴定流程、规则与保障口径的页面 |
-| About 页面 | 面向用户说明 Looply 品牌定位、理念与信任基础的介绍页 |
+### 2.3 H5 Account Settings · About 入口与列表页
 
-### 1.6 输入源与覆盖结论
+Account Settings 底部新增一行 About，位于该设置列表最后，沿用设置行的整行点击与右箭头样式。游客和登录用户均可使用。点击在当前标签页进入 About 列表页，保留当前站点国家及语言。
 
-| 输入源 | 用途 | 结论 |
+列表页顶部为返回按钮和标题 About，正文按以下顺序展示四行，每行文字及右箭头共同组成一个点击区域。四项与 PC Footer 的 About 栏目标一致。
+
+| 顺序 | 入口 | 点击目标 |
 |---|---|---|
-| PC UI 截图 `img_v3_02149_501c101d-c208-460e-b101-11b1ae55d40g.png` | PC 布局与展示内容基线 | 已覆盖 |
-| Mobile UI 截图 `img_v3_02149_a4236bac-a454-4c54-81bf-28f591dceefg.png` | Mobile 布局与交互基线 | 已覆盖 |
-| 用户于 2026-08-07 提供的 Authentication UI 截图 | Authentication 正文分段基线 | 已覆盖：首句单独成段，其余正文为第二段 |
-| 用户于 2026-08-17 提供的 Who We Are UI 截图 | Who We Are 的 PC 端展示顺序与视觉层级基线 | 已覆盖；Mobile 复用相同内容顺序 |
-| 已确认 About 英文文案 | 模块正文口径 | 已覆盖 |
-| `docs/research/about-us/looply-About-Looply-竞品调研-v0.1.md` | 页面信息层级参考 | 已覆盖 |
-| 产品架构图、系统流程图、ER 图 | 本模块无新增业务实体或跨页面业务流程 | 本版本不涉及 |
+| 1 | About Looply | About Looply 页面 |
+| 2 | Authenticity | 鉴定介绍页，与 §6 鉴定目标一致 |
+| 3 | Our Group | Our Group 页面 |
+| 4 | Sustainability | Sustainability 页面 |
 
-PC UI 的 `Who We Are` 与 Mobile UI 的 `Who we are` 统一为 `Who We Are`。三项信念统一为 `Personal Style`、`Trust`、`Never Secondary`；PC 与 Mobile 使用相同标题及正文。
+点击任一行在当前标签页进入对应页面；从目标页返回时回到 About 列表页，列表页返回时回到个人中心。直接访问列表且无站内返回历史时，返回个人中心。目标页面内部规则由所属模块负责。
 
-## 二、需求详细描述
+Account Settings 的 About 进入此列表；个人中心原 About Banner 和首页 Feed 的 About 仍直接进入 About Looply。入口文案使用静态 UI 多语言资源，映射见 §7.1；来源点击、列表访问和列表内点击见统一采集 §8.7。
 
-### 2.1 About 页面【页面型】
+## 3. About Looply
 
-#### 2.1.1 功能描述
+### 3.1 模块与排列
 
-系统按固定顺序展示 About 内容模块：Hero、Who We Are、What We Believe、What You'll Find on Looply、Why Our Authentication Stands Apart、Shop with Confidence 和 Footer。
-
-#### 2.1.2 页面布局
-
-| 模块 | PC 端 | Mobile 端 |
-|---|---|---|
-| 顶部导航 | 复用 Web 全局 Header，展示 Logo、语言选择、类目导航及公共功能图标 | 复用 Mobile 顶部栏，展示返回按钮与居中标题 `About Us` |
-| Hero | 横向大图；图片中央叠加定位与 Slogan | 横向圆角图片；图片内叠加定位与 Slogan |
-| Who We Are | 居中标题；开篇引言、分隔线、三段主体正文与居中收束句按视觉层级展示 | 使用与 PC 相同的内容顺序；具体字号和留白按 Mobile 设计稿适配 |
-| What We Believe | 三列卡片，同时展示图片、标题和正文 | 三张纵向卡片，单卡顺序为图片、标题、正文 |
-| What You'll Find | 左侧五条编号清单，右侧展示配图 | 标题下展示五条编号清单 |
-| Authentication | 左图右文；标题、正文、收束句与文字链接位于右侧 | 标题、图片、正文、收束句与文字链接自上而下排列 |
-| Shop with Confidence | 全宽背景图；居中标题与主按钮 | 全宽背景图；居中标题与主按钮 |
-| Footer | 复用 Web Footer | 复用 Mobile Footer；当前 UI 未展示时由公共组件规则决定 |
-
-#### 2.1.3 内容与展示规则
-
-##### Hero
-
-| 内容项 | 展示值 |
-|---|---|
-| 定位 | `Authenticated Luxury Resale` |
-| Slogan | `Designer pieces deserve another chapter.` |
-| 图片 | 使用已发布的 About Hero 图片；图片上叠加深色遮罩以保证文字可读 |
-
-##### Who We Are
-
-标题展示 `Who We Are`。正文以固定视觉层级展示，英文文案保持以下内容与顺序：
-
-1. 开篇引言：居中、斜体展示 `A loop is never just a return—it is the beginning of a new chapter.`
-2. 分隔线：展示于开篇引言之后、主体正文之前。
-3. 主体正文：左对齐依次展示：
-   - `At Looply, we believe that beautifully made pieces should not be confined to a single chapter. The pieces we cherish—the ones shaped by craftsmanship and intention—deserve to be rediscovered, reinterpreted, and passed on, gathering meaning as they move from one life to another.`
-   - `Looply exists to make that movement feel effortless. Through careful curation and rigorous authentication, we replace the uncertainty long associated with resale with confidence, clarity, and ease.`
-   - `Based in Los Angeles, Looply was founded in 2026 to bring this belief to life—creating a more trusted and considered way for exceptional pieces to continue their stories.`
-4. 收束句：主体正文之后居中、斜体展示 `Here, designer pieces don’t simply change hands—their stories, beauty, and significance live on.`
-
-##### What We Believe
-
-三张卡片按固定顺序展示；卡片不触发页面跳转。
-
-| 顺序 | 标题 | 正文 | 图片 |
+| 顺序 | 模块 | 展示内容与操作 | PC / Mobile 差异 |
 |---|---|---|---|
-| 1 | `Personal Style` | `That resale is more than a conscious choice—it is a modern expression of personal style: considered, confident, and distinctly your own.` | 已发布的个人风格主题图片 |
-| 2 | `Trust` | `That trust should come standard. Through rigorous authentication and clear condition details, we help you understand every piece and choose with confidence.` | 已发布的信任主题图片 |
-| 3 | `Never Secondary` | `That secondhand should never feel secondary. Every part of the experience should reflect the same commitment to care, clarity, and ease.` | 已发布的二手体验主题图片 |
+| 1 | 品牌首屏与 Our Story | 品牌介绍、首图轮播、两项品牌数据、品牌故事、集团入口 | PC 首屏文字左右排列，数据并列；Mobile 文字上下排列，两项数据并列 |
+| 2 | What we believe | 品牌理念与 Sustainability 入口 | 两端按对应稿居中展示 |
+| 3 | Two Ways Into Looply | 买家与卖家两张图文卡，分别提供购物和卖货入口 | PC 并列；Mobile 先买家、后卖家 |
+| 4 | How we work | 专业鉴定、成色说明、实物拍摄三项说明，两张配图，鉴定入口 | PC 图文左右；Mobile 配图位于三项说明之前 |
+| 5 | Local seller services | 上门、到店、邮寄三项服务介绍，以及统一卖家服务入口 | PC 三列；Mobile 按同顺序纵向排列 |
+| 6 | Let’s connect | 办公区图片、联系入口、地址、预约说明与预约入口 | PC 图文左右；Mobile 图片在前，随后联系与预约信息 |
 
-##### What You'll Find on Looply
+各模块按上表顺序组成同一长页。服务卡展示服务说明，通过统一入口进入卖货页；联系与预约使用各自入口。
 
-标题展示 `What You'll Find on Looply`。清单按编号 01 至 05 展示：
+### 3.2 首图轮播
 
-| 编号 | 文案 |
-|---|---|
-| 01 | `Pieces from the world’s most sought-after luxury brands` |
-| 02 | `A clear and detailed presentation of condition and craftsmanship` |
-| 03 | `Exacting standards of authentication and condition grading` |
-| 04 | `Pricing that reflects condition, value, and rarity` |
-| 05 | `An experience designed to feel assured, from first glance to final delivery` |
+对应设计：第 1 节 PC／Mobile About Looply 首图区域。
 
-PC 端与该清单并列展示体验主题图片；Mobile 端仅展示标题与清单。
+1. 共 4 张图，首次打开展示 Figma 图片顺序中的第 1 张，下方对应指示条为选中态。
+2. 页面可见时每 4 秒切换到下一张；第 4 张之后回到第 1 张。
+3. 点击任一指示条，立即展示对应图片并更新选中态；从本次操作起重新计时 4 秒。
+4. 选中图片与选中指示条始终一一对应；切换时保持图片容器尺寸，页面其余内容不跳动。
 
-##### Why Our Authentication Stands Apart
+## 4. Our Group
 
-标题展示 `Why Our Authentication Stands Apart`，正文按以下两段依次展示：
+### 4.1 模块与排列
 
-1. `Every item offered on Looply undergoes a dual authentication process combining expert human review with our proprietary AI technology.`
-2. `Our authentication specialists draw on collective experience gained through the inspection and authentication of more than 1.28 million items—expertise that has helped shape and refine the rigorous methods now applied at Looply. By combining human discernment and judgment with the speed, consistency, and precision of AI, this approach allows us to stand behind every eligible item with the Looply Lifetime Authenticity Guarantee.`
-
-收束句展示：
-
-`Because confidence, like style, should feel effortless.`
-
-文字链接展示 `Explore Our Authentication Process`。
-
-##### Shop with Confidence
-
-全宽背景图上展示标题 `Shop with Confidence` 和按钮 `Discover More`。该模块位于 Authentication 模块之后、Footer 之前。
-
-#### 2.1.4 操作流程
-
-| 用户操作 | 触发位置 | 系统结果 |
-|---|---|---|
-| 点击返回 | Mobile 顶部左侧 | 返回上一级页面；无上一级页面时进入 Home / For You |
-| 点击鉴定入口 | `Explore Our Authentication Process` | 进入独立 Authentication 页面 |
-| 点击发现更多 | `Discover More` | 进入 Home / For You |
-| 点击共享 Header / Footer 链接 | 公共组件 | 按公共组件定义执行对应跳转 |
-
-#### 2.1.5 页面状态与异常处理
-
-| 场景 | 页面构成 | 处理规则 |
-|---|---|---|
-| 默认态 | 全部文本、图片、CTA 和公共组件 | 按 UI 稿顺序展示 |
-| 单张内容图片加载中 | 文本与其余模块正常展示；图片区域展示与原图容器等比例的中性色骨架 | 图片加载完成后替换为正式图片 |
-| 单张内容图片加载失败 | 文本与 CTA 正常展示；图片区域展示中性品牌底色 | 用户刷新页面后重新请求图片 |
-| Authentication 页面不可达 | About 页内容保持可读 | 跳转目标页按其页面级异常规则处理 |
-| Home / For You 不可达 | About 页内容保持可读 | 跳转目标页按其页面级异常规则处理 |
-
-#### 2.1.6 UI 关联
-
-| 终端 | 设计稿 |
-|---|---|
-| PC | `img_v3_02149_501c101d-c208-460e-b101-11b1ae55d40g.png`；Who We Are 以用户于 2026-08-17 提供的截图为最新基线 |
-| Mobile | `/Users/zz/Desktop/img_v3_02149_a4236bac-a454-4c54-81bf-28f591dceefg.png` |
-
-### 2.2 公共 Header 与 Footer【公共组件引用】
-
-About 页面接入既有 Web / Mobile Header 与 Footer。Header 中类目导航、语言选择、搜索、账户、收藏、购物袋；Footer 中导航、订阅、支付与物流信息均按各自公共组件 PRD 实现。
-
-本页面只定义 About 内容区和两个页面内 CTA；不重复定义公共组件的字段、校验和异常规则。
-
-## 三、多语言、数据与埋点
-
-### 3.1 多语言归属
-
-| 内容类别 | 内容 | 归属与稳定标识 | 缺失译文兜底 |
+| 顺序 | 模块 | 展示内容与操作 | PC / Mobile 差异 |
 |---|---|---|---|
-| 动态业务内容 | Hero 定位与 Slogan、Who We Are 正文、三张信念卡片、五条体验清单、鉴定正文与收束句、转化区标题 | 新建翻译资源卡片 `brand_about_page`；`domain=brand`；`domainName=Looply`；字段见下表 | 展示英文源文案 |
-| 静态 UI 文案 | `About Us`、`Explore Our Authentication Process`、`Discover More` | message package：`about.title`、`about.authentication_cta`、`about.discover_more_cta` | 展示英文默认文案 |
-| 不翻译 | Logo、图标、编号 `01` 至 `05`、图片本体 | 不接入翻译 | 不适用 |
+| 1 | 集团介绍 | 集团与 Looply 的关系、累计售出数据及截止日期 | PC 介绍与数据左右排列；Mobile 上下排列 |
+| 2 | Pre-owned luxury expertise | 团队照片墙、团队经验与累计检查说明、三项能力、鉴定入口 | PC 照片墙下方分列正文与能力；Mobile 按对应稿纵向排列 |
+| 3 | Super Zhuanzhuan | 门店介绍及商品规模，上海、北京两家门店的图库、名称、位置、面积和说明 | PC 两店并列；Mobile 先上海、后北京 |
+| 4 | Sustainability | 可持续发展图文介绍与页面入口 | PC 图文左右；Mobile 按对应稿纵向排列 |
+| 5 | 关联页面 | About 与 Authentication 两张导流卡 | PC 并列；Mobile 上下排列 |
 
-`brand_about_page` 字段：
+集团介绍中的成交、鉴定和商品规模分别随各自说明展示，不将集团数据改写为 Looply 自身业务数据。
 
-| fieldName | 展示面 |
-|---|---|
-| `positioning` | Hero |
-| `slogan` | Hero |
-| `who_we_are_title` | Who We Are |
-| `who_we_are_paragraph_1` 至 `who_we_are_paragraph_5` | Who We Are；展示顺序固定为 `1 → 2 → 3 → 5 → 4`，其中 `1` 与 `4` 使用引言 / 收束句样式 |
-| `beliefs_title` | What We Believe |
-| `belief_1_title` 至 `belief_3_title` | What We Believe |
-| `belief_1_body` 至 `belief_3_body` | What We Believe |
-| `find_title` | What You'll Find on Looply |
-| `find_item_1` 至 `find_item_5` | What You'll Find on Looply |
-| `authentication_title` | Authentication |
-| `authentication_body_1` | Authentication 第一段正文 |
-| `authentication_body_2` | Authentication 第二段正文 |
-| `authentication_closing` | Authentication |
-| `shop_confidence_title` | Shop with Confidence |
+### 4.2 门店图库
 
-### 3.2 埋点
+对应设计：第 1 节 PC／Mobile Our Group 的 Super Zhuanzhuan 门店区域。
 
-| 事件名 | 触发时机 | 必填属性 |
-|---|---|---|
-| `about_page_view` | About 页面首屏成功展示 | `page_surface`、`locale`、`entry_source` |
-| `about_authentication_cta_click` | 点击鉴定入口 | `page_surface`、`locale`、`cta_name=authentication_process` |
-| `about_for_you_cta_click` | 点击 Discover More | `page_surface`、`locale`、`cta_name=discover_more` |
-| `about_mobile_back_click` | Mobile 点击返回 | `locale`、`has_history` |
+1. 上海、北京各 3 张图片，顺序、素材及默认主图按 Figma。
+2. 每个图库包含一张主图及下方 3 个缩略图。首次打开选中第 1 个缩略图，主图展示对应图片。
+3. 点击缩略图，替换本门店主图，并将选中标识移到该缩略图；门店信息保持原内容。
+4. 两个图库独立切换；操作上海图库不改变北京图库，反之亦然。
+5. 切换图片保持主图容器大小。图库由缩略图手动切换；重复点击当前缩略图保持当前状态。
 
-`page_surface` 枚举：
+## 5. Sustainability
 
-| 枚举值 | 含义 | 触发时机 | 记录内容 / 适用场景 |
+### 5.1 模块与排列
+
+| 顺序 | 模块 | 展示内容与操作 | PC / Mobile 差异 |
 |---|---|---|---|
-| `web_pc` | Web PC 页面 | 页面访问与 CTA 点击 | PC 布局访问 |
-| `web_mobile` | Web Mobile 页面 | 页面访问与 CTA 点击 | Mobile 布局访问 |
+| 1 | 可持续发展首屏 | 背景图、主张与介绍 | PC 文字叠在图片上；Mobile 图片与文字分区 |
+| 2 | Sustainability in action | SBTi、CDP、LEED 三张证据卡及对应材料入口 | PC 三列；Mobile 按同顺序纵向排列 |
+| 3 | Rooftop solar | 青岛仓储与鉴定中心配图、减排数据、用电说明 | PC 图文左右；Mobile 上图下文 |
+| 4 | Local action. Global dialogue. | COP28、COP29、COP30、COP31 四条图文内容 | PC 两列两行；Mobile 按年份升序纵排 |
+| 5 | 底部转化区 | 背景图、介绍、购物与卖货两个按钮 | PC 按钮并列；Mobile 购物在上、卖货在下 |
 
-## 四、依赖与风险
+### 5.2 证据与报道入口
 
-| 依赖项 | 关键要求 |
+- 每张证据卡的链接打开对应机构目标页、评分报告或证书，材料与卡片项目对应。
+- 光伏模块中的年份、减排数据及用电说明作为一个内容单元展示，完整保留单位。
+- COP 按 2023 → 2024 → 2025 → 2026 排列。COP28 提供报道入口；其余三条展示图文内容。
+- SBTi 目标页、CDP 评分图片、LEED 证书均在当前标签页打开；图片和 PDF 使用浏览器原生展示。COP28 报道在新标签页打开，保留当前介绍页。
+
+## 6. 正文跳转表
+
+下列英文用于识别入口，最终显示文案取自 Figma。站内目标保留当前语言；表中路径为英文目标。三页互跳以页面名称标识，不将本地 Demo 文件名作为生产地址。
+
+| 页面 / 入口 | 目标 |
 |---|---|
-| Home / For You | 提供稳定的首页 For You 页面入口，供 `Discover More` 跳转 |
-| Authentication 页面 | 提供独立可访问页面，承接鉴定流程、保障适用范围和详情说明 |
-| Header / Footer 公共组件 | 提供与当前 Web / Mobile UI 一致的导航与页脚能力 |
-| 图片与 CDN | 提供已授权的 Hero、三项信念、体验、鉴定和底部转化区图片，并支持按终端裁切 |
-| 翻译中心 | 支持 `brand_about_page` 资源卡片与英文缺失兜底 |
-| 品牌与法务口径 | 在发布前核验 `Los Angeles`、`founded in 2026`、`1.28 million items`、AI 鉴定及 `Lifetime Authenticity Guarantee` 的证明材料、适用范围和用户可见条款 |
+| About / Meet our Group | Our Group |
+| About / Explore our approach to sustainability | Sustainability |
+| About / Explore the collection | 首页：/en-US |
+| About / How selling works | 卖货首页：/en-US/sell |
+| About / Explore our authentication process | 鉴定页：/en-US/authenticity |
+| About / Explore seller services | 卖货首页：/en-US/sell |
+| About / Contact us | 联系页：/en-US/pages/contact |
+| About / Book an appointment | 预约页：/en-US/sell/request |
+| Group / See how Looply authenticates | 鉴定页：/en-US/authenticity |
+| Group / Explore the Group’s sustainability efforts | Sustainability |
+| Group / About Looply | About Looply |
+| Group / Our authentication process | 鉴定页：/en-US/authenticity |
+| Sustainability / Check our targets on SBTi | [SBTi 目标页面](https://sciencebasedtargets.org/target-dashboard) |
+| Sustainability / View 2023 score report | Demo 对应材料：assets/sustainability/cdp-score-2023.png |
+| Sustainability / View certificate | Demo 对应材料：assets/sustainability/leed-gold.pdf |
+| Sustainability / Read the press release | [COP28 英文报道](https://www.prnewswire.com/apac/news-releases/zhuanzhuan-makes-debut-at-cop28-the-first-chinese-secondhand-platform-on-the-global-stage-302015081.html) |
+| Sustainability / Shop pre-owned | 新品集合：/en-US/collections/new-arrivals |
+| Sustainability / Sell to Looply | 卖货首页：/en-US/sell |
 
-## 五、版本规划
+## 7. 接入依赖
 
-### 5.1 当前版本 v0.3
+| 依赖 | 本次要求 |
+|---|---|
+| 目标业务页 | 第 6 节目标承接实际购物、卖货、预约、联系及鉴定流程；介绍页只负责入口 |
+| 证据素材 | 发布后的评分图片、证书文件可访问，内容与对应项目一致；Demo 相对路径只用于定位源材料 |
+| 多语言 | 英文设计稿作为源文案；三页资源字段、静态 UI 标识和缺译结果执行 §7.1 |
+| 数据采集 | 三页访问、18 个正文入口、首图及门店图库手动切换、Mobile 返回、两个 Mobile 来源入口及 Footer 导航统一执行[数据采集与埋点产品需求 v2.1 §8.7](looply-数据采集与埋点产品需求-v2.1.md#87-品牌介绍三页采集补充2026-11-24)；复用原 About 五个点位，自动轮播不记手动操作 |
 
-包含完整 About 展示、PC / Mobile 自适应布局、Authentication 跳转、For You 跳转、图片加载降级、多语言资源定义和基础埋点。
+### 7.1 多语言接入
 
-### 5.2 后续迭代方向
+执行[品牌介绍三页多语言资源映射 v1.0](looply-品牌介绍页-多语言映射-v1.0.md)：延续 About 资源并扩展字段，新建 Group 与 Sustainability 资源；三页 PC／Mobile 共用同一内容源。字段、语种、缺译兜底、固定 UI 标识和资源迁移要求集中维护在该表，文案正文仍只取 Figma。
 
-本版本不定义后续扩展范围。新增品牌故事、内容管理能力或新的转化入口时，另行确认并进入后续版本。
+## 8. 验收要点
 
-## 六、附录
-
-### 6.1 设计稿索引
-
-| 页面 | PC UI | Mobile UI |
-|---|---|---|
-| About Looply | `img_v3_02149_501c101d-c208-460e-b101-11b1ae55d40g.png`；Who We Are 以 2026-08-17 用户截图为最新基线 | `img_v3_02149_a4236bac-a454-4c54-81bf-28f591dceefg.png` |
-
-### 6.2 字段级 UI 对照
-
-| 模块 | PRD 定义 | PC UI | Mobile UI | 结论 |
-|---|---|---|---|---|
-| Hero | 定位 + Slogan + 图片 | 一致 | 一致 | 已对齐 |
-| Who We Are | 标题、居中斜体开篇引言、分隔线、三段左对齐主体正文、居中斜体收束句；顺序 `1 → 2 → 3 → 5 → 4` | 已按 2026-08-17 最新截图更新 | 使用相同文案与顺序；新截图未覆盖 Mobile 的字号与留白 | PC 已对齐；Mobile 需按本内容顺序完成视觉适配 |
-| What We Believe | 3 张图片卡片；统一标题和正文 | 卡片 2 标题展示 `Trust` | Mobile 使用相同标题与正文 | 已按最新确认文案更新 PRD；UI 如仍为旧标题需同步 |
-| What You'll Find | 标题 + 5 项编号清单；PC 右图、Mobile 无图 | 一致 | 一致 | 已对齐 |
-| Authentication | 图片、标题、两段正文、收束句、CTA | 最新截图将首句单独成段，其余正文为第二段 | Mobile 使用相同两段正文顺序 | PRD 已按最新截图更新；Demo v0.2 的单段正文需同步 |
-| Shop with Confidence | 标题 + Discover More 跳转 For You | 一致 | 一致 | 已对齐 |
+1. PC 与 Mobile 分别对照第 1 节对应画板，核对三页模块顺序、文案、素材、重点数字及单位；不以旧 Demo 文案覆盖设计稿。
+2. About 首次展示第 1 张；每 4 秒顺序切换并循环；点击任一指示条可切换到正确图片，选中态和计时同步。
+3. 上海、北京各 3 张图；点击缩略图只更新所属门店，选中态准确，主图区域不因图片变化而改变高度。
+4. 按第 6 节逐项检查目标，特别区分 About 购物入口进入首页、Sustainability 购物入口进入新品集合。
+5. 三张证据卡分别在当前标签页打开对应目标；COP28 在新标签页打开英文报道并保留介绍页。
+6. Mobile 有历史时返回上一页，无历史时进入首页；游客与登录态均可阅读内容与操作入口。
+7. 图片加载失败不遮挡正文和 CTA，不将其他成功模块替换为整页错误。
+8. 各端正文完整显示；窄屏不出现横向溢出、图片挤压文字或按钮遮挡。
+9. 埋点按统一需求 §8.7 验收：检查访问、18 个正文入口、主动图片切换、返回、两个 Mobile 来源入口及 PC Footer；自动轮播与重复选中不补造手动切换事件。
+10. 英／西语分别检查三页及内部跳转；缺少某字段西语译文时仅该字段显示英文，其他译文正常展示；材料原件保持原内容。
+11. H5 游客／登录态分别检查 Account Settings 末尾 About → 四项列表 → 对应内容页，确认顺序、整行点击、国家／语言保留及逐级返回；原 Banner／Feed 仍直达 About Looply。列表直达时返回个人中心。

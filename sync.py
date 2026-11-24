@@ -1057,7 +1057,7 @@ MODULES = {
         'target': 'docs-About',
         'keywords': ['about', 'About', 'About Us', 'about-us', '品牌介绍'],
         'config_key': None,
-        'sidebar_group': 'C端卖场',
+        'sidebar_group': '产品迭代',
         'artifacts': {
             'prd': {
                 'subdir': 'PRD',
