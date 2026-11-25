@@ -1051,25 +1051,13 @@ MODULES = {
             },
         },
     },
-    'cms_iteration': {
-        'name': 'CMS 配置复制与定时上下线',
-        'default_source': '/Users/zz/Documents/Looply/outputs/cms-iteration/document-center',
-        'target': 'docs-CMS配置迭代',
-        'keywords': ['cms_iteration', 'CMS配置迭代'],
-        'config_key': None,
-        'sidebar_group': '产品迭代',
-        'artifacts': {
-            'prd': {'subdir': 'PRD', 'pattern': r'looply-CMS配置复制与定时上下线-迭代PRD-v(.+?)\.md'},
-        },
-        'static_docs': [{'subdir': 'PRD', 'source_subdir': 'PRD', 'filename': 'index.html'}],
-    },
     'about': {
         'name': 'About Looply',
         'default_source': '/Users/zz/Documents/Looply/deliveries/about-us',
         'target': 'docs-About',
         'keywords': ['about', 'About', 'About Us', 'about-us', '品牌介绍'],
         'config_key': None,
-        'sidebar_group': '产品迭代',
+        'sidebar_group': 'C端卖场',
         'artifacts': {
             'prd': {
                 'subdir': 'PRD',
